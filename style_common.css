@@ -1,0 +1,183 @@
+/* =========================================================
+ * style_common.css (v94: Modern Login Styles)
+ * =======================================================*/
+
+:root {
+    --bg-main: #0a0a0a;
+    --bg-panel: #1f1f1f;
+    --bg-input: #333333;
+    
+    --color-cyan: #00bfff;
+    --color-pink: #e94560;
+    --color-gold: #ffd700;
+    --color-text: #e0e0e0;
+    --color-text-sub: #aaaaaa;
+    
+    --border-color: #444444;
+    
+    --grad-blue: linear-gradient(135deg, #0055ff 0%, #0033aa 100%);
+    --grad-cyan: linear-gradient(180deg, #4facfe 0%, #00f2fe 100%);
+    --grad-orange: linear-gradient(180deg, #ff9966 0%, #ff5e62 100%);
+    --grad-gold: linear-gradient(135deg, #f1c40f 0%, #f39c12 100%);
+}
+
+body {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-main);
+    color: var(--color-text);
+    user-select: none;
+}
+
+.view {
+    display: block;
+    padding: 20px;
+    box-sizing: border-box;
+    max-width: 600px;
+    margin: 0 auto;
+    min-height: 100vh;
+    background: var(--bg-panel);
+    border-left: 1px solid #333;
+    border-right: 1px solid #333;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
+
+.hidden { display: none !important; }
+
+/* --- ヘッダー --- */
+.view-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--border-color);
+    padding: 10px 5px;
+    min-height: 40px;
+}
+
+.header-back-btn {
+    background: #333; color: #ccc; border: 1px solid #555;
+    padding: 6px 15px; border-radius: 4px; cursor: pointer;
+    font-size: 0.9em; transition: all 0.2s; white-space: nowrap;
+}
+.header-back-btn:hover { background: #444; color: white; border-color: white; }
+.view-header h2, .view-header h3 { margin: 0; line-height: 1.2; }
+
+/* --- ボタン共通 --- */
+button {
+    cursor: pointer; font-family: inherit; transition: all 0.2s ease;
+    border: none; outline: none;
+}
+button:active { transform: translateY(2px); opacity: 0.8; }
+
+.btn-block {
+    display: block; width: 100%; padding: 12px; margin-bottom: 10px;
+    font-size: 1em; border-radius: 6px; text-align: center;
+    box-sizing: border-box; font-weight: bold; color: white;
+    background: #333; border: 1px solid var(--border-color);
+}
+.btn-block:hover { filter: brightness(1.1); }
+
+.btn-primary { background-color: #0f3460; border-color: #0f3460; }
+.btn-success { background-color: #00b894; border-color: #00b894; }
+.btn-danger  { background-color: var(--color-pink); border-color: var(--color-pink); }
+.btn-warning { background-color: #fce38a; color: #333; border-color: #fce38a; }
+.btn-info    { background-color: var(--color-cyan); color: #333; border-color: var(--color-cyan); }
+.btn-dark    { background-color: #636e72; border-color: #636e72; }
+.btn-mini    { padding: 4px 8px; font-size: 0.85em; border-radius: 4px; cursor: pointer; }
+
+/* --- フォーム要素 --- */
+input[type="text"], input[type="number"], select, textarea {
+    padding: 10px; background: var(--bg-input); border: 1px solid #555;
+    color: #fff; border-radius: 4px; font-size: 1em; box-sizing: border-box;
+}
+input:focus, select:focus { border-color: var(--color-cyan); background: #000; outline: none; }
+
+/* --- Landing & Modern Login Styles --- */
+.landing-view {
+    background: radial-gradient(circle at center, #1a0b2e 0%, #000000 100%);
+    border: none; box-shadow: none; display: flex; align-items: center;
+    justify-content: center; min-height: 100vh; padding: 20px;
+}
+.landing-content { width: 100%; max-width: 350px; text-align: center; }
+
+.landing-logo-emoji {
+    font-size: 80px; margin-bottom: 0;
+    text-shadow: 0 0 30px rgba(255, 255, 100, 0.8), 0 0 60px rgba(255, 165, 0, 0.6);
+    animation: floatLogo 3s ease-in-out infinite alternate;
+}
+@keyframes floatLogo {
+    0% { transform: translateY(0) scale(1); filter: brightness(1); }
+    100% { transform: translateY(-10px) scale(1.05); filter: brightness(1.2); }
+}
+.landing-title {
+    color: #fff; font-family: 'Arial Black', sans-serif; font-size: 2.5em;
+    margin: 10px 0 0 0; text-shadow: 0 0 10px rgba(255, 255, 255, 0.5); letter-spacing: 1px;
+}
+.landing-subtitle {
+    color: #a0a0ff; font-size: 1em; margin: 5px 0 40px 0;
+    font-weight: bold; letter-spacing: 2px; opacity: 0.7;
+}
+
+.landing-btn-area { display: flex; flex-direction: column; gap: 20px; }
+.landing-btn {
+    width: 100%; padding: 18px; border-radius: 50px; border: none;
+    font-size: 1.2em; font-weight: bold; color: white; position: relative;
+    display: flex; align-items: center; justify-content: center; gap: 15px;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.2); margin: 0;
+}
+.landing-btn:active { transform: translateY(4px); }
+
+.btn-host-modern {
+    background: var(--grad-orange);
+    box-shadow: 0 6px 0 #c24e2e, 0 15px 20px rgba(0,0,0,0.4);
+}
+.btn-host-modern:active { box-shadow: 0 0 0 #c24e2e; }
+
+.btn-player-modern {
+    background: var(--grad-cyan);
+    box-shadow: 0 6px 0 #2a7a7d, 0 15px 20px rgba(0,0,0,0.4);
+}
+.btn-player-modern:active { box-shadow: 0 0 0 #2a7a7d; }
+
+/* ★モダン入力フォーム (丸いデザイン) */
+.modern-input {
+    width: 100%; padding: 15px; margin-bottom: 20px;
+    border-radius: 50px; border: 2px solid rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.5); color: #fff;
+    font-size: 1.2em; text-align: center; font-family: monospace; font-weight: bold;
+    outline: none; transition: all 0.3s;
+}
+.modern-input:focus {
+    border-color: #00bfff; background: rgba(0, 0, 0, 0.8);
+    box-shadow: 0 0 15px rgba(0, 191, 255, 0.3);
+}
+.modern-input::placeholder {
+    color: rgba(255, 255, 255, 0.3); font-family: sans-serif; font-weight: normal;
+}
+
+/* ★テキストリンク (戻るボタン用) */
+.text-link-btn {
+    background: none; border: none; color: rgba(255, 255, 255, 0.6);
+    text-decoration: underline; font-size: 0.9em; margin-top: 20px; cursor: pointer;
+}
+.text-link-btn:hover { color: #fff; }
+
+/* その他 */
+#toast-container {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    z-index: 9999; width: 90%; max-width: 400px; pointer-events: none;
+}
+.toast-msg {
+    background: rgba(15, 52, 96, 0.95);
+    color: white; padding: 12px 20px; border-radius: 4px;
+    margin-bottom: 10px; text-align: center; border: 1px solid var(--color-cyan);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5); animation: fadeOut 3s forwards;
+}
+@keyframes fadeOut {
+    0% { opacity: 0; transform: translateY(-20px); }
+    10% { opacity: 1; transform: translateY(0); }
+    80% { opacity: 1; }
+    100% { opacity: 0; }
+}

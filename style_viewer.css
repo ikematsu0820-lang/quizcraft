@@ -1,0 +1,296 @@
+/* =========================================================
+ * style_viewer.css (v72: Z-Index Fix)
+ * =======================================================*/
+
+:root {
+    --main-bg-color: #0a0a0a;
+    --accent-color: #00bfff;
+    --text-main: #ffffff;
+    --text-sub: #a0a0a0;
+    --q-bg-color: rgba(255, 255, 255, 0.05);
+    --c-bg-color: transparent;
+    --font-stack: "Hiragino Kaku Gothic ProN", "Noto Sans JP", Roboto, sans-serif;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--main-bg-color);
+    font-family: var(--font-stack);
+}
+
+#viewer-main-view {
+    background-color: var(--main-bg-color);
+    background-image: radial-gradient(circle at center, #1a1a1a 0%, #000000 100%);
+    color: var(--text-main);
+    
+    /* ★修正: モニター画面を強制的に最前面へ */
+    width: 100vw;
+    height: 100vh;
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    z-index: 2147483647; /* ブラウザの最大値付近 */
+    
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+#viewer-content {
+    width: 90%;
+    height: 90%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+/* ステータス表示 */
+#viewer-status {
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-size: 2.5vh;
+    font-weight: 900;
+    color: var(--accent-color);
+    letter-spacing: 0.1em;
+    text-shadow: 0 0 10px rgba(0, 191, 255, 0.5);
+    z-index: 100;
+}
+
+/* メイン表示エリア */
+#viewer-main-text {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.viewer-layout-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+/* 問題文エリア */
+.q-area {
+    font-size: 5vh;
+    font-weight: 700;
+    line-height: 1.4;
+    color: var(--text-main);
+    text-align: center;
+    border: none;
+    border-left: 6px solid var(--accent-color);
+    background: linear-gradient(90deg, rgba(0,191,255,0.1) 0%, transparent 100%);
+    padding: 40px;
+    margin-bottom: 4vh;
+    width: 90%;
+    border-radius: 4px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    transition: all 0.3s ease;
+}
+
+/* 選択肢エリア */
+.c-area {
+    width: 80%;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5vh;
+}
+
+.choice-item {
+    font-size: 3vh;
+    color: var(--text-sub);
+    padding: 15px 20px;
+    border-bottom: 1px solid #333;
+    display: flex;
+    align-items: center;
+}
+
+.choice-prefix {
+    color: var(--accent-color);
+    font-weight: bold;
+    font-family: 'Arial Black', sans-serif;
+    margin-right: 20px;
+    font-size: 1.2em;
+}
+
+/* 左右分割レイアウト */
+.layout-split-list {
+    flex-direction: row;
+    align-items: stretch;
+}
+.layout-split-list .q-area {
+    width: 30%;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    border-left: none;
+    border-top: 6px solid var(--accent-color);
+    background: linear-gradient(180deg, rgba(0,191,255,0.1) 0%, transparent 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0;
+    margin-right: 4vh;
+}
+.layout-split-list .c-area {
+    width: 60%;
+    justify-content: center;
+}
+
+/* タイムバー */
+#viewer-timer-bar-area {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: #333;
+    z-index: 200;
+}
+#viewer-timer-bar {
+    height: 100%;
+    width: 100%;
+    background-color: var(--accent-color);
+    box-shadow: 0 0 10px var(--accent-color);
+}
+
+/* パネルアタック */
+#viewer-panel-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    width: 80vh;
+    height: 80vh;
+    margin: auto;
+}
+.panel-cell {
+    background: #222;
+    border: 1px solid #444;
+    color: #555;
+    font-size: 4vh;
+    font-weight: bold;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 4px;
+}
+.panel-red { background: #b71c1c !important; color: white !important; box-shadow: 0 0 15px #b71c1c; border:none; }
+.panel-green { background: #1b5e20 !important; color: white !important; box-shadow: 0 0 15px #1b5e20; border:none; }
+.panel-white { background: #f5f5f5 !important; color: #333 !important; box-shadow: 0 0 15px white; border:none; }
+.panel-blue { background: #0d47a1 !important; color: white !important; box-shadow: 0 0 15px #0d47a1; border:none; }
+
+/* 多答カード */
+.card-item {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    color: white;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.card-item.flipped {
+    background: #fff;
+    color: #000;
+}
+.card-number { font-size: 2em; color: #555; }
+
+/* レース */
+.race-lane {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 4px;
+}
+.race-bar {
+    height: 10px;
+    background: var(--accent-color);
+    border-radius: 5px;
+    box-shadow: 0 0 8px var(--accent-color);
+}
+.race-name { color: var(--text-main); font-size: 2vh; }
+.race-score { color: var(--accent-color); font-weight: bold; font-size: 2vh; margin-left: 10px; }
+/* モニター接続画面のレイアウト修正 */
+#viewer-login-view {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start; /* ヘッダーを上に配置 */
+    height: 100vh;
+}
+
+/* フォームエリアを画面の残りのスペースの中央に配置 */
+#viewer-login-view .login-form-area {
+    margin-top: auto;
+    margin-bottom: auto;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    max-width: 350px;
+    /* ヘッダーの分だけ少し上にずらすと視覚的に真ん中に見えます */
+    transform: translateY(-50px); 
+}
+/* --- style_viewer.css 末尾に追加 --- */
+
+/* ★修正: モニター画面の「スマホ化」を解除し、全画面16:9にする設定 */
+
+/* 1. 共通の枠制限（.view）をモニター画面だけ無効化 */
+#viewer-main-view.view {
+    max-width: none !important; /* 600px制限を解除 */
+    width: 100vw !important;
+    height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: #000; /* 余白は黒く */
+    
+    /* 中身をど真ん中に */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* 2. コンテンツエリアを強制的に16:9にする */
+#viewer-content {
+    width: 100%;
+    height: 100%;
+    
+    /* 16:9 の比率を計算して最大サイズを制限 */
+    /* 横長すぎる画面なら、高さに合わせて幅を決める */
+    max-width: 177.78vh; /* 16:9 = 1.777... */
+    
+    /* 縦長すぎる画面なら、幅に合わせて高さを決める */
+    max-height: 56.25vw; /* 9:16 = 0.5625 */
+    
+    margin: auto;
+    position: relative;
+    overflow: hidden; /* はみ出し防止 */
+    
+    /* デザイン調整 */
+    box-shadow: 0 0 50px rgba(0,0,0,0.5); /* 映画館のような影 */
+}
+
+/* 3. フォントサイズ等の調整（画面が大きくなるので微調整） */
+#viewer-main-text {
+    width: 100%;
+    height: 100%;
+}
+
+/* 正解オーバーレイの位置調整 */
+#viewer-main-text > div[style*="position:absolute"] {
+    /* 画面中央に配置されるように */
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: auto !important;
+    white-space: nowrap;
+}
