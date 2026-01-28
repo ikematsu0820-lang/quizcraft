@@ -5,7 +5,7 @@
 let myRoomId = null;
 let myPlayerId = null;
 let myName = "NoName";
-let roomConfig = { mode: 'normal', normalLimit: 'one' }; 
+let roomConfig = { mode: 'normal', normalLimit: 'one' };
 let currentQuestion = null;
 
 let isReanswering = false;
@@ -15,12 +15,12 @@ let localPlayerData = { isAlive: true, lastResult: null };
 
 document.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('join-room-btn');
-    if(btn) btn.onclick = joinRoom;
+    if (btn) btn.onclick = joinRoom;
 
     const buzzBtn = document.getElementById('player-buzz-btn');
-    if(buzzBtn) {
+    if (buzzBtn) {
         buzzBtn.addEventListener('click', () => {
-            if(!myRoomId || !myPlayerId) return;
+            if (!myRoomId || !myPlayerId) return;
             buzzBtn.disabled = true;
             buzzBtn.textContent = "送信中...";
             window.db.ref(`rooms/${myRoomId}/players/${myPlayerId}`).update({
@@ -33,21 +33,21 @@ document.addEventListener('DOMContentLoaded', () => {
 function showPlayerView(viewId) {
     document.querySelectorAll('.view').forEach(el => el.classList.add('hidden'));
     const target = document.getElementById(viewId);
-    if(target) target.classList.remove('hidden');
+    if (target) target.classList.remove('hidden');
 }
 
 function joinRoom() {
     const codeInput = document.getElementById('room-code-input');
     const nameInput = document.getElementById('player-name-input');
-    
+
     const code = codeInput.value.trim().toUpperCase();
     const name = nameInput.value.trim();
-    
-    if(!code || !name) {
+
+    if (!code || !name) {
         alert("部屋コードとニックネームを入力してください");
         return;
     }
-    
+
     const btn = document.getElementById('join-room-btn');
     btn.disabled = true;
     btn.textContent = "接続中...";
@@ -63,7 +63,7 @@ function joinRoom() {
         const val = snap.val();
         const currentPlayers = val.players || {};
         const count = Object.keys(currentPlayers).length;
-        
+
         if (count >= 8) {
             alert("申し訳ありません、この部屋は満員です (定員8名)");
             btn.disabled = false;
@@ -73,11 +73,11 @@ function joinRoom() {
 
         myRoomId = code;
         myName = name;
-        
+
         const playersRef = window.db.ref(`rooms/${code}/players`);
         const newPlayerRef = playersRef.push();
         myPlayerId = newPlayerRef.key;
-        
+
         newPlayerRef.set({
             name: name,
             isAlive: true,
@@ -104,9 +104,9 @@ function startPlayerListener(roomId, playerId) {
 
     myRef.on('value', snap => {
         const val = snap.val();
-        if(!val) return;
-        localPlayerData = val; 
-        updateUI(); 
+        if (!val) return;
+        localPlayerData = val;
+        updateUI();
     });
 
     configRef.on('value', snap => {
@@ -115,27 +115,73 @@ function startPlayerListener(roomId, playerId) {
 
     statusRef.on('value', snap => {
         const st = snap.val();
-        if(!st) return;
-        localStatus = st; 
-        
+        if (!st) return;
+
+        // --- Production: Detect step change for animation ---
+        if (localStatus.step !== st.step) {
+            triggerStepAnimation(st.step);
+        }
+
+        // --- Production: Global Buzz Detection ---
+        if (st.currentAnswerer && st.currentAnswerer !== localStatus.currentAnswerer) {
+            showGlobalBuzzNotification(st.currentAnswerer);
+        }
+
+        localStatus = st;
+
         if (st.step === 'answering' || st.step === 'question') {
-             window.db.ref(`rooms/${roomId}/questions/${st.qIndex}`).once('value', qSnap => {
+            window.db.ref(`rooms/${roomId}/questions/${st.qIndex}`).once('value', qSnap => {
                 const q = qSnap.val();
-                if(q) {
+                if (q) {
                     currentQuestion = q;
                     renderPlayerQuestion(q, roomId, playerId);
                     updateUI(); // 描画後にUI状態を適用
                 }
             });
         }
-        updateUI(); 
+        updateUI();
     });
+}
+
+function triggerStepAnimation(step) {
+    const main = document.getElementById('player-game-view');
+    if (!main) return;
+
+    // Quick flash or pop depending on step
+    if (step === 'ready') main.classList.add('anim-pop-in');
+    else if (step === 'question') main.classList.add('anim-slide-up');
+
+    setTimeout(() => {
+        main.classList.remove('anim-pop-in', 'anim-slide-up');
+    }, 1000);
+}
+
+function showGlobalBuzzNotification(answererId) {
+    // Fetch name from Firebase (simplified for now: just show "BUZZ!")
+    const overlay = document.createElement('div');
+    overlay.id = 'global-buzz-overlay';
+    overlay.textContent = "BUZZ!!";
+    document.body.appendChild(overlay);
+
+    // Beat animation on status bar
+    const bar = document.getElementById('player-status-bar');
+    if (bar) {
+        bar.classList.add('update');
+        setTimeout(() => bar.classList.remove('update'), 300);
+    }
+
+    setTimeout(() => {
+        overlay.style.transition = "opacity 0.3s, transform 0.3s";
+        overlay.style.opacity = "0";
+        overlay.style.transform = "translate(-50%, -50%) scale(1.5)";
+        setTimeout(() => overlay.remove(), 300);
+    }, 1200);
 }
 
 function updateUI() {
     const st = localStatus;
     const p = localPlayerData;
-    
+
     const badge = document.getElementById('alive-badge');
     if (p.isAlive) {
         badge.textContent = "ENTRY"; badge.style.background = "#00bfff"; badge.style.color = "#000";
@@ -144,7 +190,7 @@ function updateUI() {
         badge.textContent = "LOSE"; badge.style.background = "#555"; badge.style.color = "#aaa";
         document.getElementById('player-dead-overlay').classList.remove('hidden');
     }
-    
+
     if (p.periodScore !== undefined) {
         document.getElementById('score-display-area').classList.remove('hidden');
         document.getElementById('current-score-value').textContent = p.periodScore;
@@ -163,8 +209,8 @@ function updateUI() {
     lobby.classList.add('hidden');
     waitMsg.classList.add('hidden');
     resultOverlay.classList.add('hidden');
-    rankingOverlay.classList.add('hidden'); 
-    
+    rankingOverlay.classList.add('hidden');
+
     // クイズエリア（問題文・選択肢）は、待機中以外は基本表示する方針に変更
     if (st.step === 'question' || st.step === 'answering' || st.step === 'answer') {
         quizArea.classList.remove('hidden');
@@ -175,114 +221,77 @@ function updateUI() {
     }
 
     // --- 状態ごとのUI制御 ---
-
     if (st.step === 'standby') {
         lobby.classList.remove('hidden');
-        if (st.qIndex === 0) {
-            lobby.innerHTML = `<h3>STANDBY</h3><p>ホストが準備中です...</p>`;
-        } else {
-            lobby.innerHTML = `<div style="text-align:center; color:#555; margin-top:50px;">Waiting...</div>`;
-        }
+        lobby.innerHTML = `<div class="lobby-icon">⏳</div><h3>STANDBY</h3><p>司会者の合図を待っています...</p>`;
         isReanswering = false;
-        if(changeArea) changeArea.innerHTML = ''; 
+        if (changeArea) changeArea.innerHTML = '';
+        quizArea.classList.add('hidden');
     }
-    else if (st.step === 'ready') {
-        lobby.classList.remove('hidden');
-        lobby.innerHTML = `<h3>ARE YOU READY?</h3><p>まもなく開始します</p>`;
-        isReanswering = false;
-        if(changeArea) changeArea.innerHTML = '';
-    }
-    else if (st.step === 'question') {
-        // 出題中（まだ回答開始前）
-        if (roomConfig.mode === 'buzz') {
-            // 早押しの場合、ボタンは見せるが、選択肢はロック
-            if (!p.lastResult) {
-                buzzArea.classList.remove('hidden');
-                toggleInputEnabled(false); // 選択肢ロック
-                
-                // ボタンの見た目リセット
-                const btn = document.getElementById('player-buzz-btn');
-                btn.disabled = false; 
-                btn.textContent = "PUSH!";
-                btn.style.background = "radial-gradient(circle at 30% 30%, #ff6b6b, #c0392b)";
-            } else {
-                showLoserMessage(lobby, buzzArea);
-            }
-        } else {
-            // 一斉回答ならすぐ入力可
-            handleNormalResponseUI(p, quizArea, waitMsg);
-            toggleInputEnabled(true);
-        }
+    else if (st.step === 'reveal_q') {
+        // 出題中（表示のみ、回答不可）
+        quizArea.classList.remove('hidden');
+        toggleInputEnabled(false);
     }
     else if (st.step === 'answering') {
+        quizArea.classList.remove('hidden');
         if (roomConfig.mode === 'buzz') {
             // 早押しモード
             if (p.lastResult === 'lose') {
-                // 自分が既に間違えている場合
                 showLoserMessage(lobby, buzzArea);
                 toggleInputEnabled(false);
-            } 
+            }
             else if (st.isBuzzActive) {
-                // 早押し受付中
                 buzzArea.classList.remove('hidden');
-                toggleInputEnabled(false); // まだ押してないので選択肢はロック
-                
+                toggleInputEnabled(false);
                 const btn = document.getElementById('player-buzz-btn');
                 if (p.buzzTime) {
-                    // 自分は押した（承認待ち）
-                    btn.disabled = true; 
-                    btn.textContent = "承認待ち..."; 
+                    btn.disabled = true;
+                    btn.textContent = "回答権確認中...";
                     btn.style.background = "#555";
                 } else {
-                    // まだ押してない
-                    btn.disabled = false; 
-                    btn.textContent = "PUSH!"; 
+                    btn.disabled = false;
+                    btn.textContent = "PUSH!";
                     btn.style.background = "radial-gradient(circle at 30% 30%, #ff6b6b, #c0392b)";
                 }
-            } 
+            }
             else if (st.currentAnswerer === myPlayerId) {
-                // ★自分が回答権獲得！
-                buzzArea.classList.add('hidden'); // ボタン消す
-                toggleInputEnabled(true); // 選択肢ロック解除！
-                
-                handleNormalResponseUI(p, quizArea, waitMsg);
-            } 
-            else {
-                // ★他の人が回答中
                 buzzArea.classList.add('hidden');
-                toggleInputEnabled(false); // 選択肢ロック
-                
-                // 画面を隠さず、下部にステータスだけ出す
+                toggleInputEnabled(true);
+                handleNormalResponseUI(p, quizArea, waitMsg);
+            }
+            else {
+                buzzArea.classList.add('hidden');
+                toggleInputEnabled(false);
                 waitMsg.classList.remove('hidden');
-                waitMsg.style.background = "#333";
-                waitMsg.style.color = "#e94560";
-                waitMsg.style.border = "1px solid #e94560";
                 waitMsg.innerHTML = "🔒 <b>LOCKED</b><br>他のプレイヤーが回答中です...";
             }
         } else {
-            // 通常モード
+            // 通常一斉回答
             handleNormalResponseUI(p, quizArea, waitMsg);
             toggleInputEnabled(true);
         }
     }
-    else if (st.step === 'result') {
-        isReanswering = false;
-        if(changeArea) changeArea.innerHTML = '';
-        
-        // 結果待ち
-        quizArea.classList.add('hidden'); 
+    else if (st.step === 'closed') {
+        quizArea.classList.remove('hidden');
+        toggleInputEnabled(false);
         waitMsg.classList.remove('hidden');
-        waitMsg.style.background = "#444";
-        waitMsg.style.color = "#ccc";
-        waitMsg.style.border = "none";
-        waitMsg.textContent = "回答を締め切りました。正解発表を待っています...";
+        waitMsg.style.background = "rgba(255, 75, 43, 0.1)";
+        waitMsg.style.color = "#ff4b2b";
+        waitMsg.style.border = "1px solid #ff4b2b";
+        waitMsg.innerHTML = "<b>TIME UP!</b><br>解答を締め切りました";
     }
-    else if (st.step === 'answer') {
-        if(changeArea) changeArea.innerHTML = '';
-        if(currentQuestion) {
-            // 正解表示
-            renderResultScreen(p);
-        }
+    else if (st.step === 'reveal_player') {
+        quizArea.classList.remove('hidden');
+        toggleInputEnabled(false);
+        waitMsg.classList.remove('hidden');
+        waitMsg.innerHTML = `<div class="status-badge" style="background:#9b59b6;">REVEAL</div><p style="margin-top:10px;">全員の回答を表示しています</p>`;
+    }
+    else if (st.step === 'reveal_correct') {
+        if (currentQuestion) renderResultScreen(p, true);
+    }
+    else if (st.step === 'judging') {
+        if (currentQuestion) renderResultScreen(p, false); // No commentary at judging if repetitive
     }
     else if (st.step === 'final_ranking') {
         showFinalResult(myRoomId, myPlayerId);
@@ -292,8 +301,8 @@ function updateUI() {
 // ★追加: 入力エリア（選択肢など）の有効/無効切り替え
 function toggleInputEnabled(enabled) {
     const cont = document.getElementById('player-input-container');
-    if(!cont) return;
-    
+    if (!cont) return;
+
     if (enabled) {
         cont.style.opacity = "1";
         cont.style.pointerEvents = "auto";
@@ -317,7 +326,7 @@ function handleNormalResponseUI(p, quizArea, waitMsg) {
             if (isReanswering) {
                 unlockChoices();
                 const area = document.getElementById('change-btn-area');
-                if(area) area.innerHTML = ''; 
+                if (area) area.innerHTML = '';
             } else {
                 lockChoices(p.lastAnswer);
                 renderChangeButton();
@@ -335,7 +344,7 @@ function handleNormalResponseUI(p, quizArea, waitMsg) {
     } else {
         unlockChoices();
         const area = document.getElementById('change-btn-area');
-        if(area) area.innerHTML = '';
+        if (area) area.innerHTML = '';
     }
 }
 
@@ -360,8 +369,8 @@ function renderChangeButton() {
 function renderResultScreen(p) {
     const ansBox = document.getElementById('player-input-container');
     let correctText = "";
-    if(currentQuestion.type === 'choice') {
-        if(Array.isArray(currentQuestion.correct)) correctText = currentQuestion.correct.map(i => currentQuestion.c[i]).join(' / ');
+    if (currentQuestion.type === 'choice') {
+        if (Array.isArray(currentQuestion.correct)) correctText = currentQuestion.correct.map(i => currentQuestion.c[i]).join(' / ');
         else correctText = currentQuestion.c[currentQuestion.correct];
     } else if (currentQuestion.type === 'letter_select' && currentQuestion.steps) {
         correctText = currentQuestion.steps.map(s => s.correct).join('');
@@ -370,18 +379,22 @@ function renderResultScreen(p) {
     }
 
     let myAnsText = p.lastAnswer || "(未回答)";
-    if(p.lastAnswer !== null && currentQuestion.type === 'choice') {
+    if (p.lastAnswer !== null && currentQuestion.type === 'choice') {
         const idx = parseInt(p.lastAnswer);
-        if(!isNaN(idx) && currentQuestion.c && currentQuestion.c[idx]) {
+        if (!isNaN(idx) && currentQuestion.c && currentQuestion.c[idx]) {
             myAnsText = currentQuestion.c[idx];
         }
     }
-    
+
     let judgeHtml = '';
     if (p.lastResult === 'win') {
-        judgeHtml = `<div style="background:#00b894; color:#fff; padding:10px; border-radius:8px; font-weight:bold; font-size:1.5em; text-align:center; margin-bottom:15px; border:2px solid #fff; box-shadow:0 0 15px #00b894;">⭕️ 正解！</div>`;
+        judgeHtml = `<div class="anim-pop-in" style="background:#00b894; color:#fff; padding:10px; border-radius:8px; font-weight:bold; font-size:1.5em; text-align:center; margin-bottom:15px; border:2px solid #fff; box-shadow:0 0 15px #00b894;">⭕️ 正解！</div>`;
+        document.body.classList.add('flash-correct');
+        setTimeout(() => document.body.classList.remove('flash-correct'), 600);
     } else if (p.lastResult === 'lose') {
-        judgeHtml = `<div style="background:#e94560; color:#fff; padding:10px; border-radius:8px; font-weight:bold; font-size:1.5em; text-align:center; margin-bottom:15px; border:2px solid #fff; box-shadow:0 0 15px #e94560;">❌ 不正解...</div>`;
+        judgeHtml = `<div class="anim-pop-in" style="background:#e94560; color:#fff; padding:10px; border-radius:8px; font-weight:bold; font-size:1.5em; text-align:center; margin-bottom:15px; border:2px solid #fff; box-shadow:0 0 15px #e94560;">❌ 不正解...</div>`;
+        document.body.classList.add('flash-wrong');
+        setTimeout(() => document.body.classList.remove('flash-wrong'), 600);
     }
 
     ansBox.innerHTML = `
@@ -402,18 +415,18 @@ function renderResultScreen(p) {
 function showFinalResult(roomId, myId) {
     const overlay = document.getElementById('player-ranking-overlay');
     overlay.classList.remove('hidden');
-    
+
     window.db.ref(`rooms/${roomId}/players`).once('value', snap => {
         const players = snap.val() || {};
         const arr = Object.keys(players).map(k => ({
             id: k,
             name: players[k].name,
             score: players[k].periodScore || 0
-        })).sort((a,b) => b.score - a.score);
+        })).sort((a, b) => b.score - a.score);
 
         const myRankIdx = arr.findIndex(p => p.id === myId);
         const myData = arr[myRankIdx];
-        
+
         if (myData) {
             document.getElementById('player-my-rank').textContent = `${myRankIdx + 1}位`;
             document.getElementById('player-my-score').textContent = `${myData.score}点`;
@@ -429,8 +442,8 @@ function showFinalResult(roomId, myId) {
             div.style.borderBottom = '1px solid #444';
             div.style.color = (p.id === myId) ? '#00bfff' : '#fff';
             div.style.fontWeight = (p.id === myId) ? 'bold' : 'normal';
-            
-            div.innerHTML = `<span>${i+1}. ${p.name}</span><span>${p.score}pt</span>`;
+
+            div.innerHTML = `<span>${i + 1}. ${p.name}</span><span>${p.score}pt</span>`;
             list.appendChild(div);
         });
     });
@@ -439,7 +452,7 @@ function showFinalResult(roomId, myId) {
 function lockChoices(selectedIndex) {
     const btns = document.querySelectorAll('.answer-btn');
     btns.forEach(btn => {
-        btn.disabled = true; 
+        btn.disabled = true;
         if (btn.dataset.ans == selectedIndex) {
             btn.classList.add('btn-selected');
             btn.classList.remove('btn-dimmed');
@@ -460,7 +473,7 @@ function unlockChoices() {
 
 function openConfirmModal() {
     const old = document.getElementById('confirm-modal-overlay');
-    if(old) old.remove();
+    if (old) old.remove();
 
     const html = `
         <div id="confirm-modal-overlay" class="confirm-modal-overlay">
@@ -477,7 +490,7 @@ function openConfirmModal() {
 
     document.getElementById('btn-yes').onclick = () => {
         isReanswering = true;
-        updateUI(); 
+        updateUI();
         document.getElementById('confirm-modal-overlay').remove();
     };
     document.getElementById('btn-no').onclick = () => {
@@ -488,11 +501,14 @@ function openConfirmModal() {
 function renderPlayerQuestion(q, roomId, playerId) {
     const inputCont = document.getElementById('player-input-container');
     const qText = document.getElementById('question-text-disp');
-    
+
     const changeArea = document.getElementById('change-btn-area');
-    if(changeArea) changeArea.innerHTML = '';
+    if (changeArea) changeArea.innerHTML = '';
 
     qText.textContent = q.q;
+    qText.classList.add('new-q');
+    setTimeout(() => qText.classList.remove('new-q'), 600);
+
     inputCont.innerHTML = '';
 
     if (q.type === 'choice') {
@@ -505,16 +521,16 @@ function renderPlayerQuestion(q, roomId, playerId) {
         }
         choices.forEach((item, i) => {
             const btn = document.createElement('button');
-            btn.className = 'answer-btn'; 
+            btn.className = 'answer-btn';
             btn.textContent = item.text;
             btn.dataset.ans = item.originalIndex;
-            
-            if(i===0) btn.classList.add('btn-blue');
-            else if(i===1) btn.classList.add('btn-red');
-            else if(i===2) btn.classList.add('btn-green');
+
+            if (i === 0) btn.classList.add('btn-blue');
+            else if (i === 1) btn.classList.add('btn-red');
+            else if (i === 2) btn.classList.add('btn-green');
             else btn.classList.add('btn-yellow');
 
-            btn.onclick = () => submitAnswer(roomId, playerId, item.originalIndex); 
+            btn.onclick = () => submitAnswer(roomId, playerId, item.originalIndex);
             inputCont.appendChild(btn);
         });
     }
@@ -536,17 +552,17 @@ function renderPlayerQuestion(q, roomId, playerId) {
             [pool[i], pool[j]] = [pool[j], pool[i]];
         }
         const displayBox = document.createElement('div');
-        displayBox.className = 'letter-display-box'; 
+        displayBox.className = 'letter-display-box';
         displayBox.style.background = "#fff"; displayBox.style.color = "#000"; displayBox.style.padding = "10px";
         displayBox.style.fontSize = "24px"; displayBox.style.fontWeight = "bold"; displayBox.style.textAlign = "center";
         displayBox.style.marginBottom = "15px"; displayBox.style.borderRadius = "8px"; displayBox.style.minHeight = "50px";
-        displayBox.textContent = ""; 
+        displayBox.textContent = "";
         inputCont.appendChild(displayBox);
         const grid = document.createElement('div');
         grid.style.display = "grid"; grid.style.gridTemplateColumns = "repeat(5, 1fr)"; grid.style.gap = "8px"; grid.style.marginBottom = "15px";
         pool.forEach(char => {
             const btn = document.createElement('button');
-            btn.textContent = char; btn.className = 'letter-panel-btn'; 
+            btn.textContent = char; btn.className = 'letter-panel-btn';
             btn.onclick = () => { if (displayBox.textContent.length < 20) displayBox.textContent += char; };
             grid.appendChild(btn);
         });
@@ -564,6 +580,99 @@ function renderPlayerQuestion(q, roomId, playerId) {
         };
         controlRow.appendChild(clearBtn); controlRow.appendChild(submitBtn); inputCont.appendChild(controlRow);
     }
+    else if (q.type === 'sort') {
+        const selectedIndices = [];
+        const items = q.c || [];
+
+        const renderSortInput = () => {
+            inputCont.innerHTML = '';
+
+            // 1. Display Area (Order chosen)
+            const displayArea = document.createElement('div');
+            displayArea.className = 'sort-display-area';
+
+            selectedIndices.forEach((idx, order) => {
+                const label = String.fromCharCode(65 + idx);
+                const badge = document.createElement('div');
+                badge.className = 'sort-item-badge';
+                badge.innerHTML = `<span class="sort-item-order">${order + 1}</span> <span style="font-weight:900; color:var(--color-primary); margin-right:8px;">[${label}]</span> ${items[idx]}`;
+                displayArea.appendChild(badge);
+            });
+
+            if (selectedIndices.length === 0) {
+                displayArea.innerHTML = '<div class="empty-sort-msg">項目をタップして順に並べてください</div>';
+            }
+
+            inputCont.appendChild(displayArea);
+
+            // 2. Choice Grid
+            const grid = document.createElement('div');
+            grid.style.cssText = 'display:grid; grid-template-columns:1fr; gap:10px; margin-bottom:20px;';
+
+            items.forEach((txt, i) => {
+                const isSelected = selectedIndices.includes(i);
+                const label = String.fromCharCode(65 + i);
+                const btn = document.createElement('button');
+                btn.className = 'answer-btn';
+                btn.style.margin = '0';
+                btn.style.textAlign = 'left';
+                btn.innerHTML = `<span style="color:var(--color-primary); font-weight:900; margin-right:10px;">${label}</span> ${txt}`;
+                btn.disabled = isSelected;
+
+                if (isSelected) {
+                    btn.classList.add('btn-dimmed');
+                } else {
+                    btn.style.background = 'rgba(255,255,255,0.05)';
+                    btn.style.border = '1px solid rgba(255,255,255,0.2)';
+                }
+
+                btn.onclick = () => {
+                    selectedIndices.push(i);
+                    renderSortInput();
+                };
+                grid.appendChild(btn);
+            });
+            inputCont.appendChild(grid);
+
+            // 3. Actions
+            const actionRow = document.createElement('div');
+            actionRow.style.cssText = 'display:grid; grid-template-columns:1fr 2fr; gap:15px; margin-top:20px;';
+
+            const clearBtn = document.createElement('button');
+            clearBtn.className = 'btn-confirm-no';
+            clearBtn.style.padding = '15px';
+            clearBtn.style.borderRadius = '12px';
+            clearBtn.textContent = 'クリア';
+            clearBtn.onclick = () => {
+                selectedIndices.length = 0;
+                renderSortInput();
+            };
+
+            const submitBtn = document.createElement('button');
+            submitBtn.className = 'btn-primary';
+            submitBtn.style.padding = '15px';
+            submitBtn.style.borderRadius = '12px';
+            submitBtn.style.fontWeight = '900';
+            submitBtn.textContent = 'OK / 送信';
+            submitBtn.disabled = (selectedIndices.length !== items.length);
+
+            if (submitBtn.disabled) {
+                submitBtn.style.opacity = '0.3';
+            }
+
+            submitBtn.onclick = () => {
+                // A, B, C...形式で送信
+                const answer = selectedIndices.map(idx => String.fromCharCode(65 + idx)).join('');
+                submitAnswer(roomId, playerId, answer);
+            };
+
+            actionRow.appendChild(clearBtn);
+            actionRow.appendChild(submitBtn);
+            inputCont.appendChild(actionRow);
+        };
+
+        renderSortInput();
+    }
     else if (q.type === 'free_oral') {
         document.getElementById('player-oral-done-area').classList.remove('hidden');
         document.getElementById('player-oral-done-btn').onclick = () => { submitAnswer(roomId, playerId, "[Oral]"); };
@@ -574,7 +683,7 @@ function renderPlayerQuestion(q, roomId, playerId) {
         const sub = document.createElement('button');
         sub.className = 'btn-primary btn-block'; sub.textContent = '送信';
         sub.onclick = () => {
-            if(inp.value.trim() === "") return;
+            if (inp.value.trim() === "") return;
             submitAnswer(roomId, playerId, inp.value.trim());
         };
         inputCont.appendChild(inp); inputCont.appendChild(sub);

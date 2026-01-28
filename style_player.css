@@ -1,17 +1,18 @@
 /* =========================================================
- * style_player.css (v122: Complete Version)
+ * style_player.css (v200: Premium Unified Design)
  * =======================================================*/
 
 /* ベースデザイン */
 #player-game-view {
-    background: radial-gradient(circle at center, #1a0b2e 0%, #000000 100%);
+    /* Background handled by body in style_common.css */
     color: #fff;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
     padding: 20px;
     box-sizing: border-box;
-    font-family: "Helvetica Neue", Arial, sans-serif;
+    /* font-family inherited */
+    background: transparent;
 }
 
 /* ヘッダーバー */
@@ -19,113 +20,456 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: rgba(255, 255, 255, 0.1);
-    padding: 10px 20px;
+    background: var(--bg-glass);
+    padding: 12px 20px;
     border-radius: 50px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    margin-bottom: 20px;
-    backdrop-filter: blur(5px);
+    border: var(--border-glass);
+    margin-bottom: 25px;
+    backdrop-filter: blur(12px);
+    box-shadow: var(--shadow-soft);
 }
-.player-name { font-weight: bold; font-size: 1.1em; color: #00bfff; text-shadow: 0 0 5px rgba(0, 191, 255, 0.5); }
-.alive-badge { background: #333; color: #aaa; font-size: 0.8em; padding: 4px 10px; border-radius: 20px; }
-.score-area { text-align: center; font-size: 1.5em; font-weight: 900; margin-bottom: 20px; color: #ffd700; text-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+
+.player-name {
+    font-weight: 800;
+    font-size: 1.1em;
+    color: var(--color-primary);
+    text-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
+}
+
+.alive-badge {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ccc;
+    font-size: 0.8em;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: bold;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.score-area {
+    text-align: center;
+    font-size: 1.8em;
+    font-weight: 900;
+    margin-bottom: 20px;
+    color: var(--color-accent);
+    text-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+    letter-spacing: 1px;
+}
 
 /* 待機メッセージ */
-.lobby-msg { text-align: center; margin-top: 50px; color: #aaa; animation: pulse 2s infinite; }
-.lobby-msg h3 { color: #fff; font-size: 1.5em; margin-bottom: 10px; }
-@keyframes pulse { 0% { opacity: 0.7; } 50% { opacity: 1; } 100% { opacity: 0.7; } }
+.lobby-msg {
+    text-align: center;
+    margin-top: 50px;
+    color: var(--color-text-sub);
+    animation: pulse 2s infinite;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.lobby-msg h3 {
+    color: #fff;
+    font-size: 1.5em;
+    margin-bottom: 10px;
+    font-weight: 800;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 0.7;
+    }
+
+    50% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0.7;
+    }
+}
 
 /* 問題文エリア */
 .player-q-text {
-    background: rgba(0, 0, 0, 0.6);
-    border: 1px solid #444; padding: 20px; border-radius: 10px;
-    font-size: 1.1em; font-weight: bold; margin-bottom: 20px; line-height: 1.5;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    background: var(--bg-glass);
+    border: var(--border-glass);
+    padding: 25px;
+    border-radius: 16px;
+    font-size: 1.2em;
+    font-weight: 700;
+    margin-bottom: 25px;
+    line-height: 1.6;
+    box-shadow: var(--shadow-soft);
+    backdrop-filter: blur(10px);
 }
 
 /* 回答ボタン */
 .answer-btn {
-    display: block; width: 100%; padding: 18px; margin-bottom: 15px;
-    border: none; border-radius: 50px; font-size: 1.1em; font-weight: bold; color: #fff;
-    cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden;
-    text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+    display: block;
+    width: 100%;
+    padding: 20px;
+    margin-bottom: 15px;
+    border: none;
+    border-radius: 16px;
+    font-size: 1.25em;
+    font-weight: 800;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
-.answer-btn:active { transform: scale(0.98); }
+
+.answer-btn:active {
+    transform: scale(0.97);
+}
 
 /* 色バリエーション */
-.btn-blue   { background: linear-gradient(135deg, #0055ff 0%, #0033aa 100%); box-shadow: 0 4px 0 #002277; }
-.btn-red    { background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%); box-shadow: 0 4px 0 #990000; }
-.btn-green  { background: linear-gradient(135deg, #00cc66 0%, #008844 100%); box-shadow: 0 4px 0 #005522; }
-.btn-yellow { background: linear-gradient(135deg, #f1c40f 0%, #f39c12 100%); box-shadow: 0 4px 0 #c27c0e; color: #000; text-shadow: none; }
+.btn-blue {
+    background: var(--grad-primary);
+    box-shadow: 0 8px 20px rgba(0, 114, 255, 0.3);
+}
 
-/* ★追加: 選択状態のスタイル */
+.btn-red {
+    background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+    box-shadow: 0 8px 20px rgba(255, 75, 43, 0.3);
+}
+
+.btn-green {
+    background: linear-gradient(135deg, #00b09b 0%, #96c93d 100%);
+    box-shadow: 0 8px 20px rgba(150, 201, 61, 0.3);
+}
+
+.btn-yellow {
+    background: var(--grad-gold);
+    box-shadow: 0 8px 20px rgba(241, 196, 15, 0.3);
+    color: #000;
+}
+
 .answer-btn.btn-dimmed {
-    opacity: 0.2;
+    opacity: 0.3;
     filter: grayscale(100%);
-    transform: scale(0.95);
-    pointer-events: none; /* クリック不可 */
+    transform: scale(0.96);
+    pointer-events: none;
     box-shadow: none;
 }
+
 .answer-btn.btn-selected {
     opacity: 1;
-    transform: scale(1.05);
-    border: 3px solid #fff;
-    box-shadow: 0 0 20px rgba(255,255,255,0.5);
+    transform: scale(1.03);
+    border: 2px solid #fff;
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.4);
     z-index: 10;
 }
 
-/* ★追加: 答えを変更するボタン */
+/* 答えを変更するボタン */
 .btn-change-answer {
-    background: #444; border: 2px solid #aaa; color: #fff;
-    width: 80%; margin: 20px auto 0; padding: 15px;
-    border-radius: 50px; font-weight: bold; cursor: pointer;
-    display: block; text-align: center;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #fff;
+    width: 80%;
+    margin: 25px auto 0;
+    padding: 15px;
+    border-radius: 50px;
+    font-weight: bold;
+    cursor: pointer;
+    display: block;
+    text-align: center;
+    backdrop-filter: blur(5px);
+    transition: all 0.2s;
     animation: fadeInUp 0.3s ease-out;
 }
-.btn-change-answer:hover { background: #555; border-color: #fff; }
-@keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+.btn-change-answer:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: #fff;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
 
 /* 確認モーダル */
 .confirm-modal-overlay {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.8); z-index: 2000;
-    display: flex; justify-content: center; align-items: center;
-    backdrop-filter: blur(3px);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 2000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(8px);
 }
+
 .confirm-modal {
-    background: #fff; color: #333; padding: 25px; border-radius: 15px;
-    width: 80%; max-width: 300px; text-align: center;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    background: #222;
+    color: #fff;
+    padding: 30px;
+    border-radius: 20px;
+    width: 85%;
+    max-width: 320px;
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
-.confirm-modal h3 { margin: 0 0 15px 0; font-size: 1.2em; }
-.confirm-btns { display: flex; gap: 10px; justify-content: center; margin-top: 20px; }
-.btn-confirm-yes { background: #ff4d4d; color: #fff; border: none; padding: 10px 20px; border-radius: 30px; font-weight: bold; flex: 1; }
-.btn-confirm-no { background: #ddd; color: #333; border: none; padding: 10px 20px; border-radius: 30px; font-weight: bold; flex: 1; }
+
+.confirm-modal h3 {
+    margin: 0 0 20px 0;
+    font-size: 1.3em;
+    font-weight: 800;
+}
+
+.confirm-btns {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.btn-confirm-yes {
+    background: var(--color-danger);
+    color: #fff;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 50px;
+    font-weight: bold;
+    flex: 1;
+    margin: 0;
+}
+
+.btn-confirm-no {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ddd;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 50px;
+    font-weight: bold;
+    flex: 1;
+    margin: 0;
+}
 
 /* その他の要素 */
 .buzz-btn {
-    width: 200px; height: 200px; border-radius: 50%;
+    width: 220px;
+    height: 220px;
+    border-radius: 50%;
     background: radial-gradient(circle at 30% 30%, #ff6b6b, #c0392b);
-    border: 8px solid #a93226; color: #fff; font-size: 2em; font-weight: 900;
-    box-shadow: 0 15px 30px rgba(231, 76, 60, 0.4), inset 0 5px 20px rgba(255,255,255,0.4);
-    cursor: pointer; margin: 30px auto; display: flex; justify-content: center; align-items: center;
-    text-shadow: 0 2px 5px rgba(0,0,0,0.3); transition: all 0.1s;
+    border: 6px solid #a93226;
+    color: #fff;
+    font-size: 2.2em;
+    font-weight: 900;
+    box-shadow: 0 20px 50px rgba(231, 76, 60, 0.5), inset 0 5px 20px rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    margin: 30px auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    transition: all 0.1s;
 }
-.buzz-btn:active { transform: translateY(5px); box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4); }
-.buzz-btn:disabled { filter: grayscale(1); opacity: 0.5; cursor: not-allowed; }
+
+.buzz-btn:active {
+    transform: scale(0.95);
+    box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+}
+
+.buzz-btn:disabled {
+    filter: grayscale(1);
+    opacity: 0.5;
+    cursor: not-allowed;
+}
 
 .letter-panel-btn {
-    background: linear-gradient(to bottom, #444, #222);
-    border: 1px solid #666; border-radius: 8px; color: #fff; font-size: 1.5em; font-weight: bold; box-shadow: 0 4px 0 #111;
+    background: linear-gradient(to bottom, #333, #111);
+    border: 1px solid #555;
+    border-radius: 12px;
+    color: #fff;
+    font-size: 1.5em;
+    font-weight: bold;
+    box-shadow: 0 4px 0 #000;
 }
-.letter-panel-btn:active { transform: translateY(4px); box-shadow: 0 0 0 #111; }
+
+.letter-panel-btn:active {
+    transform: translateY(4px);
+    box-shadow: 0 0 0 #000;
+}
+
+/* --- Production Enhancement Styles --- */
+
+/* Result Overlays */
+.result-overlay-win {
+    background: radial-gradient(circle at center, rgba(0, 229, 255, 0.4) 0%, rgba(0, 0, 0, 0.95) 100%) !important;
+}
+
+.result-overlay-lose {
+    background: radial-gradient(circle at center, rgba(255, 0, 122, 0.4) 0%, rgba(0, 0, 0, 0.95) 100%) !important;
+}
+
+/* Global Buzz Notification */
+#global-buzz-overlay {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 165, 0, 0.95);
+    color: #fff;
+    padding: 20px 40px;
+    border-radius: 60px;
+    font-size: 1.5em;
+    font-weight: 900;
+    z-index: 5000;
+    box-shadow: 0 0 50px rgba(255, 165, 0, 0.6);
+    pointer-events: none;
+    animation: buzzArrival 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes buzzArrival {
+    0% {
+        transform: translate(-50%, -50%) scale(0.5);
+        opacity: 0;
+    }
+
+    50% {
+        transform: translate(-50%, -50%) scale(1.2);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+}
+
+/* Shimmer on Q Box when it appears */
+.player-q-text.new-q {
+    animation: qEntrance 0.6s ease-out, shimmerBorder 2s infinite alternate;
+}
+
+@keyframes qEntrance {
+    0% {
+        transform: scale(0.9) translateY(20px);
+        opacity: 0;
+    }
+
+    100% {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes shimmerBorder {
+    0% {
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    100% {
+        border-color: var(--color-primary);
+    }
+}
+
+/* Beat for status bar on change */
+.player-status-bar.update {
+    animation: beat 0.3s ease-out;
+}
 
 .overlay-result {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.85); display: flex; flex-direction: column; justify-content: center; align-items: center;
-    z-index: 1000; backdrop-filter: blur(5px);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(10px);
 }
-#result-icon { font-size: 120px; margin-bottom: 20px; }
-#result-text { font-size: 3em; font-weight: 900; }
-.wait-msg { background: rgba(0, 184, 148, 0.2); border: 1px solid #00b894; color: #00b894; padding: 15px; border-radius: 50px; text-align: center; font-weight: bold; margin-top: 20px; }
+
+#result-icon {
+    font-size: 120px;
+    margin-bottom: 20px;
+    filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.2));
+}
+
+#result-text {
+    font-size: 3em;
+    font-weight: 900;
+    background: linear-gradient(to right, #fff, #aaa);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.wait-msg {
+    background: rgba(0, 184, 148, 0.1);
+    border: 1px solid #00b894;
+    color: #00b894;
+    padding: 15px 30px;
+    border-radius: 50px;
+    text-align: center;
+    font-weight: bold;
+    margin-top: 30px;
+    box-shadow: 0 0 20px rgba(0, 184, 148, 0.2);
+}
+
+/* --- Sorting UI --- */
+.sort-display-area {
+    background: rgba(0, 0, 0, 0.4);
+    padding: 20px;
+    border-radius: 16px;
+    margin-bottom: 25px;
+    min-height: 80px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    justify-content: center;
+    box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+}
+
+.sort-item-badge {
+    background: var(--grad-primary);
+    color: #000;
+    padding: 10px 18px;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 1.1em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 4px 15px rgba(0, 191, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.sort-item-order {
+    font-size: 0.7em;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 2px 8px;
+    border-radius: 6px;
+    color: #fff;
+}
+
+.empty-sort-msg {
+    color: rgba(255, 255, 255, 0.3);
+    font-style: italic;
+    font-size: 0.9em;
+    display: flex;
+    align-items: center;
+}

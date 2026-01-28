@@ -8,9 +8,9 @@ window.App = window.App || {};
 window.App.Creator = {
     editingIndex: null,
     editingTitle: "",
-    currentLetterSteps: [], 
+    currentLetterSteps: [],
 
-    init: function() {
+    init: function () {
         this.editingIndex = null;
         this.editingTitle = "";
         window.App.Data.createdQuestions = [];
@@ -18,9 +18,9 @@ window.App.Creator = {
         this.currentLetterSteps = [];
 
         const btnSave = document.getElementById('save-to-cloud-btn');
-        if(btnSave) btnSave.textContent = APP_TEXT.Creator.BtnSave;
+        if (btnSave) btnSave.textContent = APP_TEXT.Creator.BtnSave;
 
-        if(window.resetGlobalSettings) window.resetGlobalSettings();
+        if (window.resetGlobalSettings) window.resetGlobalSettings();
 
         this.setupTypeSelect();
         this.resetForm();
@@ -28,20 +28,20 @@ window.App.Creator = {
         window.App.Ui.showView(window.App.Ui.views.creator);
 
         const typeSelect = document.getElementById('creator-q-type');
-        if(typeSelect) {
+        if (typeSelect) {
             typeSelect.disabled = false;
             document.getElementById('creator-type-locked-msg').classList.add('hidden');
             this.renderForm(typeSelect.value);
         }
     },
 
-    setupTypeSelect: function() {
+    setupTypeSelect: function () {
         const sel = document.getElementById('creator-q-type');
-        if(!sel || sel.options.length > 0) return;
+        if (!sel || sel.options.length > 0) return;
 
         const opts = [
             { v: 'choice', t: APP_TEXT.Creator.TypeChoice },
-            { v: 'letter_select', t: '文字選択 (Letter Panel)' },
+            { v: 'letter_select', t: APP_TEXT.Creator.TypeLetterSelect },
             { v: 'sort', t: APP_TEXT.Creator.TypeSort },
             { v: 'free_oral', t: APP_TEXT.Creator.TypeFreeOral },
             { v: 'free_written', t: APP_TEXT.Creator.TypeFreeWritten },
@@ -53,33 +53,33 @@ window.App.Creator = {
             el.textContent = o.t;
             sel.appendChild(el);
         });
-        
+
         sel.onchange = (e) => {
-            if(window.App.Data.createdQuestions.length === 0) this.renderForm(e.target.value);
+            if (window.App.Data.createdQuestions.length === 0) this.renderForm(e.target.value);
         };
     },
 
-    loadSet: function(key, item) {
+    loadSet: function (key, item) {
         window.App.State.editingSetId = key;
         this.editingTitle = item.title || "";
         window.App.Data.createdQuestions = item.questions || [];
 
         const btnSave = document.getElementById('save-to-cloud-btn');
-        if(btnSave) btnSave.textContent = APP_TEXT.Creator.BtnUpdate;
+        if (btnSave) btnSave.textContent = APP_TEXT.Creator.BtnUpdate;
 
         this.setupTypeSelect();
 
         const typeSelect = document.getElementById('creator-q-type');
-        if(window.App.Data.createdQuestions.length > 0) {
+        if (window.App.Data.createdQuestions.length > 0) {
             const firstQ = window.App.Data.createdQuestions[0];
             typeSelect.value = firstQ.type;
             typeSelect.disabled = true;
             document.getElementById('creator-type-locked-msg').classList.remove('hidden');
 
-            if(document.getElementById('creator-set-layout')) document.getElementById('creator-set-layout').value = firstQ.layout || 'standard';
-            if(window.updateAlignUI) window.updateAlignUI(firstQ.align || 'center');
-            
-            if(window.applyDesignToUI && firstQ.design) {
+            if (document.getElementById('creator-set-layout')) document.getElementById('creator-set-layout').value = firstQ.layout || 'standard';
+            if (window.updateAlignUI) window.updateAlignUI(firstQ.align || 'center');
+
+            if (window.applyDesignToUI && firstQ.design) {
                 window.applyDesignToUI(firstQ.design, firstQ.layout, firstQ.align);
             }
         } else {
@@ -92,23 +92,24 @@ window.App.Creator = {
         window.App.Ui.showView(window.App.Ui.views.creator);
     },
 
-    resetForm: function() {
+    resetForm: function () {
         this.editingIndex = null;
-        this.currentLetterSteps = []; 
+        this.currentLetterSteps = [];
         document.getElementById('creator-form-title').textContent = APP_TEXT.Creator.HeadingNewQ;
         document.getElementById('add-question-btn').classList.remove('hidden');
         document.getElementById('update-question-area').classList.add('hidden');
         document.getElementById('question-text').value = '';
-        
+        document.getElementById('creator-commentary').value = '';
+
         const typeSelect = document.getElementById('creator-q-type');
-        const type = typeSelect ? typeSelect.value : 'choice'; 
+        const type = typeSelect ? typeSelect.value : 'choice';
         this.renderForm(type);
     },
 
-    renderForm: function(type, data = null) {
+    renderForm: function (type, data = null) {
         const container = document.getElementById('creator-form-container');
-        if(!container) return; 
-        container.innerHTML = ''; 
+        if (!container) return;
+        container.innerHTML = '';
 
         if (type === 'choice') {
             const choicesDiv = document.createElement('div');
@@ -117,11 +118,24 @@ window.App.Creator = {
             container.appendChild(choicesDiv);
 
             if (data) data.c.forEach((txt, i) => this.addChoiceInput(choicesDiv, i, txt, data.correct.includes(i)));
-            else for(let i=0; i<4; i++) this.addChoiceInput(choicesDiv, i);
+            else for (let i = 0; i < 4; i++) this.addChoiceInput(choicesDiv, i);
 
             this.createAddBtn(container, APP_TEXT.Creator.BtnAddChoice, () => this.addChoiceInput(choicesDiv));
-        } 
-        
+            this.createAddBtn(container, APP_TEXT.Creator.BtnAddChoice, () => this.addChoiceInput(choicesDiv));
+
+            // Shuffle option
+            const shuffleDiv = document.createElement('div');
+            shuffleDiv.className = 'config-group mt-10';
+            shuffleDiv.innerHTML = `
+                <label class="config-label" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" id="choice-shuffle-chk" ${data?.shuffle !== false ? 'checked' : ''}>
+                    <span>選択肢をシャッフルする</span>
+                </label>
+                <p class="text-sm text-gray" style="margin:5px 0 0 0;">※チェックを外すと、選択肢が常に同じ順序で表示されます</p>
+            `;
+            container.appendChild(shuffleDiv);
+        }
+
         // --- 文字選択式 ---
         else if (type === 'letter_select') {
             if (data && data.steps) {
@@ -146,16 +160,29 @@ window.App.Creator = {
             container.innerHTML = `
                 <p class="text-sm text-gray mb-5">${APP_TEXT.Creator.DescSort}</p>
                 <label class="text-sm bold">${APP_TEXT.Creator.LabelSortInitial}</label>
-                <select id="sort-initial-order" class="mb-10 config-select btn-block"><option value="random" ${initVal==='random'?'selected':''}>${APP_TEXT.Creator.SortInitialRandom}</option><option value="fixed" ${initVal==='fixed'?'selected':''}>${APP_TEXT.Creator.SortInitialFixed}</option></select>
+                <select id="sort-initial-order" class="mb-10 config-select btn-block"><option value="random" ${initVal === 'random' ? 'selected' : ''}>${APP_TEXT.Creator.SortInitialRandom}</option><option value="fixed" ${initVal === 'fixed' ? 'selected' : ''}>${APP_TEXT.Creator.SortInitialFixed}</option></select>
             `;
             const sortDiv = document.createElement('div');
             sortDiv.className = 'flex-col gap-5';
             container.appendChild(sortDiv);
 
             if (data) data.c.forEach((txt, i) => this.addSortInput(sortDiv, i, txt));
-            else for(let i=0; i<4; i++) this.addSortInput(sortDiv, i);
+            else for (let i = 0; i < 4; i++) this.addSortInput(sortDiv, i);
 
             this.createAddBtn(container, APP_TEXT.Creator.BtnAddSort, () => this.addSortInput(sortDiv));
+            this.createAddBtn(container, APP_TEXT.Creator.BtnAddSort, () => this.addSortInput(sortDiv));
+
+            // Shuffle option
+            const shuffleDiv = document.createElement('div');
+            shuffleDiv.className = 'config-group mt-10';
+            shuffleDiv.innerHTML = `
+                <label class="config-label" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" id="sort-shuffle-chk" ${data?.shuffle !== false ? 'checked' : ''}>
+                    <span>選択肢をシャッフルする</span>
+                </label>
+                <p class="text-sm text-gray" style="margin:5px 0 0 0;">※「初期順序: 固定」を選んだ場合でも、シャッフルが優先されます</p>
+            `;
+            container.appendChild(shuffleDiv);
         }
         else if (type.startsWith('free')) {
             container.innerHTML = `<p class="text-sm text-gray mb-5">${APP_TEXT.Creator.DescText}</p>`;
@@ -174,23 +201,23 @@ window.App.Creator = {
             container.appendChild(multiDiv);
 
             if (data) data.c.forEach((txt, i) => this.addMultiInput(multiDiv, i, txt));
-            else for(let i=0; i<5; i++) this.addMultiInput(multiDiv, i);
+            else for (let i = 0; i < 5; i++) this.addMultiInput(multiDiv, i);
 
             this.createAddBtn(container, APP_TEXT.Creator.BtnAddMulti, () => this.addMultiInput(multiDiv));
         }
     },
 
     // ★ ステップ一覧描画
-    renderLetterStepList: function() {
+    renderLetterStepList: function () {
         const list = document.getElementById('letter-step-container');
-        if(!list) return;
+        if (!list) return;
         list.innerHTML = '';
 
         this.currentLetterSteps.forEach((step, i) => {
             const btn = document.createElement('div');
             btn.className = 'letter-step-item';
             btn.innerHTML = `
-                <span class="step-badge">${i+1}</span>
+                <span class="step-badge">${i + 1}</span>
                 ${step.correct || '?'}
             `;
             btn.onclick = () => this.openLetterModal(i);
@@ -205,18 +232,18 @@ window.App.Creator = {
     },
 
     // ★ 編集モーダル (画像のUIを再現)
-    openLetterModal: function(index) {
+    openLetterModal: function (index) {
         const isNew = (index >= this.currentLetterSteps.length);
         // ダミー文字は画像に合わせて3つに固定
         const data = isNew ? { correct: '', dummies: ['', '', ''] } : this.currentLetterSteps[index];
         const dummies = data.dummies || ['', '', ''];
-        while(dummies.length < 3) dummies.push('');
+        while (dummies.length < 3) dummies.push('');
 
         const modalHtml = `
             <div id="letter-modal" class="letter-modal-overlay">
                 <div class="letter-modal-window">
                     <div class="letter-modal-header">
-                        <span>解答選択肢 ${index + 1}/${isNew ? index+1 : this.currentLetterSteps.length}</span>
+                        <span>解答選択肢 ${index + 1}/${isNew ? index + 1 : this.currentLetterSteps.length}</span>
                         <button class="letter-modal-close" onclick="document.getElementById('letter-modal').remove()">×</button>
                     </div>
                     <div class="letter-modal-body">
@@ -241,11 +268,11 @@ window.App.Creator = {
         `;
 
         document.body.insertAdjacentHTML('beforeend', modalHtml);
-        
+
         // 最初の入力欄にフォーカス
         setTimeout(() => {
             const firstInput = document.getElementById('modal-input-correct');
-            if(firstInput) firstInput.focus();
+            if (firstInput) firstInput.focus();
         }, 100);
 
         // ボタンイベント
@@ -253,22 +280,22 @@ window.App.Creator = {
             const correct = document.getElementById('modal-input-correct').value.trim();
             const dummyInputs = document.querySelectorAll('.modal-input-dummy');
             const newDummies = [];
-            dummyInputs.forEach(inp => { if(inp.value.trim()) newDummies.push(inp.value.trim()); });
+            dummyInputs.forEach(inp => { if (inp.value.trim()) newDummies.push(inp.value.trim()); });
 
-            if(!correct) return alert("正解文字は必須です");
+            if (!correct) return alert("正解文字は必須です");
 
             const stepData = { correct: correct, dummies: newDummies };
-            
-            if(isNew) this.currentLetterSteps.push(stepData);
+
+            if (isNew) this.currentLetterSteps.push(stepData);
             else this.currentLetterSteps[index] = stepData;
 
             this.renderLetterStepList();
             document.getElementById('letter-modal').remove();
         };
 
-        if(!isNew) {
+        if (!isNew) {
             document.getElementById('modal-btn-delete').onclick = () => {
-                if(confirm("このステップを削除しますか？")) {
+                if (confirm("このステップを削除しますか？")) {
                     this.currentLetterSteps.splice(index, 1);
                     this.renderLetterStepList();
                     document.getElementById('letter-modal').remove();
@@ -278,7 +305,7 @@ window.App.Creator = {
     },
 
     // --- 以下、既存ロジック ---
-    addChoiceInput: function(parent, index, text="", checked=false) {
+    addChoiceInput: function (parent, index, text = "", checked = false) {
         if (parent.children.length >= 20) { alert(APP_TEXT.Creator.AlertMaxChoice); return; }
         const row = document.createElement('div');
         row.className = 'choice-row flex-center gap-5 p-5';
@@ -289,10 +316,10 @@ window.App.Creator = {
         chk.style.display = 'none';
         const labelBtn = document.createElement('div');
         labelBtn.className = 'choice-label-btn';
-        if(checked) labelBtn.classList.add('active');
+        if (checked) labelBtn.classList.add('active');
         labelBtn.onclick = () => {
             chk.checked = !chk.checked;
-            if(chk.checked) labelBtn.classList.add('active');
+            if (chk.checked) labelBtn.classList.add('active');
             else labelBtn.classList.remove('active');
         };
         const inp = document.createElement('input');
@@ -309,7 +336,7 @@ window.App.Creator = {
         this.updateLabels(parent);
     },
 
-    addSortInput: function(parent, index, text="") {
+    addSortInput: function (parent, index, text = "") {
         const row = document.createElement('div');
         row.className = 'sort-row flex-center gap-5';
         row.innerHTML = `
@@ -322,7 +349,7 @@ window.App.Creator = {
         this.updateSortLabels(parent);
     },
 
-    addMultiInput: function(parent, index, text="") {
+    addMultiInput: function (parent, index, text = "") {
         const row = document.createElement('div');
         row.className = 'flex-center gap-5';
         row.innerHTML = `
@@ -333,7 +360,7 @@ window.App.Creator = {
         parent.appendChild(row);
     },
 
-    createAddBtn: function(parent, text, onClick) {
+    createAddBtn: function (parent, text, onClick) {
         const btn = document.createElement('button');
         btn.className = 'btn-info btn-mini mt-10';
         btn.textContent = text;
@@ -341,34 +368,43 @@ window.App.Creator = {
         parent.appendChild(btn);
     },
 
-    updateLabels: function(parent) {
+    updateLabels: function (parent) {
         parent.querySelectorAll('.choice-label-btn').forEach((el, i) => el.textContent = String.fromCharCode(65 + i));
     },
-    updateSortLabels: function(parent) {
+    updateSortLabels: function (parent) {
         parent.querySelectorAll('.sort-label').forEach((el, i) => el.textContent = String.fromCharCode(65 + i));
     },
 
-    getData: function() {
+    getData: function () {
         const qText = document.getElementById('question-text').value.trim();
-        if(!qText) { alert(APP_TEXT.Creator.AlertNoQ); return null; }
+        if (!qText) { alert(APP_TEXT.Creator.AlertNoQ); return null; }
         const type = document.getElementById('creator-q-type').value;
-        let newQ = { q: qText, type: type, points: 1, loss: 0 };
+        let newQ = {
+            q: qText,
+            type: type,
+            points: 1,
+            loss: 0,
+            commentary: document.getElementById('creator-commentary').value
+        };
 
         if (type === 'choice') {
             const rows = document.querySelectorAll('.choice-row');
             const opts = [], corr = [];
             rows.forEach((row, i) => {
                 const val = row.querySelector('.choice-text-input').value.trim();
-                if(val) { 
-                    opts.push(val); 
-                    if(row.querySelector('.choice-correct-chk').checked) corr.push(opts.length-1); 
+                if (val) {
+                    opts.push(val);
+                    if (row.querySelector('.choice-correct-chk').checked) corr.push(opts.length - 1);
                 }
             });
-            if(opts.length < 2 || corr.length === 0) { alert(APP_TEXT.Creator.AlertLessChoice); return null; }
+            if (opts.length < 2 || corr.length === 0) { alert(APP_TEXT.Creator.AlertLessChoice); return null; }
             newQ.c = opts; newQ.correct = corr; newQ.correctIndex = corr[0];
             newQ.multi = (corr.length > 1);
-            
-        } 
+            // Save shuffle setting
+            const shuffleChk = document.getElementById('choice-shuffle-chk');
+            newQ.shuffle = shuffleChk ? shuffleChk.checked : true;
+
+        }
         // ★修正: 文字選択式のデータ保存 (Stepsを保存)
         else if (type === 'letter_select') {
             if (this.currentLetterSteps.length === 0) {
@@ -377,29 +413,33 @@ window.App.Creator = {
             }
             newQ.steps = this.currentLetterSteps;
             newQ.correct = this.currentLetterSteps.map(s => s.correct).join('');
-            
+
         } else if (type === 'sort') {
             const opts = [];
-            document.querySelectorAll('.sort-text-input').forEach(inp => { if(inp.value.trim()) opts.push(inp.value.trim()); });
-            if(opts.length < 2) return null;
-            newQ.c = opts; newQ.correct = opts.map((_,i)=>i);
+            document.querySelectorAll('.sort-text-input').forEach(inp => { if (inp.value.trim()) opts.push(inp.value.trim()); });
+            if (opts.length < 2) return null;
+            newQ.c = opts; newQ.correct = opts.map((_, i) => i);
             newQ.initialOrder = document.getElementById('sort-initial-order').value;
+            // Save shuffle setting
+            const sortShuffleChk = document.getElementById('sort-shuffle-chk');
+            newQ.shuffle = sortShuffleChk ? sortShuffleChk.checked : true;
+            // Save shuffle setting
         } else if (type.startsWith('free')) {
             const ans = document.getElementById('creator-text-answer').value.trim();
-            if(type==='free_written' && !ans) { alert(APP_TEXT.Creator.AlertNoTextAns); return null; }
-            newQ.correct = ans ? ans.split(',').map(s=>s.trim()).filter(s=>s) : [];
+            if (type === 'free_written' && !ans) { alert(APP_TEXT.Creator.AlertNoTextAns); return null; }
+            newQ.correct = ans ? ans.split(',').map(s => s.trim()).filter(s => s) : [];
         } else if (type === 'multi') {
             const opts = [];
-            document.querySelectorAll('.multi-text-input').forEach(inp => { if(inp.value.trim()) opts.push(inp.value.trim()); });
-            if(opts.length < 1) return null;
+            document.querySelectorAll('.multi-text-input').forEach(inp => { if (inp.value.trim()) opts.push(inp.value.trim()); });
+            if (opts.length < 1) return null;
             newQ.c = opts; newQ.correct = opts;
         }
         return newQ;
     },
 
-    add: function() {
+    add: function () {
         const q = this.getData();
-        if(q) {
+        if (q) {
             window.App.Data.createdQuestions.push(q);
             this.resetForm();
             this.renderList();
@@ -409,10 +449,10 @@ window.App.Creator = {
         }
     },
 
-    update: function() {
-        if(this.editingIndex === null) return;
+    update: function () {
+        if (this.editingIndex === null) return;
         const q = this.getData();
-        if(q) {
+        if (q) {
             window.App.Data.createdQuestions[this.editingIndex] = { ...window.App.Data.createdQuestions[this.editingIndex], ...q };
             this.resetForm();
             this.renderList();
@@ -420,23 +460,24 @@ window.App.Creator = {
         }
     },
 
-    edit: function(index) {
+    edit: function (index) {
         this.editingIndex = index;
         const q = window.App.Data.createdQuestions[index];
         document.getElementById('creator-form-title').textContent = APP_TEXT.Creator.HeadingEditQ;
         document.getElementById('add-question-btn').classList.add('hidden');
         document.getElementById('update-question-area').classList.remove('hidden');
         document.getElementById('question-text').value = q.q;
+        document.getElementById('creator-commentary').value = q.commentary || '';
         this.renderForm(q.type, q);
-        document.getElementById('creator-view').scrollIntoView({behavior:"smooth"});
+        document.getElementById('creator-view').scrollIntoView({ behavior: "smooth" });
     },
 
-    delete: function(index) {
-        if(confirm(APP_TEXT.Dashboard.DeleteConfirm)) {
+    delete: function (index) {
+        if (confirm(APP_TEXT.Dashboard.DeleteConfirm)) {
             window.App.Data.createdQuestions.splice(index, 1);
-            if(this.editingIndex === index) this.resetForm();
+            if (this.editingIndex === index) this.resetForm();
             this.renderList();
-            if(window.App.Data.createdQuestions.length === 0) {
+            if (window.App.Data.createdQuestions.length === 0) {
                 document.getElementById('creator-q-type').disabled = false;
                 document.getElementById('creator-type-locked-msg').classList.add('hidden');
                 this.renderForm(document.getElementById('creator-q-type').value);
@@ -444,7 +485,7 @@ window.App.Creator = {
         }
     },
 
-    move: function(index, dir) {
+    move: function (index, dir) {
         if ((dir === -1 && index > 0) || (dir === 1 && index < window.App.Data.createdQuestions.length - 1)) {
             const arr = window.App.Data.createdQuestions;
             [arr[index], arr[index + dir]] = [arr[index + dir], arr[index]];
@@ -452,20 +493,16 @@ window.App.Creator = {
         }
     },
 
-    renderList: function() {
+    renderList: function () {
         const list = document.getElementById('q-list');
         list.innerHTML = '';
         window.App.Data.createdQuestions.forEach((q, i) => {
             const div = document.createElement('div');
             div.className = 'q-list-item flex-between';
-            let icon = '🔳';
-            if (q.type === 'letter_select') icon = '🔠';
-            else if (q.type === 'sort') icon = '🔢';
-            else if (q.type.startsWith('free')) icon = '✍️';
-            else if (q.type === 'multi') icon = '📚';
-
+            const displayQ = q.q.length > 15 ? q.q.substring(0, 15) + "..." : q.q;
+            const shuffleIcon = (q.type === 'choice' || q.type === 'sort') && q.shuffle !== false ? ' 🔀' : '';
             div.innerHTML = `
-                <div class="text-sm bold">${icon} Q${i+1}. ${q.q}</div>
+                <div class="text-sm bold">Q${i + 1}. ${displayQ}${shuffleIcon}</div>
                 <div class="flex gap-5">
                     <button class="btn-mini btn-dark" onclick="window.App.Creator.move(${i}, -1)">↑</button>
                     <button class="btn-mini btn-dark" onclick="window.App.Creator.move(${i}, 1)">↓</button>
@@ -477,10 +514,10 @@ window.App.Creator = {
         });
     },
 
-    save: function() {
-        if(window.App.Data.createdQuestions.length === 0) { alert('No questions'); return; }
+    save: function () {
+        if (window.App.Data.createdQuestions.length === 0) { alert('No questions'); return; }
         const title = prompt("セット名を入力:", this.editingTitle);
-        if(!title) return;
+        if (!title) return;
 
         const layout = document.getElementById('creator-set-layout').value;
         const align = document.getElementById('creator-set-align').value;
@@ -499,7 +536,7 @@ window.App.Creator = {
 
         const path = `saved_sets/${window.App.State.currentShowId}`;
         const ref = window.App.State.editingSetId ? window.db.ref(`${path}/${window.App.State.editingSetId}`) : window.db.ref(path).push();
-        
+
         (window.App.State.editingSetId ? ref.update(data) : ref.set(data)).then(() => {
             window.App.Ui.showToast(APP_TEXT.Creator.MsgSavedToast);
             window.App.Dashboard.enter();

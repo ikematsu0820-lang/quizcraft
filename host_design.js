@@ -4,7 +4,7 @@
 
 App.Design = {
     currentTarget: null,
-    
+
     defaults: {
         mainBgColor: "#0a0a0a",
         qTextColor: "#ffffff",
@@ -17,24 +17,24 @@ App.Design = {
         layout: "standard"
     },
 
-    init: function() {
+    init: function () {
         App.Ui.showView(App.Ui.views.design);
         this.currentTarget = null;
         this.bindEvents();
         this.loadTargetList();
         this.setDefaultUI();
-        
+
         // 初回描画（スマホ対策で少し遅らせて再実行）
         this.renderPreview();
         setTimeout(() => this.renderPreview(), 100);
         window.addEventListener('resize', () => this.renderPreview());
     },
 
-    bindEvents: function() {
+    bindEvents: function () {
         document.getElementById('design-target-load-btn').onclick = () => this.loadTarget();
-        
+
         document.querySelectorAll('#design-view input, #design-view select').forEach(el => {
-            if(el.type !== 'file' && el.id !== 'design-target-select') {
+            if (el.type !== 'file' && el.id !== 'design-target-select') {
                 el.oninput = () => this.renderPreview();
                 el.onchange = () => this.renderPreview();
             }
@@ -44,8 +44,8 @@ App.Design = {
         const imgBtn = document.getElementById('design-bg-image-btn');
         const imgInput = document.getElementById('design-bg-image-file');
         const clearBtn = document.getElementById('design-bg-clear-btn');
-        
-        if(imgBtn && imgInput) {
+
+        if (imgBtn && imgInput) {
             imgBtn.onclick = () => imgInput.click();
             imgInput.onchange = (e) => {
                 const file = e.target.files[0];
@@ -60,7 +60,7 @@ App.Design = {
                 reader.readAsDataURL(file);
             };
         }
-        if(clearBtn) {
+        if (clearBtn) {
             clearBtn.onclick = () => {
                 document.getElementById('design-bg-image-data').value = "";
                 document.getElementById('design-bg-image-status').textContent = "未選択";
@@ -85,23 +85,23 @@ App.Design = {
 
         document.getElementById('design-save-btn').onclick = () => this.save();
         document.getElementById('design-reset-btn').onclick = () => {
-            if(confirm("初期値に戻しますか？")) {
+            if (confirm("初期値に戻しますか？")) {
                 this.setDefaultUI();
                 this.renderPreview();
             }
         };
     },
 
-    setupModal: function(btnId, modalId) {
+    setupModal: function (btnId, modalId) {
         const btn = document.getElementById(btnId);
         const modal = document.getElementById(modalId);
-        if(!btn || !modal) return;
+        if (!btn || !modal) return;
         btn.onclick = () => modal.classList.remove('hidden');
         modal.querySelectorAll('.modal-close-btn').forEach(b => b.onclick = () => modal.classList.add('hidden'));
-        modal.onclick = (e) => { if(e.target === modal) modal.classList.add('hidden'); };
+        modal.onclick = (e) => { if (e.target === modal) modal.classList.add('hidden'); };
     },
 
-    loadTargetList: function() {
+    loadTargetList: function () {
         const select = document.getElementById('design-target-select');
         select.innerHTML = '<option>Loading...</option>';
 
@@ -135,21 +135,21 @@ App.Design = {
         });
     },
 
-    loadTarget: function() {
+    loadTarget: function () {
         const val = document.getElementById('design-target-select').value;
-        if(!val) return alert("対象を選択してください");
-        
+        if (!val) return alert("対象を選択してください");
+
         const targetInfo = JSON.parse(val);
-        const path = targetInfo.type === 'set' 
-            ? `saved_sets/${App.State.currentShowId}/${targetInfo.key}` 
+        const path = targetInfo.type === 'set'
+            ? `saved_sets/${App.State.currentShowId}/${targetInfo.key}`
             : `saved_programs/${App.State.currentShowId}/${targetInfo.key}`;
 
         window.db.ref(path).once('value', snap => {
             const data = snap.val();
-            if(!data) return alert("データが見つかりません");
-            
+            if (!data) return alert("データが見つかりません");
+
             this.currentTarget = { ...targetInfo, data: data };
-            
+
             let design = {};
             let layout = 'standard';
             let align = 'center';
@@ -161,7 +161,7 @@ App.Design = {
                 align = q.align || 'center';
             } else if (targetInfo.type === 'prog' && data.playlist && data.playlist.length > 0) {
                 const q = data.playlist[0].questions?.[0];
-                if(q) {
+                if (q) {
                     design = q.design || {};
                     layout = q.layout || 'standard';
                     align = q.align || 'center';
@@ -174,7 +174,7 @@ App.Design = {
         });
     },
 
-    collectSettings: function() {
+    collectSettings: function () {
         return {
             design: {
                 mainBgColor: document.getElementById('design-main-bg-color').value,
@@ -191,12 +191,12 @@ App.Design = {
         };
     },
 
-    applyToUI: function(design, layout, align) {
-        if(!design) design = this.defaults;
-        
-        const setVal = (id, val) => { 
-            const el = document.getElementById(id); 
-            if(el) el.value = val || this.defaults[id.replace('design-', '').replace('main-bg-color','mainBgColor').replace('q-text','qTextColor').replace('q-bg','qBgColor').replace('q-border','qBorderColor').replace('c-text','cTextColor').replace('c-bg','cBgColor').replace('c-border','cBorderColor')]; 
+    applyToUI: function (design, layout, align) {
+        if (!design) design = this.defaults;
+
+        const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.value = val || this.defaults[id.replace('design-', '').replace('main-bg-color', 'mainBgColor').replace('q-text', 'qTextColor').replace('q-bg', 'qBgColor').replace('q-border', 'qBorderColor').replace('c-text', 'cTextColor').replace('c-bg', 'cBgColor').replace('c-border', 'cBorderColor')];
         };
 
         setVal('design-main-bg-color', design.mainBgColor);
@@ -206,16 +206,16 @@ App.Design = {
         setVal('design-c-text', design.cTextColor);
         setVal('design-c-bg', design.cBgColor);
         setVal('design-c-border', design.cBorderColor);
-        
+
         document.getElementById('design-bg-image-data').value = design.bgImage || "";
         const status = document.getElementById('design-bg-image-status');
-        if(status) {
+        if (status) {
             status.textContent = design.bgImage ? "画像あり" : "未選択";
             status.style.color = design.bgImage ? "#00ff00" : "#aaa";
         }
 
-        if(layout) document.getElementById('creator-set-layout').value = layout;
-        if(align) {
+        if (layout) document.getElementById('creator-set-layout').value = layout;
+        if (align) {
             document.getElementById('creator-set-align').value = align;
             document.querySelectorAll('.btn-align').forEach(b => {
                 b.classList.toggle('active', b.dataset.align === align);
@@ -223,25 +223,25 @@ App.Design = {
         }
     },
 
-    setDefaultUI: function() {
+    setDefaultUI: function () {
         this.applyToUI(this.defaults, 'standard', 'center');
     },
 
-    renderPreview: function() {
+    renderPreview: function () {
         const frame = document.querySelector('.design-preview-frame');
         const content = document.getElementById('design-monitor-preview-content');
-        if(!frame || !content) return;
+        if (!frame || !content) return;
 
         // ★修正: 中央基準でスケーリング
         const frameWidth = frame.clientWidth;
-        const scale = frameWidth / 1280; 
-        
-        content.style.transform = `scale(${scale})`;
-        content.style.transformOrigin = "center center"; // ★ど真ん中を基準にする
-        
+        const scale = frameWidth / 1280;
+
+        content.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        content.style.transformOrigin = "center center";
+
         const s = this.collectSettings();
         const d = s.design;
-        
+
         let qText = "これはプレビュー用の問題文です。\\n改行位置の確認用テキストです。";
         let choices = ["選択肢A", "選択肢B", "選択肢C", "選択肢D"];
         let qType = 'choice';
@@ -269,7 +269,7 @@ App.Design = {
         }
 
         let bgStyle = `background-color: ${d.mainBgColor};`;
-        if(d.bgImage) {
+        if (d.bgImage) {
             bgStyle += `background-image: url('${d.bgImage}'); background-size: cover; background-position: center;`;
         } else {
             bgStyle += `background-image: radial-gradient(circle at center, #1a1a1a 0%, ${d.mainBgColor} 100%);`;
@@ -288,10 +288,10 @@ App.Design = {
             margin-bottom:20px; 
             display:flex; 
             align-items:center; 
-            justify-content:${s.align==='center'?'center':(s.align==='right'?'flex-end':'flex-start')}; 
+            justify-content:${s.align === 'center' ? 'center' : (s.align === 'right' ? 'flex-end' : 'flex-start')}; 
             box-shadow:0 0 30px ${d.qBorderColor}40;
         `;
-        
+
         const cStyle = `
             color:${d.cTextColor}; 
             background:${d.cBgColor}; 
@@ -301,7 +301,7 @@ App.Design = {
             display:flex; 
             align-items:center;
         `;
-        
+
         const labelStyle = `
             color:${d.qBorderColor}; 
             font-weight:900; 
@@ -316,7 +316,7 @@ App.Design = {
             layoutHtml = `
                 <div style="padding:60px; box-sizing:border-box; display:flex; flex-direction:column; height:100%; justify-content:center; align-items:center;">
                     <div style="${qStyle} width:80%; height:50%; font-size:60px;">${qText}</div>
-                    <div style="color:#aaa; margin-top:40px; font-size:30px;">[ ${qType==='free_oral'?'口頭回答':'記述式'} ]</div>
+                    <div style="color:#aaa; margin-top:40px; font-size:30px;">[ ${qType === 'free_oral' ? '口頭回答' : '記述式'} ]</div>
                 </div>
             `;
         } else {
@@ -325,9 +325,9 @@ App.Design = {
                     <div style="display:flex; height:100%; gap:40px; padding:40px; box-sizing:border-box;">
                         <div style="flex:1; ${qStyle}; margin:0; writing-mode: vertical-rl; text-orientation: upright; justify-content:center;">${qText}</div>
                         <div style="flex:1; display:flex; flex-direction:column; justify-content:center; gap:20px;">
-                            ${choices.map((c,i) => `
+                            ${choices.map((c, i) => `
                                 <div style="${cStyle}">
-                                    <span style="${labelStyle}">${String.fromCharCode(65+i)}</span> ${c}
+                                    <span style="${labelStyle}">${String.fromCharCode(65 + i)}</span> ${c}
                                 </div>
                             `).join('')}
                         </div>
@@ -338,9 +338,9 @@ App.Design = {
                     <div style="padding:50px; box-sizing:border-box; display:flex; flex-direction:column; height:100%; justify-content:center;">
                         <div style="${qStyle} min-height:200px;">${qText}</div>
                         <div style="margin-top:20px; display:flex; flex-direction:column; gap:15px;">
-                             ${choices.map((c,i) => `
+                             ${choices.map((c, i) => `
                                 <div style="${cStyle}">
-                                    <span style="${labelStyle}">${String.fromCharCode(65+i)}</span> ${c}
+                                    <span style="${labelStyle}">${String.fromCharCode(65 + i)}</span> ${c}
                                 </div>
                             `).join('')}
                         </div>
@@ -356,8 +356,8 @@ App.Design = {
         `;
     },
 
-    save: function() {
-        if(!this.currentTarget) return alert("編集対象がロードされていません。");
+    save: function () {
+        if (!this.currentTarget) return alert("編集対象がロードされていません。");
 
         const s = this.collectSettings();
         const t = this.currentTarget;
@@ -373,7 +373,7 @@ App.Design = {
             promise = window.db.ref(`saved_sets/${App.State.currentShowId}/${t.key}/questions`).set(questions);
         } else {
             const playlist = t.data.playlist.map(period => {
-                if(period.questions) {
+                if (period.questions) {
                     period.questions = period.questions.map(q => {
                         q.design = s.design;
                         q.layout = s.layout;
@@ -396,4 +396,4 @@ window.enterDesignMode = () => App.Design.init();
 window.applyDesignToUI = (d, l, a) => App.Design.applyToUI(d, l, a);
 window.collectDesignSettings = () => App.Design.collectSettings();
 window.resetGlobalSettings = () => App.Design.setDefaultUI();
-window.loadDesignSettings = () => {};
+window.loadDesignSettings = () => { };

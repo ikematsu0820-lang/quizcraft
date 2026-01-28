@@ -1,57 +1,56 @@
 /* =========================================================
- * viewer.js (v136: Remove Next Q Screen)
+ * viewer.js (v200: Professional 8-Phase Support)
  * =======================================================*/
 
-// --- Monitor App ---
 window.App = window.App || {};
 window.App.Viewer = {
     roomId: null,
     config: {},
     questions: [],
 
-    init: function() {
+    init: function () {
         const urlParams = new URLSearchParams(window.location.search);
         const code = urlParams.get('id');
-        
-        if(code) {
+
+        if (code) {
             document.getElementById('viewer-login-view').classList.add('hidden');
             this.connect(code);
         } else {
             const btn = document.getElementById('viewer-connect-btn');
-            if(btn) {
+            if (btn) {
                 btn.onclick = () => {
                     const input = document.getElementById('viewer-room-code');
-                    if(input && input.value.trim()) this.connect(input.value.trim());
+                    if (input && input.value.trim()) this.connect(input.value.trim());
                 };
             }
         }
-        
+
         const dashBtn = document.querySelector('#viewer-login-view .back-to-main');
-        if(dashBtn) {
+        if (dashBtn) {
             dashBtn.addEventListener('click', () => {
-               if(window.enterDashboard) window.enterDashboard();
+                if (window.enterDashboard) window.enterDashboard();
             });
         }
     },
 
-    connect: function(code) {
+    connect: function (code) {
         this.roomId = code.toUpperCase();
         const btn = document.getElementById('viewer-connect-btn');
-        if(btn) { btn.disabled = true; btn.textContent = "Connecting..."; }
+        if (btn) { btn.disabled = true; btn.textContent = "Connecting..."; }
 
         window.db.ref(`rooms/${this.roomId}`).once('value', snap => {
-            if(snap.exists()) {
+            if (snap.exists()) {
                 document.getElementById('viewer-login-view').classList.add('hidden');
                 document.getElementById('viewer-main-view').classList.remove('hidden');
                 this.startListener();
             } else {
                 alert("Room not found");
-                if(btn) { btn.disabled = false; btn.textContent = "接続する"; }
+                if (btn) { btn.disabled = false; btn.textContent = "接続する"; }
             }
         });
     },
 
-    startListener: function() {
+    startListener: function () {
         const refs = {
             config: window.db.ref(`rooms/${this.roomId}/config`),
             status: window.db.ref(`rooms/${this.roomId}/status`),
@@ -69,135 +68,148 @@ window.App.Viewer = {
 
         refs.status.on('value', snap => {
             const st = snap.val();
-            if(!st) return;
+            if (!st) return;
             this.render(st);
         });
-        
+
         refs.players.on('value', () => {
-            if(this.config.gameType === 'race') this.updateViewerRace();
+            if (this.config.gameType === 'race') this.updateViewerRace();
         });
     },
 
-    render: function(st) {
+    render: function (st) {
         const mainText = document.getElementById('viewer-main-text');
         const statusDiv = document.getElementById('viewer-status');
         const viewContainer = document.getElementById('viewer-main-view');
-        
+
         ['viewer-panel-grid', 'viewer-bomb-grid', 'viewer-multi-grid', 'viewer-race-area', 'viewer-timer-bar-area'].forEach(id => {
-            document.getElementById(id).classList.add('hidden');
+            const el = document.getElementById(id);
+            if (el) el.classList.add('hidden');
         });
         document.getElementById('viewer-sub-text').innerHTML = '';
 
-        if(this.config.gameType === 'race') {
+        if (this.config.gameType === 'race') {
             document.getElementById('viewer-race-area').classList.remove('hidden');
             this.updateViewerRace();
         }
 
         // --- 1. STANDBY ---
         if (st.step === 'standby') {
-            statusDiv.textContent = "STANDBY";
+            statusDiv.textContent = "WAITING";
             this.applyDefaultDesign(viewContainer, null);
-            
-            if (st.qIndex === 0) {
-                // ★1問目の開始前だけタイトルを表示
-                const title = st.programTitle || this.config.periodTitle || "Quiz Studio";
-                mainText.innerHTML = `
-                    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; width:100%;">
-                        <div style="font-size:5vw; font-weight:900; color:#ffd700; text-shadow:0 0 30px rgba(255,215,0,0.5); margin-bottom:20px; text-align:center; padding:0 20px;">
-                            ${title}
-                        </div>
-                        <div style="font-size:2vw; color:#fff; font-family:monospace; letter-spacing:5px;">ID: ${this.roomId}</div>
-                        <div style="margin-top:50px; font-size:1.5vw; color:#00bfff; animation:pulse 2s infinite;">WAITING FOR ENTRY...</div>
-                    </div>
-                    <style>@keyframes pulse { 0%{opacity:0.6;} 50%{opacity:1;} 100%{opacity:0.6;} }</style>
-                `;
-            } else {
-                // ★2問目以降はシンプルに黒画面（余計な演出なし）
-                mainText.innerHTML = `
-                    <div style="display:flex; align-items:center; justify-content:center; height:100%; width:100%; background-color:#000;">
-                        <div style="color:#333; font-size:2vh; font-family:monospace;">WAITING...</div>
-                    </div>
-                `;
-            }
-        } 
-        // --- 2. READY ---
-        else if (st.step === 'ready') {
-            statusDiv.textContent = "READY";
-            const q = this.questions[st.qIndex] || {};
-            this.applyDefaultDesign(viewContainer, q.design);
+            const title = st.programTitle || this.config.periodTitle || "Quiz Studio";
+
             mainText.innerHTML = `
-                <div style="text-align:center;">
-                    <div style="color:#fff; font-size:15vh; font-weight:900; letter-spacing:0.1em; text-shadow:0 10px 30px rgba(0,0,0,0.8);">
-                        Q.${st.qIndex + 1}
+                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; width:100%;">
+                    <div style="font-size:5vw; font-weight:900; color:#ffd700; text-shadow:0 0 30px rgba(255,215,0,0.5); margin-bottom:20px; text-align:center; padding:0 20px;">
+                        ${title}
                     </div>
-                    <div style="color:#00bfff; font-size:4vh; font-weight:bold; letter-spacing:5px; margin-top:20px;">READY...</div>
+                    <div style="font-size:2vw; color:#fff; font-family:monospace; letter-spacing:5px;">ROOM ID: ${this.roomId}</div>
+                    <div style="margin-top:50px; font-size:1.5vw; color:#00bfff; animation:pulse 2s infinite;">READY TO START...</div>
                 </div>
+                <style>@keyframes pulse { 0%{opacity:0.6;} 50%{opacity:1;} 100%{opacity:0.6;} }</style>
             `;
         }
-        // --- 3. QUESTION / ANSWERING ---
-        else if (st.step === 'question' || st.step === 'answering') {
-            statusDiv.textContent = `Q${st.qIndex + 1}`;
-            
+        // --- 2. REVEAL Q (Phase 1) ---
+        else if (st.step === 'reveal_q') {
+            statusDiv.textContent = "QUIZ";
+            const q = this.questions[st.qIndex] || {};
+            this.applyDefaultDesign(viewContainer, q.design);
+            this.renderQuestionLayout(viewContainer, mainText, q, st);
+        }
+        // --- 3. ANSWERING (Phase 2) ---
+        else if (st.step === 'answering') {
+            statusDiv.textContent = "THINKING";
+            const q = this.questions[st.qIndex] || {};
+            this.applyDefaultDesign(viewContainer, q.design);
+            this.renderQuestionLayout(viewContainer, mainText, q, st);
+
             if (st.timeLimit) {
                 const timerArea = document.getElementById('viewer-timer-bar-area');
                 const timerBar = document.getElementById('viewer-timer-bar');
-                timerArea.classList.remove('hidden');
-                timerBar.className = '';
-                timerBar.style.width = '100%';
-                setTimeout(() => {
-                    timerBar.className = 'timer-animate';
-                    timerBar.style.transition = `width ${st.timeLimit}s linear`;
-                    timerBar.style.width = '0%';
-                }, 50);
-            }
-            if (st.step === 'answering' && this.config.mode === 'buzz') {
-                 statusDiv.textContent = "早押し受付中！";
-                 statusDiv.style.color = "#ff9800";
-            }
-
-            const q = this.questions[st.qIndex];
-            if(q) {
-                this.renderQuestionLayout(viewContainer, mainText, q);
-                if(q.type === 'multi') this.renderMultiGrid(q, st.multiState);
-            }
-        } 
-        // --- 4. ANSWER / RESULT ---
-        else if (st.step === 'answer' || st.step === 'result') {
-            statusDiv.textContent = "ANSWER";
-            const q = this.questions[st.qIndex];
-            if(q) {
-                this.renderQuestionLayout(viewContainer, mainText, q);
-                
-                if (st.step === 'answer') {
-                    const accent = q.design?.qBorderColor || '#00bfff';
-                    let ansStr = this.getAnswerString(q);
-                    
-                    const answerBox = document.createElement('div');
-                    Object.assign(answerBox.style, {
-                        position: 'absolute', bottom: '5%', left: '50%', transform: 'translateX(-50%)',
-                        zIndex: '200', background: 'rgba(0,0,0,0.9)', border: `4px solid ${accent}`,
-                        borderRadius: '15px', padding: '20px 50px', color: accent,
-                        fontSize: '5vh', fontWeight: '900', boxShadow: '0 0 50px rgba(0,0,0,0.8)',
-                        textAlign: 'center', minWidth: '50vw'
-                    });
-                    answerBox.innerHTML = `<span style="font-size:0.6em; display:block; color:#fff;">ANSWER</span>${ansStr}`;
-                    mainText.appendChild(answerBox);
+                if (timerArea && timerBar) {
+                    timerArea.classList.remove('hidden');
+                    timerBar.className = '';
+                    timerBar.style.width = '100%';
+                    setTimeout(() => {
+                        timerBar.className = 'timer-animate';
+                        timerBar.style.transition = `width ${st.timeLimit}s linear`;
+                        timerBar.style.width = '0%';
+                    }, 50);
                 }
             }
-        } 
-        // --- 5. FINAL RANKING ---
-        else if (st.step === 'final_ranking') {
-            statusDiv.textContent = "FINALE";
-            this.applyDefaultDesign(viewContainer, null);
-            this.renderFinalRanking(mainText);
         }
-        // --- 6. OTHERS ---
+        // --- 4. CLOSED (Phase 3) ---
+        else if (st.step === 'closed') {
+            statusDiv.textContent = "LOCKED";
+            const q = this.questions[st.qIndex] || {};
+            this.renderQuestionLayout(viewContainer, mainText, q, st);
+            const msg = document.createElement('div');
+            msg.style = "position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:12vh; font-weight:900; color:#ff3d00; text-shadow:0 0 40px rgba(0,0,0,0.9); animation:popInCenter 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index:500;";
+            msg.textContent = "TIME UP!";
+            mainText.appendChild(msg);
+        }
+        // --- 5. REVEAL PLAYER ANSWERS (Phase 4: FLIP) ---
+        else if (st.step === 'reveal_player' || st.step === 'result') {
+            statusDiv.textContent = "RESPONSES";
+            const q = this.questions[st.qIndex] || {};
+            this.applyDefaultDesign(viewContainer, q.design);
+            this.renderQuestionLayout(viewContainer, mainText, q, st);
+
+            this.renderAllPlayerAnswers(mainText, st.displayMode || 'flip', q);
+        }
+        // --- 6. REVEAL CORRECT (Phase 5) ---
+        else if (st.step === 'reveal_correct' || st.step === 'answer') {
+            statusDiv.textContent = "ANSWER";
+            const q = this.questions[st.qIndex] || {};
+            this.renderQuestionLayout(viewContainer, mainText, q, st);
+
+            const accent = q.design?.qBorderColor || '#00bfff';
+            const answerBox = document.createElement('div');
+            Object.assign(answerBox.style, {
+                position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                zIndex: '300', background: 'rgba(0,0,0,0.95)', border: `6px solid ${accent}`,
+                borderRadius: '20px', padding: '40px 60px', color: '#fff',
+                boxShadow: '0 0 80px rgba(0,0,0,0.9)', textAlign: 'center', minWidth: '60vw',
+                animation: 'popInCenter 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+            });
+
+            const ansStr = st.correct || this.getAnswerString(q);
+            const fontSize = ansStr.length > 20 ? '4vh' : ansStr.length > 10 ? '6vh' : '8vh';
+
+            answerBox.innerHTML = `
+                <div style="font-size:3vh; color:${accent}; font-weight:800; margin-bottom:15px; letter-spacing:2px;">CORRECT ANSWER</div>
+                <div style="font-size:${fontSize}; font-weight:900; line-height:1.2; word-break:break-all; max-width:80vw;">${ansStr}</div>
+                <div style="font-size:2.5vh; color:#aaa; font-weight:normal; margin-top:20px; border-top:1px solid #333; padding-top:20px;">${st.commentary || q.commentary || ""}</div>
+            `;
+            mainText.appendChild(answerBox);
+        }
+        // --- 7. JUDGING (Phase 6) ---
+        else if (st.step === 'judging') {
+            statusDiv.textContent = "RESULTS";
+            const q = this.questions[st.qIndex] || {};
+            this.renderQuestionLayout(viewContainer, mainText, q, st);
+        }
+        // --- 8. RANKING (Intermediate / Final) ---
+        else if (st.step === 'intermediate_ranking' || st.step === 'final_ranking') {
+            const isFinal = st.step === 'final_ranking';
+            statusDiv.textContent = isFinal ? "FINALE" : "STANDINGS";
+            this.applyDefaultDesign(viewContainer, null);
+            this.renderRanking(mainText, isFinal);
+        }
+        // --- 9. ELIMINATION ---
+        else if (st.step === 'elimination') {
+            statusDiv.textContent = "SURVIVAL";
+            this.applyDefaultDesign(viewContainer, null);
+            this.renderElimination(mainText, st.eliminationData);
+        }
+        // --- 10. OTHERS ---
         else if (st.step === 'panel') {
             statusDiv.textContent = "PANEL";
             this.applyDefaultDesign(viewContainer, null);
             mainText.innerHTML = '';
             this.renderPanelGrid(st.panels);
-        } 
+        }
         else if (st.step === 'bomb') {
             statusDiv.textContent = "BOMB";
             this.applyDefaultDesign(viewContainer, null);
@@ -206,32 +218,112 @@ window.App.Viewer = {
         }
     },
 
-    renderFinalRanking: function(container) {
+    renderAllPlayerAnswers: function (container, mode, q) {
+        window.db.ref(`rooms/${this.roomId}/players`).once('value', snap => {
+            const players = snap.val() || {};
+            const playerList = Object.values(players);
+
+            if (mode === 'distribution' && q.type === 'choice') {
+                this.renderDistribution(container, playerList, q);
+            } else {
+                this.renderFlipGrid(container, playerList, q);
+            }
+        });
+    },
+
+    renderFlipGrid: function (container, players, q) {
+        const grid = document.createElement('div');
+        grid.className = 'viewer-flip-container';
+
+        players.forEach((p, i) => {
+            const card = document.createElement('div');
+            card.className = 'viewer-flip-card';
+
+            let ans = p.lastAnswer;
+            if (q.type === 'choice' && ans !== null && ans !== undefined) {
+                const idx = parseInt(ans);
+                ans = isNaN(idx) ? ans : String.fromCharCode(65 + idx);
+            } else if (ans === null || ans === undefined || ans === "") {
+                ans = "---";
+            }
+
+            card.innerHTML = `
+                <div class="flip-name">${p.name}</div>
+                <div class="flip-front"></div>
+                <div class="flip-back">${ans}</div>
+            `;
+            grid.appendChild(card);
+
+            // Staggered Flip animation
+            setTimeout(() => card.classList.add('flipped'), 1000 + (i * 100));
+        });
+        container.appendChild(grid);
+    },
+
+    renderDistribution: function (container, players, q) {
+        const counts = Array(q.c ? q.c.length : 4).fill(0);
+        players.forEach(p => {
+            if (p.lastAnswer !== null && p.lastAnswer !== undefined) {
+                const idx = parseInt(p.lastAnswer);
+                if (idx >= 0 && idx < counts.length) counts[idx]++;
+            }
+        });
+
+        const distContainer = document.createElement('div');
+        distContainer.className = 'viewer-dist-container';
+
+        const max = Math.max(...counts, 1);
+
+        counts.forEach((count, i) => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'dist-bar-wrapper';
+
+            const bar = document.createElement('div');
+            bar.className = 'dist-bar';
+            bar.setAttribute('data-count', count);
+
+            const label = document.createElement('div');
+            label.className = 'dist-label';
+            label.textContent = String.fromCharCode(65 + i);
+
+            wrapper.appendChild(bar);
+            wrapper.appendChild(label);
+            distContainer.appendChild(wrapper);
+
+            setTimeout(() => {
+                bar.style.height = (count / max * 100) + '%';
+            }, 100);
+        });
+        container.appendChild(distContainer);
+    },
+
+    renderRanking: function (container, isFinal) {
         window.db.ref(`rooms/${this.roomId}/players`).once('value', snap => {
             const players = snap.val() || {};
             const arr = Object.values(players).map(p => ({
                 name: p.name,
-                score: p.periodScore || 0
-            })).sort((a,b) => b.score - a.score);
+                score: p.periodScore || 0,
+                isAlive: p.isAlive !== false
+            })).sort((a, b) => b.score - a.score);
 
             let html = `
                 <div style="text-align:center; width:100%; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center;">
-                    <h1 style="font-size:6vh; color:#ffd700; text-shadow:0 0 20px #ffd700; margin-bottom:4vh;">FINAL RESULTS</h1>
+                    <h1 style="font-size:6vh; color:#ffd700; text-shadow:0 0 20px #ffd700; margin-bottom:4vh;">${isFinal ? 'FINAL RESULTS' : 'CURRENT RANKING'}</h1>
                     <div style="width:70%; max-width:1000px; background:rgba(0,0,0,0.5); padding:20px; border-radius:10px;">
             `;
 
-            arr.slice(0, 5).forEach((p, i) => {
+            arr.filter(p => p.isAlive).slice(0, 10).forEach((p, i) => {
                 let rankColor = "#fff";
                 let size = "3vh";
                 let medal = "";
-                
-                if (i===0) { rankColor = "#ffd700"; size = "5vh"; medal = "👑"; }
-                else if (i===1) { rankColor = "#c0c0c0"; size = "4vh"; medal = "🥈"; }
-                else if (i===2) { rankColor = "#cd7f32"; size = "4vh"; medal = "🥉"; }
+
+                if (i === 0) { rankColor = "#ffd700"; size = "5vh"; medal = "👑"; }
+                else if (i === 1) { rankColor = "#c0c0c0"; size = "4vh"; medal = "🥈"; }
+                else if (i === 2) { rankColor = "#cd7f32"; size = "4vh"; medal = "🥉"; }
 
                 html += `
-                    <div style="display:flex; justify-content:space-between; align-items:center; padding:15px; border-bottom:1px solid #444; font-size:${size}; color:${rankColor}; animation:slideIn ${0.5 + i*0.2}s ease-out;">
-                        <div style="font-weight:bold; width:10%;">${i+1}</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:15px; border-bottom:1px solid #444; font-size:${size}; color:${rankColor}; animation:slideIn ${0.5 + i * 0.15}s ease-out; opacity:0; animation-fill-mode:forwards;">
+                        <div style="font-weight:bold; width:10%;">${i + 1}</div>
                         <div style="flex:1; text-align:left; padding-left:20px;">${medal} ${p.name}</div>
                         <div style="font-weight:900;">${p.score} <span style="font-size:0.6em;">pts</span></div>
                     </div>
@@ -240,7 +332,7 @@ window.App.Viewer = {
 
             html += `
                     </div>
-                    <div style="margin-top:30px; font-size:2vh; color:#aaa;">CONGRATULATIONS!</div>
+                    ${isFinal ? '<div style="margin-top:30px; font-size:2vh; color:#aaa;">CONGRATULATIONS!</div>' : ''}
                 </div>
                 <style>@keyframes slideIn { from { opacity:0; transform:translateX(-50px); } to { opacity:1; transform:translateX(0); } }</style>
             `;
@@ -248,11 +340,46 @@ window.App.Viewer = {
         });
     },
 
-    renderQuestionLayout: function(container, contentBox, q) {
+    renderElimination: function (container, data) {
+        if (!data) return;
+        const { droppedOut = [], survivors = [], mode = 'none', count = 0 } = data;
+
+        let title = mode === 'dropout' ? "ELIMINATION" : "SURVIVORS";
+        let subTitle = mode === 'dropout' ? `成績下位 ${count} 名が脱落` : `成績上位 ${count} 名が通過`;
+
+        let html = `
+            <div style="text-align:center; width:100%; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+                <h1 style="font-size:8vh; color:#ff3d00; text-shadow:0 0 30px rgba(255,0,0,0.5); margin-bottom:1vh; animation:popIn 0.5s;">${title}</h1>
+                <p style="font-size:3vh; color:#aaa; margin-bottom:5vh;">${subTitle}</p>
+                
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:20px; width:80%;">
+        `;
+
+        const all = [...survivors, ...droppedOut];
+        all.forEach((p, i) => {
+            const isOut = droppedOut.some(d => d.name === p.name);
+            const color = isOut ? "#ff5555" : "#00ffcc";
+            const statusText = isOut ? "DROPPED OUT" : "PASS";
+
+            html += `
+                <div style="background:rgba(20,20,20,0.8); border:2px solid ${color}; padding:20px; border-radius:15px; animation:popIn ${0.5 + i * 0.1}s backwards;">
+                    <div style="font-size:1.5vh; color:${color}; margin-bottom:5px; font-weight:800;">${statusText}</div>
+                    <div style="font-size:3vh; font-weight:bold; color:#fff;">${p.name}</div>
+                    <div style="font-size:2vh; color:#888;">${p.score} pts</div>
+                </div>
+            `;
+        });
+
+        html += `</div></div>`;
+        container.innerHTML = html;
+    },
+
+    renderQuestionLayout: function (container, contentBox, q, st = {}) {
         const d = q.design || {};
         const layout = q.layout || 'standard';
         const align = q.align || 'center';
-        
+        const revealedMulti = st.revealedMulti || {};
+
         container.style.backgroundColor = d.mainBgColor || '#0a0a0a';
         if (d.bgImage) {
             container.style.backgroundImage = `url(${d.bgImage})`;
@@ -262,19 +389,40 @@ window.App.Viewer = {
             container.style.backgroundImage = (d.mainBgColor === '#0a0a0a') ? "radial-gradient(circle at center, #1a1a1a 0%, #000000 100%)" : "none";
         }
 
-        const qStyleBase = `color:${d.qTextColor||'#fff'}; background:${d.qBgColor||'rgba(255,255,255,0.1)'}; border:6px solid ${d.qBorderColor||'#fff'}; text-align:${align}; box-shadow:0 10px 40px rgba(0,0,0,0.5);`;
-        const cStyle = `color:${d.cTextColor||'#ccc'}; background:${d.cBgColor||'transparent'}; border-bottom:2px solid ${d.cBorderColor||'#555'}; padding:1.5vh 2vw; font-size:3vh; display:flex; align-items:center;`;
-        const pStyle = `color:${d.qBorderColor||'#00bfff'}; margin-right:20px; font-weight:900; font-size:1.2em; font-family:monospace;`;
+        const qStyleBase = `color:${d.qTextColor || '#fff'}; background:${d.qBgColor || 'rgba(255,255,255,0.1)'}; border:6px solid ${d.qBorderColor || '#fff'}; text-align:${align}; box-shadow:0 10px 40px rgba(0,0,0,0.5);`;
+        const cStyle = `color:${d.cTextColor || '#ccc'}; background:${d.cBgColor || 'transparent'}; border-bottom:2px solid ${d.cBorderColor || '#555'}; padding:1.5vh 2vw; font-size:3vh; display:flex; align-items:center; opacity:1; transition: opacity 0.3s;`;
+        const pStyle = `color:${d.qBorderColor || '#00bfff'}; margin-right:20px; font-weight:900; font-size:1.2em; font-family:monospace;`;
 
         let html = '';
-
         if (q.type === 'free_oral' || q.type === 'free_written') {
             contentBox.style.flexDirection = 'column';
             contentBox.style.justifyContent = 'center';
             contentBox.style.alignItems = 'center';
-            html += `<div style="${qStyleBase} width:80%; height:60%; display:flex; align-items:center; justify-content:${align==='left'?'flex-start':align==='right'?'flex-end':'center'}; font-size:8vh; font-weight:bold; border-radius:20px; padding:50px;">${q.q}</div>`;
-            let typeLabel = (q.type==='free_oral') ? "フリー（口頭回答）" : "フリー（記述式）";
-            html += `<div style="color:${d.cTextColor||'#aaa'}; font-size:3vh; margin-top:30px;">[ ${typeLabel} ]</div>`;
+            html += `<div style="${qStyleBase} width:80%; height:60%; display:flex; align-items:center; justify-content:${align === 'left' ? 'flex-start' : align === 'right' ? 'flex-end' : 'center'}; font-size:8vh; font-weight:bold; border-radius:20px; padding:50px;">${q.q}</div>`;
+            let typeLabel = (q.type === 'free_oral') ? "フリー（口頭回答）" : "フリー（記述式）";
+            html += `<div style="color:${d.cTextColor || '#aaa'}; font-size:3vh; margin-top:30px;">[ ${typeLabel} ]</div>`;
+        } else if (q.type === 'multi') {
+            contentBox.style.flexDirection = 'column';
+            contentBox.style.justifyContent = 'center';
+            contentBox.style.alignItems = 'center';
+            html += `<div style="${qStyleBase} width:85%; margin-bottom:4vh; padding:3vh; font-size:4.5vh; font-weight:bold; border-radius:10px;">${q.q}</div>`;
+
+            if (q.c) {
+                html += `<div style="width:80%; display:grid; grid-template-columns: repeat(2, 1fr); gap:1.5vh;">`;
+                q.c.forEach((c, i) => {
+                    const isRevealed = !!revealedMulti[i];
+                    const boxStyle = `background:rgba(0,0,0,0.5); border:2px solid ${isRevealed ? (d.qBorderColor || '#00bfff') : '#333'}; padding:1.5vh; border-radius:8px; display:flex; align-items:center; min-height:8vh; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); ${isRevealed ? 'transform: scale(1.05);' : ''}`;
+                    const numStyle = `color:${isRevealed ? '#fff' : '#555'}; font-weight:900; font-size:3vh; margin-right:15px; width:40px;`;
+                    const textStyle = `color:${isRevealed ? '#fff' : 'transparent'}; font-size:2.8vh; font-weight:bold;`;
+                    html += `
+                        <div style="${boxStyle}">
+                            <div style="${numStyle}">${i + 1}</div>
+                            <div style="${textStyle}">${c}</div>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            }
         } else {
             if (layout === 'standard') {
                 contentBox.style.flexDirection = 'column';
@@ -284,7 +432,7 @@ window.App.Viewer = {
                 if (q.c) {
                     html += `<div style="width:75%; display:flex; flex-direction:column; gap:2vh;">`;
                     q.c.forEach((c, i) => {
-                        html += `<div style="${cStyle}"><span style="${pStyle}">${String.fromCharCode(65+i)}</span> ${c}</div>`;
+                        html += `<div style="${cStyle}"><span style="${pStyle}">${String.fromCharCode(65 + i)}</span> ${c}</div>`;
                     });
                     html += `</div>`;
                 }
@@ -296,7 +444,7 @@ window.App.Viewer = {
                 if (q.c) {
                     html += `<div style="width:50vw; display:flex; flex-direction:column; gap:3vh;">`;
                     q.c.forEach((c, i) => {
-                        html += `<div style="${cStyle}"><span style="${pStyle}">${String.fromCharCode(65+i)}</span> ${c}</div>`;
+                        html += `<div style="${cStyle}"><span style="${pStyle}">${String.fromCharCode(65 + i)}</span> ${c}</div>`;
                     });
                     html += `</div>`;
                 }
@@ -305,22 +453,21 @@ window.App.Viewer = {
         contentBox.innerHTML = html;
     },
 
-    getAnswerString: function(q) {
+    getAnswerString: function (q) {
         if (!q) return "";
         if (q.type === 'choice' && q.c) {
-            if (Array.isArray(q.correct)) {
-                return q.correct.map(idx => q.c[idx]).join(' / ');
-            }
+            if (Array.isArray(q.correct)) return q.correct.map(idx => q.c[idx]).join(' / ');
             const idx = q.correctIndex !== undefined ? q.correctIndex : q.correct;
             return q.c[idx];
         }
-        if (Array.isArray(q.correct)) {
-            return q.correct.join(' / ');
+        if (q.type === 'letter_select') return q.steps ? q.steps.map(s => s.correct).join('') : q.correct;
+        if (q.type === 'sort') {
+            if (Array.isArray(q.correct)) return q.correct.map(idx => String.fromCharCode(65 + idx)).join(' → ');
         }
-        return q.correct;
+        return Array.isArray(q.correct) ? q.correct.join(' / ') : q.correct;
     },
 
-    applyDefaultDesign: function(container, design) {
+    applyDefaultDesign: function (container, design) {
         const d = design || { mainBgColor: '#0a0a0a' };
         container.style.backgroundColor = d.mainBgColor || '#0a0a0a';
         if (d.bgImage) {
@@ -332,73 +479,54 @@ window.App.Viewer = {
         }
     },
 
-    renderPanelGrid: function(panels) {
+    renderPanelGrid: function (panels) {
         const grid = document.getElementById('viewer-panel-grid');
-        if(!grid) return;
+        if (!grid) return;
         grid.classList.remove('hidden');
         grid.innerHTML = '';
-        if(!panels) return;
+        if (!panels) return;
         panels.forEach((p, i) => {
             const div = document.createElement('div');
             div.className = 'panel-cell';
-            if(p===1) div.classList.add('panel-red');
-            else if(p===2) div.classList.add('panel-green');
-            else if(p===3) div.classList.add('panel-white');
-            else if(p===4) div.classList.add('panel-blue');
-            div.textContent = i+1;
+            if (p === 1) div.classList.add('panel-red');
+            else if (p === 2) div.classList.add('panel-green');
+            else if (p === 3) div.classList.add('panel-white');
+            else if (p === 4) div.classList.add('panel-blue');
+            div.textContent = i + 1;
             grid.appendChild(div);
         });
     },
 
-    renderBombGrid: function(cards) {
+    renderBombGrid: function (cards) {
         const grid = document.getElementById('viewer-bomb-grid');
-        if(!grid) return;
+        if (!grid) return;
         grid.classList.remove('hidden');
         grid.innerHTML = '';
-        if(!cards) return;
+        if (!cards) return;
         cards.forEach((c, i) => {
             const div = document.createElement('div');
             div.className = 'card-item';
-            if(c.open) {
+            if (c.open) {
                 div.classList.add('flipped');
                 div.innerHTML = c.type === 1 ? '<span class="card-content card-out">★</span>' : '<span class="card-content card-safe">SAFE</span>';
             } else {
-                div.innerHTML = `<span class="card-number">${i+1}</span>`;
+                div.innerHTML = `<span class="card-number">${i + 1}</span>`;
             }
             grid.appendChild(div);
         });
     },
 
-    renderMultiGrid: function(q, state) {
-        const grid = document.getElementById('viewer-multi-grid');
-        if(!grid) return;
-        grid.classList.remove('hidden');
-        grid.innerHTML = '';
-        const states = state || [];
-        q.c.forEach((ans, i) => {
-            const div = document.createElement('div');
-            div.className = 'card-item multi';
-            if(states[i]) {
-                div.classList.add('flipped');
-                div.innerHTML = `<span class="card-content" style="font-size:3vh;">${ans}</span>`;
-            } else {
-                div.innerHTML = `<span class="card-number">?</span>`;
-            }
-            grid.appendChild(div);
-        });
-    },
-
-    updateViewerRace: function() {
+    updateViewerRace: function () {
         const container = document.getElementById('viewer-race-area');
-        if(!container) return;
+        if (!container) return;
         window.db.ref(`rooms/${this.roomId}/players`).once('value', snap => {
             const players = snap.val() || {};
             container.innerHTML = '';
             const activePlayers = [];
             Object.keys(players).forEach(key => {
-                if(players[key].isAlive) activePlayers.push({ name: players[key].name, score: players[key].periodScore || 0 });
+                if (players[key].isAlive) activePlayers.push({ name: players[key].name, score: players[key].periodScore || 0 });
             });
-            activePlayers.sort((a,b) => b.score - a.score);
+            activePlayers.sort((a, b) => b.score - a.score);
             const goal = this.config.passCount || 10;
             activePlayers.forEach(p => {
                 const row = document.createElement('div');

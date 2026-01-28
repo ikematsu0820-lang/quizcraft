@@ -1,384 +1,758 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Quiz Studio</title>
-<link rel="stylesheet" href="style_common.css?v=95">
-<link rel="stylesheet" href="style_host.css?v=95">
-<link rel="stylesheet" href="style_player.css?v=95">
-<link rel="stylesheet" href="style_viewer.css?v=95">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Studio</title>
+    <link rel="stylesheet" href="style_common.css?v=95">
+    <link rel="stylesheet" href="style_host.css?v=95">
+    <link rel="stylesheet" href="style_player.css?v=95">
+    <link rel="stylesheet" href="style_viewer.css?v=95">
 </head>
+
 <body>
 
-<div id="toast-container"></div>
+    <div id="toast-container"></div>
 
-<div id="main-view" class="view landing-view">
-    <div class="landing-content">
-        <div class="landing-logo-area">
-            <div class="landing-logo-emoji">💡</div>
-            <h1 class="landing-title">Quiz Studio</h1>
-            <p class="landing-subtitle">Cloud Edition</p>
-        </div>
-        <div class="landing-btn-area">
-            <button id="main-host-btn" class="landing-btn btn-host-modern"><span class="btn-icon">✏️</span> クイズを作る</button>
-            <button id="main-player-btn" class="landing-btn btn-player-modern"><span class="btn-icon">✔</span> クイズに答える</button>
-        </div>
-    </div>
-</div>
-
-<div id="host-login-view" class="view landing-view hidden">
-    <div class="landing-content">
-        <div class="landing-logo-area">
-            <div class="landing-logo-emoji">🔐</div>
-            <h1 class="landing-title">Host Login</h1>
-            <p class="landing-subtitle">番組IDを入力してください</p>
-        </div>
-        <div class="login-form-area" style="margin: 0 auto;">
-            <input type="text" id="show-id-input" class="modern-input" placeholder="SHOW ID">
-            <button id="host-login-submit-btn" class="landing-btn btn-host-modern">ログイン / 新規作成</button>
-            <button class="header-back-btn back-to-main text-link-btn" data-text="Login.BackBtn">ホームに戻る</button>
-        </div>
-    </div>
-</div>
-
-<div id="host-dashboard-view" class="view hidden">
-    <div class="view-header">
-        <h3>Show: <span id="dashboard-show-id" class="accent-text">---</span></h3>
-        <button class="header-back-btn btn-logout back-to-main" data-text="Dashboard.Logout">Logout</button>
-    </div>
-    <div class="dashboard-grid">
-        <button id="dash-create-btn" class="dash-btn" data-text="Dashboard.BtnCreate">Create</button>
-        <button id="dash-config-btn" class="dash-btn" data-text="Dashboard.BtnConfig">Config</button>
-        <button id="dash-design-btn" class="dash-btn">デザイン</button>
-        <button id="dash-studio-btn" class="dash-btn studio-btn" data-text="Dashboard.BtnStudio">Studio</button>
-        <button id="dash-viewer-btn" class="dash-btn" data-text="Dashboard.BtnViewer">Monitor</button>
-    </div>
-    <div class="dashboard-list-area">
-        <h4 class="section-title" data-text="Dashboard.SetListTitle">Saved Sets</h4>
-        <div id="dash-set-list" class="scroll-list"></div>
-    </div>
-</div>
-
-<div id="design-view" class="view hidden">
-    <div class="view-header">
-        <h2>デザインスタジオ</h2>
-        <button id="design-back-btn" class="header-back-btn">ダッシュボード</button>
-    </div>
-    <div class="design-preview-area-top">
-        <h4 class="preview-label">モニター画面プレビュー</h4>
-        <div class="design-preview-frame">
-            <div id="design-monitor-preview-content"></div>
-        </div>
-        <p class="preview-note">※実際の表示とは解像度が異なります</p>
-    </div>
-    <div class="design-toolbar">
-        <div class="toolbar-select">
-            <select id="design-target-select" class="btn-block"><option value="">-- 編集対象を選択 --</option></select>
-        </div>
-        <button id="design-target-load-btn" class="btn-primary toolbar-btn">Load</button>
-    </div>
-    <div class="design-menu-grid">
-        <button id="btn-open-text" class="design-menu-btn"><span class="menu-icon">T</span><br>テキスト・配置</button>
-        <button id="btn-open-object" class="design-menu-btn"><span class="menu-icon">□</span><br>オブジェクト</button>
-        <button id="btn-open-bg" class="design-menu-btn"><span class="menu-icon">🖼</span><br>背景</button>
-    </div>
-    <div class="design-action-row">
-        <button id="design-reset-btn" class="btn-dark">初期値</button>
-        <button id="design-save-btn" class="btn-success">保存 (完了)</button>
-    </div>
-    
-    <div id="modal-design-text" class="design-modal-overlay hidden">
-        <div class="design-modal-content">
-            <h3 class="modal-title">テキスト設定</h3>
-            <div class="design-modal-body">
-                <label class="config-label">文字の配置</label>
-                <div class="align-btn-group">
-                    <button type="button" class="btn-align" data-align="left">左揃え</button>
-                    <button type="button" class="btn-align active" data-align="center">中央</button>
-                    <button type="button" class="btn-align" data-align="right">右揃え</button>
-                </div>
-                <input type="hidden" id="creator-set-align" value="center">
-                <label class="config-label">問題文の文字色</label><input type="color" id="design-q-text" class="color-picker-full">
-                <label class="config-label">選択肢の文字色</label><input type="color" id="design-c-text" class="color-picker-full">
+    <div id="main-view" class="view landing-view">
+        <div class="landing-content">
+            <div class="landing-logo-area">
+                <div class="landing-logo-emoji">💡</div>
+                <h1 class="landing-title">Quiz Studio</h1>
+                <p class="landing-subtitle">Cloud Edition</p>
             </div>
-            <button class="btn-block btn-dark modal-close-btn">閉じる</button>
+            <div class="landing-btn-area">
+                <button id="main-host-btn" class="landing-btn btn-host-modern"><span class="btn-icon">✏️</span>
+                    クイズを作る</button>
+                <button id="main-player-btn" class="landing-btn btn-player-modern"><span class="btn-icon">✔</span>
+                    クイズに答える</button>
+            </div>
         </div>
     </div>
-    <div id="modal-design-object" class="design-modal-overlay hidden">
-        <div class="design-modal-content">
-            <h3 class="modal-title">オブジェクト設定</h3>
-            <div class="design-modal-body">
-                <label class="config-label">モニターレイアウト</label>
-                <select id="creator-set-layout" class="btn-block mb-20">
-                    <option value="standard">標準 (上下)</option>
-                    <option value="split_list">左右分割 (リスト)</option>
-                    <option value="split_grid">左右分割 (グリッド)</option>
+
+    <div id="host-login-view" class="view landing-view hidden">
+        <div class="view-header" style="border:none; margin-bottom:0; justify-content:flex-end;">
+            <button class="header-back-btn back-to-main" data-text="Login.BackBtn">ホームに戻る</button>
+        </div>
+        <div class="landing-content">
+            <div class="landing-logo-area">
+                <div class="landing-logo-emoji">🔐</div>
+                <h1 class="landing-title">Host Login</h1>
+                <p class="landing-subtitle">番組IDを入力してください</p>
+            </div>
+            <div class="login-form-area" style="margin: 0 auto;">
+                <input type="text" id="show-id-input" class="modern-input" placeholder="SHOW ID">
+                <button id="host-login-submit-btn" class="landing-btn btn-host-modern">ログイン / 新規作成</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="host-dashboard-view" class="view hidden">
+        <div class="view-header">
+            <h3>Show: <span id="dashboard-show-id" class="accent-text">---</span></h3>
+            <button class="header-back-btn btn-logout back-to-main" data-text="Dashboard.Logout">Logout</button>
+        </div>
+        <div class="dashboard-grid">
+            <button id="dash-create-btn" class="dash-btn" data-text="Dashboard.BtnCreate">問題作成</button>
+            <button id="dash-config-btn" class="dash-btn" data-text="Dashboard.BtnConfig">ルール設定</button>
+            <button id="dash-prog-config-btn" class="dash-btn" data-text="Dashboard.BtnProgConfig">プログラム設定</button>
+            <button id="dash-question-design-btn" class="dash-btn">問題デザイン</button>
+            <button id="dash-production-design-btn" class="dash-btn">演出デザイン</button>
+            <button id="dash-sound-btn" class="dash-btn" data-text="Dashboard.BtnSound">サウンド</button>
+        </div>
+        <div class="main-action-area mb-30" style="padding:0 20px;">
+            <button id="dash-viewer-btn" class="dash-btn" data-text="Dashboard.BtnViewer"
+                style="background: rgba(100, 100, 100, 0.3); font-size: 0.9em; height: 60px;">モニター</button>
+        </div>
+        <div class="dashboard-list-area">
+            <h4 class="section-title" data-text="Dashboard.SetListTitle">Saved Sets</h4>
+            <div id="dash-set-list" class="scroll-list"></div>
+        </div>
+    </div>
+
+    <div id="design-view" class="view hidden">
+        <div class="view-header">
+            <h2>デザインスタジオ</h2>
+            <button id="design-back-btn" class="header-back-btn">ダッシュボード</button>
+        </div>
+        <div class="design-toolbar">
+            <div class="toolbar-select">
+                <select id="design-target-select" class="btn-block">
+                    <option value="">-- 編集対象を選択 --</option>
                 </select>
-                <h4 class="sub-title">問題文エリア</h4>
-                <div class="grid-2-col">
-                    <div><label class="mini-label">枠線</label><input type="color" id="design-q-border" class="color-picker-full"></div>
-                    <div><label class="mini-label">背景</label><input type="color" id="design-q-bg" class="color-picker-full"></div>
+            </div>
+            <button id="design-target-load-btn" class="btn-primary toolbar-btn">Load</button>
+        </div>
+        <div class="design-preview-area-top">
+            <h4 class="preview-label">モニター画面プレビュー</h4>
+            <div class="design-preview-frame">
+                <div id="design-monitor-preview-content"></div>
+            </div>
+            <p class="preview-note">※実際の表示とは解像度が異なります</p>
+        </div>
+        <div class="design-layout-selector-area">
+            <label class="config-label">モニターレイアウト</label>
+            <select id="creator-set-layout" class="btn-block">
+                <option value="standard">標準 (上下)</option>
+                <option value="split_list">左右分割 (リスト)</option>
+                <option value="split_grid">左右分割 (グリッド)</option>
+            </select>
+        </div>
+        <div class="design-menu-grid">
+            <button id="btn-open-text" class="design-menu-btn"><span class="menu-icon">T</span><br>テキスト・配置</button>
+            <button id="btn-open-object" class="design-menu-btn"><span class="menu-icon">□</span><br>オブジェクト</button>
+            <button id="btn-open-bg" class="design-menu-btn"><span class="menu-icon">🖼</span><br>背景</button>
+        </div>
+        <div class="design-action-row">
+            <button id="design-reset-btn" class="btn-dark">初期値</button>
+            <button id="design-save-btn" class="btn-success">保存 (完了)</button>
+        </div>
+
+        <div id="modal-design-text" class="design-modal-overlay hidden">
+            <div class="design-modal-content">
+                <h3 class="modal-title">テキスト設定</h3>
+                <div class="design-modal-body">
+                    <div class="config-group">
+                        <label class="config-label">文字の配置</label>
+                        <div class="align-btn-group">
+                            <button type="button" class="btn-align" data-align="left">左揃え</button>
+                            <button type="button" class="btn-align active" data-align="center">中央</button>
+                            <button type="button" class="btn-align" data-align="right">右揃え</button>
+                        </div>
+                        <input type="hidden" id="creator-set-align" value="center">
+                    </div>
+
+                    <div class="color-row">
+                        <label>問題文の文字色</label>
+                        <div class="color-picker-wrapper">
+                            <input type="color" id="design-q-text" class="color-picker-full">
+                        </div>
+                    </div>
+                    <div class="color-row">
+                        <label>選択肢の文字色</label>
+                        <div class="color-picker-wrapper">
+                            <input type="color" id="design-c-text" class="color-picker-full">
+                        </div>
+                    </div>
                 </div>
-                <h4 class="sub-title">選択肢エリア</h4>
-                <div class="grid-2-col">
-                    <div><label class="mini-label">枠線</label><input type="color" id="design-c-border" class="color-picker-full"></div>
-                    <div><label class="mini-label">背景</label><input type="color" id="design-c-bg" class="color-picker-full"></div>
+                <div class="modal-close-action">
+                    <button class="btn-block btn-dark modal-close-btn">閉じる</button>
                 </div>
             </div>
-            <button class="btn-block btn-dark modal-close-btn">閉じる</button>
+        </div>
+        <div id="modal-design-object" class="design-modal-overlay hidden">
+            <div class="design-modal-content">
+                <h3 class="modal-title">オブジェクト設定</h3>
+                <div class="design-modal-body">
+                    <h4 class="sub-title">問題文エリア</h4>
+                    <div class="color-row">
+                        <label>枠線の色</label>
+                        <div class="color-picker-wrapper">
+                            <input type="color" id="design-q-border" class="color-picker-full">
+                        </div>
+                    </div>
+                    <div class="color-row">
+                        <label>背景の色</label>
+                        <div class="color-picker-wrapper">
+                            <input type="color" id="design-q-bg" class="color-picker-full">
+                        </div>
+                    </div>
+
+                    <h4 class="sub-title">選択肢エリア</h4>
+                    <div class="color-row">
+                        <label>枠線の色</label>
+                        <div class="color-picker-wrapper">
+                            <input type="color" id="design-c-border" class="color-picker-full">
+                        </div>
+                    </div>
+                    <div class="color-row">
+                        <label>背景の色</label>
+                        <div class="color-picker-wrapper">
+                            <input type="color" id="design-c-bg" class="color-picker-full">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-close-action">
+                    <button class="btn-block btn-dark modal-close-btn">閉じる</button>
+                </div>
+            </div>
+        </div>
+        <div id="modal-design-bg" class="design-modal-overlay hidden">
+            <div class="design-modal-content">
+                <h3 class="modal-title">背景設定</h3>
+                <div class="design-modal-body">
+                    <div class="color-row">
+                        <label>全体背景色</label>
+                        <div class="color-picker-wrapper">
+                            <input type="color" id="design-main-bg-color" class="color-picker-full">
+                        </div>
+                    </div>
+
+                    <label class="config-label mt-20">背景画像</label>
+                    <div class="image-upload-area">
+                        <input type="file" id="design-bg-image-file" accept="image/*" style="display:none;">
+                        <button id="design-bg-image-btn" class="btn-primary btn-block mb-10">画像ファイルを選択</button>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span id="design-bg-image-status" class="status-text">未選択</span>
+                            <button id="design-bg-clear-btn" class="btn-danger btn-mini">解除</button>
+                        </div>
+                    </div>
+                    <input type="hidden" id="design-bg-image-data">
+                </div>
+                <div class="modal-close-action">
+                    <button class="btn-block btn-dark modal-close-btn">閉じる</button>
+                </div>
+            </div>
         </div>
     </div>
-    <div id="modal-design-bg" class="design-modal-overlay hidden">
-        <div class="design-modal-content">
-            <h3 class="modal-title">背景設定</h3>
+
+    <div id="production-design-view" class="view hidden">
+        <div class="view-header">
+            <h2>演出デザインスタジオ</h2>
+            <button class="header-back-btn">ダッシュボード</button>
+        </div>
+        <div class="design-toolbar">
+            <div class="toolbar-select">
+                <select id="prod-design-target-select" class="btn-block">
+                    <option value="">-- 編集対象を選択 --</option>
+                </select>
+            </div>
+            <button id="prod-design-target-load-btn" class="btn-primary toolbar-btn">Load</button>
+        </div>
+
+        <div class="design-preview-area-top">
+            <h4 class="preview-label">プレビュー</h4>
+            <div class="prod-preview-type-selector"
+                style="display:flex; gap:10px; justify-content:center; margin-bottom:15px;">
+                <label style="display:flex; align-items:center; gap:5px; cursor:pointer;">
+                    <input type="radio" name="prod-preview-type" value="title" checked>
+                    <span>タイトル</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:5px; cursor:pointer;">
+                    <input type="radio" name="prod-preview-type" value="qnumber">
+                    <span>問題番号</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:5px; cursor:pointer;">
+                    <input type="radio" name="prod-preview-type" value="ranking">
+                    <span>ランキング</span>
+                </label>
+            </div>
+            <div class="design-preview-frame">
+                <div id="prod-design-preview-content"></div>
+            </div>
+            <p class="preview-note">※実際の表示とは解像度が異なります</p>
+        </div>
+
+        <div class="design-menu-grid">
+            <button id="btn-open-prod-title" class="design-menu-btn"><span
+                    class="menu-icon">🎬</span><br>タイトル画面</button>
+            <button id="btn-open-prod-qnum" class="design-menu-btn"><span class="menu-icon">🔢</span><br>問題番号</button>
+            <button id="btn-open-prod-ranking" class="design-menu-btn"><span
+                    class="menu-icon">🏆</span><br>ランキング</button>
+        </div>
+
+        <div class="design-action-row">
+            <button id="prod-design-reset-btn" class="btn-dark">初期値</button>
+            <button id="prod-design-save-btn" class="btn-success">保存 (完了)</button>
+        </div>
+
+        <div id="modal-prod-title" class="design-modal-overlay hidden">
+            <div class="design-modal-content">
+                <h3 class="modal-title">タイトル画面設定</h3>
+                <div class="design-modal-body">
+                    <div class="color-row">
+                        <label>背景色</label>
+                        <div class="color-picker-wrapper">
+                            <input type="color" id="prod-title-bg-color" class="color-picker-full">
+                        </div>
+                    </div>
+                    <div class="color-row">
+                        <label>文字色</label>
+                        <div class="color-picker-wrapper">
+                            <input type="color" id="prod-title-text-color" class="color-picker-full">
+                        </div>
+                    </div>
+                    <div class="config-group">
+                        <label class="config-label">フォント</label>
+                        <select id="prod-title-font" class="btn-block">
+                            <option value="sans-serif">Sans-serif (標準)</option>
+                            <option value="serif">Serif (明朝)</option>
+                            <option value="monospace">Monospace (等幅)</option>
+                        </select>
+                    </div>
+                    <div class="config-group">
+                        <label class="config-label">文字サイズ</label>
+                        <input type="text" id="prod-title-size" class="btn-block" placeholder="例: 8vh">
+                    </div>
+                    <div class="config-group">
+                        <label class="config-label">アニメーション</label>
+                        <select id="prod-title-animation" class="btn-block">
+                            <option value="fade">フェード</option>
+                            <option value="slide">スライド</option>
+                            <option value="pop">ポップ</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-close-action">
+                    <button class="btn-block btn-dark modal-close-btn">閉じる</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="modal-prod-qnum" class="design-modal-overlay hidden">
+            <div class="design-modal-content">
+                <h3 class="modal-title">問題番号設定</h3>
+                <div class="design-modal-body">
+                    <div class="color-row">
+                        <label>背景色</label>
+                        <div class="color-picker-wrapper">
+                            <input type="color" id="prod-qnum-bg-color" class="color-picker-full">
+                        </div>
+                    </div>
+                    <div class="color-row">
+                        <label>文字色</label>
+                        <div class="color-picker-wrapper">
+                            <input type="color" id="prod-qnum-text-color" class="color-picker-full">
+                        </div>
+                    </div>
+                    <div class="config-group">
+                        <label class="config-label">フォント</label>
+                        <select id="prod-qnum-font" class="btn-block">
+                            <option value="sans-serif">Sans-serif (標準)</option>
+                            <option value="serif">Serif (明朝)</option>
+                            <option value="monospace">Monospace (等幅)</option>
+                        </select>
+                    </div>
+                    <div class="config-group">
+                        <label class="config-label">文字サイズ</label>
+                        <input type="text" id="prod-qnum-size" class="btn-block" placeholder="例: 10vh">
+                    </div>
+                    <div class="config-group">
+                        <label class="config-label">表示位置</label>
+                        <select id="prod-qnum-position" class="btn-block">
+                            <option value="center">中央</option>
+                            <option value="top">上部</option>
+                            <option value="bottom">下部</option>
+                        </select>
+                    </div>
+                    <div class="config-group">
+                        <label class="config-label">アニメーション</label>
+                        <select id="prod-qnum-animation" class="btn-block">
+                            <option value="fade">フェード</option>
+                            <option value="slide">スライド</option>
+                            <option value="pop">ポップ</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-close-action">
+                    <button class="btn-block btn-dark modal-close-btn">閉じる</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="modal-prod-ranking" class="design-modal-overlay hidden">
+            <div class="design-modal-content">
+                <h3 class="modal-title">ランキング設定</h3>
+                <div class="design-modal-body">
+                    <div class="color-row">
+                        <label>背景色</label>
+                        <div class="color-picker-wrapper">
+                            <input type="color" id="prod-ranking-bg-color" class="color-picker-full">
+                        </div>
+                    </div>
+                    <div class="color-row">
+                        <label>文字色</label>
+                        <div class="color-picker-wrapper">
+                            <input type="color" id="prod-ranking-text-color" class="color-picker-full">
+                        </div>
+                    </div>
+                    <div class="color-row">
+                        <label>アクセント色</label>
+                        <div class="color-picker-wrapper">
+                            <input type="color" id="prod-ranking-accent-color" class="color-picker-full">
+                        </div>
+                    </div>
+                    <div class="config-group">
+                        <label class="config-label">フォント</label>
+                        <select id="prod-ranking-font" class="btn-block">
+                            <option value="sans-serif">Sans-serif (標準)</option>
+                            <option value="serif">Serif (明朝)</option>
+                            <option value="monospace">Monospace (等幅)</option>
+                        </select>
+                    </div>
+                    <div class="config-group">
+                        <label class="config-label">アニメーション</label>
+                        <select id="prod-ranking-animation" class="btn-block">
+                            <option value="fade">フェード</option>
+                            <option value="cascade">カスケード</option>
+                            <option value="pop">ポップ</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-close-action">
+                    <button class="btn-block btn-dark modal-close-btn">閉じる</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="creator-view" class="view hidden">
+        <div class="view-header">
+            <h2 data-text="Creator.Title">Creator</h2>
+            <button id="creator-back-btn" class="header-back-btn">ダッシュボード</button>
+        </div>
+        <div class="panel-section section-blue mb-20">
+            <h4 class="panel-title" data-text="Creator.HeadingSettings">Set Settings</h4>
+            <label class="config-label" data-text="Creator.LabelTypeFixed">Fixed Type</label>
+            <select id="creator-q-type" class="btn-block bold-select"></select>
+            <p id="creator-type-locked-msg" class="locked-msg hidden" data-text="Creator.MsgTypeLocked">Locked</p>
+        </div>
+        <div class="panel-section section-pink mb-20">
+            <h3 id="creator-form-title" class="panel-title-large" data-text="Creator.HeadingNewQ">New Question</h3>
+            <input type="text" id="question-text" class="btn-block mb-10" placeholder="">
+            <div id="creator-form-container" class="mb-10"></div>
+
+            <div class="panel-section section-gray mb-10">
+                <h5 class="sub-title">解説設定</h5>
+                <label class="config-label">解説テキスト (正解発表時に表示)</label>
+                <textarea id="creator-commentary" class="btn-block" placeholder="例: 世界で一番高い山はエベレストです。海拔8848.86m。"
+                    rows="2"></textarea>
+            </div>
+            <button id="add-question-btn" class="btn-primary btn-block mt-10" data-text="Creator.BtnAdd">Add</button>
+            <div id="update-question-area" class="hidden grid-2-col gap-10 mt-10">
+                <button id="update-question-btn" class="btn-success" data-text="Creator.BtnUpdateQ">Update</button>
+                <button id="cancel-update-btn" class="btn-dark" data-text="Creator.BtnCancel">Cancel</button>
+            </div>
+        </div>
+        <div class="creator-set-settings">
+            <h5 data-text="Creator.ListHeading" class="mb-5">List</h5>
+            <div id="q-list" class="scroll-list mb-15"></div>
+            <button id="save-to-cloud-btn" class="btn-success btn-block btn-large"
+                data-text="Creator.BtnSave">Save</button>
+        </div>
+    </div>
+
+    <div id="config-view" class="view hidden">
+        <div class="view-header">
+            <h2 data-text="Config.Title">Rule Settings</h2>
+            <button id="config-header-back-btn" class="header-back-btn">ダッシュボード</button>
+        </div>
+        <div class="panel-section section-cyan mb-20">
+            <h3 class="panel-title-center">セットのルールを策定</h3>
+            <div class="mb-15">
+                <label class="config-label-large" data-text="Config.LabelSet">対象セットを選択</label>
+                <select id="config-set-select" class="btn-block config-select"></select>
+            </div>
+            <div id="config-builder-ui"></div>
+        </div>
+        <div id="config-action-area" class="hidden">
+            <button id="config-save-set-rules-btn" class="btn-success btn-block btn-large">このルールをセットに保存する</button>
+        </div>
+    </div>
+
+    <div id="prog-config-view" class="view hidden">
+        <div class="view-header">
+            <h2 data-text="Dashboard.BtnProgConfig">Program Settings</h2>
+            <button id="prog-config-back-btn" class="header-back-btn">ダッシュボード</button>
+        </div>
+
+        <div class="panel-section section-purple mb-20">
+            <h3 class="panel-title-center">プログラム構成 (Playlist Builder)</h3>
+            <p class="text-sm text-gray mb-15">保存済みのセット（ルール適用済み）を選択して追加してください。</p>
+            <div class="flex-row gap-10">
+                <select id="prog-set-select" class="btn-block config-select flex-1"></select>
+                <button id="prog-add-set-btn" class="btn-primary" style="width:100px;">追加</button>
+            </div>
+        </div>
+
+        <div class="config-playlist-area">
+            <h4 class="section-title">構成リスト (Playlist)</h4>
+            <div id="prog-playlist-preview" class="scroll-list-dark">
+                <p class="empty-msg">まだ追加されていません</p>
+            </div>
+
+            <div class="save-prog-row mt-20">
+                <input type="text" id="prog-program-title" placeholder="新しいプログラム" class="flex-input">
+                <button id="prog-save-program-btn" class="btn-info">構成を保存</button>
+            </div>
+            <button id="prog-open-load-modal-btn" class="btn-dark btn-block mt-10">📂 保存済みプログラムを読み込む</button>
+        </div>
+
+        <button id="prog-go-studio-btn" class="btn-danger btn-block btn-large mt-20">この構成でスタジオを起動</button>
+
+        <!-- Load Modal -->
+        <div id="prog-load-modal" class="modal-overlay hidden">
+            <div class="modal-content">
+                <h3 class="modal-title">プログラムの読み込み</h3>
+                <select id="prog-load-select" class="btn-block config-select mb-20">
+                    <option value="">読み込み中...</option>
+                </select>
+                <div class="grid-2-col gap-10">
+                    <button id="prog-load-exec-btn" class="btn-primary">読み込む</button>
+                    <button id="prog-load-close-btn" class="btn-dark">キャンセル</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="host-control-view" class="view hidden host-studio-layout">
+        <div class="studio-header-bar">
+            <div class="status-item">
+                <span class="status-label">部屋ID</span>
+                <span id="studio-header-room-id" class="status-value text-yellow" title="クリックしてコピー">---</span>
+            </div>
+            <div class="status-item"><span class="status-label">モード</span><span id="studio-mode-display"
+                    class="status-value text-cyan">NORMAL</span></div>
+            <div class="status-item"><span class="status-label">問題数</span><span id="studio-q-num-display"
+                    class="status-value">1/10</span></div>
+            <div class="status-item"><span class="status-label">状態</span><span id="studio-step-display"
+                    class="status-value">STANDBY</span></div>
+            <div class="status-item">
+                <span class="status-label">参加人数</span>
+                <span id="studio-player-count-display" class="status-value">0</span>
+            </div>
+            <div class="status-item" style="flex: 1; max-width: 300px;">
+                <span class="status-label">参加者</span>
+                <div id="studio-player-list-display" class="player-list-compact">
+                    <span style="color:#666; font-size:0.8em;">待機中...</span>
+                </div>
+            </div>
+
+            <div id="studio-solo-info" class="status-item hidden">
+                <span class="status-label">挑戦者</span><span id="studio-challenger-name"
+                    class="status-value text-pink">---</span>
+                <span class="status-label ml-10">ライフ</span><span id="studio-life-display" class="status-value">3</span>
+            </div>
+            <button id="host-close-studio-btn" class="header-back-btn" style="margin-left: auto;">ダッシュボード</button>
+        </div>
+
+        <div class="studio-main-area">
+            <div id="studio-standby-panel" class="center-message">
+                <div class="big-room-id-box">
+                    <span class="label">部屋ID (クリックしてコピー)</span>
+                    <span id="studio-big-room-id" title="クリックしてコピー">------</span>
+                </div>
+
+                <div id="studio-program-info" class="text-gray mb-20"></div>
+
+                <div id="studio-loader-ui" class="panel-section section-blue" style="max-width:400px; margin:0 auto;">
+                    <select id="studio-program-select" class="btn-block config-select mb-10"></select>
+                    <button id="studio-load-program-btn" class="btn-primary btn-block"
+                        data-text="Studio.BtnLoad">Set</button>
+                </div>
+                <div id="studio-period-timeline" class="timeline-container mt-20"></div>
+            </div>
+
+            <div id="studio-question-panel" class="question-monitor hidden">
+                <div class="monitor-header">
+                    <span id="studio-q-type-badge" class="badge-type">CHOICE</span>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span id="studio-timer-display" class="monitor-timer hidden">TIME: 10</span>
+                        <span id="studio-player-sync-status" class="badge-type"
+                            style="background:rgba(0,229,255,0.1); color:var(--color-primary);">READY</span>
+                    </div>
+                </div>
+                <div id="studio-q-text" class="monitor-q-text"></div>
+                <div id="studio-choices-container" class="monitor-choices"></div>
+                <div id="studio-correct-display" class="monitor-correct hidden">
+                    <div class="label" style="font-size:0.6em; margin-bottom:5px; opacity:0.7;">CORRECT ANSWER</div>
+                    <div id="studio-correct-text"></div>
+                    <div id="studio-commentary-text"
+                        style="font-size:0.5em; font-weight:normal; margin-top:10px; color:#aaa; line-height:1.4;">
+                    </div>
+                </div>
+                <div id="studio-sub-info" class="monitor-sub-info hidden"></div>
+            </div>
+
+            <div id="studio-player-answers" class="studio-realtime-answers hidden"></div>
+
+            <div id="studio-next-preview-panel" class="studio-next-preview hidden">
+                <div class="preview-header">
+                    <span class="preview-label">📺 次の画面</span>
+                    <span id="preview-step-label" class="preview-step-badge">STANDBY</span>
+                </div>
+                <div id="studio-next-preview-content" class="preview-content">
+                    <div class="preview-placeholder">待機中...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="studio-footer-controls">
+            <button id="btn-phase-main" class="btn-block btn-large-action">START</button>
+            <div id="studio-sub-controls" class="sub-controls-grid hidden">
+                <button id="btn-judge-correct" class="btn-success btn-judge">⭕ 正解</button>
+                <button id="btn-judge-wrong" class="btn-danger btn-judge">❌ 不正解</button>
+            </div>
+            <div class="footer-tools">
+                <button id="btn-toggle-ans" class="btn-mini btn-dark">正解表示</button>
+                <button id="btn-force-next" class="btn-mini btn-dark">強制スキップ</button>
+            </div>
+        </div>
+
+        <!-- Panel Selection Modal -->
+        <div id="panel-selection-modal" class="design-modal-overlay hidden">
+            <div class="design-modal-content" style="max-width: 600px;">
+                <h3 class="modal-title">パネル選択</h3>
+                <div class="design-modal-body">
+                    <div id="panel-winner-info" style="text-align:center; margin-bottom:20px; font-size:1.2em; color:#0f0;">
+                        <span id="panel-winner-name"></span> が正解！
+                    </div>
+                    <div style="margin-bottom:15px; text-align:center;">
+                        <label style="color:#aaa; margin-right:10px;">選択する色:</label>
+                        <div id="panel-color-selector" style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+                        </div>
+                    </div>
+                    <div id="panel-selection-grid" class="panel-grid-5x5">
+                    </div>
+                </div>
+                <div class="modal-close-action">
+                    <button id="panel-selection-close" class="btn-block btn-dark">完了</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <div id="ranking-view" class="view hidden center-text">
+        <h2 class="ranking-title-main">RANKING</h2>
+        <div id="ranking-list" class="ranking-container"></div>
+        <button id="ranking-back-btn" class="btn-primary btn-block mt-20"
+            data-text="Studio.BtnBackRanking">Back</button>
+    </div>
+
+    <div id="respondent-view" class="view landing-view hidden">
+        <div class="view-header" style="border:none; margin-bottom:0; justify-content:flex-end;">
+            <button class="header-back-btn back-to-main" data-text="Login.BackBtn">ホームに戻る</button>
+        </div>
+        <div class="landing-content">
+            <div class="landing-logo-area">
+                <div class="landing-logo-emoji">🎮</div>
+                <h1 class="landing-title">Entry</h1>
+                <p class="landing-subtitle">参加情報を入力してください</p>
+            </div>
+            <div class="login-form-area" style="margin: 0 auto;">
+                <input type="text" id="room-code-input" class="modern-input" placeholder="部屋コード (6桁)" maxlength="6">
+                <input type="text" id="player-name-input" class="modern-input" placeholder="ニックネーム">
+                <button id="join-room-btn" class="landing-btn btn-player-modern">参加する</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="player-game-view" class="view hidden">
+        <div id="player-status-bar" class="player-status-bar">
+            <span id="player-name-disp" class="player-name">---</span>
+            <span id="alive-badge" class="alive-badge" data-text="Player.BadgeAlive">ALIVE</span>
+        </div>
+        <div id="score-display-area" class="hidden score-area">Score: <span id="current-score-value">0</span></div>
+        <div id="player-lobby-msg" class="lobby-msg"></div>
+        <div id="player-buzz-area" class="hidden center-text mt-20">
+            <button id="player-buzz-btn" class="buzz-btn" data-text="Player.BtnBuzz">PUSH!</button>
+        </div>
+        <div id="player-quiz-area" class="hidden">
+            <div id="question-text-disp" class="player-q-text"></div>
+            <div id="player-input-container"></div>
+            <div id="answer-timer-disp" class="timer-disp"></div>
+        </div>
+        <div id="player-oral-done-area" class="hidden center-text mt-20">
+            <button id="player-oral-done-btn" class="btn-primary btn-block btn-large"
+                data-text="Player.BtnAnswered">Answered</button>
+        </div>
+        <div id="player-wait-msg" class="hidden wait-msg" data-text="Player.MsgAnswered">Answered...</div>
+        <div id="player-result-overlay" class="hidden overlay-result">
+            <div id="result-icon"></div>
+            <div id="result-text"></div>
+            <div id="result-detail"></div>
+        </div>
+        <div id="player-ranking-overlay" class="hidden overlay-ranking">
+            <h2 class="rank-title" data-text="Player.RankTitle">RANKING</h2>
+            <div data-text="Player.RankYou">You are...</div>
+            <div id="player-my-rank" class="my-rank">---</div>
+            <div id="player-my-score" class="my-score">---</div>
+            <div class="leaderboard-box">
+                <div class="lb-title" data-text="Player.RankBoardTitle">Top Leaders</div>
+                <div id="player-leaderboard" class="lb-list"></div>
+            </div>
+        </div>
+        <div id="player-dead-overlay" class="hidden overlay-dead">
+            <h1 class="dead-title" data-text="Player.MsgDead">GAME OVER</h1>
+            <p data-text="Player.MsgDeadBody">Dead...</p>
+        </div>
+    </div>
+
+    <div id="viewer-login-view" class="view landing-view hidden">
+        <div class="view-header" style="border:none; margin-bottom:0; justify-content:flex-end;">
+            <button class="header-back-btn back-to-main">ダッシュボード</button>
+        </div>
+        <div class="landing-content">
+            <div class="landing-logo-area">
+                <div class="landing-logo-emoji">🖥</div>
+                <h1 class="landing-title">Monitor</h1>
+                <p class="landing-subtitle">モニター用接続</p>
+            </div>
+            <div class="login-form-area" style="margin: 0 auto;">
+                <input type="text" id="viewer-room-code" class="modern-input" placeholder="部屋コード (6桁)">
+                <button id="viewer-connect-btn" class="landing-btn btn-player-modern">接続する</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="viewer-main-view" class="view hidden">
+        <div id="viewer-content">
+            <div id="viewer-status"></div>
+            <div id="viewer-main-text"></div>
+            <div id="viewer-panel-grid" class="hidden"></div>
+            <div id="viewer-bomb-grid" class="hidden"></div>
+            <div id="viewer-multi-grid" class="hidden"></div>
+            <div id="viewer-sub-text"></div>
+            <div id="viewer-ranking-area"></div>
+            <div id="viewer-race-area" class="hidden"></div>
+            <div id="viewer-timer-bar-area" class="hidden">
+                <div id="viewer-timer-bar"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="firebase.js"></script>
+    <script src="text_config.js?v=95"></script>
+    <script src="host_core.js?v=95"></script>
+    <script src="host_design.js?v=95"></script>
+    <script src="host_production_design.js?v=95"></script>
+    <script src="host_creator.js?v=95"></script>
+    <script src="host_config.js?v=95"></script>
+    <script src="host_prog_config.js?v=95"></script>
+    <script src="host_studio.js?v=95"></script>
+    <script src="player.js?v=95"></script>
+    <script src="viewer.js?v=95"></script>
+
+
+    <!-- Edit Menu Modal -->
+    <div id="edit-menu-modal" class="design-modal-overlay hidden">
+        <div class="design-modal-content" style="max-width: 500px;">
+            <h3 class="modal-title">編集メニュー</h3>
+            <div id="edit-menu-set-title" style="text-align:center; color:#0ff; margin-bottom:20px; font-size:1.1em;">
+            </div>
             <div class="design-modal-body">
-                <label class="config-label">背景色</label><input type="color" id="design-main-bg-color" class="color-picker-full mb-20">
-                <label class="config-label">背景画像</label>
-                <div class="image-upload-area">
-                    <input type="file" id="design-bg-image-file" accept="image/*" style="display:none;">
-                    <button id="design-bg-image-btn" class="btn-primary mb-10">画像ファイルを選択</button><br>
-                    <span id="design-bg-image-status" class="status-text">未選択</span>
-                    <button id="design-bg-clear-btn" class="btn-danger btn-mini mt-10">画像解除</button>
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                    <button id="edit-menu-questions" class="btn-block btn-primary" style="padding:15px; font-size:1.1em;">
+                        📝 問題作成
+                    </button>
+                    <button id="edit-menu-rules" class="btn-block btn-info" style="padding:15px; font-size:1.1em;">
+                        ⚙️ ルール設定
+                    </button>
+                    <button id="edit-menu-design" class="btn-block btn-success" style="padding:15px; font-size:1.1em;">
+                        🎨 問題デザイン
+                    </button>
+                    <button id="edit-menu-sound" class="btn-block btn-dark" style="padding:15px; font-size:1.1em;">
+                        🔊 サウンド (準備中)
+                    </button>
                 </div>
-                <input type="hidden" id="design-bg-image-data">
             </div>
-            <button class="btn-block btn-dark modal-close-btn">閉じる</button>
-        </div>
-    </div>
-</div>
-
-<div id="creator-view" class="view hidden">
-    <div class="view-header">
-        <h2 data-text="Creator.Title">Creator</h2>
-        <button id="creator-back-btn" class="header-back-btn">ダッシュボード</button>
-    </div>
-    <div class="panel-section section-blue mb-20">
-        <h4 class="panel-title" data-text="Creator.HeadingSettings">Set Settings</h4>
-        <label class="config-label" data-text="Creator.LabelTypeFixed">Fixed Type</label>
-        <select id="creator-q-type" class="btn-block bold-select"></select>
-        <p id="creator-type-locked-msg" class="locked-msg hidden" data-text="Creator.MsgTypeLocked">Locked</p>
-    </div>
-    <div class="panel-section section-pink mb-20">
-        <h3 id="creator-form-title" class="panel-title-large" data-text="Creator.HeadingNewQ">New Question</h3>
-        <input type="text" id="question-text" class="btn-block mb-10" placeholder="">
-        <div id="creator-form-container" class="mb-10"></div>
-        <button id="add-question-btn" class="btn-primary btn-block mt-10" data-text="Creator.BtnAdd">Add</button>
-        <div id="update-question-area" class="hidden grid-2-col gap-10 mt-10">
-            <button id="update-question-btn" class="btn-success" data-text="Creator.BtnUpdateQ">Update</button>
-            <button id="cancel-update-btn" class="btn-dark" data-text="Creator.BtnCancel">Cancel</button>
-        </div>
-    </div>
-    <div class="creator-set-settings">
-        <h5 data-text="Creator.ListHeading" class="mb-5">List</h5>
-        <div id="q-list" class="scroll-list mb-15"></div>
-        <button id="save-to-cloud-btn" class="btn-success btn-block btn-large" data-text="Creator.BtnSave">Save</button>
-    </div>
-</div>
-
-<div id="config-view" class="view hidden">
-    <div class="view-header">
-        <h2 data-text="Config.Title">Rule Settings</h2>
-        <button id="config-header-back-btn" class="header-back-btn">ダッシュボード</button>
-    </div>
-    <div class="panel-section section-cyan mb-20">
-        <h3 class="panel-title-center" data-text="Config.HeadingAdd">Add Period</h3>
-        <div class="mb-15">
-            <label class="config-label-large" data-text="Config.LabelSet">Set</label>
-            <select id="config-set-select" class="btn-block config-select"></select>
-        </div>
-        <div id="config-builder-ui"></div>
-    </div>
-    <div class="config-playlist-area">
-        <h4 class="section-title" data-text="Config.HeadingList">Playlist</h4>
-        <div id="config-playlist-preview" class="scroll-list-dark"><p class="empty-msg">まだ追加されていません</p></div>
-        <div class="config-options-row">
-            <label class="checkbox-label"><input type="checkbox" id="config-final-ranking-chk" checked> <span data-text="Config.LabelFinalRank">Final Ranking</span></label>
-        </div>
-        <div class="save-prog-row">
-            <input type="text" id="config-program-title" placeholder="構成名を入力" class="flex-input">
-            <button id="config-save-program-btn" class="btn-info" data-text="Config.BtnSaveProg">Save</button>
-        </div>
-        <button id="config-open-load-modal-btn" class="btn-primary btn-block btn-large mb-20">📂 プログラムを編集する</button>
-    </div>
-    <button id="config-go-studio-btn" class="btn-danger btn-block btn-large" data-text="Config.BtnGoStudio">Go Studio</button>
-    
-    <div id="config-load-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <h3 class="modal-title">編集するプログラムを選択</h3>
-            <p class="modal-note">※読み込むと現在のリストは上書きされます</p>
-            <select id="config-prog-select" class="btn-block config-select mb-20"><option value="">読み込み中...</option></select>
-            <div class="grid-2-col gap-10">
-                <button id="config-load-prog-exec-btn" class="btn-primary">Load</button>
-                <button id="config-modal-close-btn" class="btn-dark">Cancel</button>
+            <div class="modal-close-action">
+                <button id="edit-menu-close" class="btn-block btn-dark">閉じる</button>
             </div>
         </div>
     </div>
-</div>
-
-<div id="host-control-view" class="view hidden host-studio-layout">
-    <div class="studio-header-bar">
-        <div class="status-item">
-            <span class="status-label">部屋ID</span>
-            <span id="studio-header-room-id" class="status-value text-yellow" title="クリックしてコピー">---</span>
-        </div>
-        <div class="status-item"><span class="status-label">モード</span><span id="studio-mode-display" class="status-value text-cyan">NORMAL</span></div>
-        <div class="status-item"><span class="status-label">問題数</span><span id="studio-q-num-display" class="status-value">1/10</span></div>
-        <div class="status-item"><span class="status-label">状態</span><span id="studio-step-display" class="status-value">STANDBY</span></div>
-        <div class="status-item"><span class="status-label">参加人数</span><span id="studio-player-count-display" class="status-value">0</span></div>
-        
-        <div id="studio-solo-info" class="status-item hidden">
-            <span class="status-label">挑戦者</span><span id="studio-challenger-name" class="status-value text-pink">---</span>
-            <span class="status-label ml-10">ライフ</span><span id="studio-life-display" class="status-value">3</span>
-        </div>
-        <button id="host-close-studio-btn" class="header-back-btn" style="margin-left: auto;">ダッシュボード</button>
-    </div>
-
-    <div class="studio-main-area">
-        <div id="studio-standby-panel" class="center-message">
-            <div class="big-room-id-box">
-                <span class="label">部屋ID (クリックしてコピー)</span>
-                <span id="studio-big-room-id" title="クリックしてコピー">------</span>
-            </div>
-
-            <div id="studio-program-info" class="text-gray mb-20"></div>
-            
-            <div id="studio-loader-ui" class="panel-section section-blue" style="max-width:400px; margin:0 auto;">
-                <select id="studio-program-select" class="btn-block config-select mb-10"></select>
-                <button id="studio-load-program-btn" class="btn-primary btn-block" data-text="Studio.BtnLoad">Set</button>
-            </div>
-            <div id="studio-period-timeline" class="timeline-container mt-20"></div>
-        </div>
-
-        <div id="studio-question-panel" class="question-monitor hidden">
-            <div class="monitor-header">
-                <span id="studio-q-type-badge" class="badge-type">CHOICE</span>
-                <span class="monitor-timer hidden" id="studio-timer-display">TIME: 10</span>
-            </div>
-            <div id="studio-q-text" class="monitor-q-text"></div>
-            <div id="studio-choices-container" class="monitor-choices"></div>
-            <div id="studio-correct-display" class="monitor-correct hidden">
-                <span class="label">正解:</span> <span id="studio-correct-text"></span>
-            </div>
-            <div id="studio-sub-info" class="monitor-sub-info hidden"></div>
-        </div>
-    </div>
-
-    <div class="studio-footer-controls">
-        <button id="btn-phase-main" class="btn-block btn-large-action">START</button>
-        <div id="studio-sub-controls" class="sub-controls-grid hidden">
-            <button id="btn-judge-correct" class="btn-success btn-judge">⭕ 正解</button>
-            <button id="btn-judge-wrong" class="btn-danger btn-judge">❌ 不正解</button>
-        </div>
-        <div class="footer-tools">
-            <button id="btn-toggle-ans" class="btn-mini btn-dark">正解表示</button>
-            <button id="btn-force-next" class="btn-mini btn-dark">強制スキップ</button>
-        </div>
-    </div>
-</div>
-
-<div id="ranking-view" class="view hidden center-text">
-    <h2 class="ranking-title-main">RANKING</h2>
-    <div id="ranking-list" class="ranking-container"></div>
-    <button id="ranking-back-btn" class="btn-primary btn-block mt-20" data-text="Studio.BtnBackRanking">Back</button>
-</div>
-
-<div id="respondent-view" class="view landing-view hidden">
-    <div class="landing-content">
-        <div class="landing-logo-area">
-            <div class="landing-logo-emoji">🎮</div>
-            <h1 class="landing-title">Entry</h1>
-            <p class="landing-subtitle">参加情報を入力してください</p>
-        </div>
-        <div class="login-form-area" style="margin: 0 auto;">
-            <input type="text" id="room-code-input" class="modern-input" placeholder="部屋コード (6桁)" maxlength="6">
-            <input type="text" id="player-name-input" class="modern-input" placeholder="ニックネーム">
-            <button id="join-room-btn" class="landing-btn btn-player-modern">参加する</button>
-            <button class="header-back-btn back-to-main text-link-btn" data-text="Login.BackBtn">ホームに戻る</button>
-        </div>
-    </div>
-</div>
-
-<div id="player-game-view" class="view hidden">
-    <div id="player-status-bar" class="player-status-bar">
-        <span id="player-name-disp" class="player-name">---</span>
-        <span id="alive-badge" class="alive-badge" data-text="Player.BadgeAlive">ALIVE</span>
-    </div>
-    <div id="score-display-area" class="hidden score-area">Score: <span id="current-score-value">0</span></div>
-    <div id="player-lobby-msg" class="lobby-msg"></div>
-    <div id="player-buzz-area" class="hidden center-text mt-20">
-        <button id="player-buzz-btn" class="buzz-btn" data-text="Player.BtnBuzz">PUSH!</button>
-    </div>
-    <div id="player-quiz-area" class="hidden">
-        <div id="question-text-disp" class="player-q-text"></div>
-        <div id="player-input-container"></div>
-        <div id="answer-timer-disp" class="timer-disp"></div>
-    </div>
-    <div id="player-oral-done-area" class="hidden center-text mt-20">
-        <button id="player-oral-done-btn" class="btn-primary btn-block btn-large" data-text="Player.BtnAnswered">Answered</button>
-    </div>
-    <div id="player-wait-msg" class="hidden wait-msg" data-text="Player.MsgAnswered">Answered...</div>
-    <div id="player-result-overlay" class="hidden overlay-result">
-        <div id="result-icon"></div>
-        <div id="result-text"></div>
-        <div id="result-detail"></div>
-    </div>
-    <div id="player-ranking-overlay" class="hidden overlay-ranking">
-        <h2 class="rank-title" data-text="Player.RankTitle">RANKING</h2>
-        <div data-text="Player.RankYou">You are...</div>
-        <div id="player-my-rank" class="my-rank">---</div>
-        <div id="player-my-score" class="my-score">---</div>
-        <div class="leaderboard-box">
-            <div class="lb-title" data-text="Player.RankBoardTitle">Top Leaders</div>
-            <div id="player-leaderboard" class="lb-list"></div>
-        </div>
-    </div>
-    <div id="player-dead-overlay" class="hidden overlay-dead">
-        <h1 class="dead-title" data-text="Player.MsgDead">GAME OVER</h1>
-        <p data-text="Player.MsgDeadBody">Dead...</p>
-    </div>
-</div>
-
-<div id="viewer-login-view" class="view landing-view hidden">
-    <div class="landing-content">
-        <div class="landing-logo-area">
-            <div class="landing-logo-emoji">🖥</div>
-            <h1 class="landing-title">Monitor</h1>
-            <p class="landing-subtitle">モニター用接続</p>
-        </div>
-        <div class="login-form-area" style="margin: 0 auto;">
-            <input type="text" id="viewer-room-code" class="modern-input" placeholder="部屋コード (6桁)">
-            <button id="viewer-connect-btn" class="landing-btn btn-player-modern">接続する</button>
-            <button class="header-back-btn back-to-main text-link-btn">ダッシュボード</button>
-        </div>
-    </div>
-</div>
-
-<div id="viewer-main-view" class="view hidden">
-    <div id="viewer-content">
-        <div id="viewer-status"></div>
-        <div id="viewer-main-text"></div>
-        <div id="viewer-panel-grid" class="hidden"></div>
-        <div id="viewer-bomb-grid" class="hidden"></div>
-        <div id="viewer-multi-grid" class="hidden"></div>
-        <div id="viewer-sub-text"></div>
-        <div id="viewer-ranking-area"></div>
-        <div id="viewer-race-area" class="hidden"></div>
-        <div id="viewer-timer-bar-area" class="hidden"><div id="viewer-timer-bar"></div></div>
-    </div>
-</div>
-
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-<script src="firebase.js"></script>
-<script src="text_config.js?v=95"></script>
-<script src="host_core.js?v=95"></script>
-<script src="host_design.js?v=95"></script>
-<script src="host_creator.js?v=95"></script>
-<script src="host_config.js?v=95"></script>
-<script src="host_studio.js?v=95"></script>
-<script src="player.js?v=95"></script>
-<script src="viewer.js?v=95"></script>
-
 </body>
-</html>
