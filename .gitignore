@@ -1,0 +1,14 @@
+# IDE / OS Files
+.DS_Store
+.vscode/
+.idea/
+
+# Temp files
+*.tmp
+/tmp/
+
+# Firebase
+.firebase/
+firebase-debug.log*
+ firestore-debug.log*
+ ui-debug.log*
