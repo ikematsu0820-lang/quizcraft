@@ -26,3 +26,21 @@
 ## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🚢 Deployment (GitHub & Firebase)
+
+This project is configured for automatic deployment to **Firebase Hosting** via **GitHub Actions**.
+
+### Initial Setup
+1. **GitHub Repository**: The code is hosted on GitHub. Push your changes to the `main` branch to trigger a deployment.
+2. **Firebase Hosting**:
+   - Ensure you have the `firebase-tools` installed locally (`npm install -g firebase-tools`).
+   - Run `firebase login`.
+   - To link GitHub and Firebase Hosting, run `firebase init hosting:github` and follow the prompts.
+   - This will automatically create the necessary service account and secrets in your GitHub repository.
+
+### Manual Deployment
+If you prefer to deploy manually:
+```bash
+firebase deploy
+```
