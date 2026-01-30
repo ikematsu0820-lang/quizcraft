@@ -127,66 +127,7 @@ select option {
    2. DASHBOARD
    --------------------------------------------------- */
 /* Dashboard Flow Area */
-.dashboard-flow-area {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 40px;
-    margin-bottom: 35px;
-}
 
-.flow-step {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    opacity: 0.6;
-    transition: all 0.3s;
-}
-
-.flow-step.active {
-    opacity: 1;
-    transform: scale(1.1);
-}
-
-.step-icon {
-    width: 50px;
-    height: 50px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 1.4em;
-    box-shadow: var(--shadow-soft);
-}
-
-.flow-step.active .step-icon {
-    background: var(--grad-primary);
-    border-color: transparent;
-    color: #000;
-    box-shadow: 0 0 20px rgba(0, 229, 255, 0.4);
-}
-
-.step-text {
-    font-size: 0.8em;
-    font-weight: 800;
-    color: var(--color-text-sub);
-}
-
-.flow-step.active .step-text {
-    color: var(--color-primary);
-}
-
-.flow-line {
-    flex: 1;
-    height: 2px;
-    background: rgba(255, 255, 255, 0.1);
-    margin: 0 15px;
-    margin-top: -20px;
-    /* Adjust to align with icons */
-}
 
 .dashboard-hero-area {
     padding: 0 20px;
@@ -211,8 +152,8 @@ select option {
     color: #fff;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
-    font-size: 1em;
-    height: 65px;
+    font-size: 0.95em;
+    height: 50px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -223,19 +164,19 @@ select option {
 }
 
 .dash-btn-hero {
-    height: 150px;
-    font-size: 1.5em;
+    height: 160px;
+    font-size: 1.6em;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 20px;
 }
 
 .dash-btn-footer {
-    height: 55px;
+    height: 50px;
     width: 100%;
     background: rgba(255, 255, 255, 0.03);
     border-color: rgba(255, 255, 255, 0.1);
-    font-size: 1.1em;
+    font-size: 1em;
     letter-spacing: 2px;
 }
 
