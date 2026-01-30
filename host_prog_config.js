@@ -41,6 +41,7 @@ window.App.ProgConfig = {
                     select.appendChild(opt);
                 });
             }
+            this.renderPlaylist();
         });
     },
 
@@ -68,9 +69,11 @@ window.App.ProgConfig = {
 
         const setItem = this.localItemsCache[key];
         const newEntry = {
+            sourceKey: key,
+            snapshotAt: Date.now(),
             title: setItem.title || "Untitled Stage",
-            questions: setItem.questions || [],
-            config: setItem.config || { mode: 'normal', gameType: 'score' },
+            questions: JSON.parse(JSON.stringify(setItem.questions || [])),
+            config: JSON.parse(JSON.stringify(setItem.config || { mode: 'normal', gameType: 'score' })),
             progSettings: {
                 showRankingAfter: false,
                 eliminationMode: 'none',
@@ -79,7 +82,7 @@ window.App.ProgConfig = {
         };
 
         window.App.Data.periodPlaylist.push(newEntry);
-        window.App.Ui.showToast(`「${newEntry.title}」を追加しました`);
+        window.App.Ui.showToast(`「${newEntry.title}」を読み込みました (Snapshot)`);
         this.renderPlaylist();
     },
 
@@ -105,6 +108,15 @@ window.App.ProgConfig = {
             const mode = item.config?.mode || 'normal';
             const settings = item.progSettings || { showRankingAfter: true, eliminationMode: 'none', eliminationCount: 0 };
 
+            let updateBadge = "";
+            if (item.sourceKey && this.localItemsCache[item.sourceKey]) {
+                const latest = this.localItemsCache[item.sourceKey];
+                // 型や問題数が変わっていたら更新ありとする簡易判定
+                if (latest.questions?.length !== item.questions?.length) {
+                    updateBadge = `<button class="btn-mini btn-warning" onclick="window.App.ProgConfig.syncWithSource(${i})" style="margin-left:10px; font-size:0.6em; padding:2px 5px;">Update Available</button>`;
+                }
+            }
+
             let modeLabel = mode;
             if (window.App.Studio && window.App.Studio.translateMode) {
                 modeLabel = window.App.Studio.translateMode(mode);
@@ -113,7 +125,7 @@ window.App.ProgConfig = {
             html += `
                 <div class="timeline-card">
                     <div class="prog-set-header-teal">
-                        ${item.title || 'Untitled'}
+                        ${item.title || 'Untitled'} ${updateBadge}
                     </div>
                     
                     <div class="prog-item-settings-tray">
@@ -173,6 +185,21 @@ window.App.ProgConfig = {
         if (target < 0 || target >= arr.length) return;
         [arr[i], arr[target]] = [arr[target], arr[i]];
         this.renderPlaylist();
+    },
+
+    syncWithSource: function (i) {
+        const item = window.App.Data.periodPlaylist[i];
+        if (!item.sourceKey || !this.localItemsCache[item.sourceKey]) return;
+
+        const latest = this.localItemsCache[item.sourceKey];
+        if (confirm(`「${latest.title}」を最新の内容に更新しますか？\n(現在のプログラム内のカスタマイズは引き継がれます)`)) {
+            item.title = latest.title;
+            item.questions = JSON.parse(JSON.stringify(latest.questions || []));
+            item.config = JSON.parse(JSON.stringify(latest.config || { mode: 'normal', gameType: 'score' }));
+            item.snapshotAt = Date.now();
+            window.App.Ui.showToast("最新の内容に更新しました");
+            this.renderPlaylist();
+        }
     },
 
     goToStudio: function () {

@@ -165,6 +165,30 @@ window.App.Dashboard = {
         const idEl = document.getElementById('dashboard-show-id');
         if (idEl) idEl.textContent = window.App.State.currentShowId;
         this.loadItems();
+        this.updateFlowProgress();
+    },
+
+    updateFlowProgress: function () {
+        const showId = window.App.State.currentShowId;
+        if (!showId) return;
+
+        Promise.all([
+            window.db.ref(`saved_sets/${showId}`).once('value'),
+            window.db.ref(`saved_programs/${showId}`).once('value')
+        ]).then(([setSnap, progSnap]) => {
+            const hasSets = setSnap.exists();
+            const hasProgs = progSnap.exists();
+
+            document.querySelectorAll('.flow-step').forEach(s => s.classList.remove('active'));
+
+            if (!hasSets) {
+                document.getElementById('step-create')?.classList.add('active');
+            } else if (!hasProgs) {
+                document.getElementById('step-design')?.classList.add('active');
+            } else {
+                document.getElementById('step-launch')?.classList.add('active');
+            }
+        });
     },
 
     loadItems: function () {
@@ -198,6 +222,7 @@ window.App.Dashboard = {
                     <div style="display:flex; gap:5px;">
                         <button class="btn-mini btn-info" onclick="window.App.Dashboard.quick('${k}')">▶ Start</button>
                         <button class="btn-mini btn-dark" onclick="window.App.Dashboard.openEditMenu('${k}', ${JSON.stringify(d).replace(/"/g, '&quot;')})">Edit</button>
+                        <button class="btn-mini btn-dark" title="Copy" onclick="window.App.Dashboard.copySet('${k}')">📋</button>
                         <button class="delete-btn btn-mini" onclick="window.App.Dashboard.del('saved_sets', '${k}')">Del</button>
                     </div>`;
                 listEl.appendChild(div);
@@ -242,6 +267,25 @@ window.App.Dashboard = {
             if (data && confirm(`番組構成「${data.title}」をすぐに開始しますか？`)) {
                 window.App.Studio.quickStartProg(data);
             }
+        });
+    },
+
+    copySet: function (key) {
+        const showId = window.App.State.currentShowId;
+        window.db.ref(`saved_sets/${showId}/${key}`).once('value', snap => {
+            const data = snap.val();
+            if (!data) return;
+
+            const newData = JSON.parse(JSON.stringify(data));
+            newData.title = `【コピー】${newData.title}`;
+            newData.createdAt = Date.now();
+
+            const newKey = window.db.ref(`saved_sets/${showId}`).push().key;
+            window.db.ref(`saved_sets/${showId}/${newKey}`).set(newData).then(() => {
+                window.App.Ui.showToast("セットをコピーしました");
+                this.loadItems();
+                this.updateFlowProgress();
+            });
         });
     },
 

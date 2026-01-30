@@ -223,7 +223,24 @@ function updateUI() {
     // --- 状態ごとのUI制御 ---
     if (st.step === 'standby') {
         lobby.classList.remove('hidden');
-        lobby.innerHTML = `<div class="lobby-icon">⏳</div><h3>STANDBY</h3><p>司会者の合図を待っています...</p>`;
+        const score = p.periodScore || 0;
+        const tips = [
+            "正解するほどポイントが貯まります！",
+            "早押し問題はスピードが命！",
+            "最後まで諦めずに挑戦しよう！",
+            "アバター設定は準備中です。"
+        ];
+        const randomTip = tips[Math.floor(Date.now() / 5000) % tips.length];
+
+        lobby.innerHTML = `
+            <div class="lobby-icon" style="font-size:3em; margin-bottom:10px;">⏳</div>
+            <h3 style="letter-spacing:4px; margin:0;">STANDBY</h3>
+            <div class="standby-info" style="margin: 20px 0; padding:15px; background:rgba(255,255,255,0.05); border-radius:15px; width:100%;">
+                <div style="font-size:0.8em; color:#888; margin-bottom:5px;">Your Score</div>
+                <div style="font-size:2em; font-weight:900; color:var(--color-accent);">${score} pt</div>
+            </div>
+            <p style="font-size:0.9em; color:#aaa; margin-top:10px;">💡 Tip: ${randomTip}</p>
+        `;
         isReanswering = false;
         if (changeArea) changeArea.innerHTML = '';
         quizArea.classList.add('hidden');
@@ -388,24 +405,32 @@ function renderResultScreen(p) {
 
     let judgeHtml = '';
     if (p.lastResult === 'win') {
-        judgeHtml = `<div class="anim-pop-in" style="background:#00b894; color:#fff; padding:10px; border-radius:8px; font-weight:bold; font-size:1.5em; text-align:center; margin-bottom:15px; border:2px solid #fff; box-shadow:0 0 15px #00b894;">⭕️ 正解！</div>`;
+        judgeHtml = `
+            <div class="result-symbol result-correct-symbol"></div>
+            <div class="result-badge badge-correct">CORRECT</div>
+        `;
         document.body.classList.add('flash-correct');
         setTimeout(() => document.body.classList.remove('flash-correct'), 600);
     } else if (p.lastResult === 'lose') {
-        judgeHtml = `<div class="anim-pop-in" style="background:#e94560; color:#fff; padding:10px; border-radius:8px; font-weight:bold; font-size:1.5em; text-align:center; margin-bottom:15px; border:2px solid #fff; box-shadow:0 0 15px #e94560;">❌ 不正解...</div>`;
+        judgeHtml = `
+            <div class="result-symbol result-wrong-symbol"></div>
+            <div class="result-badge badge-wrong">WRONG</div>
+        `;
         document.body.classList.add('flash-wrong');
         setTimeout(() => document.body.classList.remove('flash-wrong'), 600);
     }
 
     ansBox.innerHTML = `
-        ${judgeHtml}
-        <div style="background:#00bfff; color:#000; padding:15px; border-radius:8px; font-weight:bold; text-align:center; margin-top:10px;">
-            <div style="font-size:0.8em; margin-bottom:5px;">正解 (ANSWER)</div>
-            <div style="font-size:1.5em;">${correctText}</div>
+        <div style="display:flex; flex-direction:column; align-items:center; margin-bottom:30px;">
+            ${judgeHtml}
         </div>
-        <div style="background:#333; border:1px solid #555; color:#fff; padding:15px; border-radius:8px; font-weight:bold; text-align:center; margin-top:10px;">
-            <div style="font-size:0.8em; margin-bottom:5px; color:#aaa;">あなたの回答 (YOUR ANSWER)</div>
-            <div style="font-size:1.3em;">${myAnsText}</div>
+        <div style="background:var(--color-primary); color:#000; padding:15px; border-radius:20px; font-weight:900; text-align:center; margin-top:10px; box-shadow:0 10px 25px rgba(0, 229, 255, 0.2);">
+            <div style="font-size:0.75em; letter-spacing:2px; margin-bottom:5px; opacity:0.8;">CORRECT ANSWER</div>
+            <div style="font-size:1.8em;">${correctText}</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#fff; padding:15px; border-radius:20px; font-weight:bold; text-align:center; margin-top:15px;">
+            <div style="font-size:0.75em; color:#888; margin-bottom:5px; letter-spacing:2px;">YOUR ANSWER</div>
+            <div style="font-size:1.3em; ${p.lastResult === 'lose' ? 'text-decoration:line-through; color:#888;' : ''}">${myAnsText}</div>
         </div>
     `;
     document.getElementById('question-text-disp').textContent = currentQuestion.q;

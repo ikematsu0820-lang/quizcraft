@@ -4,15 +4,26 @@
 
 /* ベースデザイン */
 #player-game-view {
-    /* Background handled by body in style_common.css */
     color: #fff;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
     padding: 20px;
     box-sizing: border-box;
-    /* font-family inherited */
     background: transparent;
+}
+
+#player-quiz-area {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    /* Take remaining space */
+}
+
+#player-input-container {
+    margin-top: auto;
+    /* Push to bottom */
+    margin-bottom: 20px;
 }
 
 /* ヘッダーバー */
@@ -259,6 +270,47 @@
     font-weight: bold;
     flex: 1;
     margin: 0;
+}
+
+/* --- Accessibility Result Symbols --- */
+.result-symbol {
+    font-size: 100px;
+    line-height: 1;
+    margin-bottom: 10px;
+    font-weight: 900;
+}
+
+.result-correct-symbol::after {
+    content: "⭕";
+    color: #00ff88;
+    text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+}
+
+.result-wrong-symbol::after {
+    content: "✖";
+    color: #ff4757;
+    text-shadow: 0 0 20px rgba(255, 71, 87, 0.5);
+}
+
+.result-badge {
+    padding: 10px 30px;
+    border-radius: 40px;
+    font-size: 1.5em;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.badge-correct {
+    background: #00b894;
+    border: 3px solid #fff;
+    box-shadow: 0 10px 30px rgba(0, 184, 148, 0.4);
+}
+
+.badge-wrong {
+    background: #d63031;
+    border: 3px solid #fff;
+    box-shadow: 0 10px 30px rgba(214, 48, 49, 0.4);
 }
 
 /* その他の要素 */

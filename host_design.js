@@ -90,6 +90,17 @@ App.Design = {
                 this.renderPreview();
             }
         };
+
+        // Preview Toggles
+        document.querySelectorAll('.preview-toggle-btn').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll('.preview-toggle-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const type = btn.dataset.type;
+                document.getElementById('preview-monitor-container').classList.toggle('hidden', type !== 'monitor');
+                document.getElementById('preview-player-container').classList.toggle('hidden', type !== 'player');
+            };
+        });
     },
 
     setupModal: function (btnId, modalId) {
@@ -354,6 +365,37 @@ App.Design = {
                 ${layoutHtml}
             </div>
         `;
+
+        // Player Preview Rendering
+        this.renderPlayerPreview(qText, choices, qType, d);
+    },
+
+    renderPlayerPreview: function (qText, choices, qType, design) {
+        const playerContent = document.getElementById('design-player-preview-content');
+        if (!playerContent) return;
+
+        let ansHtml = '';
+        if (qType === 'choice' || qType === 'sort') {
+            ansHtml = choices.map((c, i) => `
+                <div class="p-ans-item" style="background:${design.qBorderColor}44; border:1px solid ${design.qBorderColor}88;">
+                    <span style="color:${design.qBorderColor}; margin-right:10px;">${i + 1}</span> ${c}
+                </div>
+            `).join('');
+        } else if (qType === 'free_written' || qType === 'free_oral') {
+            ansHtml = `<div style="text-align:center; color:#888; border:1px dashed #444; padding:20px; border-radius:10px;">自由回答入力エリア</div>`;
+        }
+
+        playerContent.innerHTML = `
+            <div class="player-preview-mock">
+                <div class="p-status-bar" style="border-color:${design.qBorderColor}44;"></div>
+                <div class="p-q-text" style="background:${design.qBgColor}; border:1px solid ${design.qBorderColor}88; color:${design.qTextColor};">
+                    ${qText.replace(/\\n/g, '<br>')}
+                </div>
+                <div class="p-answers">
+                    ${ansHtml}
+                </div>
+            </div>
+        `;
     },
 
     save: function () {
@@ -386,8 +428,20 @@ App.Design = {
             promise = window.db.ref(`saved_programs/${App.State.currentShowId}/${t.key}/playlist`).set(playlist);
         }
 
+        const btn = document.getElementById('design-save-btn');
         promise.then(() => {
             App.Ui.showToast("デザインを保存しました！");
+            if (btn) {
+                const originalText = btn.textContent;
+                btn.textContent = "✅ 保存完了";
+                btn.style.background = "#00ff88";
+                btn.style.color = "#000";
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = "";
+                    btn.style.color = "";
+                }, 2000);
+            }
         });
     }
 };

@@ -23,10 +23,12 @@
                 <p class="landing-subtitle">Cloud Edition</p>
             </div>
             <div class="landing-btn-area">
-                <button id="main-host-btn" class="landing-btn btn-host-modern"><span class="btn-icon">✏️</span>
-                    クイズを作る</button>
-                <button id="main-player-btn" class="landing-btn btn-player-modern"><span class="btn-icon">✔</span>
-                    クイズに答える</button>
+                <button id="main-player-btn" class="landing-btn btn-player-hero">
+                    <span class="btn-icon">🎮</span> クイズに参加する
+                </button>
+                <button id="main-host-btn" class="landing-btn-secondary">
+                    <span class="btn-icon">✏️</span> 主催者（クイズを作る）
+                </button>
             </div>
         </div>
     </div>
@@ -53,6 +55,25 @@
             <h3>Show: <span id="dashboard-show-id" class="accent-text">---</span></h3>
             <button class="header-back-btn btn-logout back-to-main" data-text="Dashboard.Logout">Logout</button>
         </div>
+
+        <!-- Dashboard Progress Flow -->
+        <div class="dashboard-flow-area">
+            <div class="flow-step" id="step-create">
+                <div class="step-icon">📝</div>
+                <div class="step-text">1.問題作成</div>
+            </div>
+            <div class="flow-line"></div>
+            <div class="flow-step" id="step-design">
+                <div class="step-icon">🎨</div>
+                <div class="step-text">2.デザイン</div>
+            </div>
+            <div class="flow-line"></div>
+            <div class="flow-step" id="step-launch">
+                <div class="step-icon">🚀</div>
+                <div class="step-text">3.開催</div>
+            </div>
+        </div>
+
         <div class="dashboard-grid">
             <button id="dash-create-btn" class="dash-btn" data-text="Dashboard.BtnCreate">問題作成</button>
             <button id="dash-config-btn" class="dash-btn" data-text="Dashboard.BtnConfig">ルール設定</button>
@@ -84,10 +105,23 @@
             </div>
             <button id="design-target-load-btn" class="btn-primary toolbar-btn">Load</button>
         </div>
+        <div class="preview-toggle-area">
+            <button class="preview-toggle-btn active" data-type="monitor">モニター画面</button>
+            <button class="preview-toggle-btn" data-type="player">参加者スマホ</button>
+        </div>
+
         <div class="design-preview-area-top">
-            <h4 class="preview-label">モニター画面プレビュー</h4>
-            <div class="design-preview-frame">
+            <div id="preview-monitor-container" class="design-preview-frame">
                 <div id="design-monitor-preview-content"></div>
+            </div>
+            <div id="preview-player-container" class="design-preview-frame player-frame hidden">
+                <div id="design-player-preview-content">
+                    <div class="player-preview-mock">
+                        <div class="p-status-bar"></div>
+                        <div class="p-q-text"></div>
+                        <div class="p-answers"></div>
+                    </div>
+                </div>
             </div>
             <p class="preview-note">※実際の表示とは解像度が異なります</p>
         </div>
@@ -595,12 +629,14 @@
             <div class="design-modal-content" style="max-width: 600px;">
                 <h3 class="modal-title">パネル選択</h3>
                 <div class="design-modal-body">
-                    <div id="panel-winner-info" style="text-align:center; margin-bottom:20px; font-size:1.2em; color:#0f0;">
+                    <div id="panel-winner-info"
+                        style="text-align:center; margin-bottom:20px; font-size:1.2em; color:#0f0;">
                         <span id="panel-winner-name"></span> が正解！
                     </div>
                     <div style="margin-bottom:15px; text-align:center;">
                         <label style="color:#aaa; margin-right:10px;">選択する色:</label>
-                        <div id="panel-color-selector" style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+                        <div id="panel-color-selector"
+                            style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
                         </div>
                     </div>
                     <div id="panel-selection-grid" class="panel-grid-5x5">
@@ -736,7 +772,8 @@
             </div>
             <div class="design-modal-body">
                 <div style="display:flex; flex-direction:column; gap:12px;">
-                    <button id="edit-menu-questions" class="btn-block btn-primary" style="padding:15px; font-size:1.1em;">
+                    <button id="edit-menu-questions" class="btn-block btn-primary"
+                        style="padding:15px; font-size:1.1em;">
                         📝 問題作成
                     </button>
                     <button id="edit-menu-rules" class="btn-block btn-info" style="padding:15px; font-size:1.1em;">
