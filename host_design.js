@@ -91,16 +91,36 @@ App.Design = {
             }
         };
 
-        // Preview Toggles
-        document.querySelectorAll('.preview-toggle-btn').forEach(btn => {
+        // Preview Toggles (Segmented Control)
+        document.querySelectorAll('.segmented-btn').forEach(btn => {
             btn.onclick = () => {
-                document.querySelectorAll('.preview-toggle-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.segmented-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 const type = btn.dataset.type;
                 document.getElementById('preview-monitor-container').classList.toggle('hidden', type !== 'monitor');
                 document.getElementById('preview-player-container').classList.toggle('hidden', type !== 'player');
             };
         });
+
+        // Toolbar Collapse Toggle
+        const toggleBtn = document.getElementById('btn-toggle-design-toolbar');
+        if (toggleBtn) {
+            toggleBtn.onclick = () => {
+                const view = document.getElementById('design-view');
+                const isCollapsed = view.classList.contains('design-toolbar-collapsed');
+                if (isCollapsed) {
+                    view.classList.remove('design-toolbar-collapsed');
+                    view.classList.add('design-toolbar-expanded');
+                    toggleBtn.textContent = '▲ ロードメニューを閉じる';
+                } else {
+                    view.classList.add('design-toolbar-collapsed');
+                    view.classList.remove('design-toolbar-expanded');
+                    toggleBtn.textContent = '📂 ロード解除 / 切り替え';
+                }
+            };
+        }
+        // Initial state
+        document.getElementById('design-view').classList.add('design-toolbar-collapsed');
     },
 
     setupModal: function (btnId, modalId) {

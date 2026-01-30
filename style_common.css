@@ -369,32 +369,7 @@ textarea:focus,
     border-color: rgba(255, 255, 255, 0.3);
 }
 
-/* --- Preview Toggles --- */
-.preview-toggle-area {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-bottom: 20px;
-}
 
-.preview-toggle-btn {
-    background: rgba(255, 255, 255, 0.05);
-    color: #888;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 8px 20px;
-    border-radius: 30px;
-    font-weight: 700;
-    font-size: 0.9em;
-    cursor: pointer;
-    transition: all 0.3s;
-}
-
-.preview-toggle-btn.active {
-    background: var(--color-primary);
-    color: #000;
-    border-color: transparent;
-    box-shadow: 0 0 15px rgba(0, 229, 255, 0.3);
-}
 
 /* --- Player Mobile Frame Mock --- */
 .player-frame {

@@ -74,17 +74,21 @@
             </div>
         </div>
 
-        <div class="dashboard-grid">
-            <button id="dash-create-btn" class="dash-btn" data-text="Dashboard.BtnCreate">問題作成</button>
-            <button id="dash-config-btn" class="dash-btn" data-text="Dashboard.BtnConfig">ルール設定</button>
-            <button id="dash-prog-config-btn" class="dash-btn" data-text="Dashboard.BtnProgConfig">プログラム設定</button>
-            <button id="dash-question-design-btn" class="dash-btn">問題デザイン</button>
-            <button id="dash-production-design-btn" class="dash-btn">演出デザイン</button>
-            <button id="dash-sound-btn" class="dash-btn" data-text="Dashboard.BtnSound">サウンド</button>
+        <div class="dashboard-hero-area">
+            <button id="dash-create-btn" class="dash-btn dash-btn-hero" data-text="Dashboard.BtnCreate">問題作成</button>
         </div>
-        <div class="main-action-area mb-30" style="padding:0 20px;">
-            <button id="dash-viewer-btn" class="dash-btn" data-text="Dashboard.BtnViewer"
-                style="background: rgba(100, 100, 100, 0.3); font-size: 0.9em; height: 60px;">モニター</button>
+
+        <div class="dashboard-grid-secondary">
+            <button id="dash-config-btn" class="dash-btn" data-text="Dashboard.BtnConfig">ルール設定</button>
+            <button id="dash-question-design-btn" class="dash-btn">セットデザイン</button>
+            <button id="dash-prog-config-btn" class="dash-btn" data-text="Dashboard.BtnProgConfig">プログラム設定</button>
+            <button id="dash-production-design-btn" class="dash-btn">シーンデザイン</button>
+            <!-- Sound merge planned later, hidden for now -->
+            <button id="dash-sound-btn" class="dash-btn hidden" data-text="Dashboard.BtnSound">サウンド</button>
+        </div>
+
+        <div class="dashboard-footer-area">
+            <button id="dash-viewer-btn" class="dash-btn dash-btn-footer" data-text="Dashboard.BtnViewer">モニター</button>
         </div>
         <div class="dashboard-list-area">
             <h4 class="section-title" data-text="Dashboard.SetListTitle">Saved Sets</h4>
@@ -94,20 +98,25 @@
 
     <div id="design-view" class="view hidden">
         <div class="view-header">
-            <h2>デザインスタジオ</h2>
+            <h2>セットデザイン</h2>
             <button id="design-back-btn" class="header-back-btn">ダッシュボード</button>
         </div>
-        <div class="design-toolbar">
-            <div class="toolbar-select">
-                <select id="design-target-select" class="btn-block">
-                    <option value="">-- 編集対象を選択 --</option>
-                </select>
-            </div>
-            <button id="design-target-load-btn" class="btn-primary toolbar-btn">Load</button>
+        <div class="design-toolbar-toggle-area">
+            <button id="btn-toggle-design-toolbar" class="btn-mini btn-dark">📂 ロード解除 / 切り替え</button>
         </div>
-        <div class="preview-toggle-area">
-            <button class="preview-toggle-btn active" data-type="monitor">モニター画面</button>
-            <button class="preview-toggle-btn" data-type="player">参加者スマホ</button>
+        <div id="design-toolbar-container">
+            <div class="design-toolbar">
+                <div class="toolbar-select">
+                    <select id="design-target-select" class="btn-block">
+                        <option value="">-- 編集対象を選択 --</option>
+                    </select>
+                </div>
+                <button id="design-target-load-btn" class="btn-primary toolbar-btn">Load</button>
+            </div>
+        </div>
+        <div class="preview-segmented-control">
+            <button class="segmented-btn active" data-type="monitor">モニター画面</button>
+            <button class="segmented-btn" data-type="player">参加者スマホ</button>
         </div>
 
         <div class="design-preview-area-top">
@@ -243,7 +252,7 @@
 
     <div id="production-design-view" class="view hidden">
         <div class="view-header">
-            <h2>演出デザインスタジオ</h2>
+            <h2>シーンデザイン</h2>
             <button class="header-back-btn">ダッシュボード</button>
         </div>
         <div class="design-toolbar">
