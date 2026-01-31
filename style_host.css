@@ -154,6 +154,7 @@ select option {
     border-radius: 12px;
     font-size: 0.95em;
     height: 50px;
+    width: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -167,8 +168,9 @@ select option {
     height: 160px;
     font-size: 1.6em;
     background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 20px;
+    box-shadow: 0 0 20px rgba(0, 229, 255, 0.1);
 }
 
 .dash-btn-footer {
