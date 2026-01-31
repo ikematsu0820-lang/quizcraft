@@ -4,34 +4,35 @@
 
 App.ProductionDesign = {
     currentTarget: null,
+    activeQuickEdit: null, // Track which area is being edited
 
     defaults: {
         // Program Title (プログラム名)
         programTitleBgColor: "#000000",
         programTitleTextColor: "#ffffff",
         programTitleFont: "sans-serif",
-        programTitleSize: "10vh",
+        programTitleSize: "80px",
         programTitleAnimation: "fade",
 
         // Set Title (セット名)
         setTitleBgColor: "#1a1a1a",
         setTitleTextColor: "#00e5ff",
         setTitleFont: "sans-serif",
-        setTitleSize: "7vh",
+        setTitleSize: "60px",
         setTitleAnimation: "slide",
 
         // Rule Explanation (ルール説明)
         rulesBgColor: "#0a0a0a",
         rulesTextColor: "#ffffff",
         rulesFont: "sans-serif",
-        rulesSize: "3vh",
+        rulesSize: "24px",
         rulesAnimation: "fade",
 
         // Question Number (問題番号)
         qNumberBgColor: "rgba(0, 0, 0, 0.8)",
         qNumberTextColor: "#00e5ff",
         qNumberFont: "sans-serif",
-        qNumberSize: "10vh",
+        qNumberSize: "80px",
         qNumberAnimation: "slide",
         qNumberPosition: "center",
 
@@ -39,7 +40,7 @@ App.ProductionDesign = {
         timeUpBgColor: "#ff0000",
         timeUpTextColor: "#ffffff",
         timeUpFont: "sans-serif",
-        timeUpSize: "8vh",
+        timeUpSize: "70px",
         timeUpAnimation: "pop",
 
         // All Answers (全員の回答)
@@ -52,7 +53,7 @@ App.ProductionDesign = {
         correctBgColor: "#0a0a0a",
         correctTextColor: "#00ff00",
         correctFont: "sans-serif",
-        correctSize: "6vh",
+        correctSize: "50px",
         correctAnimation: "pop",
 
         // Ranking (順位発表)
@@ -67,7 +68,7 @@ App.ProductionDesign = {
         finalTextColor: "#ffd700",
         finalAccentColor: "#ffffff",
         finalFont: "sans-serif",
-        finalSize: "5vh",
+        finalSize: "40px",
         finalAnimation: "cascade"
     },
 
@@ -78,6 +79,7 @@ App.ProductionDesign = {
         this.loadTargetList();
         this.setDefaultUI();
         this.renderPreview();
+        window.addEventListener('resize', () => this.renderPreview());
     },
 
     bindEvents: function () {
@@ -98,15 +100,56 @@ App.ProductionDesign = {
             }
         });
 
-        // Preview type radio buttons
-        document.querySelectorAll('input[name="prod-preview-type"]').forEach(radio => {
-            radio.onchange = () => this.renderPreview();
+        // Quick Modal Close Logic
+        const quickModal = document.getElementById('modal-design-quick');
+        if (quickModal) {
+            quickModal.querySelectorAll('.modal-close-btn').forEach(btn => {
+                const originalOnClick = btn.onclick;
+                btn.onclick = (e) => {
+                    if (originalOnClick) originalOnClick(e);
+                    // Also close logic for Production
+                    if (App.Ui.currentView === 'productionDesign') {
+                        quickModal.classList.add('hidden');
+                        document.querySelectorAll('.preview-row-block').forEach(el => el.classList.remove('is-editing'));
+                        this.activeQuickEdit = null;
+                    }
+                };
+            });
+        }
+
+        // Preview type segmented control
+        document.querySelectorAll('.prod-preview-type-selector .segmented-btn').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll('.prod-preview-type-selector .segmented-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                this.renderPreview();
+            };
         });
 
         // Setup modals
         this.setupModal('btn-open-prod-title', 'modal-prod-title');
         this.setupModal('btn-open-prod-qnum', 'modal-prod-qnum');
         this.setupModal('btn-open-prod-ranking', 'modal-prod-ranking');
+
+        // Toolbar Collapse Toggle
+        const toggleBtn = document.getElementById('btn-toggle-prod-design-toolbar');
+        if (toggleBtn) {
+            toggleBtn.onclick = () => {
+                const view = document.getElementById('production-design-view');
+                const isCollapsed = view.classList.contains('design-toolbar-collapsed');
+                if (isCollapsed) {
+                    view.classList.remove('design-toolbar-collapsed');
+                    view.classList.add('design-toolbar-expanded');
+                    toggleBtn.textContent = '▲ ロードメニューを閉じる';
+                } else {
+                    view.classList.add('design-toolbar-collapsed');
+                    view.classList.remove('design-toolbar-expanded');
+                    toggleBtn.textContent = '📂 ロード解除 / 切り替え';
+                }
+            };
+        }
+        // Initial state
+        document.getElementById('production-design-view').classList.add('design-toolbar-collapsed');
     },
 
     setupModal: function (btnId, modalId) {
@@ -240,15 +283,27 @@ App.ProductionDesign = {
         const preview = document.getElementById('prod-design-preview-content');
         if (!preview) return;
 
+        const frame = preview.parentElement; // .design-preview-frame
+        const frameWidth = frame.clientWidth;
+        const scale = frameWidth / 1280;
+
+        preview.style.transform = `translate(-50%, -50%) scale(${scale})`;
+
         const s = this.collectSettings();
-        const previewType = document.querySelector('input[name="prod-preview-type"]:checked')?.value || 'title';
+        const activeBtn = document.querySelector('.prod-preview-type-selector .segmented-btn.active');
+        const previewType = activeBtn ? activeBtn.dataset.type : 'title';
 
         let html = '';
 
+        const fontSize = (val) => {
+            if (typeof val !== 'string') return val;
+            return val.includes('vh') ? (parseFloat(val) * 7.2) + 'px' : val;
+        };
+
         if (previewType === 'title') {
             html = `
-                <div style="width:100%; height:100%; background:${s.titleBgColor}; display:flex; align-items:center; justify-content:center; font-family:${s.titleFont};">
-                    <div style="color:${s.titleTextColor}; font-size:${s.titleSize}; font-weight:900; text-align:center; animation: ${s.titleAnimation}In 1s ease-out;">
+                <div class="preview-row-block ${this.activeQuickEdit === 'title' ? 'is-editing' : ''}" onclick="App.ProductionDesign.openQuickEdit('title', event)" style="width:100%; height:100%; background:${s.titleBgColor}; display:flex; align-items:center; justify-content:center; font-family:${s.titleFont}; cursor:pointer;">
+                    <div style="color:${s.titleTextColor}; font-size:${fontSize(s.titleSize)}; font-weight:900; text-align:center; animation: ${s.titleAnimation}In 1s ease-out;">
                         クイズ番組タイトル
                     </div>
                 </div>
@@ -260,22 +315,22 @@ App.ProductionDesign = {
                 'bottom': 'align-items:flex-end; justify-content:center; padding-bottom:50px;'
             };
             html = `
-                <div style="width:100%; height:100%; background:${s.qNumberBgColor}; display:flex; ${positionStyles[s.qNumberPosition]} font-family:${s.qNumberFont};">
-                    <div style="color:${s.qNumberTextColor}; font-size:${s.qNumberSize}; font-weight:900; animation: ${s.qNumberAnimation}In 0.8s ease-out;">
+                <div class="preview-row-block ${this.activeQuickEdit === 'qnumber' ? 'is-editing' : ''}" onclick="App.ProductionDesign.openQuickEdit('qnumber', event)" style="width:100%; height:100%; background:${s.qNumberBgColor}; display:flex; ${positionStyles[s.qNumberPosition]} font-family:${s.qNumberFont}; cursor:pointer;">
+                    <div style="color:${s.qNumberTextColor}; font-size:${fontSize(s.qNumberSize)}; font-weight:900; animation: ${s.qNumberAnimation}In 0.8s ease-out;">
                         第1問
                     </div>
                 </div>
             `;
         } else if (previewType === 'ranking') {
             html = `
-                <div style="width:100%; height:100%; background:${s.rankingBgColor}; padding:40px; font-family:${s.rankingFont}; overflow:hidden;">
-                    <div style="color:${s.rankingAccentColor}; font-size:4vh; font-weight:900; text-align:center; margin-bottom:30px;">RANKING</div>
-                    <div style="display:flex; flex-direction:column; gap:15px;">
+                <div class="preview-row-block ${this.activeQuickEdit === 'ranking' ? 'is-editing' : ''}" onclick="App.ProductionDesign.openQuickEdit('ranking', event)" style="width:100%; height:100%; background:${s.rankingBgColor}; padding:60px 100px; font-family:${s.rankingFont}; overflow:hidden; box-sizing:border-box; cursor:pointer;">
+                    <div style="color:${s.rankingAccentColor}; font-size:40px; font-weight:900; text-align:center; margin-bottom:40px; letter-spacing:4px;">RANKING</div>
+                    <div style="display:flex; flex-direction:column; gap:20px;">
                         ${[1, 2, 3].map(rank => `
-                            <div style="background:rgba(255,255,255,0.05); padding:15px 20px; border-radius:10px; display:flex; align-items:center; animation: ${s.rankingAnimation}In ${rank * 0.2}s ease-out;">
-                                <div style="color:${s.rankingAccentColor}; font-size:3vh; font-weight:900; margin-right:20px;">${rank}</div>
-                                <div style="color:${s.rankingTextColor}; font-size:2.5vh; flex:1;">プレイヤー${rank}</div>
-                                <div style="color:${s.rankingAccentColor}; font-size:2.5vh; font-weight:700;">${100 - rank * 10}pt</div>
+                            <div style="background:rgba(255,255,255,0.05); padding:20px 30px; border-radius:15px; display:flex; align-items:center; animation: ${s.rankingAnimation}In ${rank * 0.2}s ease-out; border:1px solid rgba(255,255,255,0.1);">
+                                <div style="color:${s.rankingAccentColor}; font-size:32px; font-weight:900; margin-right:30px; width:40px;">${rank}</div>
+                                <div style="color:${s.rankingTextColor}; font-size:28px; flex:1; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">プレイヤー${rank}</div>
+                                <div style="color:${s.rankingAccentColor}; font-size:28px; font-weight:900;">${100 - rank * 10} pt</div>
                             </div>
                         `).join('')}
                     </div>
@@ -315,6 +370,111 @@ App.ProductionDesign = {
         promise.then(() => {
             App.Ui.showToast("演出デザインを保存しました！");
         });
+    },
+
+    openQuickEdit: function (type, event) {
+        this.activeQuickEdit = type;
+        const modal = document.getElementById('modal-design-quick');
+        const content = modal.querySelector('.quick-inspector-content');
+        const body = document.getElementById('quick-modal-body');
+        const title = document.getElementById('quick-modal-title');
+        if (!modal || !body || !content) return;
+
+        // Positioning logic (Right side)
+        if (event && window.innerWidth > 768) {
+            const x = event.clientX;
+            const y = event.clientY;
+            const panelWidth = 280;
+            const panelHeight = 180;
+            const offset = 20;
+            let left = x + offset;
+            let top = y - (panelHeight / 2);
+            if (left + panelWidth > window.innerWidth - 10) left = x - panelWidth - offset;
+            if (top < 10) top = 10;
+            if (top + panelHeight > window.innerHeight) top = window.innerHeight - panelHeight - 10;
+            content.style.position = 'absolute';
+            content.style.left = left + 'px';
+            content.style.top = top + 'px';
+            content.style.transform = 'none';
+        } else {
+            content.style.position = '';
+            content.style.left = '';
+            content.style.top = '';
+            content.style.transform = '';
+        }
+
+        // Reset highlight
+        document.querySelectorAll('.preview-row-block').forEach(el => el.classList.remove('is-editing'));
+        if (event && event.currentTarget) event.currentTarget.classList.add('is-editing');
+
+        title.textContent = (type === 'title') ? "タイトル画面" : (type === 'qnumber' ? "問題番号表示" : "ランキング表示");
+
+        // Map UI IDs
+        const map = {
+            'title': { text: 'prod-title-text-color', bg: 'prod-title-bg-color' },
+            'qnumber': { text: 'prod-qnum-text-color', bg: 'prod-qnum-bg-color' },
+            'ranking': { text: 'prod-ranking-text-color', bg: 'prod-ranking-bg-color', accent: 'prod-ranking-accent-color' }
+        };
+        const IDs = map[type];
+
+        let itemsHtml = `
+            <div class="inspector-row">
+                <div class="inspector-icon-box" title="カラー設定">🎨</div>
+                <div class="inspector-controls">
+                    <div class="inspector-control-group">
+                        <span class="inspector-label-mini">文字</span>
+                        <div class="color-swatch-wrapper">
+                            <input type="color" id="quick-text-color" class="color-picker-hidden" value="${document.getElementById(IDs.text).value}">
+                            <div class="color-swatch" id="swatch-text-color" style="background:${document.getElementById(IDs.text).value}"></div>
+                        </div>
+                    </div>
+                    <div class="inspector-control-group">
+                        <span class="inspector-label-mini">背景</span>
+                        <div class="color-swatch-wrapper">
+                            <input type="color" id="quick-bg-color" class="color-picker-hidden" value="${document.getElementById(IDs.bg).value}">
+                            <div class="color-swatch" id="swatch-bg-color" style="background:${document.getElementById(IDs.bg).value}"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        if (type === 'ranking') {
+            itemsHtml += `
+            <div class="inspector-row">
+                <div class="inspector-icon-box" title="アクセント設定">✨</div>
+                <div class="inspector-controls">
+                    <div class="inspector-control-group">
+                        <span class="inspector-label-mini">アクセント</span>
+                        <div class="color-swatch-wrapper">
+                            <input type="color" id="quick-accent-color" class="color-picker-hidden" value="${document.getElementById(IDs.accent).value}">
+                            <div class="color-swatch" id="swatch-accent-color" style="background:${document.getElementById(IDs.accent).value}"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        }
+
+        body.innerHTML = itemsHtml;
+        modal.classList.remove('hidden');
+
+        const sync = (id, targetId, swatchId) => {
+            const el = document.getElementById(id);
+            const targetEl = document.getElementById(targetId);
+            const swatch = document.getElementById(swatchId);
+            if (el && targetEl) {
+                el.oninput = () => {
+                    targetEl.value = el.value;
+                    if (swatch) swatch.style.background = el.value;
+                    this.renderPreview();
+                };
+            }
+        };
+
+        sync('quick-text-color', IDs.text, 'swatch-text-color');
+        sync('quick-bg-color', IDs.bg, 'swatch-bg-color');
+        if (type === 'ranking') sync('quick-accent-color', IDs.accent, 'swatch-accent-color');
     }
 };
 

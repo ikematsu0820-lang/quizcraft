@@ -30,6 +30,62 @@ window.App.Ui = {
         if (target) {
             target.classList.remove('hidden');
             window.scrollTo(0, 0);
+            this.updateFlowNav(targetId);
+        }
+    },
+
+    updateFlowNav: function (viewId) {
+        const nav = document.getElementById('global-flow-nav');
+        if (!nav) return;
+
+        const currentView = typeof viewId === 'string' ? viewId : viewId.id;
+        const editorViews = ['creator-view', 'config-view', 'design-view', 'production-design-view'];
+
+        if (editorViews.includes(currentView)) {
+            nav.classList.remove('hidden');
+        } else {
+            nav.classList.add('hidden');
+        }
+
+        // Highlight steps
+        document.querySelectorAll('.flow-step').forEach(s => s.classList.remove('is-active', 'is-completed'));
+
+        if (currentView === 'creator-view') {
+            document.getElementById('flow-step-creator').classList.add('is-active');
+        } else if (currentView === 'config-view') {
+            document.getElementById('flow-step-creator').classList.add('is-completed');
+            document.getElementById('flow-step-config').classList.add('is-active');
+        } else if (currentView === 'design-view') {
+            document.getElementById('flow-step-creator').classList.add('is-completed');
+            document.getElementById('flow-step-config').classList.add('is-completed');
+            document.getElementById('flow-step-design').classList.add('is-active');
+        } else if (currentView === 'production-design-view') {
+            document.getElementById('flow-step-creator').classList.add('is-completed');
+            document.getElementById('flow-step-config').classList.add('is-completed');
+            document.getElementById('flow-step-design').classList.add('is-completed');
+            document.getElementById('flow-step-scene').classList.add('is-active');
+        }
+
+        // Bind events if not already
+        if (!this.flowNavBound) {
+            document.getElementById('flow-step-creator').onclick = () => {
+                if (App.Creator && App.Creator.init) App.Creator.init();
+            };
+            document.getElementById('flow-step-config').onclick = () => {
+                if (App.Config && App.Config.init) App.Config.init();
+            };
+            document.getElementById('flow-step-design').onclick = () => {
+                if (App.Design && App.Design.init) App.Design.init();
+            };
+            document.getElementById('flow-step-scene').onclick = () => {
+                if (App.ProductionDesign && App.ProductionDesign.init) App.ProductionDesign.init();
+            };
+            document.getElementById('flow-run-btn').onclick = () => {
+                if (confirm("スタジオを起動しますか？")) {
+                    if (App.Studio && App.Studio.startRoom) App.Studio.startRoom();
+                }
+            };
+            this.flowNavBound = true;
         }
     },
 
@@ -215,11 +271,11 @@ window.App.Dashboard = {
                 const div = document.createElement('div');
                 div.className = 'dash-list-item item-type-set';
                 div.innerHTML = `
-                    <div style="flex:1;">
+                    <div class="item-main">
                         <div class="item-title"><span class="badge-set">SET</span> ${d.title}</div>
                         <div class="item-meta">${new Date(d.createdAt || 0).toLocaleDateString()} / ${d.questions.length}Q</div>
                     </div>
-                    <div style="display:flex; gap:5px;">
+                    <div class="item-actions">
                         <button class="btn-mini btn-info" onclick="window.App.Dashboard.quick('${k}')">▶ Start</button>
                         <button class="btn-mini btn-dark" onclick="window.App.Dashboard.openEditMenu('${k}', ${JSON.stringify(d).replace(/"/g, '&quot;')})">Edit</button>
                         <button class="btn-mini btn-dark" title="Copy" onclick="window.App.Dashboard.copySet('${k}')">📋</button>
@@ -234,11 +290,11 @@ window.App.Dashboard = {
                 const div = document.createElement('div');
                 div.className = 'dash-list-item item-type-prog';
                 div.innerHTML = `
-                    <div style="flex:1;">
+                    <div class="item-main">
                         <div class="item-title"><span class="badge-prog">PROG</span> ${d.title}</div>
                         <div class="item-meta">${new Date(d.createdAt || 0).toLocaleDateString()} / ${d.playlist ? d.playlist.length : 0} Periods</div>
                     </div>
-                    <div style="display:flex; gap:5px;">
+                    <div class="item-actions">
                         <button class="btn-mini btn-info" onclick="window.App.Dashboard.quickProg('${k}')">▶ Start</button>
                         <button class="btn-mini btn-danger" onclick="window.App.ProgConfig.loadProgramForDashboard(${JSON.stringify(d).replace(/"/g, '&quot;')})">Load</button>
                         <button class="delete-btn btn-mini" onclick="window.App.Dashboard.del('saved_programs', '${k}')">Del</button>

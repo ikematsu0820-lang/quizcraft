@@ -4,6 +4,7 @@
 
 App.Design = {
     currentTarget: null,
+    activeQuickEdit: null, // Track which area is being edited ('q' or 'c')
 
     defaults: {
         mainBgColor: "#0a0a0a",
@@ -70,6 +71,7 @@ App.Design = {
             };
         }
 
+        this.setupModal('btn-open-layout', 'modal-design-layout');
         this.setupModal('btn-open-text', 'modal-design-text');
         this.setupModal('btn-open-object', 'modal-design-object');
         this.setupModal('btn-open-bg', 'modal-design-bg');
@@ -121,6 +123,18 @@ App.Design = {
         }
         // Initial state
         document.getElementById('design-view').classList.add('design-toolbar-collapsed');
+
+        // Quick Modal Close Logic Extension
+        const quickModal = document.getElementById('modal-design-quick');
+        if (quickModal) {
+            quickModal.querySelectorAll('.modal-close-btn').forEach(btn => {
+                btn.onclick = () => {
+                    quickModal.classList.add('hidden');
+                    document.querySelectorAll('.preview-q-block, .preview-c-block').forEach(el => el.classList.remove('is-editing'));
+                    this.activeQuickEdit = null;
+                };
+            });
+        }
     },
 
     setupModal: function (btnId, modalId) {
@@ -334,7 +348,7 @@ App.Design = {
         `;
 
         const labelStyle = `
-            color:${d.qBorderColor}; 
+            color:${d.cBorderColor}; 
             font-weight:900; 
             font-size:36px;
             margin-right:20px; 
@@ -346,7 +360,7 @@ App.Design = {
         if (qType === 'free_written' || qType === 'free_oral') {
             layoutHtml = `
                 <div style="padding:60px; box-sizing:border-box; display:flex; flex-direction:column; height:100%; justify-content:center; align-items:center;">
-                    <div style="${qStyle} width:80%; height:50%; font-size:60px;">${qText}</div>
+                    <div class="preview-q-block ${this.activeQuickEdit === 'q' ? 'is-editing' : ''}" onclick="App.Design.openQuickEdit('q', event)" style="${qStyle} width:80%; height:50%; font-size:60px;">${qText}</div>
                     <div style="color:#aaa; margin-top:40px; font-size:30px;">[ ${qType === 'free_oral' ? '口頭回答' : '記述式'} ]</div>
                 </div>
             `;
@@ -354,8 +368,8 @@ App.Design = {
             if (s.layout === 'split_list' || s.layout === 'split_grid') {
                 layoutHtml = `
                     <div style="display:flex; height:100%; gap:40px; padding:40px; box-sizing:border-box;">
-                        <div style="flex:1; ${qStyle}; margin:0; writing-mode: vertical-rl; text-orientation: upright; justify-content:center;">${qText}</div>
-                        <div style="flex:1; display:flex; flex-direction:column; justify-content:center; gap:20px;">
+                        <div class="preview-q-block ${this.activeQuickEdit === 'q' ? 'is-editing' : ''}" onclick="App.Design.openQuickEdit('q', event)" style="flex:1; ${qStyle}; margin:0; writing-mode: vertical-rl; text-orientation: upright; justify-content:center;">${qText}</div>
+                        <div class="preview-c-block ${this.activeQuickEdit === 'c' ? 'is-editing' : ''}" onclick="App.Design.openQuickEdit('c', event)" style="flex:1; display:flex; flex-direction:column; justify-content:center; gap:20px;">
                             ${choices.map((c, i) => `
                                 <div style="${cStyle}">
                                     <span style="${labelStyle}">${String.fromCharCode(65 + i)}</span> ${c}
@@ -367,8 +381,8 @@ App.Design = {
             } else {
                 layoutHtml = `
                     <div style="padding:50px; box-sizing:border-box; display:flex; flex-direction:column; height:100%; justify-content:center;">
-                        <div style="${qStyle} min-height:200px;">${qText}</div>
-                        <div style="margin-top:20px; display:flex; flex-direction:column; gap:15px;">
+                        <div class="preview-q-block ${this.activeQuickEdit === 'q' ? 'is-editing' : ''}" onclick="App.Design.openQuickEdit('q', event)" style="${qStyle} min-height:200px;">${qText}</div>
+                        <div class="preview-c-block ${this.activeQuickEdit === 'c' ? 'is-editing' : ''}" onclick="App.Design.openQuickEdit('c', event)" style="margin-top:20px; display:flex; flex-direction:column; gap:15px;">
                              ${choices.map((c, i) => `
                                 <div style="${cStyle}">
                                     <span style="${labelStyle}">${String.fromCharCode(65 + i)}</span> ${c}
@@ -397,8 +411,8 @@ App.Design = {
         let ansHtml = '';
         if (qType === 'choice' || qType === 'sort') {
             ansHtml = choices.map((c, i) => `
-                <div class="p-ans-item" style="background:${design.qBorderColor}44; border:1px solid ${design.qBorderColor}88;">
-                    <span style="color:${design.qBorderColor}; margin-right:10px;">${i + 1}</span> ${c}
+                <div class="p-ans-item" style="background:${design.cBorderColor}22; border:1px solid ${design.cBorderColor}66;">
+                    <span style="color:${design.cBorderColor}; margin-right:10px; font-weight:bold;">${i + 1}</span> ${c}
                 </div>
             `).join('');
         } else if (qType === 'free_written' || qType === 'free_oral') {
@@ -462,6 +476,128 @@ App.Design = {
                     btn.style.color = "";
                 }, 2000);
             }
+        });
+    },
+
+    openQuickEdit: function (type, event) {
+        this.activeQuickEdit = type;
+        const modal = document.getElementById('modal-design-quick');
+        const content = modal.querySelector('.quick-inspector-content');
+        const body = document.getElementById('quick-modal-body');
+        const title = document.getElementById('quick-modal-title');
+        if (!modal || !body || !content) return;
+
+        // Positioning logic
+        if (event && window.innerWidth > 768) {
+            const x = event.clientX;
+            const y = event.clientY;
+            const panelWidth = 280; // Compact
+            const panelHeight = 220; // Slimmer
+            const offset = 20;
+
+            let left = x + offset;
+            let top = y - (panelHeight / 2);
+
+            // Bounds check (Flip to left if no space on right)
+            if (left + panelWidth > window.innerWidth - 10) left = x - panelWidth - offset;
+            if (top < 10) top = 10;
+            if (top + panelHeight > window.innerHeight) top = window.innerHeight - panelHeight - 10;
+
+            content.style.position = 'absolute';
+            content.style.left = left + 'px';
+            content.style.top = top + 'px';
+            content.style.transform = 'none';
+        } else {
+            content.style.position = '';
+            content.style.left = '';
+            content.style.top = '';
+            content.style.transform = '';
+        }
+
+        // Reset highlight
+        document.querySelectorAll('.preview-q-block, .preview-c-block').forEach(el => el.classList.remove('is-editing'));
+        const target = (type === 'q') ? document.querySelector('.preview-q-block') : document.querySelector('.preview-c-block');
+        if (target) target.classList.add('is-editing');
+
+        title.textContent = (type === 'q') ? "問題エリア" : "選択肢エリア";
+
+        const prefix = (type === 'q') ? 'q' : 'c';
+
+        body.innerHTML = `
+            <div class="inspector-row">
+                <div class="inspector-icon-box" title="テキスト設定">T</div>
+                <div class="inspector-controls">
+                    <div class="inspector-control-group">
+                        <span class="inspector-label-mini">文字</span>
+                        <div class="color-swatch-wrapper">
+                            <input type="color" id="quick-text-color" class="color-picker-hidden" value="${document.getElementById(`design-${prefix}-text`).value}">
+                            <div class="color-swatch" id="swatch-text-color" style="background:${document.getElementById(`design-${prefix}-text`).value}"></div>
+                        </div>
+                    </div>
+                    ${type === 'q' ? `
+                    <div class="align-btn-group-toolbar">
+                        <button type="button" class="btn-align-q ${document.getElementById('creator-set-align').value === 'left' ? 'active' : ''}" data-align="left">左</button>
+                        <button type="button" class="btn-align-q ${document.getElementById('creator-set-align').value === 'center' ? 'active' : ''}" data-align="center">中</button>
+                        <button type="button" class="btn-align-q ${document.getElementById('creator-set-align').value === 'right' ? 'active' : ''}" data-align="right">右</button>
+                    </div>
+                    ` : ''}
+                </div>
+            </div>
+
+            <div class="inspector-row">
+                <div class="inspector-icon-box" title="ボックス設定">□</div>
+                <div class="inspector-controls">
+                    <div class="inspector-control-group">
+                        <span class="inspector-label-mini">枠線</span>
+                        <div class="color-swatch-wrapper">
+                            <input type="color" id="quick-border-color" class="color-picker-hidden" value="${document.getElementById(`design-${prefix}-border`).value}">
+                            <div class="color-swatch" id="swatch-border-color" style="background:${document.getElementById(`design-${prefix}-border`).value}"></div>
+                        </div>
+                    </div>
+                    <div class="inspector-control-group">
+                        <span class="inspector-label-mini">背景</span>
+                        <div class="color-swatch-wrapper">
+                            <input type="color" id="quick-bg-color" class="color-picker-hidden" value="${document.getElementById(`design-${prefix}-bg`).value}">
+                            <div class="color-swatch" id="swatch-bg-color" style="background:${document.getElementById(`design-${prefix}-bg`).value}"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        modal.classList.remove('hidden');
+
+        // Bind events
+        const sync = (id, targetId, swatchId) => {
+            const el = document.getElementById(id);
+            const targetEl = document.getElementById(targetId);
+            const swatch = document.getElementById(swatchId);
+            if (el && targetEl) {
+                el.oninput = () => {
+                    targetEl.value = el.value;
+                    if (swatch) swatch.style.background = el.value;
+                    this.renderPreview();
+                };
+            }
+        };
+
+        sync('quick-text-color', `design-${prefix}-text`, 'swatch-text-color');
+        sync('quick-border-color', `design-${prefix}-border`, 'swatch-border-color');
+        sync('quick-bg-color', `design-${prefix}-bg`, 'swatch-bg-color');
+
+        body.querySelectorAll('.btn-align-q').forEach(btn => {
+            btn.onclick = () => {
+                body.querySelectorAll('.btn-align-q').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const realAlign = document.getElementById('creator-set-align');
+                if (realAlign) {
+                    realAlign.value = btn.dataset.align;
+                    document.querySelectorAll('.btn-align').forEach(b => {
+                        b.classList.toggle('active', b.dataset.align === btn.dataset.align);
+                    });
+                    this.renderPreview();
+                }
+            };
         });
     }
 };

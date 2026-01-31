@@ -8,7 +8,7 @@
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    padding: 20px;
+    padding: 15px;
     box-sizing: border-box;
     background: transparent;
 }
@@ -32,10 +32,10 @@
     justify-content: space-between;
     align-items: center;
     background: var(--bg-glass);
-    padding: 12px 20px;
-    border-radius: 50px;
+    padding: 10px 18px;
+    border-radius: 40px;
     border: var(--border-glass);
-    margin-bottom: 25px;
+    margin-bottom: 20px;
     backdrop-filter: blur(12px);
     box-shadow: var(--shadow-soft);
 }
@@ -100,15 +100,39 @@
     }
 }
 
+.standby-info {
+    margin: 20px 0;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.standby-score-label {
+    font-size: 0.75em;
+    color: var(--color-text-sub);
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.standby-score-value {
+    font-size: 2em;
+    font-weight: 900;
+    color: var(--color-accent);
+}
+
 /* 問題文エリア */
 .player-q-text {
     background: var(--bg-glass);
     border: var(--border-glass);
-    padding: 25px;
-    border-radius: 16px;
-    font-size: 1.2em;
+    padding: 20px;
+    border-radius: 12px;
+    font-size: 1.15em;
     font-weight: 700;
-    margin-bottom: 25px;
+    margin-bottom: 20px;
     line-height: 1.6;
     box-shadow: var(--shadow-soft);
     backdrop-filter: blur(10px);
@@ -118,11 +142,11 @@
 .answer-btn {
     display: block;
     width: 100%;
-    padding: 20px;
-    margin-bottom: 15px;
+    padding: 16px;
+    margin-bottom: 12px;
     border: none;
-    border-radius: 16px;
-    font-size: 1.25em;
+    border-radius: 12px;
+    font-size: 1.15em;
     font-weight: 800;
     color: #fff;
     cursor: pointer;
@@ -345,18 +369,49 @@
 }
 
 .letter-panel-btn {
-    background: linear-gradient(to bottom, #333, #111);
-    border: 1px solid #555;
-    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
     color: #fff;
-    font-size: 1.5em;
+    font-size: 1.3em;
     font-weight: bold;
-    box-shadow: 0 4px 0 #000;
+    height: 50px;
+    transition: all 0.2s;
 }
 
 .letter-panel-btn:active {
-    transform: translateY(4px);
-    box-shadow: 0 0 0 #000;
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(0.95);
+}
+
+.letter-display-box {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    padding: 12px;
+    font-size: 22px;
+    font-weight: 800;
+    text-align: center;
+    margin-bottom: 15px;
+    border-radius: 10px;
+    min-height: 50px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.player-control-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.letter-panel-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin-bottom: 15px;
 }
 
 /* --- Production Enhancement Styles --- */
@@ -482,30 +537,51 @@
 /* --- Sorting UI --- */
 .sort-display-area {
     background: rgba(0, 0, 0, 0.4);
-    padding: 20px;
-    border-radius: 16px;
-    margin-bottom: 25px;
-    min-height: 80px;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    min-height: 60px;
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 8px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     justify-content: center;
-    box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5);
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(5px);
+}
+
+.sort-choice-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.sort-action-row {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.sort-action-row button {
+    padding: 14px;
+    border-radius: 12px;
+    font-weight: 800;
+    margin-bottom: 0;
 }
 
 .sort-item-badge {
     background: var(--grad-primary);
     color: #000;
-    padding: 10px 18px;
-    border-radius: 12px;
+    padding: 8px 14px;
+    border-radius: 10px;
     font-weight: 800;
-    font-size: 1.1em;
+    font-size: 0.95em;
     display: flex;
     align-items: center;
-    gap: 10px;
-    box-shadow: 0 4px 15px rgba(0, 191, 255, 0.3);
+    gap: 8px;
+    box-shadow: 0 4px 12px rgba(0, 191, 255, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.2);
     animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }

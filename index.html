@@ -80,7 +80,7 @@
         </div>
     </div>
 
-    <div id="design-view" class="view hidden">
+    <div id="design-view" class="view wide-view hidden">
         <div class="view-header">
             <h2>セットデザイン</h2>
             <button id="design-back-btn" class="header-back-btn">ダッシュボード</button>
@@ -99,8 +99,8 @@
             </div>
         </div>
         <div class="preview-segmented-control">
-            <button class="segmented-btn active" data-type="monitor">モニター画面</button>
-            <button class="segmented-btn" data-type="player">参加者スマホ</button>
+            <button class="segmented-btn active" data-type="monitor" title="モニター画面">🖥️ モニター</button>
+            <button class="segmented-btn" data-type="player" title="参加者スマホ">📱 スマホ</button>
         </div>
 
         <div class="design-preview-area-top">
@@ -118,22 +118,32 @@
             </div>
             <p class="preview-note">※実際の表示とは解像度が異なります</p>
         </div>
-        <div class="design-layout-selector-area">
-            <label class="config-label">モニターレイアウト</label>
-            <select id="creator-set-layout" class="btn-block">
-                <option value="standard">標準 (上下)</option>
-                <option value="split_list">左右分割 (リスト)</option>
-                <option value="split_grid">左右分割 (グリッド)</option>
-            </select>
-        </div>
-        <div class="design-menu-grid">
-            <button id="btn-open-text" class="design-menu-btn"><span class="menu-icon">T</span><br>テキスト・配置</button>
-            <button id="btn-open-object" class="design-menu-btn"><span class="menu-icon">□</span><br>オブジェクト</button>
-            <button id="btn-open-bg" class="design-menu-btn"><span class="menu-icon">🖼</span><br>背景</button>
+        <div class="design-compact-menu">
+            <button id="btn-open-layout" class="design-menu-btn-compact" title="レイアウト"><span
+                    class="menu-icon">📺</span></button>
+            <button id="btn-open-bg" class="design-menu-btn-compact" title="背景"><span
+                    class="menu-icon">🖼</span></button>
         </div>
         <div class="design-action-row">
-            <button id="design-reset-btn" class="btn-dark">初期値</button>
-            <button id="design-save-btn" class="btn-success">保存 (完了)</button>
+            <button id="design-reset-btn" class="btn-dark btn-mini">初期値</button>
+            <button id="design-save-btn" class="btn-success btn-mini">保存 (完了)</button>
+        </div>
+
+        <div id="modal-design-layout" class="design-modal-overlay hidden">
+            <div class="design-modal-content">
+                <h3 class="modal-title">モニターレイアウト</h3>
+                <div class="design-modal-body">
+                    <label class="config-label">レイアウトを選択</label>
+                    <select id="creator-set-layout" class="btn-block">
+                        <option value="standard">標準 (上下)</option>
+                        <option value="split_list">左右分割 (リスト)</option>
+                        <option value="split_grid">左右分割 (グリッド)</option>
+                    </select>
+                </div>
+                <div class="modal-close-action">
+                    <button class="btn-block btn-dark modal-close-btn">閉じる</button>
+                </div>
+            </div>
         </div>
 
         <div id="modal-design-text" class="design-modal-overlay hidden">
@@ -206,6 +216,7 @@
             </div>
         </div>
         <div id="modal-design-bg" class="design-modal-overlay hidden">
+            <!-- Existing content -->
             <div class="design-modal-content">
                 <h3 class="modal-title">背景設定</h3>
                 <div class="design-modal-body">
@@ -232,38 +243,50 @@
                 </div>
             </div>
         </div>
+
+    </div>
     </div>
 
-    <div id="production-design-view" class="view hidden">
+    <!-- Shared Quick Inspector (Used by Design Studio & Scene Design) -->
+    <div id="modal-design-quick" class="quick-inspector-overlay hidden">
+        <div class="quick-inspector-content">
+            <div class="quick-modal-header">
+                <h3 id="quick-modal-title" class="modal-title">編集</h3>
+            </div>
+            <div id="quick-modal-body" class="design-modal-body">
+                <!-- JSで動的に構築 -->
+            </div>
+            <div class="modal-close-action">
+                <button class="btn-block btn-primary modal-close-btn toolbar-done-btn">完了</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="production-design-view" class="view wide-view hidden">
         <div class="view-header">
             <h2>シーンデザイン</h2>
             <button class="header-back-btn">ダッシュボード</button>
         </div>
-        <div class="design-toolbar">
-            <div class="toolbar-select">
-                <select id="prod-design-target-select" class="btn-block">
-                    <option value="">-- 編集対象を選択 --</option>
-                </select>
+        <div class="design-toolbar-toggle-area">
+            <button id="btn-toggle-prod-design-toolbar" class="btn-mini btn-dark">📂 ロード解除 / 切り替え</button>
+        </div>
+        <div id="prod-design-toolbar-container">
+            <div class="design-toolbar">
+                <div class="toolbar-select">
+                    <select id="prod-design-target-select" class="btn-block">
+                        <option value="">-- 編集対象を選択 --</option>
+                    </select>
+                </div>
+                <button id="prod-design-target-load-btn" class="btn-primary toolbar-btn">Load</button>
             </div>
-            <button id="prod-design-target-load-btn" class="btn-primary toolbar-btn">Load</button>
         </div>
 
         <div class="design-preview-area-top">
             <h4 class="preview-label">プレビュー</h4>
-            <div class="prod-preview-type-selector"
-                style="display:flex; gap:10px; justify-content:center; margin-bottom:15px;">
-                <label style="display:flex; align-items:center; gap:5px; cursor:pointer;">
-                    <input type="radio" name="prod-preview-type" value="title" checked>
-                    <span>タイトル</span>
-                </label>
-                <label style="display:flex; align-items:center; gap:5px; cursor:pointer;">
-                    <input type="radio" name="prod-preview-type" value="qnumber">
-                    <span>問題番号</span>
-                </label>
-                <label style="display:flex; align-items:center; gap:5px; cursor:pointer;">
-                    <input type="radio" name="prod-preview-type" value="ranking">
-                    <span>ランキング</span>
-                </label>
+            <div class="preview-segmented-control prod-preview-type-selector">
+                <button class="segmented-btn active" data-type="title" title="タイトル">🎬</button>
+                <button class="segmented-btn" data-type="qnumber" title="問題番号">🔢</button>
+                <button class="segmented-btn" data-type="ranking" title="ランキング">🏆</button>
             </div>
             <div class="design-preview-frame">
                 <div id="prod-design-preview-content"></div>
@@ -271,17 +294,17 @@
             <p class="preview-note">※実際の表示とは解像度が異なります</p>
         </div>
 
-        <div class="design-menu-grid">
-            <button id="btn-open-prod-title" class="design-menu-btn"><span
-                    class="menu-icon">🎬</span><br>タイトル画面</button>
-            <button id="btn-open-prod-qnum" class="design-menu-btn"><span class="menu-icon">🔢</span><br>問題番号</button>
-            <button id="btn-open-prod-ranking" class="design-menu-btn"><span
-                    class="menu-icon">🏆</span><br>ランキング</button>
+        <div class="design-compact-menu">
+            <button id="btn-open-prod-title" class="design-menu-btn-compact" title="タイトル画面"><span
+                    class="menu-icon">🎬</span></button>
+            <button id="btn-open-prod-qnum" class="design-menu-btn-compact" title="問題番号"><span
+                    class="menu-icon">🔢</span></button>
+            <button id="btn-open-prod-ranking" class="design-menu-btn-compact" title="ランキング"><span
+                    class="menu-icon">🏆</span></button>
         </div>
-
         <div class="design-action-row">
-            <button id="prod-design-reset-btn" class="btn-dark">初期値</button>
-            <button id="prod-design-save-btn" class="btn-success">保存 (完了)</button>
+            <button id="prod-design-reset-btn" class="btn-dark btn-mini">初期値</button>
+            <button id="prod-design-save-btn" class="btn-success btn-mini">保存 (完了)</button>
         </div>
 
         <div id="modal-prod-title" class="design-modal-overlay hidden">
@@ -785,4 +808,4 @@
             </div>
         </div>
     </div>
-</body>
+<div id="global-flow-nav" class="flow-nav-container hidden"><div class="flow-step" id="flow-step-creator"><div class="flow-step-icon">1</div><div class="flow-step-label">作成</div></div><div class="flow-step" id="flow-step-config"><div class="flow-step-icon">2</div><div class="flow-step-label">ルール</div></div><div class="flow-step" id="flow-step-design"><div class="flow-step-icon">3</div><div class="flow-step-label">デザイン</div></div><div class="flow-step" id="flow-step-scene"><div class="flow-step-icon">4</div><div class="flow-step-label">演出</div></div><button id="flow-run-btn" class="flow-btn-run">スタジオ起動</button></div></body>

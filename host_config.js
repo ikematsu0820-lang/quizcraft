@@ -109,36 +109,32 @@ App.Config = {
         html += `
             <div class="config-item-box">
                 <div class="mb-15">
-                    <label class="config-label">1. 回答モード (Answer Mode)</label>
-                    <div class="mode-selector-grid">
-                        <div class="mode-card ${isOral ? 'disabled opacity-30 cursor-not-allowed' : ''}" data-mode="normal">
-                            <span class="mode-card-icon">⚡</span>
-                            <div class="mode-card-title">一斉回答</div>
-                            <div class="mode-card-desc">SIMULTANEOUS</div>
-                        </div>
-                        <div class="mode-card" data-mode="buzz">
-                            <span class="mode-card-icon">🚨</span>
-                            <div class="mode-card-title">早押し</div>
-                            <div class="mode-card-desc">BUZZ-IN</div>
-                        </div>
-                        <div class="mode-card" data-mode="turn">
-                            <span class="mode-card-icon">🔄</span>
-                            <div class="mode-card-title">順番回答</div>
-                            <div class="mode-card-desc">TURN-BASED</div>
-                        </div>
-                        <div class="mode-card" data-mode="solo">
-                            <span class="mode-card-icon">🏆</span>
-                            <div class="mode-card-title">ソロ挑戦</div>
-                            <div class="mode-card-desc">SOLO CHALLENGE</div>
-                        </div>
-                    </div>
-                    <select id="config-mode-select" class="hidden">
-                        <option value="normal">Normal</option>
-                        <option value="buzz">Buzz</option>
-                        <option value="turn">Turn</option>
-                        <option value="solo">Solo</option>
-                    </select>
-                    <div id="mode-detail-area"></div>
+                <label class="config-label">1. 回答モード (Answer Mode)</label>
+                <div class="mode-segmented-control">
+                    <button type="button" class="mode-segmented-btn ${isOral ? 'disabled' : ''}" data-mode="normal" ${isOral ? 'disabled' : ''}>
+                        <span class="icon">⚡</span>
+                        <span class="label">一斉</span>
+                    </button>
+                    <button type="button" class="mode-segmented-btn" data-mode="buzz">
+                        <span class="icon">🚨</span>
+                        <span class="label">早押し</span>
+                    </button>
+                    <button type="button" class="mode-segmented-btn" data-mode="turn">
+                        <span class="icon">🔄</span>
+                        <span class="label">順番</span>
+                    </button>
+                    <button type="button" class="mode-segmented-btn" data-mode="solo">
+                        <span class="icon">🏆</span>
+                        <span class="label">ソロ</span>
+                    </button>
+                </div>
+                <select id="config-mode-select" class="hidden">
+                    <option value="normal">Normal</option>
+                    <option value="buzz">Buzz</option>
+                    <option value="turn">Turn</option>
+                    <option value="solo">Solo</option>
+                </select>
+                <div id="mode-detail-area"></div>
                 </div>
 
                 <hr style="border:0; border-top:1px dashed #444; margin:20px 0;">
@@ -155,43 +151,38 @@ App.Config = {
                 </div>
 
                 <hr style="border:0; border-top:1px dashed #444; margin:20px 0;">
-
-                <div class="mb-15">
-                    <label class="config-label">3. モニター表示形式 (Monitor Display)</label>
-                    <select id="config-display-mode" class="btn-block config-select">
-                        <option value="flip" ${conf.displayMode === 'flip' ? 'selected' : ''}>一斉フリップ (タイル表示)</option>
-                        <option value="distribution" ${conf.displayMode === 'distribution' ? 'selected' : ''}>分布グラフ (統計表示)</option>
-                        <option value="ranking" ${conf.displayMode === 'ranking' ? 'selected' : ''}>ランキング風 (上位集計)</option>
-                        <option value="none" ${conf.displayMode === 'none' ? 'selected' : ''}>表示なし (正解のみ)</option>
-                    </select>
-                </div>
-
-                <hr style="border:0; border-top:1px dashed #444; margin:20px 0;">
                 
-                <h5 style="margin:15px 0 5px 0;">問題別配点・失点・時間設定</h5>
-                <div id="config-bulk-grid" style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-bottom:15px; background:#222; padding:10px; border-radius:6px; border:1px solid #444;">
-                    <div>
-                        <label class="config-label" style="font-size:0.8em; color:#aaa;">${APP_TEXT.Config.LabelHeaderTime}</label>
-                        <div style="display:flex; gap:5px; margin-bottom:5px;">
-                            <input type="number" id="config-bulk-time-input" value="10" min="1" placeholder="Sec" style="width:100%; text-align:center;">
-                            <button id="config-bulk-time-btn" class="btn-mini btn-dark">SET</button>
-                        </div>
-                        <button id="config-bulk-time-inf-btn" class="btn-mini btn-info" style="width:100%; font-size:0.8em;">なし (No Limit)</button>
+                <h5 style="margin:15px 0 8px 0; font-size:11px; color:#666; font-weight:700; text-transform:uppercase;">問題別一括設定 (Bulk)</h5>
+                
+                <div class="rule-compact-row">
+                    <!-- TIME Switch -->
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-size:11px; font-weight:700; color:#aaa;">TIME</span>
+                        <label class="pro-switch">
+                            <input type="checkbox" id="config-bulk-time-toggle" checked>
+                            <span class="pro-slider"></span>
+                        </label>
                     </div>
-                    <div class="score-section">
-                        <label class="config-label" style="font-size:0.8em; color:#0055ff;">${APP_TEXT.Config.LabelHeaderPt}</label>
-                        <div style="display:flex; gap:5px;">
-                            <input type="number" id="config-bulk-point-input" value="1" min="1" style="width:100%; text-align:center; color:#0055ff; font-weight:bold;">
-                            <button id="config-bulk-point-btn" class="btn-mini btn-primary">SET</button>
-                        </div>
+                    <div class="config-q-input-group pro-style">
+                        <input type="number" id="config-bulk-time-input" value="10" min="1" placeholder="Sec" style="width:50px;">
                     </div>
-                    <div class="score-section">
-                        <label class="config-label" style="font-size:0.8em; color:#d00;">${APP_TEXT.Config.LabelHeaderLoss}</label>
-                        <div style="display:flex; gap:5px;">
-                            <input type="number" id="config-bulk-loss-input" value="0" min="0" style="width:100%; text-align:center; color:#d00; font-weight:bold;">
-                            <button id="config-bulk-loss-btn" class="btn-mini btn-danger">SET</button>
-                        </div>
+
+                    <div style="width:1px; height:24px; background:rgba(255,255,255,0.1); margin:0 5px;"></div>
+
+                    <!-- POINT -->
+                    <div class="config-q-input-group pro-style score-section">
+                        <label>POINT</label>
+                        <input type="number" id="config-bulk-point-input" value="1" min="1" style="width:50px;">
                     </div>
+
+                    <!-- LOSS -->
+                    <div class="config-q-input-group pro-style score-section">
+                        <label>LOSS</label>
+                        <input type="number" id="config-bulk-loss-input" value="0" min="0" style="width:50px;">
+                    </div>
+
+                    <div style="flex:1"></div>
+                    <button id="config-bulk-apply-btn" class="btn-mini btn-primary" style="height:28px; padding:0 12px; font-size:11px;">SET ALL</button>
                 </div>
 
                 <button id="btn-toggle-q-list" class="btn-block btn-dark" style="margin-bottom:10px;">▼ 個別で設定する (全${questions.length}問)</button>
@@ -233,15 +224,15 @@ App.Config = {
         this.renderQList();
         this.toggleScoreSections(typeSel.value !== 'panel');
 
-        // Setup mode card click handlers
-        document.querySelectorAll('.mode-card').forEach(card => {
+        // Setup mode button click handlers
+        document.querySelectorAll('.mode-segmented-btn').forEach(card => {
             if (card.classList.contains('disabled')) return;
 
             card.onclick = () => {
                 const selectedMode = card.dataset.mode;
 
                 // Update visual state
-                document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('active'));
+                document.querySelectorAll('.mode-segmented-btn').forEach(c => c.classList.remove('active'));
                 card.classList.add('active');
 
                 // Update hidden select
@@ -252,9 +243,9 @@ App.Config = {
             };
         });
 
-        // Set initial active card
+        // Set initial active button
         const initialMode = modeSel.value;
-        document.querySelectorAll('.mode-card').forEach(card => {
+        document.querySelectorAll('.mode-segmented-btn').forEach(card => {
             if (card.dataset.mode === initialMode) {
                 card.classList.add('active');
             }
@@ -273,21 +264,31 @@ App.Config = {
     },
 
     setupBulkButtons: function () {
-        document.getElementById('config-bulk-time-btn').onclick = () => {
-            const val = document.getElementById('config-bulk-time-input').value;
-            document.querySelectorAll('.q-time-input').forEach(inp => { inp.value = val; inp.type = "number"; });
-        };
-        document.getElementById('config-bulk-time-inf-btn').onclick = () => {
-            document.querySelectorAll('.q-time-input').forEach(inp => { inp.type = "text"; inp.value = "なし"; });
-            App.Ui.showToast("制限時間を「なし」に設定しました");
-        };
-        document.getElementById('config-bulk-point-btn').onclick = () => {
-            const val = document.getElementById('config-bulk-point-input').value;
-            document.querySelectorAll('.q-point-input').forEach(inp => inp.value = val);
-        };
-        document.getElementById('config-bulk-loss-btn').onclick = () => {
-            const val = document.getElementById('config-bulk-loss-input').value;
-            document.querySelectorAll('.q-loss-input').forEach(inp => inp.value = val);
+        const timeToggle = document.getElementById('config-bulk-time-toggle');
+        const timeInput = document.getElementById('config-bulk-time-input');
+        if (timeToggle && timeInput) {
+            timeToggle.onchange = () => {
+                timeInput.disabled = !timeToggle.checked;
+            };
+        }
+
+        document.getElementById('config-bulk-apply-btn').onclick = () => {
+            const useTime = timeToggle.checked;
+            const timeVal = timeInput.value;
+            const pointVal = document.getElementById('config-bulk-point-input').value;
+            const lossVal = document.getElementById('config-bulk-loss-input').value;
+
+            document.querySelectorAll('.q-time-toggle').forEach(t => {
+                t.checked = useTime;
+                t.dispatchEvent(new Event('change'));
+            });
+            document.querySelectorAll('.q-time-input').forEach(inp => {
+                if (useTime) inp.value = timeVal;
+            });
+            document.querySelectorAll('.q-point-input').forEach(inp => inp.value = pointVal);
+            document.querySelectorAll('.q-loss-input').forEach(inp => inp.value = lossVal);
+
+            App.Ui.showToast("設定を全ての問題に適用しました");
         };
     },
 
@@ -476,28 +477,41 @@ App.Config = {
             const inputType = isNoLimit ? "text" : "number";
 
             card.innerHTML = `
-                <div class="config-q-header">
+                <div class="config-q-header" style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom:10px; margin-bottom:10px;">
                     <span class="config-q-index">Q${i + 1}</span>
-                    <input type="text" class="q-text-input config-select" data-index="${i}" value="${q.q}" style="flex:1; margin-left:10px; height:34px; font-size:0.9em;">
+                    <input type="text" class="q-text-input" data-index="${i}" value="${q.q}" style="flex:1; margin-left:10px; height:32px; font-size:13px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:4px; color:#fff; padding:0 8px;">
                 </div>
                 <div class="config-q-settings-grid">
-                    <div class="config-q-input-group">
-                        <label>制限時間</label>
-                        <div style="display:flex; gap:5px;">
-                            <input type="${inputType}" class="q-time-input" data-index="${i}" value="${timeVal}" style="width:60px;" onfocus="this.type='number'; this.value='';" onblur="if(this.value==''||this.value=='0'){this.type='text';this.value='なし';}">
-                            <button type="button" class="btn-no-limit-mini" onclick="this.previousElementSibling.type='text'; this.previousElementSibling.value='なし';">なし</button>
+                    <!-- TIME Switch -->
+                    <div style="display:flex; align-items:center; gap:8px; margin-right:15px;">
+                        <span style="font-size:11px; font-weight:700; color:#555;">TIME</span>
+                        <label class="pro-switch">
+                            <input type="checkbox" class="q-time-toggle" data-index="${i}" ${!isNoLimit ? 'checked' : ''}>
+                            <span class="pro-slider"></span>
+                        </label>
+                        <div class="config-q-input-group pro-style">
+                             <input type="number" class="q-time-input" data-index="${i}" value="${isNoLimit ? 10 : q.timeLimit}" style="width:45px;" ${isNoLimit ? 'disabled' : ''}>
                         </div>
                     </div>
-                    <div class="config-q-input-group score-section">
-                        <label style="color:var(--color-primary);">Pt</label>
-                        <input type="number" class="q-point-input" data-index="${i}" value="${q.points || 1}" style="width:50px; color:var(--color-primary);">
+
+                    <div class="config-q-input-group pro-style score-section">
+                        <label>Pt</label>
+                        <input type="number" class="q-point-input" data-index="${i}" value="${q.points || 1}" style="width:45px;">
                     </div>
-                    <div class="config-q-input-group score-section">
-                        <label style="color:var(--color-danger);">Loss</label>
-                        <input type="number" class="q-loss-input" data-index="${i}" value="${q.loss || 0}" style="width:50px; color:var(--color-danger);">
+                    <div class="config-q-input-group pro-style score-section">
+                        <label>Loss</label>
+                        <input type="number" class="q-loss-input" data-index="${i}" value="${q.loss || 0}" style="width:45px;">
                     </div>
                 </div>
             `;
+            list.appendChild(card);
+
+            // Bind individual toggle
+            const qToggle = card.querySelector('.q-time-toggle');
+            const qInput = card.querySelector('.q-time-input');
+            qToggle.onchange = () => {
+                qInput.disabled = !qToggle.checked;
+            };
             list.appendChild(card);
         });
 
@@ -508,24 +522,75 @@ App.Config = {
     },
 
     saveRulesToSet: function () {
-        if (!this.selectedSetKey) return;
+        if (!this.selectedSetKey) {
+            App.Ui.showToast("セットが選択されていません");
+            return;
+        }
 
+        const overlay = document.createElement('div');
+        overlay.className = 'design-modal-overlay anim-pop-in';
+        overlay.style.zIndex = '20000';
+        overlay.innerHTML = `
+            <div class="design-modal-content" style="max-width:320px;">
+                <h3 class="modal-title">保存方法を選択</h3>
+                <div class="design-modal-body" style="gap:15px;">
+                    <p style="color:#aaa; font-size:0.85em; text-align:center; margin-bottom:10px;">
+                        現在のセット「${this.selectedSetData.title}」を<br>どう保存しますか？
+                    </p>
+                    <button id="save-opt-overwrite" class="btn-block btn-success">上書き保存</button>
+                    <button id="save-opt-new" class="btn-block btn-primary">別名で保存</button>
+                    <button id="save-opt-cancel" class="btn-block btn-dark">キャンセル</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        overlay.querySelector('#save-opt-overwrite').onclick = () => {
+            overlay.remove();
+            this.executeSave(this.selectedSetKey);
+        };
+
+        overlay.querySelector('#save-opt-new').onclick = () => {
+            const currentTitle = this.selectedSetData.title || "New Set";
+            const newTitle = prompt("新しいセット名を入力してください:", `${currentTitle} (コピー)`);
+            if (newTitle) {
+                overlay.remove();
+                this.executeSave(null, newTitle);
+            }
+        };
+
+        overlay.querySelector('#save-opt-cancel').onclick = () => overlay.remove();
+    },
+
+    executeSave: function (targetKey, newTitle = null) {
         const mode = document.getElementById('config-mode-select').value;
         const gameType = document.getElementById('config-game-type').value;
         const qs = JSON.parse(JSON.stringify(this.selectedSetData.questions));
 
-        document.querySelectorAll('.q-text-input').forEach(inp => qs[inp.dataset.index].q = inp.value);
-        document.querySelectorAll('.q-point-input').forEach(inp => qs[inp.dataset.index].points = parseInt(inp.value));
-        document.querySelectorAll('.q-loss-input').forEach(inp => qs[inp.dataset.index].loss = parseInt(inp.value));
-        document.querySelectorAll('.q-time-input').forEach(inp => {
-            const val = inp.value;
-            qs[inp.dataset.index].timeLimit = (val === "なし" || val === "" || val === "0") ? 0 : (parseInt(val) || 0);
+        // UIから最新の値を収集
+        document.querySelectorAll('.q-text-input').forEach(inp => {
+            const idx = inp.dataset.index;
+            if (qs[idx]) qs[idx].q = inp.value;
+        });
+        document.querySelectorAll('.q-point-input').forEach(inp => {
+            const idx = inp.dataset.index;
+            if (qs[idx]) qs[idx].points = parseInt(inp.value) || 0;
+        });
+        document.querySelectorAll('.q-loss-input').forEach(inp => {
+            const idx = inp.dataset.index;
+            if (qs[idx]) qs[idx].loss = parseInt(inp.value) || 0;
+        });
+        document.querySelectorAll('.q-time-toggle').forEach(chk => {
+            const idx = chk.dataset.index;
+            if (qs[idx]) {
+                const inp = document.querySelector(`.q-time-input[data-index="${idx}"]`);
+                qs[idx].timeLimit = chk.checked ? (parseInt(inp.value) || 10) : 0;
+            }
         });
 
         const newConfig = {
             mode: mode,
             gameType: gameType,
-            displayMode: document.getElementById('config-display-mode')?.value || 'flip',
             buzzWrongAction: document.getElementById('config-buzz-wrong-action')?.value || 'next',
             buzzTime: parseInt(document.getElementById('config-buzz-timer')?.value) || 0,
             normalLimit: document.getElementById('config-normal-limit')?.value || 'unlimited',
@@ -541,12 +606,47 @@ App.Config = {
             soloRecovery: parseInt(document.getElementById('config-solo-recovery')?.value) || 0
         };
 
-        window.db.ref(`saved_sets/${App.State.currentShowId}/${this.selectedSetKey}`).update({
+        const path = `saved_sets/${App.State.currentShowId}`;
+        const isNew = !targetKey;
+        const ref = isNew ? window.db.ref(path).push() : window.db.ref(`${path}/${targetKey}`);
+
+        const saveData = {
             config: newConfig,
-            questions: qs
-        }).then(() => {
-            App.Ui.showToast(APP_TEXT.Config.MsgRulesSaved);
-            this.loadSetList();
+            questions: qs,
+            updatedAt: firebase.database.ServerValue.TIMESTAMP
+        };
+
+        if (isNew) {
+            saveData.title = newTitle;
+            saveData.createdAt = firebase.database.ServerValue.TIMESTAMP;
+            saveData.questions.forEach(q => {
+                // 新規保存時は未設定のプロパティを初期化（Creatorのロジックに合わせる）
+                if (!q.layout) q.layout = this.selectedSetData.questions[0].layout || 'standard';
+                if (!q.align) q.align = this.selectedSetData.questions[0].align || 'center';
+                if (!q.design) q.design = this.selectedSetData.questions[0].design || {};
+            });
+        }
+
+        (isNew ? ref.set(saveData) : ref.update(saveData)).then(() => {
+            App.Ui.showToast(isNew ? "新しく保存しました！" : APP_TEXT.Config.MsgRulesSaved);
+
+            if (isNew) {
+                this.selectedSetKey = ref.key;
+                this.loadSetList();
+                // 読み込み完了後にセレクトボックスを更新するために少し待つ
+                setTimeout(() => {
+                    const select = document.getElementById('config-set-select');
+                    if (select) {
+                        select.value = this.selectedSetKey;
+                        this.updateBuilderUI();
+                    }
+                }, 800);
+            } else {
+                this.updateBuilderUI(); // 最新データを再描画
+            }
+        }).catch(err => {
+            console.error("Save error:", err);
+            App.Ui.showToast("保存に失敗しました: " + err.message);
         });
     }
 };

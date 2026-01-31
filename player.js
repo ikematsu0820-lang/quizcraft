@@ -235,11 +235,11 @@ function updateUI() {
         lobby.innerHTML = `
             <div class="lobby-icon" style="font-size:3em; margin-bottom:10px;">⏳</div>
             <h3 style="letter-spacing:4px; margin:0;">STANDBY</h3>
-            <div class="standby-info" style="margin: 20px 0; padding:15px; background:rgba(255,255,255,0.05); border-radius:15px; width:100%;">
-                <div style="font-size:0.8em; color:#888; margin-bottom:5px;">Your Score</div>
-                <div style="font-size:2em; font-weight:900; color:var(--color-accent);">${score} pt</div>
+            <div class="standby-info">
+                <div class="standby-score-label">Your Score</div>
+                <div class="standby-score-value">${score} pt</div>
             </div>
-            <p style="font-size:0.9em; color:#aaa; margin-top:10px;">💡 Tip: ${randomTip}</p>
+            <p style="font-size:0.9em; color:var(--color-text-sub); margin-top:10px;">💡 Tip: ${randomTip}</p>
         `;
         isReanswering = false;
         if (changeArea) changeArea.innerHTML = '';
@@ -421,16 +421,16 @@ function renderResultScreen(p) {
     }
 
     ansBox.innerHTML = `
-        <div style="display:flex; flex-direction:column; align-items:center; margin-bottom:30px;">
+        <div style="display:flex; flex-direction:column; align-items:center; margin-bottom:20px;">
             ${judgeHtml}
         </div>
-        <div style="background:var(--color-primary); color:#000; padding:15px; border-radius:20px; font-weight:900; text-align:center; margin-top:10px; box-shadow:0 10px 25px rgba(0, 229, 255, 0.2);">
-            <div style="font-size:0.75em; letter-spacing:2px; margin-bottom:5px; opacity:0.8;">CORRECT ANSWER</div>
-            <div style="font-size:1.8em;">${correctText}</div>
+        <div style="background:var(--color-primary); color:#000; padding:12px; border-radius:12px; font-weight:900; text-align:center; margin-top:10px; box-shadow:0 10px 25px rgba(0, 229, 255, 0.2);">
+            <div style="font-size:0.7em; letter-spacing:1px; margin-bottom:4px; opacity:0.8;">CORRECT ANSWER</div>
+            <div style="font-size:1.6em;">${correctText}</div>
         </div>
-        <div style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#fff; padding:15px; border-radius:20px; font-weight:bold; text-align:center; margin-top:15px;">
-            <div style="font-size:0.75em; color:#888; margin-bottom:5px; letter-spacing:2px;">YOUR ANSWER</div>
-            <div style="font-size:1.3em; ${p.lastResult === 'lose' ? 'text-decoration:line-through; color:#888;' : ''}">${myAnsText}</div>
+        <div style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#fff; padding:12px; border-radius:12px; font-weight:bold; text-align:center; margin-top:12px;">
+            <div style="font-size:0.7em; color:var(--color-text-sub); margin-bottom:4px; letter-spacing:1px;">YOUR ANSWER</div>
+            <div style="font-size:1.2em; ${p.lastResult === 'lose' ? 'text-decoration:line-through; color:var(--color-text-sub);' : ''}">${myAnsText}</div>
         </div>
     `;
     document.getElementById('question-text-disp').textContent = currentQuestion.q;
@@ -578,13 +578,11 @@ function renderPlayerQuestion(q, roomId, playerId) {
         }
         const displayBox = document.createElement('div');
         displayBox.className = 'letter-display-box';
-        displayBox.style.background = "#fff"; displayBox.style.color = "#000"; displayBox.style.padding = "10px";
-        displayBox.style.fontSize = "24px"; displayBox.style.fontWeight = "bold"; displayBox.style.textAlign = "center";
-        displayBox.style.marginBottom = "15px"; displayBox.style.borderRadius = "8px"; displayBox.style.minHeight = "50px";
         displayBox.textContent = "";
         inputCont.appendChild(displayBox);
+
         const grid = document.createElement('div');
-        grid.style.display = "grid"; grid.style.gridTemplateColumns = "repeat(5, 1fr)"; grid.style.gap = "8px"; grid.style.marginBottom = "15px";
+        grid.className = 'letter-panel-grid';
         pool.forEach(char => {
             const btn = document.createElement('button');
             btn.textContent = char; btn.className = 'letter-panel-btn';
@@ -592,10 +590,11 @@ function renderPlayerQuestion(q, roomId, playerId) {
             grid.appendChild(btn);
         });
         inputCont.appendChild(grid);
+
         const controlRow = document.createElement('div');
-        controlRow.style.display = "flex"; controlRow.style.gap = "10px";
+        controlRow.className = 'player-control-row';
         const clearBtn = document.createElement('button');
-        clearBtn.textContent = "Clear"; clearBtn.className = "btn-danger btn-block";
+        clearBtn.textContent = "Clear"; clearBtn.className = "btn-confirm-no btn-block";
         clearBtn.onclick = () => { displayBox.textContent = ""; };
         const submitBtn = document.createElement('button');
         submitBtn.textContent = "OK"; submitBtn.className = "btn-primary btn-block";
@@ -632,7 +631,7 @@ function renderPlayerQuestion(q, roomId, playerId) {
 
             // 2. Choice Grid
             const grid = document.createElement('div');
-            grid.style.cssText = 'display:grid; grid-template-columns:1fr; gap:10px; margin-bottom:20px;';
+            grid.className = 'sort-choice-grid';
 
             items.forEach((txt, i) => {
                 const isSelected = selectedIndices.includes(i);
@@ -661,12 +660,10 @@ function renderPlayerQuestion(q, roomId, playerId) {
 
             // 3. Actions
             const actionRow = document.createElement('div');
-            actionRow.style.cssText = 'display:grid; grid-template-columns:1fr 2fr; gap:15px; margin-top:20px;';
+            actionRow.className = 'sort-action-row';
 
             const clearBtn = document.createElement('button');
             clearBtn.className = 'btn-confirm-no';
-            clearBtn.style.padding = '15px';
-            clearBtn.style.borderRadius = '12px';
             clearBtn.textContent = 'クリア';
             clearBtn.onclick = () => {
                 selectedIndices.length = 0;
@@ -675,9 +672,6 @@ function renderPlayerQuestion(q, roomId, playerId) {
 
             const submitBtn = document.createElement('button');
             submitBtn.className = 'btn-primary';
-            submitBtn.style.padding = '15px';
-            submitBtn.style.borderRadius = '12px';
-            submitBtn.style.fontWeight = '900';
             submitBtn.textContent = 'OK / 送信';
             submitBtn.disabled = (selectedIndices.length !== items.length);
 
