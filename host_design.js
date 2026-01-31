@@ -273,15 +273,16 @@ App.Design = {
     },
 
     renderPreview: function () {
-        // Monitor Scaling logic
+        const content = document.getElementById('design-monitor-preview-content');
         const frame = document.getElementById('preview-monitor-container');
-        if (frame && content) {
-            const frameWidth = frame.clientWidth;
-            if (frameWidth > 0) {
-                const scale = frameWidth / 1280;
-                content.style.transform = `translate(-50%, -50%) scale(${scale})`;
-                content.style.transformOrigin = "center center";
-            }
+        if (!content || !frame) return;
+
+        // Monitor Scaling logic
+        const frameWidth = frame.clientWidth;
+        if (frameWidth > 0) {
+            const scale = frameWidth / 1280;
+            content.style.transform = `translate(-50%, -50%) scale(${scale})`;
+            content.style.transformOrigin = "center center";
         }
 
         const s = this.collectSettings();
