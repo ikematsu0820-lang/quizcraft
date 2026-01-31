@@ -273,16 +273,16 @@ App.Design = {
     },
 
     renderPreview: function () {
-        const frame = document.querySelector('.design-preview-frame');
-        const content = document.getElementById('design-monitor-preview-content');
-        if (!frame || !content) return;
-
-        // ★修正: 中央基準でスケーリング
-        const frameWidth = frame.clientWidth;
-        const scale = frameWidth / 1280;
-
-        content.style.transform = `translate(-50%, -50%) scale(${scale})`;
-        content.style.transformOrigin = "center center";
+        // Monitor Scaling logic
+        const frame = document.getElementById('preview-monitor-container');
+        if (frame && content) {
+            const frameWidth = frame.clientWidth;
+            if (frameWidth > 0) {
+                const scale = frameWidth / 1280;
+                content.style.transform = `translate(-50%, -50%) scale(${scale})`;
+                content.style.transformOrigin = "center center";
+            }
+        }
 
         const s = this.collectSettings();
         const d = s.design;
@@ -345,6 +345,7 @@ App.Design = {
             font-size:32px;
             display:flex; 
             align-items:center;
+            pointer-events: none; /* Let parent catch click */
         `;
 
         const labelStyle = `
@@ -420,12 +421,16 @@ App.Design = {
         }
 
         playerContent.innerHTML = `
-            <div class="player-preview-mock">
+            <div class="player-preview-mock" style="pointer-events:auto;">
                 <div class="p-status-bar" style="border-color:${design.qBorderColor}44;"></div>
-                <div class="p-q-text" style="background:${design.qBgColor}; border:1px solid ${design.qBorderColor}88; color:${design.qTextColor};">
+                <div class="p-q-text preview-q-block ${this.activeQuickEdit === 'q' ? 'is-editing' : ''}" 
+                     onclick="App.Design.openQuickEdit('q', event)"
+                     style="background:${design.qBgColor}; border:1px solid ${design.qBorderColor}88; color:${design.qTextColor}; cursor:pointer;">
                     ${qText.replace(/\\n/g, '<br>')}
                 </div>
-                <div class="p-answers">
+                <div class="p-answers preview-c-block ${this.activeQuickEdit === 'c' ? 'is-editing' : ''}" 
+                     onclick="App.Design.openQuickEdit('c', event)"
+                     style="cursor:pointer; border-radius:10px;">
                     ${ansHtml}
                 </div>
             </div>
