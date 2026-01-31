@@ -103,7 +103,8 @@ App.Studio = {
     loadProgramList: function () {
         const select = document.getElementById('studio-program-select');
         const btn = document.getElementById('studio-load-program-btn');
-        const showId = App.State.currentShowId;
+        let showId = App.State.currentShowId;
+        if (showId) showId = showId.trim();
 
         if (!select || !btn) return;
         if (!showId) { select.innerHTML = '<option>エラー: ID未設定</option>'; return; }
@@ -111,20 +112,27 @@ App.Studio = {
         select.innerHTML = '<option>読込中...</option>';
         btn.disabled = true;
 
+        this.localProgramsCache = {}; // キャッシュ初期化
+
         window.db.ref(`saved_programs/${showId}`).once('value', snap => {
             const data = snap.val();
             select.innerHTML = '';
+
             const def = document.createElement('option');
             def.value = "";
             def.textContent = "-- 読み込むプログラムを選択 --";
             select.appendChild(def);
 
             if (data) {
-                Object.keys(data).forEach(key => {
-                    const prog = data[key];
+                // 新しい順にソート
+                const sorted = Object.keys(data).map(k => ({ ...data[k], key: k }))
+                    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+                sorted.forEach(prog => {
+                    this.localProgramsCache[prog.key] = prog;
                     const opt = document.createElement('option');
-                    opt.value = JSON.stringify(prog);
-                    opt.textContent = prog.title;
+                    opt.value = prog.key;
+                    opt.textContent = `${prog.title} (${prog.playlist?.length || 0}セット)`;
                     select.appendChild(opt);
                 });
                 select.disabled = false;
@@ -135,40 +143,40 @@ App.Studio = {
             }
         });
 
-        select.onchange = () => { btn.disabled = (select.value === ""); };
+        select.onchange = () => {
+            btn.disabled = (select.value === "");
+        };
 
         btn.onclick = () => {
-            const val = select.value;
-            if (!val) return;
-            try {
-                const prog = JSON.parse(val);
-                App.Data.periodPlaylist = prog.playlist || [];
+            const key = select.value;
+            if (!key || !this.localProgramsCache[key]) return;
 
-                if (App.Data.periodPlaylist.length === 0) {
-                    alert("⚠️ このプログラムにはセットが登録されていません。\n「ルール設定」でセットを追加して保存し直してください。");
-                    return;
+            const prog = this.localProgramsCache[key];
+            App.Data.periodPlaylist = prog.playlist || [];
+
+            if (App.Data.periodPlaylist.length === 0) {
+                alert("⚠️ このプログラムにはセットが登録されていません。");
+                return;
+            }
+
+            document.getElementById('studio-loader-ui').classList.add('hidden');
+            document.getElementById('studio-program-info').textContent = "番組読込完了: " + prog.title;
+
+            this.renderTimeline();
+
+            const btnMain = document.getElementById('btn-phase-main');
+            btnMain.textContent = "番組を開始 (START PROGRAM)";
+            btnMain.classList.remove('hidden');
+            btnMain.className = 'btn-block btn-large-action action-ready';
+
+            btnMain.onclick = null;
+            btnMain.onclick = () => {
+                try {
+                    this.setupPeriod(0);
+                } catch (e) {
+                    alert("開始エラー: " + e.message);
                 }
-
-                document.getElementById('studio-loader-ui').classList.add('hidden');
-                document.getElementById('studio-program-info').textContent = "読込完了: " + prog.title;
-
-                this.renderTimeline();
-
-                const btnMain = document.getElementById('btn-phase-main');
-                btnMain.textContent = "番組を開始 (START PROGRAM)";
-                btnMain.classList.remove('hidden');
-                btnMain.className = 'btn-block btn-large-action action-ready';
-
-                btnMain.onclick = null;
-                btnMain.onclick = () => {
-                    try {
-                        this.setupPeriod(0);
-                    } catch (e) {
-                        alert("開始エラー: " + e.message);
-                    }
-                };
-
-            } catch (e) { alert("読込失敗: データが壊れている可能性があります"); }
+            };
         };
     },
 
@@ -179,7 +187,7 @@ App.Studio = {
             const btn = document.createElement('button');
             const isActive = (i === App.State.currentPeriodIndex);
             btn.className = `btn-block ${isActive ? 'btn-info' : 'btn-dark'}`;
-            btn.textContent = `${i + 1}. ${item.title} [${this.translateMode(item.config.mode)}]`;
+            btn.textContent = `${i + 1}セット目: ${item.title} [${this.translateMode(item.config.mode)}]`;
             btn.style.textAlign = 'left';
             btn.onclick = () => this.setupPeriod(i);
             area.appendChild(btn);
@@ -584,7 +592,7 @@ App.Studio = {
             q.c.forEach((c, i) => {
                 const div = document.createElement('div');
                 div.className = 'monitor-choice-item';
-                div.textContent = `${i + 1}. ${c}`;
+                div.textContent = `${String.fromCharCode(65 + i)}. ${c}`;
                 cContainer.appendChild(div);
             });
         }
@@ -608,19 +616,7 @@ App.Studio = {
             });
         }
 
-        let correctText = "";
-        if (q.type === 'choice') {
-            if (Array.isArray(q.correct)) {
-                correctText = (q.c) ? q.correct.map(i => q.c[i]).join(' / ') : q.correct.join(' / ');
-            } else {
-                correctText = (q.c) ? q.c[q.correct] : q.correct;
-            }
-        } else if (q.type === 'letter_select') {
-            correctText = q.steps ? q.steps.map(s => s.correct).join('') : q.correct;
-        } else {
-            correctText = Array.isArray(q.correct) ? q.correct.join(' / ') : q.correct;
-        }
-
+        const correctText = this.getAnswerString(q);
         document.getElementById('studio-correct-text').textContent = correctText;
         document.getElementById('studio-correct-display').classList.remove('hidden');
     },
@@ -762,6 +758,10 @@ App.Studio = {
                 } else if (q.type === 'letter_select') {
                     let correctStr = q.steps ? q.steps.map(s => s.correct).join('') : q.correct;
                     if (p.lastAnswer === correctStr) isCor = true;
+                } else if (q.type === 'sort') {
+                    // Normalize both to strings for comparison
+                    let correctStr = Array.isArray(q.correct) ? q.correct.map(idx => String.fromCharCode(65 + idx)).join('') : q.correct;
+                    if (p.lastAnswer === correctStr) isCor = true;
                 } else {
                     if (p.lastAnswer == q.correct) isCor = true;
                 }
@@ -794,7 +794,8 @@ App.Studio = {
         }
         if (q.type === 'letter_select') return q.steps ? q.steps.map(s => s.correct).join('') : q.correct;
         if (q.type === 'sort') {
-            if (Array.isArray(q.correct)) return q.correct.map(idx => String.fromCharCode(65 + idx)).join(' → ');
+            if (Array.isArray(q.correct)) return q.correct.map(idx => q.c[idx]).join(' → ');
+            if (typeof q.correct === 'string') return q.correct.split('').map(char => q.c[char.charCodeAt(0) - 65]).join(' → ');
         }
         return Array.isArray(q.correct) ? q.correct.join(' / ') : q.correct;
     },

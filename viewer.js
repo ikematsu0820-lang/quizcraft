@@ -243,6 +243,9 @@ window.App.Viewer = {
             if (q.type === 'choice' && ans !== null && ans !== undefined) {
                 const idx = parseInt(ans);
                 ans = isNaN(idx) ? ans : String.fromCharCode(65 + idx);
+            } else if (q.type === 'sort' && ans !== null && ans !== undefined) {
+                // For sort, show letters nicely e.g. "A B C D"
+                ans = ans.split('').join(' ');
             } else if (ans === null || ans === undefined || ans === "") {
                 ans = "---";
             }
@@ -462,7 +465,8 @@ window.App.Viewer = {
         }
         if (q.type === 'letter_select') return q.steps ? q.steps.map(s => s.correct).join('') : q.correct;
         if (q.type === 'sort') {
-            if (Array.isArray(q.correct)) return q.correct.map(idx => String.fromCharCode(65 + idx)).join(' → ');
+            if (Array.isArray(q.correct)) return q.correct.map(idx => q.c[idx]).join(' → ');
+            if (typeof q.correct === 'string') return q.correct.split('').map(char => q.c[char.charCodeAt(0) - 65]).join(' → ');
         }
         return Array.isArray(q.correct) ? q.correct.join(' / ') : q.correct;
     },

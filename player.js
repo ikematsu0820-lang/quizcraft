@@ -391,15 +391,20 @@ function renderResultScreen(p) {
         else correctText = currentQuestion.c[currentQuestion.correct];
     } else if (currentQuestion.type === 'letter_select' && currentQuestion.steps) {
         correctText = currentQuestion.steps.map(s => s.correct).join('');
+    } else if (currentQuestion.type === 'sort') {
+        const correctStr = Array.isArray(currentQuestion.correct) ? currentQuestion.correct.map(idx => String.fromCharCode(65 + idx)).join('') : currentQuestion.correct;
+        correctText = correctStr.split('').map(char => currentQuestion.c[char.charCodeAt(0) - 65]).join(' → ');
     } else {
         correctText = currentQuestion.correct;
     }
 
     let myAnsText = p.lastAnswer || "(未回答)";
-    if (p.lastAnswer !== null && currentQuestion.type === 'choice') {
-        const idx = parseInt(p.lastAnswer);
-        if (!isNaN(idx) && currentQuestion.c && currentQuestion.c[idx]) {
-            myAnsText = currentQuestion.c[idx];
+    if (p.lastAnswer !== null) {
+        if (currentQuestion.type === 'choice') {
+            const idx = parseInt(p.lastAnswer);
+            if (!isNaN(idx) && currentQuestion.c && currentQuestion.c[idx]) myAnsText = currentQuestion.c[idx];
+        } else if (currentQuestion.type === 'sort') {
+            myAnsText = p.lastAnswer.split('').map(char => currentQuestion.c[char.charCodeAt(0) - 65]).join(' → ');
         }
     }
 
@@ -692,11 +697,12 @@ function renderPlayerQuestion(q, roomId, playerId) {
 
         renderSortInput();
     }
-    else if (q.type === 'free_oral') {
+    else if (q.type === 'free_oral' || q.type === 'multi') {
         document.getElementById('player-oral-done-area').classList.remove('hidden');
         document.getElementById('player-oral-done-btn').onclick = () => { submitAnswer(roomId, playerId, "[Oral]"); };
     }
     else {
+        // デフォルト: 記述式
         const inp = document.createElement('input');
         inp.type = 'text'; inp.placeholder = '回答を入力...'; inp.className = 'modern-input'; inp.style.marginBottom = '15px';
         const sub = document.createElement('button');

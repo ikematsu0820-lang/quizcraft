@@ -16,7 +16,7 @@ App.ProductionDesign = {
 
         // Set Title (セット名)
         setTitleBgColor: "#1a1a1a",
-        setTitleTextColor: "#00e5ff",
+        setTitleTextColor: "#ffffff",
         setTitleFont: "sans-serif",
         setTitleSize: "60px",
         setTitleAnimation: "slide",
@@ -29,8 +29,8 @@ App.ProductionDesign = {
         rulesAnimation: "fade",
 
         // Question Number (問題番号)
-        qNumberBgColor: "rgba(0, 0, 0, 0.8)",
-        qNumberTextColor: "#00e5ff",
+        qNumberBgColor: "#000000",
+        qNumberTextColor: "#ffffff",
         qNumberFont: "sans-serif",
         qNumberSize: "80px",
         qNumberAnimation: "slide",
@@ -57,7 +57,7 @@ App.ProductionDesign = {
         correctAnimation: "pop",
 
         // Ranking (順位発表)
-        rankingBgColor: "#0a0a0a",
+        rankingBgColor: "#000000",
         rankingTextColor: "#ffffff",
         rankingAccentColor: "#ffd700",
         rankingFont: "sans-serif",
@@ -457,6 +457,20 @@ App.ProductionDesign = {
         }
 
         body.innerHTML = itemsHtml;
+
+        // Add "Detail" button to link back to the full modals
+        const detailBtn = document.createElement('button');
+        detailBtn.className = 'btn-block btn-dark mt-10';
+        detailBtn.style.fontSize = '0.75em';
+        detailBtn.textContent = '⚙️ フォント・演出の詳細設定';
+        detailBtn.onclick = () => {
+            modal.classList.add('hidden');
+            const modalMap = { 'title': 'modal-prod-title', 'qnumber': 'modal-prod-qnum', 'ranking': 'modal-prod-ranking' };
+            const targetModal = document.getElementById(modalMap[type]);
+            if (targetModal) targetModal.classList.remove('hidden');
+        };
+        body.appendChild(detailBtn);
+
         modal.classList.remove('hidden');
 
         const sync = (id, targetId, swatchId) => {

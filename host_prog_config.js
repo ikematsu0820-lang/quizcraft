@@ -111,9 +111,15 @@ window.App.ProgConfig = {
             let updateBadge = "";
             if (item.sourceKey && this.localItemsCache[item.sourceKey]) {
                 const latest = this.localItemsCache[item.sourceKey];
-                // 型や問題数が変わっていたら更新ありとする簡易判定
-                if (latest.questions?.length !== item.questions?.length) {
-                    updateBadge = `<button class="btn-mini btn-warning" onclick="window.App.ProgConfig.syncWithSource(${i})" style="margin-left:10px; font-size:0.6em; padding:2px 5px;">Update Available</button>`;
+
+                // ★ 判定強化: 問題数だけでなく、ルール(config)の変更も検知する
+                const hasCountDiff = latest.questions?.length !== item.questions?.length;
+                const latestConfStr = JSON.stringify(latest.config || {});
+                const itemConfStr = JSON.stringify(item.config || {});
+                const hasConfigDiff = latestConfStr !== itemConfStr;
+
+                if (hasCountDiff || hasConfigDiff) {
+                    updateBadge = `<button class="btn-mini btn-warning anim-pulse" onclick="window.App.ProgConfig.syncWithSource(${i})" style="margin-left:10px; font-size:0.65em; padding:3px 8px; border:1px solid #ffaa00; background:rgba(255,170,0,0.1); border-radius:12px; cursor:pointer;">⚠️ Update Info</button>`;
                 }
             }
 
@@ -192,27 +198,32 @@ window.App.ProgConfig = {
         if (!item.sourceKey || !this.localItemsCache[item.sourceKey]) return;
 
         const latest = this.localItemsCache[item.sourceKey];
-        if (confirm(`「${latest.title}」を最新の内容に更新しますか？\n(現在のプログラム内のカスタマイズは引き継がれます)`)) {
+        if (confirm(`「${latest.title}」の最新設定（ルールや問題数）をこのプログラムに適用しますか？\n(このステージ内の脱落設定などは維持されます)`)) {
             item.title = latest.title;
             item.questions = JSON.parse(JSON.stringify(latest.questions || []));
             item.config = JSON.parse(JSON.stringify(latest.config || { mode: 'normal', gameType: 'score' }));
             item.snapshotAt = Date.now();
-            window.App.Ui.showToast("最新の内容に更新しました");
+            window.App.Ui.showToast("設定を同期しました");
             this.renderPlaylist();
         }
     },
 
     goToStudio: function () {
         this.saveProgram(true).finally(() => {
-            if (window.startRoom) window.startRoom();
+            if (window.startRoom) window.startRoom(true);
         });
     },
 
     saveProgram: function (silent = false) {
-        const titleInput = document.getElementById('prog-program-title');
-        const title = titleInput ? titleInput.value.trim() : "";
-        if (!title && !silent) { alert("構成名を入力してください"); return Promise.reject(); }
         if (!window.App.Data.periodPlaylist?.length) { if (!silent) alert("リストが空です"); return Promise.reject(); }
+
+        let title = "";
+        if (!silent) {
+            title = window.prompt("番組の名称（タイトル）を入力してください", "新しい番組");
+            if (title === null) return Promise.reject(); // Cancel
+            title = title.trim();
+            if (!title) { alert("番組名を入力してください"); return Promise.reject(); }
+        }
 
         const data = {
             title: title || "Untitled Program",
@@ -221,7 +232,11 @@ window.App.ProgConfig = {
         };
         const showId = window.App.State.currentShowId;
         return window.db.ref(`saved_programs/${showId}`).push(data).then(() => {
-            if (!silent) window.App.Ui.showToast("保存しました");
+            if (!silent) window.App.Ui.showToast("番組を保存しました");
+            // ダッシュボードに戻る
+            if (window.App.Dashboard && window.App.Dashboard.enter) {
+                window.App.Dashboard.enter();
+            }
         });
     },
 

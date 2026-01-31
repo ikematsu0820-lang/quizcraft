@@ -11,7 +11,7 @@ const APP_TEXT = {
 
     Dashboard: {
         Logout: "ログアウト", BtnCreate: "問題作成", BtnConfig: "ルール設定",
-        BtnProgConfig: "プログラム設定", BtnSound: "サウンド",
+        BtnProgConfig: "番組構成", BtnSound: "サウンド",
         BtnStudio: "スタジオ", BtnViewer: "モニター", SetListTitle: "保存済みセット", DeleteConfirm: "削除しますか？"
     },
 
@@ -91,8 +91,8 @@ const APP_TEXT = {
 
     Studio: {
         OnAir: "ON AIR", LabelPlayer: "参加", LabelAlive: "生存", LabelKanpe: "司会者用カンペ", StatusReady: "準備中...", HeadingList: "番組構成リスト", HeadingLoad: "プログラム読込", SelectProgDefault: "保存済みプログラムを選択...",
-        BtnLoad: "読み込んでセット", BtnMasterPlay: "再生 ▶", BtnStart: "問題 START！", BtnAnswer: "正解発表", BtnNextQ: "次の問題へ", BtnNextPeriod: "次のピリオドへ進む", BtnInterRanking: "中間発表へ", BtnFinalRanking: "最終結果発表へ", BtnEnd: "全工程終了", BtnRanking: "中間順位", BtnClose: "スタジオを閉じる", BtnBackRanking: "スタジオに戻る",
-        BtnCorrect: "⭕️ 正解", BtnWrong: "❌ 不正解", BtnPass: "パス (Skip)", MsgBuzzWin: "回答権: ", MsgBuzzWait: "回答権なし...", MsgTurnWait: "順番待ち...", MsgConfirmLoad: "プログラムを読み込んでセットしますか？\n（現在の進行内容はリセットされます）", MsgLoaded: "セットしました。再生ボタンで開始してください。", MsgThinking: "Thinking Time...", MsgAnswerCheck: "正解発表", MsgAllEnd: "全てのピリオドが終了しました！お疲れ様でした！", MsgConfirmBack: "ダッシュボードに戻りますか？",
+        BtnLoad: "番組構成を確定", BtnMasterPlay: "再生 ▶", BtnStart: "問題 START！", BtnAnswer: "正解発表", BtnNextQ: "次の問題へ", BtnNextPeriod: "次のセットへ進む", BtnInterRanking: "中間発表へ", BtnFinalRanking: "最終結果発表へ", BtnEnd: "全工程終了", BtnRanking: "中間順位", BtnClose: "スタジオを閉じる", BtnBackRanking: "スタジオに戻る",
+        BtnCorrect: "⭕️ 正解", BtnWrong: "❌ 不正解", BtnPass: "パス (Skip)", MsgConfirmLoad: "この番組構成をスタジオに反映しますか？", MsgLoaded: "読み込みました。下のSTARTボタンで番組を開始してください。", MsgThinking: "Thinking Time...", MsgAnswerCheck: "正解発表", MsgAllEnd: "全セットが終了しました！お疲れ様でした！", MsgConfirmBack: "ダッシュボードに戻りますか？",
 
         BtnStartSolo: "挑戦開始 (Start Challenge)", MsgSoloReady: "Solo Challenge Ready...", // ★変更
 

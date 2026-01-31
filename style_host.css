@@ -2094,21 +2094,35 @@ input:checked+.pro-slider:before {
         transform: translateY(0);
     }
 }
+
 /* --- Flow Navigation Bar (Wizard) --- */
-.flow-nav-container {
+/* --- Sticky Action Bar (Save Buttons) --- */
+.sticky-action-bar {
     position: fixed;
     bottom: 0;
     left: 0;
     width: 100%;
-    background: rgba(20, 20, 25, 0.95);
-    backdrop-filter: blur(20px);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    padding: 8px 15px 25px 15px; /* Extra bottom padding for safe area */
+    background: linear-gradient(to top, rgba(10, 10, 15, 0.98) 0%, rgba(10, 10, 15, 0.9) 70%, rgba(10, 10, 15, 0) 100%);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    padding: 15px 20px 25px 20px;
     box-sizing: border-box;
     z-index: 5000;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+}
+
+.view {
+    padding-bottom: 120px !important;
+    /* Space for sticky bar */
+}
+
+/* Hide flow nav */
+.flow-nav-container {
+    display: none !important;
 }
 
 .flow-step {

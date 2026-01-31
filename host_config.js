@@ -20,9 +20,8 @@ App.Config = {
             newSelect.addEventListener('change', () => this.updateBuilderUI());
         }
 
-        if (container) container.innerHTML = '<p class="text-center text-gray p-20">セットを選択してください</p>';
-        if (actionArea) actionArea.classList.add('hidden');
-
+        this.selectedSetKey = null;
+        this.selectedSetData = null;
         this.loadSetList();
         this.setupEventListeners();
     },
@@ -334,11 +333,6 @@ App.Config = {
             // ★修正: 選択肢の文言をわかりやすく変更
             html += `
                 <div class="mode-settings-box mode-box-buzz" style="text-align:center;">
-                    <div style="margin-bottom:20px;">
-                        <label class="config-label">早押しボタン プレビュー</label>
-                        <div class="buzzer-preview-btn">PUSH!</div>
-                        <p style="font-size:0.75em; color:#888;">※実際の回答者画面に表示されるボタンです</p>
-                    </div>
                     <div class="grid-2-col">
                         <div>
                             <label class="config-label">誤答時の処理</label>
@@ -584,7 +578,9 @@ App.Config = {
             const idx = chk.dataset.index;
             if (qs[idx]) {
                 const inp = document.querySelector(`.q-time-input[data-index="${idx}"]`);
-                qs[idx].timeLimit = chk.checked ? (parseInt(inp.value) || 10) : 0;
+                if (inp) {
+                    qs[idx].timeLimit = chk.checked ? (parseInt(inp.value) || 10) : 0;
+                }
             }
         });
 
@@ -592,57 +588,63 @@ App.Config = {
             mode: mode,
             gameType: gameType,
             buzzWrongAction: document.getElementById('config-buzz-wrong-action')?.value || 'next',
-            buzzTime: parseInt(document.getElementById('config-buzz-timer')?.value) || 0,
+            buzzTime: parseInt(document.getElementById('config-buzz-timer')?.value || "0") || 0,
             normalLimit: document.getElementById('config-normal-limit')?.value || 'unlimited',
             manualFlip: document.getElementById('config-manual-flip')?.value === 'true',
-            passCount: parseInt(document.getElementById('conf-pass-count')?.value) || 10,
-            slotMin: parseInt(document.getElementById('conf-slot-min')?.value) || 1,
-            slotMax: parseInt(document.getElementById('conf-slot-max')?.value) || 10,
-            turnOrder: document.getElementById('config-turn-order')?.value,
-            turnPass: document.getElementById('config-turn-pass')?.value,
-            soloStyle: document.getElementById('config-solo-style')?.value,
-            soloTimeType: document.getElementById('config-solo-time-type')?.value,
-            soloTimeVal: parseInt(document.getElementById('config-solo-time-val')?.value) || 0,
-            soloRecovery: parseInt(document.getElementById('config-solo-recovery')?.value) || 0
+            passCount: parseInt(document.getElementById('conf-pass-count')?.value || "10") || 10,
+            slotMin: parseInt(document.getElementById('conf-slot-min')?.value || "1") || 1,
+            slotMax: parseInt(document.getElementById('conf-slot-max')?.value || "10") || 10,
+            turnOrder: document.getElementById('config-turn-order')?.value || 'fixed',
+            turnPass: document.getElementById('config-turn-pass')?.value || 'ok',
+            soloStyle: document.getElementById('config-solo-style')?.value || 'manual',
+            soloTimeType: document.getElementById('config-solo-time-type')?.value || 'per_q',
+            soloTimeVal: parseInt(document.getElementById('config-solo-time-val')?.value || "0") || 0,
+            soloRecovery: parseInt(document.getElementById('config-solo-recovery')?.value || "0") || 0
         };
 
-        const path = `saved_sets/${App.State.currentShowId}`;
+        let showId = App.State.currentShowId;
+        if (showId) showId = showId.trim();
+        if (!showId) {
+            App.Ui.showToast("エラー: ショーIDが見つかりません");
+            return;
+        }
+
+        const path = `saved_sets/${showId}`;
         const isNew = !targetKey;
         const ref = isNew ? window.db.ref(path).push() : window.db.ref(`${path}/${targetKey}`);
 
+        // ★ 最終的な保存データを構築
         const saveData = {
             config: newConfig,
-            questions: qs,
+            questions: Array.isArray(qs) ? qs : Object.values(qs),
             updatedAt: firebase.database.ServerValue.TIMESTAMP
         };
 
         if (isNew) {
-            saveData.title = newTitle;
+            saveData.title = newTitle || "New Copy";
             saveData.createdAt = firebase.database.ServerValue.TIMESTAMP;
+
+            // 初回保存時のデザイン初期化
+            const firstQ = (this.selectedSetData.questions && this.selectedSetData.questions[0]) || {};
             saveData.questions.forEach(q => {
-                // 新規保存時は未設定のプロパティを初期化（Creatorのロジックに合わせる）
-                if (!q.layout) q.layout = this.selectedSetData.questions[0].layout || 'standard';
-                if (!q.align) q.align = this.selectedSetData.questions[0].align || 'center';
-                if (!q.design) q.design = this.selectedSetData.questions[0].design || {};
+                if (!q.layout) q.layout = firstQ.layout || 'standard';
+                if (!q.align) q.align = firstQ.align || 'center';
+                if (!q.design) q.design = firstQ.design || {};
+                q.specialMode = q.specialMode || 'none';
             });
         }
 
         (isNew ? ref.set(saveData) : ref.update(saveData)).then(() => {
-            App.Ui.showToast(isNew ? "新しく保存しました！" : APP_TEXT.Config.MsgRulesSaved);
+            const successMsg = isNew ? "新しいセットとして保存しました！" : APP_TEXT.Config.MsgRulesSaved;
+            App.Ui.showToast(successMsg);
+
+            // ★ 保存完了後、ダッシュボードに戻る
+            if (window.App.Dashboard && window.App.Dashboard.enter) {
+                window.App.Dashboard.enter();
+            }
 
             if (isNew) {
                 this.selectedSetKey = ref.key;
-                this.loadSetList();
-                // 読み込み完了後にセレクトボックスを更新するために少し待つ
-                setTimeout(() => {
-                    const select = document.getElementById('config-set-select');
-                    if (select) {
-                        select.value = this.selectedSetKey;
-                        this.updateBuilderUI();
-                    }
-                }, 800);
-            } else {
-                this.updateBuilderUI(); // 最新データを再描画
             }
         }).catch(err => {
             console.error("Save error:", err);

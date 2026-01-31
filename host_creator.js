@@ -382,8 +382,6 @@ window.App.Creator = {
         let newQ = {
             q: qText,
             type: type,
-            points: 1,
-            loss: 0,
             commentary: document.getElementById('creator-commentary').value
         };
 
@@ -418,12 +416,11 @@ window.App.Creator = {
             const opts = [];
             document.querySelectorAll('.sort-text-input').forEach(inp => { if (inp.value.trim()) opts.push(inp.value.trim()); });
             if (opts.length < 2) return null;
-            newQ.c = opts; newQ.correct = opts.map((_, i) => i);
+            newQ.c = opts;
+            newQ.correct = opts.map((_, i) => String.fromCharCode(65 + i)).join(''); // "ABCD..."
             newQ.initialOrder = document.getElementById('sort-initial-order').value;
-            // Save shuffle setting
             const sortShuffleChk = document.getElementById('sort-shuffle-chk');
             newQ.shuffle = sortShuffleChk ? sortShuffleChk.checked : true;
-            // Save shuffle setting
         } else if (type.startsWith('free')) {
             const ans = document.getElementById('creator-text-answer').value.trim();
             if (type === 'free_written' && !ans) { alert(APP_TEXT.Creator.AlertNoTextAns); return null; }
@@ -440,6 +437,13 @@ window.App.Creator = {
     add: function () {
         const q = this.getData();
         if (q) {
+            // ★ 新規追加時のみデフォルト値を設定
+            q.points = 1;
+            q.loss = 0;
+            q.timeLimit = 0;
+            q.layout = 'standard';
+            q.align = 'center';
+
             window.App.Data.createdQuestions.push(q);
             this.resetForm();
             this.renderList();
@@ -523,23 +527,36 @@ window.App.Creator = {
         const align = document.getElementById('creator-set-align').value;
         const design = window.collectDesignSettings ? window.collectDesignSettings().design : {};
 
+        // 既存のデザインがない場合のみ初期値を適用
         window.App.Data.createdQuestions.forEach(q => {
-            q.layout = layout; q.align = align; q.design = design; q.specialMode = 'none';
+            if (!q.layout) q.layout = layout;
+            if (!q.align) q.align = align;
+            if (!q.design) q.design = design;
+            q.specialMode = q.specialMode || 'none';
         });
 
         const data = {
             title: title,
-            config: { eliminationRule: 'none', scoreUnit: 'point', theme: 'light' },
             questions: window.App.Data.createdQuestions,
-            createdAt: firebase.database.ServerValue.TIMESTAMP
+            updatedAt: firebase.database.ServerValue.TIMESTAMP
         };
 
-        const path = `saved_sets/${window.App.State.currentShowId}`;
+        let showId = window.App.State.currentShowId;
+        if (showId) showId = showId.trim();
+        const path = `saved_sets/${showId}`;
         const ref = window.App.State.editingSetId ? window.db.ref(`${path}/${window.App.State.editingSetId}`) : window.db.ref(path).push();
+
+        // ★ 新規作成時のみ、初期コンフィグを設定（更新時は既存の設定を壊さないように含めない）
+        if (!window.App.State.editingSetId) {
+            data.config = { mode: 'normal', gameType: 'score', theme: 'light' };
+            data.createdAt = firebase.database.ServerValue.TIMESTAMP;
+        }
 
         (window.App.State.editingSetId ? ref.update(data) : ref.set(data)).then(() => {
             window.App.Ui.showToast(APP_TEXT.Creator.MsgSavedToast);
-            window.App.Dashboard.enter();
+            if (window.App.Dashboard && window.App.Dashboard.enter) {
+                window.App.Dashboard.enter();
+            }
         });
     }
 };

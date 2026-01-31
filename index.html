@@ -124,9 +124,9 @@
             <button id="btn-open-bg" class="design-menu-btn-compact" title="背景"><span
                     class="menu-icon">🖼</span></button>
         </div>
-        <div class="design-action-row">
-            <button id="design-reset-btn" class="btn-dark btn-mini">初期値</button>
-            <button id="design-save-btn" class="btn-success btn-mini">保存 (完了)</button>
+        <div class="sticky-action-bar">
+            <button id="design-reset-btn" class="btn-dark btn-mini" style="width:100px;">初期値</button>
+            <button id="design-save-btn" class="btn-success btn-block btn-large">デザインを保存して完了</button>
         </div>
 
         <div id="modal-design-layout" class="design-modal-overlay hidden">
@@ -294,17 +294,10 @@
             <p class="preview-note">※実際の表示とは解像度が異なります</p>
         </div>
 
-        <div class="design-compact-menu">
-            <button id="btn-open-prod-title" class="design-menu-btn-compact" title="タイトル画面"><span
-                    class="menu-icon">🎬</span></button>
-            <button id="btn-open-prod-qnum" class="design-menu-btn-compact" title="問題番号"><span
-                    class="menu-icon">🔢</span></button>
-            <button id="btn-open-prod-ranking" class="design-menu-btn-compact" title="ランキング"><span
-                    class="menu-icon">🏆</span></button>
-        </div>
-        <div class="design-action-row">
-            <button id="prod-design-reset-btn" class="btn-dark btn-mini">初期値</button>
-            <button id="prod-design-save-btn" class="btn-success btn-mini">保存 (完了)</button>
+        <!-- Compact menu removed as it was redundant with segmented control -->
+        <div class="sticky-action-bar">
+            <button id="prod-design-reset-btn" class="btn-dark btn-mini" style="width:100px;">初期値</button>
+            <button id="prod-design-save-btn" class="btn-success btn-block btn-large">演出設定を保存して完了</button>
         </div>
 
         <div id="modal-prod-title" class="design-modal-overlay hidden">
@@ -314,13 +307,13 @@
                     <div class="color-row">
                         <label>背景色</label>
                         <div class="color-picker-wrapper">
-                            <input type="color" id="prod-title-bg-color" class="color-picker-full">
+                            <input type="color" id="prod-title-bg-color" class="color-picker-full" value="#000000">
                         </div>
                     </div>
                     <div class="color-row">
                         <label>文字色</label>
                         <div class="color-picker-wrapper">
-                            <input type="color" id="prod-title-text-color" class="color-picker-full">
+                            <input type="color" id="prod-title-text-color" class="color-picker-full" value="#ffffff">
                         </div>
                     </div>
                     <div class="config-group">
@@ -357,13 +350,13 @@
                     <div class="color-row">
                         <label>背景色</label>
                         <div class="color-picker-wrapper">
-                            <input type="color" id="prod-qnum-bg-color" class="color-picker-full">
+                            <input type="color" id="prod-qnum-bg-color" class="color-picker-full" value="#000000">
                         </div>
                     </div>
                     <div class="color-row">
                         <label>文字色</label>
                         <div class="color-picker-wrapper">
-                            <input type="color" id="prod-qnum-text-color" class="color-picker-full">
+                            <input type="color" id="prod-qnum-text-color" class="color-picker-full" value="#ffffff">
                         </div>
                     </div>
                     <div class="config-group">
@@ -408,13 +401,13 @@
                     <div class="color-row">
                         <label>背景色</label>
                         <div class="color-picker-wrapper">
-                            <input type="color" id="prod-ranking-bg-color" class="color-picker-full">
+                            <input type="color" id="prod-ranking-bg-color" class="color-picker-full" value="#000000">
                         </div>
                     </div>
                     <div class="color-row">
                         <label>文字色</label>
                         <div class="color-picker-wrapper">
-                            <input type="color" id="prod-ranking-text-color" class="color-picker-full">
+                            <input type="color" id="prod-ranking-text-color" class="color-picker-full" value="#ffffff">
                         </div>
                     </div>
                     <div class="color-row">
@@ -478,6 +471,10 @@
         <div class="creator-set-settings">
             <h5 data-text="Creator.ListHeading" class="mb-5">List</h5>
             <div id="q-list" class="scroll-list mb-15"></div>
+        </div>
+
+        <!-- Sticky Save Action -->
+        <div class="sticky-action-bar">
             <button id="save-to-cloud-btn" class="btn-success btn-block btn-large"
                 data-text="Creator.BtnSave">Save</button>
         </div>
@@ -496,8 +493,8 @@
             </div>
             <div id="config-builder-ui"></div>
         </div>
-        <div id="config-action-area" class="hidden">
-            <button id="config-save-set-rules-btn" class="btn-success btn-block btn-large">このルールをセットに保存する</button>
+        <div id="config-action-area" class="hidden sticky-action-bar">
+            <button id="config-save-set-rules-btn" class="btn-success btn-block btn-large">セットのルールを保存（上書き/別名）</button>
         </div>
     </div>
 
@@ -508,7 +505,7 @@
         </div>
 
         <div class="panel-section section-purple mb-20">
-            <h3 class="panel-title-center">プログラム構成 (Playlist Builder)</h3>
+            <h3 class="panel-title-center">番組の構成 (セットの再生順)</h3>
             <p class="text-sm text-gray mb-15">保存済みのセット（ルール適用済み）を選択して追加してください。</p>
             <div class="flex-row gap-10">
                 <select id="prog-set-select" class="btn-block config-select flex-1"></select>
@@ -517,19 +514,18 @@
         </div>
 
         <div class="config-playlist-area">
-            <h4 class="section-title">構成リスト (Playlist)</h4>
+            <h4 class="section-title">番組セットリスト</h4>
             <div id="prog-playlist-preview" class="scroll-list-dark">
                 <p class="empty-msg">まだ追加されていません</p>
             </div>
 
-            <div class="save-prog-row mt-20">
-                <input type="text" id="prog-program-title" placeholder="新しいプログラム" class="flex-input">
-                <button id="prog-save-program-btn" class="btn-info">構成を保存</button>
-            </div>
-            <button id="prog-open-load-modal-btn" class="btn-dark btn-block mt-10">📂 保存済みプログラムを読み込む</button>
+            <button id="prog-open-load-modal-btn" class="btn-dark btn-block mt-10">📂 保存済み番組を読み込む</button>
         </div>
 
-        <button id="prog-go-studio-btn" class="btn-danger btn-block btn-large mt-20">この構成でスタジオを起動</button>
+        <div class="sticky-action-bar" style="flex-direction: column; gap: 10px; padding-top: 10px;">
+            <button id="prog-save-program-btn" class="btn-success btn-block btn-large"
+                style="max-width: 400px;">番組の構成を保存して完了</button>
+        </div>
 
         <!-- Load Modal -->
         <div id="prog-load-modal" class="modal-overlay hidden">
@@ -808,4 +804,4 @@
             </div>
         </div>
     </div>
-<div id="global-flow-nav" class="flow-nav-container hidden"><div class="flow-step" id="flow-step-creator"><div class="flow-step-icon">1</div><div class="flow-step-label">作成</div></div><div class="flow-step" id="flow-step-config"><div class="flow-step-icon">2</div><div class="flow-step-label">ルール</div></div><div class="flow-step" id="flow-step-design"><div class="flow-step-icon">3</div><div class="flow-step-label">デザイン</div></div><div class="flow-step" id="flow-step-scene"><div class="flow-step-icon">4</div><div class="flow-step-label">演出</div></div><button id="flow-run-btn" class="flow-btn-run">スタジオ起動</button></div></body>
+</body>

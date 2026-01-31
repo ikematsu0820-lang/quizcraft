@@ -4,8 +4,8 @@
 
 window.App = window.App || {};
 
-// ★ 修正: セッションからIDを強力に復元
-const savedShowId = sessionStorage.getItem('qs_show_id');
+// ★ 修正: セッションからIDを強力に復元 (空白をトリム)
+const savedShowId = (sessionStorage.getItem('qs_show_id') || "").trim();
 
 window.App.State = {
     currentShowId: savedShowId || null,
@@ -30,62 +30,6 @@ window.App.Ui = {
         if (target) {
             target.classList.remove('hidden');
             window.scrollTo(0, 0);
-            this.updateFlowNav(targetId);
-        }
-    },
-
-    updateFlowNav: function (viewId) {
-        const nav = document.getElementById('global-flow-nav');
-        if (!nav) return;
-
-        const currentView = typeof viewId === 'string' ? viewId : viewId.id;
-        const editorViews = ['creator-view', 'config-view', 'design-view', 'production-design-view'];
-
-        if (editorViews.includes(currentView)) {
-            nav.classList.remove('hidden');
-        } else {
-            nav.classList.add('hidden');
-        }
-
-        // Highlight steps
-        document.querySelectorAll('.flow-step').forEach(s => s.classList.remove('is-active', 'is-completed'));
-
-        if (currentView === 'creator-view') {
-            document.getElementById('flow-step-creator').classList.add('is-active');
-        } else if (currentView === 'config-view') {
-            document.getElementById('flow-step-creator').classList.add('is-completed');
-            document.getElementById('flow-step-config').classList.add('is-active');
-        } else if (currentView === 'design-view') {
-            document.getElementById('flow-step-creator').classList.add('is-completed');
-            document.getElementById('flow-step-config').classList.add('is-completed');
-            document.getElementById('flow-step-design').classList.add('is-active');
-        } else if (currentView === 'production-design-view') {
-            document.getElementById('flow-step-creator').classList.add('is-completed');
-            document.getElementById('flow-step-config').classList.add('is-completed');
-            document.getElementById('flow-step-design').classList.add('is-completed');
-            document.getElementById('flow-step-scene').classList.add('is-active');
-        }
-
-        // Bind events if not already
-        if (!this.flowNavBound) {
-            document.getElementById('flow-step-creator').onclick = () => {
-                if (App.Creator && App.Creator.init) App.Creator.init();
-            };
-            document.getElementById('flow-step-config').onclick = () => {
-                if (App.Config && App.Config.init) App.Config.init();
-            };
-            document.getElementById('flow-step-design').onclick = () => {
-                if (App.Design && App.Design.init) App.Design.init();
-            };
-            document.getElementById('flow-step-scene').onclick = () => {
-                if (App.ProductionDesign && App.ProductionDesign.init) App.ProductionDesign.init();
-            };
-            document.getElementById('flow-run-btn').onclick = () => {
-                if (confirm("スタジオを起動しますか？")) {
-                    if (App.Studio && App.Studio.startRoom) App.Studio.startRoom();
-                }
-            };
-            this.flowNavBound = true;
         }
     },
 
@@ -252,7 +196,8 @@ window.App.Dashboard = {
         if (!listEl) return;
 
         listEl.innerHTML = '<p style="text-align:center;">Loading...</p>';
-        const showId = window.App.State.currentShowId;
+        let showId = window.App.State.currentShowId;
+        if (showId) showId = showId.trim();
 
         if (!showId) return;
 
@@ -263,17 +208,36 @@ window.App.Dashboard = {
             const sets = setSnap.val() || {};
             const progs = progSnap.val() || {};
 
-            listEl.innerHTML = '';
+            // ★ ソート処理の強化 (新規保存直後のアイテムを上位に)
+            const getTs = (d) => {
+                if (typeof d.createdAt === 'number') return d.createdAt;
+                // timestampオブジェクトや未定義の場合は現在時刻(または大きな値)として扱うことでトップに表示
+                return Date.now() + 10000;
+            };
+
+            const sortedSets = Object.keys(sets).map(k => ({ ...sets[k], key: k }))
+                .sort((a, b) => getTs(b) - getTs(a));
+
+            const sortedProgs = Object.keys(progs).map(k => ({ ...progs[k], key: k }))
+                .sort((a, b) => getTs(b) - getTs(a));
 
             // セット一覧
-            Object.keys(sets).forEach(k => {
-                const d = sets[k];
+            sortedSets.forEach(item => {
+                const k = item.key;
+                const d = item;
                 const div = document.createElement('div');
                 div.className = 'dash-list-item item-type-set';
+                const qCount = Array.isArray(d.questions) ? d.questions.length : (d.questions ? Object.keys(d.questions).length : 0);
+
+                // 日付の表示を安全に
+                const dateStr = (typeof d.createdAt === 'number')
+                    ? new Date(d.createdAt).toLocaleDateString()
+                    : "New!";
+
                 div.innerHTML = `
                     <div class="item-main">
-                        <div class="item-title"><span class="badge-set">SET</span> ${d.title}</div>
-                        <div class="item-meta">${new Date(d.createdAt || 0).toLocaleDateString()} / ${d.questions.length}Q</div>
+                        <div class="item-title"><span class="badge-set">SET</span> ${d.title || "Untitled"}</div>
+                        <div class="item-meta">${dateStr} / ${qCount}Q</div>
                     </div>
                     <div class="item-actions">
                         <button class="btn-mini btn-info" onclick="window.App.Dashboard.quick('${k}')">▶ Start</button>
@@ -285,18 +249,20 @@ window.App.Dashboard = {
             });
 
             // プログラム一覧
-            Object.keys(progs).forEach(k => {
-                const d = progs[k];
+            sortedProgs.forEach(item => {
+                const k = item.key;
+                const d = item;
                 const div = document.createElement('div');
                 div.className = 'dash-list-item item-type-prog';
                 div.innerHTML = `
                     <div class="item-main">
-                        <div class="item-title"><span class="badge-prog">PROG</span> ${d.title}</div>
-                        <div class="item-meta">${new Date(d.createdAt || 0).toLocaleDateString()} / ${d.playlist ? d.playlist.length : 0} Periods</div>
+                        <div class="item-title"><span class="badge-prog">番組</span> ${d.title}</div>
+                        <div class="item-meta">${new Date(d.createdAt || 0).toLocaleDateString()} / ${d.playlist ? d.playlist.length : 0} セット収録</div>
                     </div>
                     <div class="item-actions">
                         <button class="btn-mini btn-info" onclick="window.App.Dashboard.quickProg('${k}')">▶ Start</button>
-                        <button class="btn-mini btn-danger" onclick="window.App.ProgConfig.loadProgramForDashboard(${JSON.stringify(d).replace(/"/g, '&quot;')})">Load</button>
+                        <button class="btn-mini btn-dark" onclick="window.App.ProgConfig.loadProgramForDashboard(${JSON.stringify(d).replace(/"/g, '&quot;')})">Edit</button>
+                        <button class="btn-mini btn-dark" title="Copy" onclick="window.App.Dashboard.copyProg('${k}')">📋</button>
                         <button class="delete-btn btn-mini" onclick="window.App.Dashboard.del('saved_programs', '${k}')">Del</button>
                     </div>`;
                 listEl.appendChild(div);
@@ -341,6 +307,24 @@ window.App.Dashboard = {
                 window.App.Ui.showToast("セットをコピーしました");
                 this.loadItems();
                 this.updateFlowProgress();
+            });
+        });
+    },
+
+    copyProg: function (key) {
+        const showId = window.App.State.currentShowId;
+        window.db.ref(`saved_programs/${showId}/${key}`).once('value', snap => {
+            const data = snap.val();
+            if (!data) return;
+
+            const newData = JSON.parse(JSON.stringify(data));
+            newData.title = `【コピー】${newData.title}`;
+            newData.createdAt = Date.now();
+
+            const newKey = window.db.ref(`saved_programs/${showId}`).push().key;
+            window.db.ref(`saved_programs/${showId}/${newKey}`).set(newData).then(() => {
+                window.App.Ui.showToast("番組構成をコピーしました");
+                this.loadItems();
             });
         });
     },
