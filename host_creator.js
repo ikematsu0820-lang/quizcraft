@@ -177,17 +177,7 @@ window.App.Creator = {
 
             this.createAddBtn(container, APP_TEXT.Creator.BtnAddSort, () => this.addSortInput(sortDiv));
 
-            // Shuffle option
-            const shuffleDiv = document.createElement('div');
-            shuffleDiv.className = 'config-group mt-10';
-            shuffleDiv.innerHTML = `
-                <label class="config-label" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                    <input type="checkbox" id="sort-shuffle-chk" ${data?.shuffle !== false ? 'checked' : ''}>
-                    <span>選択肢をシャッフルする</span>
-                </label>
-                <p class="text-sm text-gray" style="margin:5px 0 0 0;">※「初期順序: 固定」を選んだ場合でも、シャッフルが優先されます</p>
-            `;
-            container.appendChild(shuffleDiv);
+            // No more shuffle checkbox here, sorting is handled by rank
         }
         else if (type.startsWith('free')) {
             container.innerHTML = `<p class="text-sm text-gray mb-5">${APP_TEXT.Creator.DescText}</p>`;
@@ -539,15 +529,32 @@ window.App.Creator = {
     },
 
     save: function () {
-        if (window.App.Data.createdQuestions.length === 0) { alert('No questions'); return; }
-        const title = prompt("セット名を入力:", this.editingTitle);
+        console.log("Save initiated. Questions:", window.App.Data.createdQuestions.length);
+        if (window.App.Data.createdQuestions.length === 0) {
+            alert('問題がありません。追加してください。');
+            return;
+        }
+
+        const title = prompt("セット名を入力してください:", this.editingTitle || "");
         if (!title) return;
 
-        const layout = document.getElementById('creator-set-layout').value;
-        const align = document.getElementById('creator-set-align').value;
-        const design = window.collectDesignSettings ? window.collectDesignSettings().design : {};
+        let showId = window.App.State.currentShowId;
+        if (!showId) showId = sessionStorage.getItem('qs_show_id');
 
-        // 既存のデザインがない場合のみ初期値を適用
+        if (!showId) {
+            alert("エラー: 番組IDの取得に失敗しました。ログイン状態を確認してください。");
+            return;
+        }
+        showId = showId.trim().toUpperCase();
+
+        const layoutEl = document.getElementById('creator-set-layout');
+        const alignEl = document.getElementById('creator-set-align');
+        const layout = layoutEl ? layoutEl.value : 'standard';
+        const align = alignEl ? alignEl.value : 'center';
+        const designData = window.collectDesignSettings ? window.collectDesignSettings() : { design: {} };
+        const design = designData.design;
+
+        // Apply defaults
         window.App.Data.createdQuestions.forEach(q => {
             if (!q.layout) q.layout = layout;
             if (!q.align) q.align = align;
@@ -561,22 +568,30 @@ window.App.Creator = {
             updatedAt: firebase.database.ServerValue.TIMESTAMP
         };
 
-        let showId = window.App.State.currentShowId;
-        if (showId) showId = showId.trim();
+        const setId = window.App.State.editingSetId;
         const path = `saved_sets/${showId}`;
-        const ref = window.App.State.editingSetId ? window.db.ref(`${path}/${window.App.State.editingSetId}`) : window.db.ref(path).push();
+        const ref = setId ? window.db.ref(`${path}/${setId}`) : window.db.ref(path).push();
 
-        // ★ 新規作成時のみ、初期コンフィグを設定（更新時は既存の設定を壊さないように含めない）
-        if (!window.App.State.editingSetId) {
+        if (!setId) {
             data.config = { mode: 'normal', gameType: 'score', theme: 'light' };
             data.createdAt = firebase.database.ServerValue.TIMESTAMP;
         }
 
-        (window.App.State.editingSetId ? ref.update(data) : ref.set(data)).then(() => {
-            window.App.Ui.showToast(APP_TEXT.Creator.MsgSavedToast);
+        console.log("Saving to path:", ref.toString());
+
+        const op = setId ? ref.update(data) : ref.set(data);
+        op.then(() => {
+            console.log("Save success!");
+            window.App.Ui.showToast("保存しました");
             if (window.App.Dashboard && window.App.Dashboard.enter) {
                 window.App.Dashboard.enter();
+            } else {
+                window.location.hash = ""; // Fallback
+                window.location.reload();
             }
+        }).catch(err => {
+            console.error("Save failed:", err);
+            alert("保存エラー: " + err.message);
         });
     }
 };
