@@ -58,8 +58,11 @@
 
 
 
-        <div class="dashboard-hero-area">
+        <div class="dashboard-hero-area dashboard-hero-grid">
             <button id="dash-create-btn" class="dash-btn dash-btn-hero" data-text="Dashboard.BtnCreate">問題作成</button>
+            <button id="dash-studio-btn" class="dash-btn dash-btn-hero dash-btn-studio-gold">
+                <span class="btn-icon">🚀</span> スタジオ起動
+            </button>
         </div>
 
         <div class="dashboard-grid-secondary">
@@ -98,9 +101,14 @@
                 <button id="design-target-load-btn" class="btn-primary toolbar-btn">Load</button>
             </div>
         </div>
-        <div class="preview-segmented-control">
-            <button class="segmented-btn active" data-type="monitor" title="モニター画面">🖥️ モニター</button>
-            <button class="segmented-btn" data-type="player" title="参加者スマホ">📱 スマホ</button>
+        <div class="pager-segmented-wrapper">
+            <div class="preview-segmented-control">
+                <button class="segmented-btn active" data-type="monitor" title="モニター画面">🖥️ モニター</button>
+                <button class="segmented-btn" data-type="player" title="参加者スマホ">📱 スマホ</button>
+            </div>
+            <div id="design-pager-container" class="design-pager-area hidden">
+                <!-- Steps (T, 1N, 1Q, etc.) will be injected here by JS -->
+            </div>
         </div>
 
         <div class="design-preview-area-top">
@@ -118,11 +126,9 @@
             </div>
             <p class="preview-note">※実際の表示とは解像度が異なります</p>
         </div>
-        <div class="design-compact-menu">
-            <button id="btn-open-layout" class="design-menu-btn-compact" title="レイアウト"><span
-                    class="menu-icon">📺</span></button>
-            <button id="btn-open-bg" class="design-menu-btn-compact" title="背景"><span
-                    class="menu-icon">🖼</span></button>
+        <div class="design-compact-menu" style="justify-content: center;">
+            <button id="btn-open-layout" class="design-menu-btn-compact" title="レイアウト"><span class="menu-icon">📺</span>
+                レイアウト設定</button>
         </div>
         <div class="sticky-action-bar">
             <button id="design-reset-btn" class="btn-dark btn-mini" style="width:100px;">初期値</button>
@@ -166,11 +172,19 @@
                             <input type="color" id="design-q-text" class="color-picker-full">
                         </div>
                     </div>
-                    <div class="color-row">
+                    <div class="config-group">
+                        <label class="config-label">問題文の文字サイズ</label>
+                        <input type="text" id="design-q-size" class="btn-block" placeholder="例: 48px">
+                    </div>
+                    <div class="color-row mt-10">
                         <label>選択肢の文字色</label>
                         <div class="color-picker-wrapper">
                             <input type="color" id="design-c-text" class="color-picker-full">
                         </div>
+                    </div>
+                    <div class="config-group">
+                        <label class="config-label">選択肢の文字サイズ</label>
+                        <input type="text" id="design-c-size" class="btn-block" placeholder="例: 32px">
                     </div>
                 </div>
                 <div class="modal-close-action">
@@ -283,13 +297,31 @@
 
         <div class="design-preview-area-top">
             <h4 class="preview-label">プレビュー</h4>
-            <div class="preview-segmented-control prod-preview-type-selector">
-                <button class="segmented-btn active" data-type="title" title="タイトル">🎬</button>
-                <button class="segmented-btn" data-type="qnumber" title="問題番号">🔢</button>
-                <button class="segmented-btn" data-type="ranking" title="ランキング">🏆</button>
+            <div class="pager-segmented-wrapper">
+                <div class="preview-segmented-control prod-preview-type-selector">
+                    <button class="segmented-btn active" data-type="title" title="タイトル">🎬</button>
+                    <button class="segmented-btn" data-type="qnumber" title="問題番号">🔢</button>
+                    <button class="segmented-btn" data-type="ranking" title="ランキング">🏆</button>
+                </div>
+                <div class="preview-segmented-control prod-preview-device-selector">
+                    <button class="segmented-btn active" data-device="monitor" title="モニター画面">🖥️ モニター</button>
+                    <button class="segmented-btn" data-device="player" title="参加者スマホ">📱 スマホ</button>
+                </div>
             </div>
-            <div class="design-preview-frame">
+
+            <div id="preview-monitor-container-prod" class="design-preview-frame">
                 <div id="prod-design-preview-content"></div>
+            </div>
+            <div id="preview-player-container-prod" class="design-preview-frame player-frame hidden">
+                <div id="prod-player-preview-content">
+                    <div class="player-preview-mock">
+                        <div class="p-status-bar"></div>
+                        <div id="prod-player-mock-body" class="p-q-text"
+                            style="display:flex; align-items:center; justify-content:center; height:100%; font-size:1.2em; font-weight:800;">
+                            タイトルプレビュー</div>
+                        <div class="p-answers"></div>
+                    </div>
+                </div>
             </div>
             <p class="preview-note">※実際の表示とは解像度が異なります</p>
         </div>
@@ -313,7 +345,7 @@
                     <div class="color-row">
                         <label>文字色</label>
                         <div class="color-picker-wrapper">
-                            <input type="color" id="prod-title-text-color" class="color-picker-full" value="#ffffff">
+                            <input type="color" id="prod-title-text-color" class="color-picker-full" value="#ffd700">
                         </div>
                     </div>
                     <div class="config-group">
@@ -326,7 +358,7 @@
                     </div>
                     <div class="config-group">
                         <label class="config-label">文字サイズ</label>
-                        <input type="text" id="prod-title-size" class="btn-block" placeholder="例: 8vh">
+                        <input type="text" id="prod-title-size" class="btn-block" value="120px" placeholder="例: 120px">
                     </div>
                     <div class="config-group">
                         <label class="config-label">アニメーション</label>
@@ -611,6 +643,14 @@
                 <div id="studio-sub-info" class="monitor-sub-info hidden"></div>
             </div>
 
+            <div id="studio-answer-stats" class="studio-answer-stats-bar hidden">
+                <div class="stats-icon">📥</div>
+                <div class="stats-label">回答状況:</div>
+                <div id="studio-answered-count" class="stats-value">0 / 0</div>
+                <div class="stats-progress-container">
+                    <div id="studio-answer-progress" class="stats-progress-bar"></div>
+                </div>
+            </div>
             <div id="studio-player-answers" class="studio-realtime-answers hidden"></div>
 
             <div id="studio-next-preview-panel" class="studio-next-preview hidden">

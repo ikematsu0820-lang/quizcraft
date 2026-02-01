@@ -5,25 +5,39 @@
 App.Design = {
     currentTarget: null,
     activeQuickEdit: null, // Track which area is being edited ('q' or 'c')
+    previewQIndex: 0, // Current question being previewed in the set
 
     defaults: {
         mainBgColor: "#0a0a0a",
         qTextColor: "#ffffff",
         qBgColor: "rgba(255, 255, 255, 0.05)",
         qBorderColor: "#00bfff",
+        qFontSize: "48px",
         cTextColor: "#a0a0a0",
         cBgColor: "transparent",
         cBorderColor: "#333333",
+        cFontSize: "32px",
         align: "center",
         layout: "standard"
     },
 
-    init: function () {
+    init: function (targetKey = null, targetData = null) {
         App.Ui.showView(App.Ui.views.design);
-        this.currentTarget = null;
+
         this.bindEvents();
         this.loadTargetList();
-        this.setDefaultUI();
+
+        if (targetKey && targetData) {
+            this.currentTarget = { type: 'set', key: targetKey, data: targetData };
+            this.previewQIndex = 0;
+            const q = targetData.questions?.[0] || {};
+            this.applyToUI(q.design || {}, q.layout || 'standard', q.align || 'center');
+            App.Ui.showToast(`Auto-Loaded: ${targetData.title}`);
+        } else {
+            this.currentTarget = null;
+            this.previewQIndex = 0;
+            this.setDefaultUI();
+        }
 
         // 初回描画（スマホ対策で少し遅らせて再実行）
         this.renderPreview();
@@ -135,6 +149,35 @@ App.Design = {
                 };
             });
         }
+
+    },
+
+    moveQ: function (delta) {
+        const qs = this.getQuestionsFromTarget();
+        if (!qs) return;
+        const totalSteps = 1 + (qs.length * 2);
+        const newIdx = this.previewQIndex + delta;
+        this.jumpToStep(newIdx, totalSteps);
+    },
+
+    jumpToStep: function (idx, total) {
+        if (idx >= 0 && idx < total) {
+            const content = document.getElementById('design-monitor-preview-content');
+            if (content) content.classList.add('animating');
+
+            setTimeout(() => {
+                this.previewQIndex = idx;
+                this.renderPreview();
+                if (content) content.classList.remove('animating');
+            }, 100);
+        }
+    },
+
+    getQuestionsFromTarget: function () {
+        if (!this.currentTarget || !this.currentTarget.data) return null;
+        if (this.currentTarget.type === 'set') return this.currentTarget.data.questions || [];
+        if (this.currentTarget.type === 'prog') return this.currentTarget.data.playlist?.[0]?.questions || [];
+        return null;
     },
 
     setupModal: function (btnId, modalId) {
@@ -194,26 +237,28 @@ App.Design = {
             if (!data) return alert("データが見つかりません");
 
             this.currentTarget = { ...targetInfo, data: data };
-
-            let design = {};
-            let layout = 'standard';
-            let align = 'center';
+            let design = {}, layout = 'standard', align = 'center', prod = null;
 
             if (targetInfo.type === 'set' && data.questions && data.questions.length > 0) {
                 const q = data.questions[0];
                 design = q.design || {};
                 layout = q.layout || 'standard';
                 align = q.align || 'center';
+                prod = q.prodDesign || null;
             } else if (targetInfo.type === 'prog' && data.playlist && data.playlist.length > 0) {
                 const q = data.playlist[0].questions?.[0];
                 if (q) {
                     design = q.design || {};
                     layout = q.layout || 'standard';
                     align = q.align || 'center';
+                    prod = q.prodDesign || null;
                 }
             }
 
-            this.applyToUI(design, layout, align);
+            // Set first page as Title
+            this.previewQIndex = 0;
+
+            this.applyToUI(design, layout, align, prod);
             App.Ui.showToast(`Loaded: ${data.title}`);
             this.renderPreview();
         });
@@ -227,30 +272,72 @@ App.Design = {
                 qTextColor: document.getElementById('design-q-text').value,
                 qBgColor: document.getElementById('design-q-bg').value,
                 qBorderColor: document.getElementById('design-q-border').value,
+                qFontSize: document.getElementById('design-q-size').value,
                 cTextColor: document.getElementById('design-c-text').value,
                 cBgColor: document.getElementById('design-c-bg').value,
-                cBorderColor: document.getElementById('design-c-border').value
+                cBorderColor: document.getElementById('design-c-border').value,
+                cFontSize: document.getElementById('design-c-size').value
             },
             layout: document.getElementById('creator-set-layout').value,
-            align: document.getElementById('creator-set-align').value
+            align: document.getElementById('creator-set-align').value,
+            prodDesign: this.collectProdSettings()
         };
     },
 
-    applyToUI: function (design, layout, align) {
-        if (!design) design = this.defaults;
+    collectProdSettings: function () {
+        // Fallback IDs if they exist in the DOM (reusing production design IDs)
+        const getVal = (id, def) => document.getElementById(id)?.value || def;
+        return {
+            titleBgColor: getVal('prod-title-bg-color', "#000000"),
+            titleTextColor: getVal('prod-title-text-color', "#ffffff"),
+            titleFont: getVal('prod-title-font', "sans-serif"),
+            titleSize: getVal('prod-title-size', "80px"),
+            titleAnimation: getVal('prod-title-animation', "fade"),
 
-        const setVal = (id, val) => {
+            qNumberBgColor: getVal('prod-qnum-bg-color', "#000000"),
+            qNumberTextColor: getVal('prod-qnum-text-color', "#ffffff"),
+            qNumberFont: getVal('prod-qnum-font', "sans-serif"),
+            qNumberSize: getVal('prod-qnum-size', "80px"),
+            qNumberAnimation: getVal('prod-qnum-animation', "slide"),
+            qNumberPosition: getVal('prod-qnum-position', "center")
+        };
+    },
+
+    applyProdToUI: function (p) {
+        if (!p) return;
+        const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+        setVal('prod-title-bg-color', p.titleBgColor);
+        setVal('prod-title-text-color', p.titleTextColor);
+        setVal('prod-title-font', p.titleFont);
+        setVal('prod-title-size', p.titleSize);
+        setVal('prod-title-animation', p.titleAnimation);
+
+        setVal('prod-qnum-bg-color', p.qNumberBgColor);
+        setVal('prod-qnum-text-color', p.qNumberTextColor);
+        setVal('prod-qnum-font', p.qNumberFont);
+        setVal('prod-qnum-size', p.qNumberSize);
+        setVal('prod-qnum-animation', p.qNumberAnimation);
+        setVal('prod-qnum-position', p.qNumberPosition);
+    },
+
+    applyToUI: function (design, layout, align, prod) {
+        if (!design) design = this.defaults;
+        if (prod) this.applyProdToUI(prod);
+
+        const setVal = (id, val, defaultKey) => {
             const el = document.getElementById(id);
-            if (el) el.value = val || this.defaults[id.replace('design-', '').replace('main-bg-color', 'mainBgColor').replace('q-text', 'qTextColor').replace('q-bg', 'qBgColor').replace('q-border', 'qBorderColor').replace('c-text', 'cTextColor').replace('c-bg', 'cBgColor').replace('c-border', 'cBorderColor')];
+            if (el) el.value = val || this.defaults[defaultKey];
         };
 
-        setVal('design-main-bg-color', design.mainBgColor);
-        setVal('design-q-text', design.qTextColor);
-        setVal('design-q-bg', design.qBgColor);
-        setVal('design-q-border', design.qBorderColor);
-        setVal('design-c-text', design.cTextColor);
-        setVal('design-c-bg', design.cBgColor);
-        setVal('design-c-border', design.cBorderColor);
+        setVal('design-main-bg-color', design.mainBgColor, 'mainBgColor');
+        setVal('design-q-text', design.qTextColor, 'qTextColor');
+        setVal('design-q-bg', design.qBgColor, 'qBgColor');
+        setVal('design-q-border', design.qBorderColor, 'qBorderColor');
+        setVal('design-q-size', design.qFontSize, 'qFontSize');
+        setVal('design-c-text', design.cTextColor, 'cTextColor');
+        setVal('design-c-bg', design.cBgColor, 'cBgColor');
+        setVal('design-c-border', design.cBorderColor, 'cBorderColor');
+        setVal('design-c-size', design.cFontSize, 'cFontSize');
 
         document.getElementById('design-bg-image-data').value = design.bgImage || "";
         const status = document.getElementById('design-bg-image-status');
@@ -294,19 +381,72 @@ App.Design = {
 
         if (this.currentTarget && this.currentTarget.data) {
             let qData = null;
-            if (this.currentTarget.type === 'set' && this.currentTarget.data.questions?.length > 0) {
-                qData = this.currentTarget.data.questions[0];
-            } else if (this.currentTarget.type === 'prog' && this.currentTarget.data.playlist?.[0]?.questions?.length > 0) {
-                qData = this.currentTarget.data.playlist[0].questions[0];
+            let questions = [];
+
+            if (this.currentTarget.type === 'set') {
+                questions = this.currentTarget.data.questions || [];
+            } else if (this.currentTarget.type === 'prog') {
+                questions = this.currentTarget.data.playlist?.[0]?.questions || [];
             }
-            if (qData) {
-                qText = qData.q;
-                if (qData.c) choices = qData.c;
-                qType = qData.type;
+
+            const totalSteps = 1 + (questions.length * 2);
+
+            if (questions.length > 0) {
+                // Ensure index is valid
+                if (this.previewQIndex >= totalSteps) this.previewQIndex = 0;
+
+                // Determine step type
+                let stepType = 'title';
+                let qIdx = -1;
+                if (this.previewQIndex === 0) {
+                    stepType = 'title';
+                } else if (this.previewQIndex % 2 === 1) {
+                    stepType = 'qnumber';
+                    qIdx = Math.floor((this.previewQIndex - 1) / 2);
+                } else {
+                    stepType = 'question';
+                    qIdx = Math.floor((this.previewQIndex - 2) / 2);
+                }
+
+                qData = qIdx >= 0 ? questions[qIdx] : null;
+
+                // Update Pager UI (Premium Slider Style)
+                const pager = document.getElementById('design-pager-container');
+                if (pager) {
+                    pager.classList.toggle('hidden', questions.length === 0);
+                    pager.innerHTML = '';
+
+                    // Add dots for each step
+                    for (let i = 0; i < totalSteps; i++) {
+                        const dot = document.createElement('div');
+                        dot.className = 'pager-step-dot';
+                        if (i === this.previewQIndex) dot.classList.add('active');
+
+                        let label = 'T';
+                        if (i > 0) {
+                            const qNum = Math.floor((i + 1) / 2);
+                            const isNum = (i % 2 === 1);
+                            label = isNum ? `${qNum}N` : `${qNum}Q`;
+                            dot.classList.add(isNum ? 'is-prod' : 'is-q');
+                        } else {
+                            dot.classList.add('is-prod');
+                        }
+
+                        dot.textContent = label;
+                        dot.onclick = () => this.jumpToStep(i, totalSteps);
+                        pager.appendChild(dot);
+                    }
+                }
+
+                // If it's Title or QNumber, use Production Design rendering
+                if (stepType === 'title' || stepType === 'qnumber') {
+                    this.renderProductionStep(stepType, qIdx, questions);
+                    return;
+                }
+            } else {
+                const pager = document.getElementById('design-pager-container');
+                if (pager) pager.classList.add('hidden');
             }
-        } else if (App.Data.createdQuestions && App.Data.createdQuestions.length > 0) {
-            const editingIndex = App.Creator.editingIndex;
-            const qData = (editingIndex !== null) ? App.Data.createdQuestions[editingIndex] : App.Data.createdQuestions[0];
             if (qData) {
                 qText = qData.q;
                 if (qData.c) choices = qData.c;
@@ -321,6 +461,12 @@ App.Design = {
             bgStyle += `background-image: radial-gradient(circle at center, #1a1a1a 0%, ${d.mainBgColor} 100%);`;
         }
 
+        const fontSizeVal = (val, def) => {
+            if (!val) return def;
+            if (/^\d+$/.test(val.toString())) return val + 'px';
+            return val;
+        };
+
         const qStyle = `
             color:${d.qTextColor}; 
             background:${d.qBgColor}; 
@@ -328,7 +474,7 @@ App.Design = {
             text-align:${s.align}; 
             padding:30px; 
             border-radius:15px; 
-            font-size:48px; 
+            font-size:${fontSizeVal(d.qFontSize, '48px')}; 
             font-weight:bold; 
             line-height:1.4;
             margin-bottom:20px; 
@@ -343,7 +489,7 @@ App.Design = {
             background:${d.cBgColor}; 
             border-bottom:3px solid ${d.cBorderColor}; 
             padding:15px 20px; 
-            font-size:32px;
+            font-size:${fontSizeVal(d.cFontSize, '32px')};
             display:flex; 
             align-items:center;
             pointer-events: none; /* Let parent catch click */
@@ -362,7 +508,7 @@ App.Design = {
         if (qType === 'free_written' || qType === 'free_oral') {
             layoutHtml = `
                 <div style="padding:60px; box-sizing:border-box; display:flex; flex-direction:column; height:100%; justify-content:center; align-items:center;">
-                    <div class="preview-q-block ${this.activeQuickEdit === 'q' ? 'is-editing' : ''}" onclick="App.Design.openQuickEdit('q', event)" style="${qStyle} width:80%; height:50%; font-size:60px;">${qText}</div>
+                    <div class="preview-q-block ${this.activeQuickEdit === 'q' ? 'is-editing' : ''}" onclick="event.stopPropagation(); App.Design.openQuickEdit('q', event)" style="${qStyle} width:80%; height:50%; font-size:60px;">${qText}</div>
                     <div style="color:#aaa; margin-top:40px; font-size:30px;">[ ${qType === 'free_oral' ? '口頭回答' : '記述式'} ]</div>
                 </div>
             `;
@@ -370,8 +516,8 @@ App.Design = {
             if (s.layout === 'split_list' || s.layout === 'split_grid') {
                 layoutHtml = `
                     <div style="display:flex; height:100%; gap:40px; padding:40px; box-sizing:border-box;">
-                        <div class="preview-q-block ${this.activeQuickEdit === 'q' ? 'is-editing' : ''}" onclick="App.Design.openQuickEdit('q', event)" style="flex:1; ${qStyle}; margin:0; writing-mode: vertical-rl; text-orientation: upright; justify-content:center;">${qText}</div>
-                        <div class="preview-c-block ${this.activeQuickEdit === 'c' ? 'is-editing' : ''}" onclick="App.Design.openQuickEdit('c', event)" style="flex:1; display:flex; flex-direction:column; justify-content:center; gap:20px;">
+                        <div class="preview-q-block ${this.activeQuickEdit === 'q' ? 'is-editing' : ''}" onclick="event.stopPropagation(); App.Design.openQuickEdit('q', event)" style="flex:1; ${qStyle}; margin:0; writing-mode: vertical-rl; text-orientation: upright; justify-content:center;">${qText}</div>
+                        <div class="preview-c-block ${this.activeQuickEdit === 'c' ? 'is-editing' : ''}" onclick="event.stopPropagation(); App.Design.openQuickEdit('c', event)" style="flex:1; display:flex; flex-direction:column; justify-content:center; gap:20px;">
                             ${choices.map((c, i) => `
                                 <div style="${cStyle}">
                                     <span style="${labelStyle}">${String.fromCharCode(65 + i)}</span> ${c}
@@ -383,8 +529,8 @@ App.Design = {
             } else {
                 layoutHtml = `
                     <div style="padding:50px; box-sizing:border-box; display:flex; flex-direction:column; height:100%; justify-content:center;">
-                        <div class="preview-q-block ${this.activeQuickEdit === 'q' ? 'is-editing' : ''}" onclick="App.Design.openQuickEdit('q', event)" style="${qStyle} min-height:200px;">${qText}</div>
-                        <div class="preview-c-block ${this.activeQuickEdit === 'c' ? 'is-editing' : ''}" onclick="App.Design.openQuickEdit('c', event)" style="margin-top:20px; display:flex; flex-direction:column; gap:15px;">
+                        <div class="preview-q-block ${this.activeQuickEdit === 'q' ? 'is-editing' : ''}" onclick="event.stopPropagation(); App.Design.openQuickEdit('q', event)" style="${qStyle} min-height:200px;">${qText}</div>
+                        <div class="preview-c-block ${this.activeQuickEdit === 'c' ? 'is-editing' : ''}" onclick="event.stopPropagation(); App.Design.openQuickEdit('c', event)" style="margin-top:20px; display:flex; flex-direction:column; gap:15px;">
                              ${choices.map((c, i) => `
                                 <div style="${cStyle}">
                                     <span style="${labelStyle}">${String.fromCharCode(65 + i)}</span> ${c}
@@ -397,7 +543,9 @@ App.Design = {
         }
 
         content.innerHTML = `
-            <div style="width:100%; height:100%; ${bgStyle} font-family:sans-serif; overflow:hidden;">
+            <div class="preview-bg-block ${this.activeQuickEdit === 'bg' ? 'is-editing' : ''}" 
+                 onclick="App.Design.openQuickEdit('bg', event)"
+                 style="width:100%; height:100%; ${bgStyle} font-family:sans-serif; overflow:hidden; cursor:pointer;">
                 ${layoutHtml}
             </div>
         `;
@@ -414,7 +562,7 @@ App.Design = {
         if (qType === 'choice' || qType === 'sort') {
             ansHtml = choices.map((c, i) => `
                 <div class="p-ans-item" style="background:${design.cBorderColor}22; border:1px solid ${design.cBorderColor}66;">
-                    <span style="color:${design.cBorderColor}; margin-right:10px; font-weight:bold;">${i + 1}</span> ${c}
+                    <span style="color:${design.cBorderColor}; margin-right:10px; font-weight:900; font-family:monospace;">${String.fromCharCode(65 + i)}</span> ${c}
                 </div>
             `).join('');
         } else if (qType === 'free_written' || qType === 'free_oral') {
@@ -450,6 +598,7 @@ App.Design = {
                 q.design = s.design;
                 q.layout = s.layout;
                 q.align = s.align;
+                q.prodDesign = s.prodDesign;
                 return q;
             });
             promise = window.db.ref(`saved_sets/${App.State.currentShowId}/${t.key}/questions`).set(questions);
@@ -460,6 +609,7 @@ App.Design = {
                         q.design = s.design;
                         q.layout = s.layout;
                         q.align = s.align;
+                        q.prodDesign = s.prodDesign;
                         return q;
                     });
                 }
@@ -521,9 +671,116 @@ App.Design = {
         }
 
         // Reset highlight
-        document.querySelectorAll('.preview-q-block, .preview-c-block').forEach(el => el.classList.remove('is-editing'));
-        const target = (type === 'q') ? document.querySelector('.preview-q-block') : document.querySelector('.preview-c-block');
+        document.querySelectorAll('.preview-q-block, .preview-c-block, .preview-bg-block').forEach(el => el.classList.remove('is-editing'));
+
+        let targetSelector = '.preview-q-block';
+        if (type === 'c') targetSelector = '.preview-c-block';
+        if (type === 'bg' || type === 'title' || type === 'qnumber') targetSelector = '.preview-bg-block';
+
+        const target = document.querySelector(targetSelector);
         if (target) target.classList.add('is-editing');
+
+        if (type === 'title' || type === 'qnumber') {
+            const isTitle = (type === 'title');
+            title.textContent = isTitle ? "タイトル画面設定" : "問題番号設定";
+            const IDs = isTitle ?
+                { bg: 'prod-title-bg-color', text: 'prod-title-text-color', size: 'prod-title-size' } :
+                { bg: 'prod-qnum-bg-color', text: 'prod-qnum-text-color', size: 'prod-qnum-size' };
+
+            body.innerHTML = `
+                <div class="inspector-row">
+                    <div class="inspector-icon-box" title="テキスト設定">T</div>
+                    <div class="inspector-controls">
+                        <div class="inspector-control-group">
+                            <span class="inspector-label-mini">文字色</span>
+                            <div class="color-swatch-wrapper">
+                                <input type="color" id="quick-text-color" class="color-picker-hidden" value="${document.getElementById(IDs.text).value}">
+                                <div class="color-swatch" id="swatch-text-color" style="background:${document.getElementById(IDs.text).value}"></div>
+                            </div>
+                        </div>
+                        <div class="inspector-control-group">
+                            <span class="inspector-label-mini">大きさ</span>
+                            <input type="text" id="quick-font-size" class="inspector-input-mini" value="${document.getElementById(IDs.size).value}" style="width:60px;">
+                        </div>
+                    </div>
+                </div>
+                <div class="inspector-row">
+                    <div class="inspector-icon-box" title="カラー設定">🎨</div>
+                    <div class="inspector-controls">
+                        <div class="inspector-control-group">
+                            <span class="inspector-label-mini">背景色</span>
+                            <div class="color-swatch-wrapper">
+                                <input type="color" id="quick-bg-color" class="color-picker-hidden" value="${document.getElementById(IDs.bg).value}">
+                                <div class="color-swatch" id="swatch-bg-color" style="background:${document.getElementById(IDs.bg).value}"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="inspector-row" style="height:auto; padding:10px 0;">
+                    <button class="btn-dark btn-block btn-mini" onclick="document.getElementById('${isTitle ? 'modal-prod-title' : 'modal-prod-qnum'}').classList.remove('hidden'); document.getElementById('modal-design-quick').classList.add('hidden');">
+                        ⚙️ 詳細設定を開く
+                    </button>
+                </div>
+            `;
+            const syncHelper = (id, targetId, swatchId) => {
+                const el = document.getElementById(id);
+                const targetEl = document.getElementById(targetId);
+                const swatch = document.getElementById(swatchId);
+                if (el && targetEl) {
+                    el.oninput = () => {
+                        targetEl.value = el.value;
+                        if (swatch) swatch.style.background = el.value;
+                        this.renderPreview();
+                    };
+                }
+            };
+            syncHelper('quick-text-color', IDs.text, 'swatch-text-color');
+            syncHelper('quick-bg-color', IDs.bg, 'swatch-bg-color');
+
+            const sizeInp = document.getElementById('quick-font-size');
+            if (sizeInp) {
+                sizeInp.oninput = () => {
+                    document.getElementById(IDs.size).value = sizeInp.value;
+                    this.renderPreview();
+                };
+            }
+            return;
+        }
+
+        if (type === 'bg') {
+            title.textContent = "背景デザイン";
+            body.innerHTML = `
+                <div class="inspector-row">
+                    <div class="inspector-icon-box" title="背景色">🎨</div>
+                    <div class="inspector-controls">
+                        <div class="inspector-control-group">
+                            <span class="inspector-label-mini">背景色</span>
+                            <div class="color-swatch-wrapper">
+                                <input type="color" id="quick-bg-color" class="color-picker-hidden" value="${document.getElementById('design-main-bg-color').value}">
+                                <div class="color-swatch" id="swatch-bg-color" style="background:${document.getElementById('design-main-bg-color').value}"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="inspector-row" style="height:auto; padding:10px 0;">
+                    <button class="btn-dark btn-block btn-mini" onclick="document.getElementById('modal-design-bg').classList.remove('hidden'); document.getElementById('modal-design-quick').classList.add('hidden');">
+                        🖼 背景画像の詳細設定を開く
+                    </button>
+                </div>
+            `;
+
+            const bgInp = document.getElementById('quick-bg-color');
+            const bgSwatch = document.getElementById('swatch-bg-color');
+            if (bgInp) {
+                bgInp.oninput = (e) => {
+                    const val = e.target.value;
+                    bgSwatch.style.background = val;
+                    document.getElementById('design-main-bg-color').value = val;
+                    this.renderPreview();
+                };
+            }
+            return;
+        }
 
         title.textContent = (type === 'q') ? "問題エリア" : "選択肢エリア";
 
@@ -539,6 +796,10 @@ App.Design = {
                             <input type="color" id="quick-text-color" class="color-picker-hidden" value="${document.getElementById(`design-${prefix}-text`).value}">
                             <div class="color-swatch" id="swatch-text-color" style="background:${document.getElementById(`design-${prefix}-text`).value}"></div>
                         </div>
+                    </div>
+                    <div class="inspector-control-group">
+                        <span class="inspector-label-mini">大きさ</span>
+                        <input type="text" id="quick-font-size" class="inspector-input-mini" value="${document.getElementById(`design-${prefix}-size`).value}" style="width:60px;">
                     </div>
                     ${type === 'q' ? `
                     <div class="align-btn-group-toolbar">
@@ -591,6 +852,14 @@ App.Design = {
         sync('quick-border-color', `design-${prefix}-border`, 'swatch-border-color');
         sync('quick-bg-color', `design-${prefix}-bg`, 'swatch-bg-color');
 
+        const sizeInp = document.getElementById('quick-font-size');
+        if (sizeInp) {
+            sizeInp.oninput = () => {
+                document.getElementById(`design-${prefix}-size`).value = sizeInp.value;
+                this.renderPreview();
+            };
+        }
+
         body.querySelectorAll('.btn-align-q').forEach(btn => {
             btn.onclick = () => {
                 body.querySelectorAll('.btn-align-q').forEach(b => b.classList.remove('active'));
@@ -605,6 +874,47 @@ App.Design = {
                 }
             };
         });
+    },
+
+    renderProductionStep: function (type, qIdx, questions) {
+        const content = document.getElementById('design-monitor-preview-content');
+        if (!content) return;
+
+        const s = this.collectProdSettings();
+        let html = '';
+        const fontSize = (val) => {
+            if (typeof val !== 'string') return val;
+            return val.includes('vh') ? (parseFloat(val) * 7.2) + 'px' : val;
+        };
+
+        if (type === 'title') {
+            html = `
+                <div class="preview-bg-block ${this.activeQuickEdit === 'title' ? 'is-editing' : ''}" 
+                     onclick="App.Design.openQuickEdit('title', event)" 
+                     style="width:100%; height:100%; background:${s.titleBgColor}; display:flex; align-items:center; justify-content:center; font-family:${s.titleFont}; cursor:pointer;">
+                    <div style="color:${s.titleTextColor}; font-size:${fontSize(s.titleSize)}; font-weight:900; text-align:center;">
+                        ${this.currentTarget?.data?.title || 'Program Title'}
+                    </div>
+                </div>
+            `;
+        } else if (type === 'qnumber') {
+            const pos = {
+                'center': 'align-items:center; justify-content:center;',
+                'top': 'align-items:flex-start; justify-content:center; padding-top:50px;',
+                'bottom': 'align-items:flex-end; justify-content:center; padding-bottom:50px;'
+            };
+            html = `
+                <div class="preview-bg-block ${this.activeQuickEdit === 'qnumber' ? 'is-editing' : ''}" 
+                     onclick="App.Design.openQuickEdit('qnumber', event)" 
+                     style="width:100%; height:100%; background:${s.qNumberBgColor}; display:flex; ${pos[s.qNumberPosition]} font-family:${s.qNumberFont}; cursor:pointer;">
+                    <div style="color:${s.qNumberTextColor}; font-size:${fontSize(s.qNumberSize)}; font-weight:900;">
+                        第${qIdx + 1}問
+                    </div>
+                </div>
+            `;
+        }
+        content.innerHTML = html;
+        this.renderPlayerPreview("まもなく開始されます...", [], "text", {});
     }
 };
 

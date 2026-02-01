@@ -371,10 +371,9 @@ window.App.Dashboard = {
             };
             document.getElementById('edit-menu-design').onclick = () => {
                 modal.classList.add('hidden');
-                // デザイン画面へ遷移
+                // デザイン画面へ遷移。セット情報を渡して自動ロード
                 if (window.App.Design && window.App.Design.init) {
-                    window.App.Design.init();
-                    // 必要に応じて対象をセットするように拡張予定
+                    window.App.Design.init(this.currentEditKey, this.currentEditData);
                 }
             };
             document.getElementById('edit-menu-sound').onclick = () => {

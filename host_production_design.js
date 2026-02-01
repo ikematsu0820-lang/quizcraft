@@ -5,13 +5,14 @@
 App.ProductionDesign = {
     currentTarget: null,
     activeQuickEdit: null, // Track which area is being edited
+    currentDevice: 'monitor',
 
     defaults: {
         // Program Title (プログラム名)
         programTitleBgColor: "#000000",
-        programTitleTextColor: "#ffffff",
+        programTitleTextColor: "#ffd700",
         programTitleFont: "sans-serif",
-        programTitleSize: "80px",
+        programTitleSize: "120px",
         programTitleAnimation: "fade",
 
         // Set Title (セット名)
@@ -122,6 +123,16 @@ App.ProductionDesign = {
             btn.onclick = () => {
                 document.querySelectorAll('.prod-preview-type-selector .segmented-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
+                this.renderPreview();
+            };
+        });
+
+        // Preview device segmented control
+        document.querySelectorAll('.prod-preview-device-selector .segmented-btn').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll('.prod-preview-device-selector .segmented-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                this.currentDevice = btn.dataset.device || 'monitor';
                 this.renderPreview();
             };
         });
@@ -281,13 +292,19 @@ App.ProductionDesign = {
 
     renderPreview: function () {
         const preview = document.getElementById('prod-design-preview-content');
-        if (!preview) return;
+        const playerContainer = document.getElementById('preview-player-container-prod');
+        const monitorContainer = document.getElementById('preview-monitor-container-prod');
+        if (!preview || !playerContainer || !monitorContainer) return;
 
-        const frame = preview.parentElement; // .design-preview-frame
-        const frameWidth = frame.clientWidth;
-        const scale = frameWidth / 1280;
+        monitorContainer.classList.toggle('hidden', this.currentDevice !== 'monitor');
+        playerContainer.classList.toggle('hidden', this.currentDevice !== 'player');
 
-        preview.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        if (this.currentDevice === 'monitor') {
+            const frame = monitorContainer; // .design-preview-frame
+            const frameWidth = frame.clientWidth;
+            const scale = frameWidth / 1280;
+            preview.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        }
 
         const s = this.collectSettings();
         const activeBtn = document.querySelector('.prod-preview-type-selector .segmented-btn.active');
@@ -339,6 +356,14 @@ App.ProductionDesign = {
         }
 
         preview.innerHTML = html;
+
+        // Player Preview Update
+        const playerMockBody = document.getElementById('prod-player-mock-body');
+        if (playerMockBody) {
+            if (previewType === 'title') playerMockBody.textContent = "番組開始をお待ちください";
+            else if (previewType === 'qnumber') playerMockBody.textContent = "まもなく出題されます...";
+            else if (previewType === 'ranking') playerMockBody.textContent = "ランキング集計中...";
+        }
     },
 
     save: function () {

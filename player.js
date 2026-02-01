@@ -17,6 +17,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('join-room-btn');
     if (btn) btn.onclick = joinRoom;
 
+    // Auto-fill room code from URL ?room=CODE
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomParam = urlParams.get('room');
+    if (roomParam) {
+        const input = document.getElementById('room-code-input');
+        if (input) {
+            input.value = roomParam.trim().toUpperCase();
+            // Optional: If name is also there or saved in session, we could auto-join
+        }
+    }
+
     const buzzBtn = document.getElementById('player-buzz-btn');
     if (buzzBtn) {
         buzzBtn.addEventListener('click', () => {
@@ -387,8 +398,12 @@ function renderResultScreen(p) {
     const ansBox = document.getElementById('player-input-container');
     let correctText = "";
     if (currentQuestion.type === 'choice') {
-        if (Array.isArray(currentQuestion.correct)) correctText = currentQuestion.correct.map(i => currentQuestion.c[i]).join(' / ');
-        else correctText = currentQuestion.c[currentQuestion.correct];
+        if (Array.isArray(currentQuestion.correct)) {
+            correctText = currentQuestion.correct.map(i => `[${String.fromCharCode(65 + i)}] ${currentQuestion.c[i]}`).join(' / ');
+        } else {
+            const idx = currentQuestion.correctIndex !== undefined ? currentQuestion.correctIndex : currentQuestion.correct;
+            correctText = `[${String.fromCharCode(65 + idx)}] ${currentQuestion.c[idx]}`;
+        }
     } else if (currentQuestion.type === 'letter_select' && currentQuestion.steps) {
         correctText = currentQuestion.steps.map(s => s.correct).join('');
     } else if (currentQuestion.type === 'sort') {
@@ -402,7 +417,9 @@ function renderResultScreen(p) {
     if (p.lastAnswer !== null) {
         if (currentQuestion.type === 'choice') {
             const idx = parseInt(p.lastAnswer);
-            if (!isNaN(idx) && currentQuestion.c && currentQuestion.c[idx]) myAnsText = currentQuestion.c[idx];
+            if (!isNaN(idx) && currentQuestion.c && currentQuestion.c[idx]) {
+                myAnsText = `[${String.fromCharCode(65 + idx)}] ${currentQuestion.c[idx]}`;
+            }
         } else if (currentQuestion.type === 'sort') {
             myAnsText = p.lastAnswer.split('').map(char => currentQuestion.c[char.charCodeAt(0) - 65]).join(' → ');
         }
@@ -552,7 +569,7 @@ function renderPlayerQuestion(q, roomId, playerId) {
         choices.forEach((item, i) => {
             const btn = document.createElement('button');
             btn.className = 'answer-btn';
-            btn.textContent = item.text;
+            btn.innerHTML = `<span style="font-weight:900; margin-right:10px; opacity:0.8; font-family:monospace;">${String.fromCharCode(65 + item.originalIndex)}</span> ${item.text}`;
             btn.dataset.ans = item.originalIndex;
 
             if (i === 0) btn.classList.add('btn-blue');
@@ -716,6 +733,10 @@ function renderPlayerQuestion(q, roomId, playerId) {
 }
 
 function submitAnswer(roomId, playerId, answer) {
+    if (localStatus.step !== 'answering') {
+        console.warn("Answer rejected: Not in answering phase");
+        return;
+    }
     isReanswering = false;
     window.db.ref(`rooms/${roomId}/players/${playerId}`).update({
         lastAnswer: answer

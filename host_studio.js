@@ -51,7 +51,20 @@ App.Studio = {
             if (el) {
                 el.textContent = code;
                 el.onclick = () => {
-                    navigator.clipboard.writeText(code).then(() => App.Ui.showToast("📋 Copy!"));
+                    const shareUrl = `${window.location.origin}${window.location.pathname}?room=${code}`;
+                    const shareText = `Quiz Studioに参加してください！\n部屋コード: ${code}\nURL: ${shareUrl}`;
+
+                    if (navigator.share) {
+                        navigator.share({
+                            title: 'Quiz Studio',
+                            text: shareText,
+                            url: shareUrl
+                        }).catch(() => {
+                            navigator.clipboard.writeText(code).then(() => App.Ui.showToast("📋 ID Copied!"));
+                        });
+                    } else {
+                        navigator.clipboard.writeText(code).then(() => App.Ui.showToast("📋 ID Copied!"));
+                    }
                 };
             }
         });
@@ -260,8 +273,12 @@ App.Studio = {
         this.toggleUIForStandby(isStandby);
 
         const ansArea = document.getElementById('studio-player-answers');
+        const statsArea = document.getElementById('studio-answer-stats');
         if (ansArea) {
             ansArea.classList.toggle('hidden', stepId < 2 || stepId > 6);
+        }
+        if (statsArea) {
+            statsArea.classList.toggle('hidden', stepId !== 2); // Show stats bar only during Phase 2 (Answering)
         }
 
         // --- Production: Visual feedback on phase change ---
@@ -808,8 +825,10 @@ App.Studio = {
         area.innerHTML = '';
 
         const q = App.Data.studioQuestions[App.State.currentQIndex];
+        const playerIds = Object.keys(players);
+        let answeredCount = 0;
 
-        Object.keys(players).forEach(id => {
+        playerIds.forEach(id => {
             const p = players[id];
             const card = document.createElement('div');
             card.className = 'player-ans-card';
@@ -819,8 +838,13 @@ App.Studio = {
 
             if (p.lastAnswer !== null && p.lastAnswer !== undefined) {
                 isAnswered = true;
+                answeredCount++;
                 card.classList.add('has-answered');
 
+                // If in "reveal" phase, show the answer. Otherwise hide it from host if desired?
+                // Actually user said "司会者側でリアルタイムで把握できた方がいい"
+                // Usually host wants to see if they've answered, but maybe not the content until flip to keep it exciting?
+                // But for now let's keep showing the content as it was, but more prominent.
                 if (q && q.type === 'choice') {
                     const idx = parseInt(p.lastAnswer);
                     ansText = isNaN(idx) ? p.lastAnswer : String.fromCharCode(65 + idx);
@@ -829,12 +853,33 @@ App.Studio = {
                 }
             }
 
+            const checkHtml = isAnswered ? '<span class="answered-badge">✅</span>' : '<span class="waiting-dot">●</span>';
             card.innerHTML = `
-                <span class="player-ans-name">${p.name}</span>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    ${checkHtml}
+                    <span class="player-ans-name">${p.name}</span>
+                </div>
                 <span class="player-ans-value ${!isAnswered ? 'waiting' : ''}">${ansText}</span>
             `;
             area.appendChild(card);
         });
+
+        // Update Stats Bar
+        const total = playerIds.length;
+        const countEl = document.getElementById('studio-answered-count');
+        const progressEl = document.getElementById('studio-answer-progress');
+        if (countEl) countEl.textContent = `${answeredCount} / ${total}`;
+        if (progressEl) {
+            const percent = total > 0 ? (answeredCount / total) * 100 : 0;
+            progressEl.style.width = `${percent}%`;
+
+            // Pulse effect when someone answers
+            if (percent > 0) {
+                progressEl.classList.remove('pulse');
+                void progressEl.offsetWidth; // trigger reflow
+                progressEl.classList.add('pulse');
+            }
+        }
     },
 
     translateMode: function (mode) {
