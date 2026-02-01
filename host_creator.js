@@ -542,19 +542,20 @@ window.App.Creator = {
         if (!showId) showId = sessionStorage.getItem('qs_show_id');
 
         if (!showId) {
-            alert("エラー: 番組IDの取得に失敗しました。ログイン状態を確認してください。");
+            alert("エラー: 番組IDの取得に失敗しました。一度ダッシュボードに戻ってから再度お試しください。");
             return;
         }
-        showId = showId.trim().toUpperCase();
+        // Sanitize showId: remove dots and other problematic characters
+        showId = showId.trim().toUpperCase().replace(/[\.\$#\[\]\/]/g, "");
 
         const layoutEl = document.getElementById('creator-set-layout');
         const alignEl = document.getElementById('creator-set-align');
         const layout = layoutEl ? layoutEl.value : 'standard';
         const align = alignEl ? alignEl.value : 'center';
         const designData = window.collectDesignSettings ? window.collectDesignSettings() : { design: {} };
-        const design = designData.design;
+        const design = designData.design || {};
 
-        // Apply defaults
+        // Apply defaults to questions
         window.App.Data.createdQuestions.forEach(q => {
             if (!q.layout) q.layout = layout;
             if (!q.align) q.align = align;
@@ -569,8 +570,8 @@ window.App.Creator = {
         };
 
         const setId = window.App.State.editingSetId;
-        const path = `saved_sets/${showId}`;
-        const ref = setId ? window.db.ref(`${path}/${setId}`) : window.db.ref(path).push();
+        const baseRef = window.db.ref("saved_sets").child(showId);
+        const ref = setId ? baseRef.child(setId) : baseRef.push();
 
         if (!setId) {
             data.config = { mode: 'normal', gameType: 'score', theme: 'light' };
@@ -580,18 +581,24 @@ window.App.Creator = {
         console.log("Saving to path:", ref.toString());
 
         const op = setId ? ref.update(data) : ref.set(data);
+
         op.then(() => {
-            console.log("Save success!");
+            console.log("Save successful");
             window.App.Ui.showToast("保存しました");
             if (window.App.Dashboard && window.App.Dashboard.enter) {
                 window.App.Dashboard.enter();
             } else {
-                window.location.hash = ""; // Fallback
-                window.location.reload();
+                window.location.reload(); // Fallback
             }
         }).catch(err => {
-            console.error("Save failed:", err);
-            alert("保存エラー: " + err.message);
+            console.error("Save error:", err);
+            let msg = "保存エラーが発生しました。\n\n";
+            if (err.code === "PERMISSION_DENIED") {
+                msg += "原因: データベースのアクセス権限がありません。\nFirebaseコンソールの『ルール』が30日間のテストモード期限切れなどで制限されていないか確認してください。";
+            } else {
+                msg += "原因: " + err.message;
+            }
+            alert(msg);
         });
     }
 };
