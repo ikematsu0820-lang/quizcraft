@@ -583,6 +583,7 @@ App.Studio = {
 
     renderQuestionMonitor: function (q) {
         if (!q) return;
+        this.updateMonitorScaling();
 
         const qEl = document.getElementById('studio-q-text');
         const cContainer = document.getElementById('studio-choices-container');
