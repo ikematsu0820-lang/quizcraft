@@ -1578,6 +1578,8 @@ select option {
     margin-bottom: 40px;
     line-height: 1.4;
     text-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .monitor-choices {
