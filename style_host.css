@@ -1375,10 +1375,37 @@ select option {
     padding: 10px 15px;
     display: flex;
     flex-wrap: wrap;
-    gap: 15px 25px;
+    gap: 10px 20px;
     align-items: center;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
     z-index: 100;
+}
+
+@media (max-width: 600px) {
+    .studio-header-bar {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        padding: 10px;
+    }
+
+    .status-item {
+        min-width: 0;
+    }
+
+    .status-item:nth-child(6) {
+        /* 参加者 list */
+        grid-column: span 3;
+        margin-top: 5px;
+    }
+
+    #host-close-studio-btn {
+        grid-column: span 3;
+        order: -1;
+        /* Move back button to top or leave it? User wants dashboard back */
+        width: 100%;
+        margin-bottom: 5px;
+    }
 }
 
 .status-item {
@@ -1454,12 +1481,18 @@ select option {
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    /* Changed to flex-start to allow grid to take top space */
-    align-items: center;
+    align-items: stretch;
+    /* Change from center to stretch */
     background-image:
         radial-gradient(circle at 10% 20%, rgba(0, 50, 255, 0.05) 0%, transparent 20%),
         radial-gradient(circle at 90% 80%, rgba(255, 0, 100, 0.05) 0%, transparent 20%);
     overflow-y: auto;
+}
+
+@media (max-width: 600px) {
+    .studio-main-area {
+        padding: 15px;
+    }
 }
 
 .big-room-id-box {
@@ -1869,126 +1902,49 @@ select option {
     letter-spacing: 1px;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 600px) {
     .studio-main-area {
         padding: 10px;
     }
 
     .question-monitor {
-        padding: 15px;
-        width: 100%;
-        border-width: 1px;
+        padding: 40px;
+        /* Reduced from 80px for better fit scaled down */
+        width: 1280px;
+        height: 720px;
     }
 
     .monitor-q-text {
-        font-size: 1.1em;
-        margin-bottom: 15px;
-    }
-
-    .monitor-correct {
-        margin-top: 15px;
-        padding: 10px;
-        font-size: 1em;
-    }
-
-    .monitor-correct .label {
-        font-size: 0.55em !important;
-    }
-
-    .monitor-choices {
-        gap: 8px;
-    }
-
-    .monitor-choice-item {
-        padding: 10px;
-        font-size: 0.85em;
+        margin-bottom: 20px;
     }
 
     .studio-footer-controls {
-        padding: 10px 15px;
+        padding: 15px;
     }
 
     .btn-large-action {
         height: 50px;
-        font-size: 1.1em;
-        margin-bottom: 10px;
-        letter-spacing: 1px;
+        font-size: 1.2em;
+        margin-bottom: 15px;
     }
 
     .sub-controls-grid {
         gap: 10px;
-        margin-bottom: 10px;
     }
 
     .btn-judge {
-        height: 48px;
-        font-size: 1em;
+        height: 50px;
+        font-size: 1.1em;
     }
 
     .studio-answer-stats-bar {
-        padding: 8px 12px;
-        margin-top: 15px;
         width: 100%;
-    }
-
-    .stats-value {
-        font-size: 1.1em;
-        min-width: 60px;
-    }
-
-    .big-room-id-box {
-        padding: 10px 20px;
-        margin-bottom: 20px;
-    }
-
-    .big-room-id-box span[id] {
-        font-size: 2.5em;
-    }
-
-    .big-room-id-box .label {
-        font-size: 0.7em;
+        margin-top: 10px;
     }
 
     .studio-realtime-answers {
         grid-template-columns: repeat(2, 1fr);
-        margin-top: 15px;
         width: 100%;
-    }
-
-    .player-ans-card {
-        padding: 8px 12px;
-    }
-
-    .player-ans-value {
-        font-size: 1em;
-    }
-
-    .player-ans-name {
-        max-width: 70px;
-        font-size: 0.8em;
-    }
-
-    .studio-next-preview {
-        width: 180px;
-        bottom: 100px;
-        padding: 10px;
-    }
-
-    .studio-header-bar {
-        gap: 8px 12px;
-        padding: 5px 10px;
-    }
-
-    .status-item {
-        min-width: 45px;
-    }
-
-    .status-value {
-        font-size: 1em;
-    }
-
-    .status-label {
-        font-size: 0.6em;
     }
 }
 
@@ -2248,14 +2204,30 @@ input:checked+.pro-slider:before {
 .studio-execution-grid {
     display: grid;
     grid-template-columns: 1.5fr 1fr;
-    /* Make left part slightly larger but balanced */
     gap: 30px;
     width: 100%;
     max-width: 1600px;
-    height: calc(100vh - 250px);
-    /* Adjust height based on header/footer */
+    height: auto;
+    min-height: calc(100vh - 250px);
     margin: 0 auto;
     align-items: stretch;
+}
+
+@media (max-width: 900px) {
+    .studio-execution-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+        height: auto;
+    }
+
+    .studio-grid-right {
+        height: auto;
+    }
+
+    .studio-grid-right-answers {
+        min-height: 300px;
+        max-height: 500px;
+    }
 }
 
 .studio-grid-left {
