@@ -108,9 +108,9 @@ App.Config = {
         html += `
             <div class="config-item-box">
                 <div class="mb-15">
-                <label class="config-label">1. 回答モード (Answer Mode)</label>
+                <label class="config-label">1. ${APP_TEXT.Config.LabelMode} (Answer Authority)</label>
                 <div class="mode-segmented-control">
-                    <button type="button" class="mode-segmented-btn ${isOral ? 'disabled' : ''}" data-mode="normal" ${isOral ? 'disabled' : ''}>
+                    <button type="button" class="mode-segmented-btn ${isOral || qType === 'multi' ? 'disabled' : ''}" data-mode="normal" ${isOral || qType === 'multi' ? 'disabled' : ''}>
                         <span class="icon">⚡</span>
                         <span class="label">一斉</span>
                     </button>
@@ -133,6 +133,7 @@ App.Config = {
                     <option value="turn">Turn</option>
                     <option value="solo">Solo</option>
                 </select>
+                ${qType === 'multi' ? '<p style="font-size:0.8em; color:#ffd700; margin-top:5px;">※多答形式は一斉回答を利用できません</p>' : ''}
                 <div id="mode-detail-area"></div>
                 </div>
 
@@ -211,10 +212,10 @@ App.Config = {
         this.setupBulkButtons();
 
         if (conf.mode) {
-            if (isOral && conf.mode === 'normal') modeSel.value = 'buzz';
+            if ((isOral || qType === 'multi') && conf.mode === 'normal') modeSel.value = 'buzz';
             else modeSel.value = conf.mode;
         } else {
-            modeSel.value = isOral ? 'buzz' : 'normal';
+            modeSel.value = (isOral || qType === 'multi') ? 'buzz' : 'normal';
         }
 
         if (conf.gameType) typeSel.value = conf.gameType;

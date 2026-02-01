@@ -93,12 +93,18 @@ App.Studio = {
             this.renderTimeline();
             setTimeout(() => this.setupPeriod(0), 500);
         } else {
-            document.getElementById('studio-question-panel').classList.add('hidden');
+            document.getElementById('studio-execution-grid').classList.add('hidden');
             document.getElementById('studio-standby-panel').classList.remove('hidden');
             document.getElementById('studio-loader-ui').classList.remove('hidden');
             document.getElementById('btn-phase-main').classList.add('hidden');
             this.loadProgramList();
         }
+
+        // --- Scaling Logic ---
+        window.addEventListener('resize', () => {
+            if (App.Ui.currentViewId === 'host-control-view') this.updateMonitorScaling();
+        });
+        setTimeout(() => this.updateMonitorScaling(), 100);
     },
 
     toggleUIForStandby: function (isStandby) {
@@ -233,6 +239,7 @@ App.Studio = {
         window.db.ref(`rooms/${roomId}/questions`).set(App.Data.studioQuestions);
 
         document.getElementById('studio-standby-panel').classList.add('hidden');
+        document.getElementById('studio-execution-grid').classList.remove('hidden');
         document.getElementById('studio-question-panel').classList.remove('hidden');
 
         const panelCtrl = document.getElementById('studio-panel-control');
@@ -275,10 +282,13 @@ App.Studio = {
         const ansArea = document.getElementById('studio-player-answers');
         const statsArea = document.getElementById('studio-answer-stats');
         if (ansArea) {
+            // Keep the container visible in the grid, but you could hide contents if wanted. 
+            // For now, let's allow it to be visible or hidden as before, 
+            // but the parent container in HTML handles the overall layout.
             ansArea.classList.toggle('hidden', stepId < 2 || stepId > 6);
         }
         if (statsArea) {
-            statsArea.classList.toggle('hidden', stepId !== 2); // Show stats bar only during Phase 2 (Answering)
+            statsArea.classList.toggle('hidden', stepId !== 2);
         }
 
         // --- Production: Visual feedback on phase change ---
@@ -310,6 +320,9 @@ App.Studio = {
 
                 const pTitle = App.Data.periodPlaylist[App.State.currentPeriodIndex].title;
                 this.renderMonitorMessage("STANDBY", pTitle);
+                document.getElementById('studio-execution-grid').classList.remove('hidden');
+                this.updateMonitorScaling();
+                this.updateNextPreview();
                 this.resetPlayerStatus();
                 window.db.ref(`rooms/${roomId}/status`).update({
                     step: 'standby',
@@ -418,6 +431,7 @@ App.Studio = {
                 this.goNext();
                 break;
         }
+        this.updateNextPreview();
     },
 
     goNext: function () {
@@ -528,7 +542,7 @@ App.Studio = {
     showFinalRankingOption: function () {
         if (confirm("全プログラム終了です。最終結果を表示しますか？")) {
             window.db.ref(`rooms/${App.State.currentRoomId}/status`).update({ step: 'final_ranking' });
-            document.getElementById('studio-question-panel').classList.add('hidden');
+            document.getElementById('studio-execution-grid').classList.add('hidden');
             document.getElementById('studio-standby-panel').classList.remove('hidden');
             document.getElementById('btn-phase-main').classList.add('hidden');
             document.getElementById('studio-program-info').innerHTML = "<h2 style='color:#ffd700'>全プログラム終了 (COMPLETED)</h2><p>モニターに結果を表示中...</p>";
@@ -536,7 +550,7 @@ App.Studio = {
     },
 
     showNextSetWait: function (nextIdx) {
-        document.getElementById('studio-question-panel').classList.add('hidden');
+        document.getElementById('studio-execution-grid').classList.add('hidden');
         document.getElementById('studio-standby-panel').classList.remove('hidden');
         const btn = document.getElementById('btn-phase-main');
         btn.textContent = `次のセットを開始 (${App.Data.periodPlaylist[nextIdx].title})`;
@@ -569,20 +583,69 @@ App.Studio = {
 
     renderQuestionMonitor: function (q) {
         if (!q) return;
-        document.getElementById('studio-q-text').textContent = q.q;
+
+        const qEl = document.getElementById('studio-q-text');
+        const cContainer = document.getElementById('studio-choices-container');
+        const panel = document.getElementById('studio-question-panel');
+
+        if (!qEl || !cContainer || !panel) return;
+
+        qEl.textContent = q.q;
+
+        // Apply Design
+        const d = q.design || {};
+        const layout = q.layout || 'standard';
+        const align = q.align || 'center';
+
+        panel.style.backgroundColor = d.mainBgColor || "#000";
+        if (d.bgImage) {
+            panel.style.backgroundImage = `url('${d.bgImage}')`;
+            panel.style.backgroundSize = "cover";
+            panel.style.backgroundPosition = "center";
+        } else {
+            panel.style.backgroundImage = "none";
+        }
+
+        qEl.style.color = d.qTextColor || "#fff";
+        qEl.style.backgroundColor = d.qBgColor || "rgba(255,255,255,0.05)";
+        qEl.style.borderColor = d.qBorderColor || "#00bfff";
+        qEl.style.borderStyle = "solid";
+        qEl.style.borderWidth = "6px";
+        qEl.style.borderRadius = "15px";
+        qEl.style.textAlign = align;
+        qEl.style.display = "flex";
+        qEl.style.alignItems = "center";
+        qEl.style.justifyContent = align === 'center' ? 'center' : (align === 'right' ? 'flex-end' : 'flex-start');
+
+        // Reset font size to base before auto-scaling
+        qEl.style.fontSize = d.qFontSize || "2.2em";
 
         let typeText = q.type.toUpperCase();
         if (q.type === 'letter_select') typeText = "LETTER PANEL";
         document.getElementById('studio-q-type-badge').textContent = typeText;
 
-        const cContainer = document.getElementById('studio-choices-container');
         cContainer.innerHTML = '';
+
+        // Apply layout to container
+        if (layout.startsWith('split')) {
+            cContainer.style.gridTemplateColumns = layout === 'split_grid' ? '1fr 1fr' : '1fr';
+            // In split layout, choices often look better centered or aligned
+        } else {
+            cContainer.style.gridTemplateColumns = '1fr 1fr';
+        }
 
         if (q.type === 'choice' && q.c) {
             q.c.forEach((c, i) => {
                 const div = document.createElement('div');
                 div.className = 'monitor-choice-item';
                 div.textContent = `${String.fromCharCode(65 + i)}. ${c}`;
+
+                // Choice Design
+                div.style.color = d.cTextColor || "#eee";
+                div.style.backgroundColor = d.cBgColor || "rgba(255,255,255,0.05)";
+                div.style.borderColor = d.cBorderColor || "rgba(255,255,255,0.1)";
+                if (d.cFontSize) div.style.fontSize = d.cFontSize;
+
                 cContainer.appendChild(div);
             });
         }
@@ -935,67 +998,91 @@ App.Studio = {
 
     // Update next screen preview
     updateNextPreview: function () {
-        const previewPanel = document.getElementById('studio-next-preview-panel');
-        const previewContent = document.getElementById('studio-next-preview-content');
-        const stepLabel = document.getElementById('preview-step-label');
-
-        if (!previewPanel || !previewContent) return;
+        const nextContent = document.getElementById('studio-next-monitor-content');
+        const nextPanel = document.getElementById('studio-next-preview-panel');
+        if (!nextContent || !nextPanel) return;
 
         const currentQ = App.Data.studioQuestions[App.State.currentQIndex];
-        if (!currentQ) {
-            previewPanel.classList.add('hidden');
-            return;
-        }
+        const nextQ = App.Data.studioQuestions[App.State.currentQIndex + 1];
+        const step = this.currentStepId;
 
-        previewPanel.classList.remove('hidden');
+        // Reset Panel Design
+        nextPanel.style.backgroundImage = "none";
+        nextPanel.style.backgroundColor = "#000";
 
-        let nextStep = '';
-        let nextContent = '';
+        let html = '';
+        let targetQ = currentQ; // Default to current Q for internal transitions
 
-        if (this.currentStepId === 0) {
-            nextStep = 'QUESTION';
-            nextContent = `<div class="preview-q-text">${currentQ.q}</div>`;
-        } else if (this.currentStepId === 1) {
-            nextStep = 'CHOICES';
-            if (currentQ.type === 'choice' && currentQ.c) {
-                nextContent = `
-                    <div class="preview-q-text" style="font-size:0.8em; margin-bottom:8px;">${currentQ.q}</div>
-                    <div class="preview-choices">
-                        ${currentQ.c.map((c, i) =>
-                    `<div class="preview-choice-item">${i + 1}. ${c}</div>`
-                ).join('')}
-                    </div>
-                `;
-            } else {
-                nextContent = '<div class="preview-placeholder">回答待機</div>';
-            }
-        } else if (this.currentStepId === 2) {
-            nextStep = 'WAITING';
-            nextContent = '<div class="preview-placeholder">回答受付中...</div>';
-        } else if (this.currentStepId === 3 || this.currentStepId === 4) {
-            nextStep = 'ANSWER';
-            nextContent = `
-                <div style="text-align:center;">
-                    <div style="font-size:0.7em; color:#888; margin-bottom:5px;">CORRECT</div>
-                    <div class="preview-q-text" style="color:#0f0;">${currentQ.correct || '正解'}</div>
+        if (step === 0) {
+            // Standby -> Question Reveal
+            html = `
+                <div class="monitor-header"><span class="badge-type" style="font-size:24px;">QUESTION</span></div>
+                <div class="monitor-q-text">${currentQ.q}</div>
+            `;
+        } else if (step === 1) {
+            // Reveal Q -> Answering
+            const layout = currentQ.layout || 'standard';
+            const gridCols = layout.startsWith('split') ? (layout === 'split_grid' ? '1fr 1fr' : '1fr') : '1fr 1fr';
+
+            html = `
+                <div class="monitor-header">
+                    <span class="badge-type" style="font-size:24px;">CHOICES</span>
+                    <span class="monitor-timer" style="font-size:24px; padding:8px 15px;">TIME: ${currentQ.timeLimit || 20}</span>
+                </div>
+                <div class="monitor-q-text" style="font-size:1.6em;">${currentQ.q}</div>
+                <div class="monitor-choices" style="grid-template-columns: ${gridCols}; gap:20px;">
+                    ${(currentQ.c || []).map((c, i) => `<div class="monitor-choice-item" style="font-size:24px;">${String.fromCharCode(65 + i)}. ${c}</div>`).join('')}
                 </div>
             `;
-        } else if (this.currentStepId === 5) {
-            const nextQ = App.Data.studioQuestions[App.State.currentQIndex + 1];
+        } else if (step === 2 || step === 3 || step === 4) {
+            // Closed/Reveal Player -> Show Correct
+            html = `
+                <div class="monitor-header"><span class="badge-type" style="background:#2ecc71; color:white; font-size:24px;">CORRECT</span></div>
+                <div class="monitor-q-text" style="font-size:1.2em; margin-bottom:20px;">${currentQ.q}</div>
+                <div class="monitor-correct" style="margin-top:0;">
+                    <div style="font-size:0.5em; margin-bottom:10px; opacity:0.7;">CORRECT ANSWER</div>
+                    <div style="font-size:1.8em; font-weight:900; color:var(--color-primary);">${this.getAnswerString(currentQ)}</div>
+                </div>
+            `;
+        } else {
+            // Result -> Next Q
             if (nextQ) {
-                nextStep = 'NEXT Q';
-                nextContent = `
-                    <div class="preview-q-text">Q.${App.State.currentQIndex + 2}</div>
-                    <div style="font-size:0.8em; color:#aaa;">${nextQ.q.substring(0, 50)}...</div>
+                targetQ = nextQ;
+                html = `
+                    <div class="monitor-header"><span class="badge-type" style="font-size:24px;">NEXT QUESTION</span></div>
+                    <div class="monitor-q-text" style="font-size:1.2em;">Q.${App.State.currentQIndex + 2}</div>
+                    <div style="font-size:0.8em; color:#888;">${nextQ.q.substring(0, 40)}...</div>
                 `;
             } else {
-                nextStep = 'END';
-                nextContent = '<div class="preview-placeholder">終了</div>';
+                html = '<div class="preview-placeholder">全問題終了</div>';
             }
         }
 
-        stepLabel.textContent = nextStep;
-        previewContent.innerHTML = nextContent;
+        // Apply Design to Next Preview if we have a target question
+        if (targetQ && targetQ.design) {
+            const d = targetQ.design;
+            const align = targetQ.align || 'center';
+            nextPanel.style.backgroundColor = d.mainBgColor || "#000";
+            if (d.bgImage) {
+                nextPanel.style.backgroundImage = `url('${d.bgImage}')`;
+                nextPanel.style.backgroundSize = "cover";
+                nextPanel.style.backgroundPosition = "center";
+            }
+
+            // Inject styles into HTML tags
+            const qStyle = `color:${d.qTextColor || '#fff'}; background:${d.qBgColor || 'rgba(0,0,0,0.1)'}; border:6px solid ${d.qBorderColor || '#00bfff'}; border-radius:15px; text-align:${align}; padding:20px; font-size:${d.qFontSize || (step === 1 ? '1.6em' : '2.2em')};`;
+            const cStyle = `color:${d.cTextColor || '#eee'}; background:${d.cBgColor || 'rgba(0,0,0,0.1)'}; border-bottom:1px solid ${d.cBorderColor || '#444'}; font-size:${d.cFontSize || '24px'};`;
+
+            if (html.includes('monitor-q-text')) {
+                html = html.replace('class="monitor-q-text"', `class="monitor-q-text" style="${qStyle}"`);
+            }
+            if (html.includes('monitor-choice-item')) {
+                html = html.replaceAll('class="monitor-choice-item"', `class="monitor-choice-item" style="${cStyle}"`);
+            }
+        }
+
+        nextContent.innerHTML = html;
+        this.updateMonitorScaling();
     },
 
     // Shuffle choices for questions
@@ -1125,6 +1212,71 @@ App.Studio = {
         const modal = document.getElementById('panel-selection-modal');
         if (modal) modal.classList.add('hidden');
         this.setStep(4);
+    },
+
+    updateMonitorScaling: function () {
+        // Current Screen Scaling
+        const frame = document.getElementById('studio-monitor-frame');
+        const panel = document.getElementById('studio-question-panel');
+        if (frame && panel && frame.clientWidth > 0) {
+            const scale = frame.clientWidth / 1280;
+            panel.style.transform = `translate(-50%, -50%) scale(${scale})`;
+
+            // Auto-scaling font size for long text
+            const qText = panel.querySelector('.monitor-q-text');
+            if (qText) {
+                // Reset to base size first (to measure actual height)
+                const currentQ = App.Data.studioQuestions[App.State.currentQIndex];
+                const baseSizeStr = (currentQ?.design?.qFontSize) || "2.2em";
+                qText.style.fontSize = baseSizeStr;
+
+                // If it's a fixed px size, convert to float for calculation
+                let baseSize = 70; // fallback approx for 2.2em on 32pt base
+                if (baseSizeStr.includes('px')) baseSize = parseFloat(baseSizeStr);
+
+                // Max height for q-text in 1280x720 panel (approx 300px)
+                const maxHeight = 300;
+                if (qText.scrollHeight > maxHeight) {
+                    const ratio = maxHeight / qText.scrollHeight;
+                    const newSize = Math.max(baseSize * ratio, 28); // minimum 24px-ish
+                    qText.style.fontSize = newSize + (baseSizeStr.includes('px') ? "px" : "pt");
+                    console.log(`Auto-scaled font size: ${baseSize} -> ${newSize} (ratio: ${ratio})`);
+                }
+            }
+        }
+
+        // Next Screen Scaling
+        const nextFrame = document.getElementById('studio-next-frame');
+        const nextPanel = document.getElementById('studio-next-preview-panel');
+        if (nextFrame && nextPanel && nextFrame.clientWidth > 0) {
+            const scale = nextFrame.clientWidth / 1280;
+            nextPanel.style.transform = `translate(-50%, -50%) scale(${scale})`;
+
+            // Auto-scaling font size for long text in Next Preview
+            const nextQText = nextPanel.querySelector('.monitor-q-text');
+            if (nextQText) {
+                const currentQ = App.Data.studioQuestions[App.State.currentQIndex];
+                const nextQ = App.Data.studioQuestions[App.State.currentQIndex + 1];
+                const step = this.currentStepId;
+                const targetQ = (step >= 5 || step < 0) ? nextQ : currentQ; // Sync with updateNextPreview logic
+
+                if (targetQ) {
+                    const baseSizeStr = (targetQ?.design?.qFontSize) || (step === 1 ? "1.6em" : "2.2em");
+                    nextQText.style.fontSize = baseSizeStr;
+
+                    let baseSize = 70;
+                    if (baseSizeStr.includes('px')) baseSize = parseFloat(baseSizeStr);
+                    else if (baseSizeStr.includes('em')) baseSize = parseFloat(baseSizeStr) * 32;
+
+                    const maxHeight = 300;
+                    if (nextQText.scrollHeight > maxHeight) {
+                        const ratio = maxHeight / nextQText.scrollHeight;
+                        const newSize = Math.max(baseSize * ratio, 28);
+                        nextQText.style.fontSize = newSize + (baseSizeStr.includes('px') ? "px" : "pt");
+                    }
+                }
+            }
+        }
     },
 };
 

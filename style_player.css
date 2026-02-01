@@ -601,3 +601,83 @@
     display: flex;
     align-items: center;
 }
+
+/* --- Multi-Answer (多答) UI --- */
+.player-multi-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+    animation: fadeInUp 0.4s ease-out;
+}
+
+.player-multi-item {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    padding: 15px;
+    border-radius: 12px;
+    font-weight: 700;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    min-height: 54px;
+    box-sizing: border-box;
+}
+
+.player-multi-item.is-revealed {
+    background: rgba(0, 229, 255, 0.12);
+    border: 2px solid var(--color-primary);
+    box-shadow: 0 0 15px rgba(0, 229, 255, 0.25);
+    transform: scale(1.02);
+}
+
+.multi-index {
+    background: rgba(255, 255, 255, 0.1);
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8em;
+    margin-right: 15px;
+    color: var(--color-text-sub);
+    flex-shrink: 0;
+}
+
+.is-revealed .multi-index {
+    background: var(--color-primary);
+    color: #000;
+    box-shadow: 0 0 8px rgba(0, 229, 255, 0.4);
+}
+
+.multi-text-hidden {
+    color: #444;
+    letter-spacing: 5px;
+    font-family: monospace;
+    font-size: 1.1em;
+}
+
+.multi-text-revealed {
+    color: #fff;
+    font-size: 1.1em;
+    animation: revealPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes revealPop {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+
+    60% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}

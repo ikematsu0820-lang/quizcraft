@@ -28,7 +28,7 @@ const APP_TEXT = {
 
         PlaceholderQ: "問題文を入力", BtnAdd: "リストに追加", BtnUpdateQ: "更新する", BtnCancel: "キャンセル", ListHeading: "作成中のリスト", BtnSave: "クラウドに保存して完了", BtnUpdate: "更新して完了", OptMulti: "正解を選択",
         LabelTextFormat: "回答形式", TextFormatWritten: "記述式", TextFormatOral: "口頭 (正解入力任意)", LabelSortInitial: "初期配置", SortInitialRandom: "ランダム (推奨)", SortInitialFixed: "固定 (作成順)",
-        DescSort: "※正解の順番（上から下）で入力してください", DescText: "※正解キーワード（カンマ区切り）", DescMulti: "※全ての項目が正解になります",
+        DescSort: "※各項目の横に正しい順序を入力してください（1, 2, ...）", DescText: "※正解キーワード（カンマ区切り）", DescMulti: "※全ての項目が正解になります",
         BtnAddChoice: "＋ 選択肢を追加", BtnAddSort: "＋ 項目を追加", BtnAddMulti: "＋ 正解を追加",
 
         HeadingSettings: "セット設定 (全体共通)",
@@ -42,7 +42,7 @@ const APP_TEXT = {
         Title: "ルール設定",
         BackBtn: "ダッシュボード", HeadingAdd: "ピリオドを構成に追加", LabelSet: "セットを選択", SelectDefault: "-- セットを選択 --", SelectLoading: "読み込み中...", SelectEmpty: "セットがありません",
 
-        LabelMode: "回答モード",
+        LabelMode: "回答権",
         ModeNormal: "一斉回答 (Simultaneous)",
         ModeBuzz: "早押し (Buzz-in)",
         ModeTurn: "順番回答 (Turn-based)",

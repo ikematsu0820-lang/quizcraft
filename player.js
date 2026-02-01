@@ -140,13 +140,13 @@ function startPlayerListener(roomId, playerId) {
 
         localStatus = st;
 
-        if (st.step === 'answering' || st.step === 'question') {
+        if (st.step === 'answering' || st.step === 'question' || st.step === 'answer') {
             window.db.ref(`rooms/${roomId}/questions/${st.qIndex}`).once('value', qSnap => {
                 const q = qSnap.val();
                 if (q) {
                     currentQuestion = q;
                     renderPlayerQuestion(q, roomId, playerId);
-                    updateUI(); // 描画後にUI状態を適用
+                    updateUI();
                 }
             });
         }
@@ -225,6 +225,9 @@ function updateUI() {
     // クイズエリア（問題文・選択肢）は、待機中以外は基本表示する方針に変更
     if (st.step === 'question' || st.step === 'answering' || st.step === 'answer') {
         quizArea.classList.remove('hidden');
+        if (currentQuestion && currentQuestion.type === 'multi') {
+            updateMultiAnswers();
+        }
     } else {
         quizArea.classList.add('hidden');
         buzzArea.classList.add('hidden');
@@ -361,18 +364,32 @@ function handleNormalResponseUI(p, quizArea, waitMsg) {
             }
         } else {
             // 回答済み＆修正不可
-            quizArea.classList.add('hidden');
+            const isMulti = currentQuestion && currentQuestion.type === 'multi';
+            if (!isMulti) quizArea.classList.add('hidden');
+
             waitMsg.classList.remove('hidden');
             waitMsg.style.background = "rgba(0, 184, 148, 0.2)";
             waitMsg.style.color = "#00b894";
             waitMsg.style.border = "1px solid #00b894";
             waitMsg.style.padding = "15px";
-            waitMsg.textContent = "回答を受け付けました。発表を待っています...";
+            waitMsg.innerHTML = "<b>ANSWERED</b><br>発表を待っています...";
+
+            if (isMulti) {
+                const oralArea = document.getElementById('player-oral-done-area');
+                if (oralArea) oralArea.classList.add('hidden');
+                waitMsg.style.marginTop = "10px";
+            }
         }
     } else {
         unlockChoices();
         const area = document.getElementById('change-btn-area');
         if (area) area.innerHTML = '';
+
+        // 多答の場合、回答ボタンを出す
+        const oralArea = document.getElementById('player-oral-done-area');
+        if (currentQuestion && currentQuestion.type === 'multi') {
+            if (oralArea) oralArea.classList.remove('hidden');
+        }
     }
 }
 
@@ -627,94 +644,108 @@ function renderPlayerQuestion(q, roomId, playerId) {
         controlRow.appendChild(clearBtn); controlRow.appendChild(submitBtn); inputCont.appendChild(controlRow);
     }
     else if (q.type === 'sort') {
-        const selectedIndices = [];
         const items = q.c || [];
+        const n = items.length;
 
         const renderSortInput = () => {
             inputCont.innerHTML = '';
 
-            // 1. Display Area (Order chosen)
-            const displayArea = document.createElement('div');
-            displayArea.className = 'sort-display-area';
-
-            selectedIndices.forEach((idx, order) => {
-                const label = String.fromCharCode(65 + idx);
-                const badge = document.createElement('div');
-                badge.className = 'sort-item-badge';
-                badge.innerHTML = `<span class="sort-item-order">${order + 1}</span> <span style="font-weight:900; color:var(--color-primary); margin-right:8px;">[${label}]</span> ${items[idx]}`;
-                displayArea.appendChild(badge);
-            });
-
-            if (selectedIndices.length === 0) {
-                displayArea.innerHTML = '<div class="empty-sort-msg">項目をタップして順に並べてください</div>';
-            }
-
-            inputCont.appendChild(displayArea);
-
-            // 2. Choice Grid
-            const grid = document.createElement('div');
-            grid.className = 'sort-choice-grid';
+            const container = document.createElement('div');
+            container.className = 'sort-input-container';
+            container.style.display = 'flex';
+            container.style.flexDirection = 'column';
+            container.style.gap = '10px';
 
             items.forEach((txt, i) => {
-                const isSelected = selectedIndices.includes(i);
                 const label = String.fromCharCode(65 + i);
-                const btn = document.createElement('button');
-                btn.className = 'answer-btn';
-                btn.style.margin = '0';
-                btn.style.textAlign = 'left';
-                btn.innerHTML = `<span style="color:var(--color-primary); font-weight:900; margin-right:10px;">${label}</span> ${txt}`;
-                btn.disabled = isSelected;
+                const row = document.createElement('div');
+                row.className = 'sort-input-row';
+                row.style.display = 'flex';
+                row.style.alignItems = 'center';
+                row.style.background = 'rgba(255,255,255,0.05)';
+                row.style.border = '1px solid rgba(255,255,255,0.1)';
+                row.style.borderRadius = '8px';
+                row.style.padding = '10px 15px';
 
-                if (isSelected) {
-                    btn.classList.add('btn-dimmed');
-                } else {
-                    btn.style.background = 'rgba(255,255,255,0.05)';
-                    btn.style.border = '1px solid rgba(255,255,255,0.2)';
-                }
-
-                btn.onclick = () => {
-                    selectedIndices.push(i);
-                    renderSortInput();
-                };
-                grid.appendChild(btn);
+                row.innerHTML = `
+                    <div style="width:30px; font-weight:900; color:var(--color-primary);">${label}</div>
+                    <div style="flex:1; font-size:0.9em;">${txt}</div>
+                    <div style="width:70px; display:flex; align-items:center; gap:5px;">
+                        <input type="number" class="player-sort-rank-input" data-index="${i}" 
+                            min="1" max="${n}" placeholder="順" 
+                            style="width:50px; background:#000; color:#fff; border:1px solid var(--color-primary); border-radius:4px; text-align:center; padding:5px 0;">
+                    </div>
+                `;
+                container.appendChild(row);
             });
-            inputCont.appendChild(grid);
-
-            // 3. Actions
-            const actionRow = document.createElement('div');
-            actionRow.className = 'sort-action-row';
-
-            const clearBtn = document.createElement('button');
-            clearBtn.className = 'btn-confirm-no';
-            clearBtn.textContent = 'クリア';
-            clearBtn.onclick = () => {
-                selectedIndices.length = 0;
-                renderSortInput();
-            };
+            inputCont.appendChild(container);
 
             const submitBtn = document.createElement('button');
-            submitBtn.className = 'btn-primary';
-            submitBtn.textContent = 'OK / 送信';
-            submitBtn.disabled = (selectedIndices.length !== items.length);
-
-            if (submitBtn.disabled) {
-                submitBtn.style.opacity = '0.3';
-            }
+            submitBtn.className = 'btn-primary btn-block';
+            submitBtn.style.marginTop = '20px';
+            submitBtn.textContent = '解答を送信';
 
             submitBtn.onclick = () => {
-                // A, B, C...形式で送信
-                const answer = selectedIndices.map(idx => String.fromCharCode(65 + idx)).join('');
+                const inputs = document.querySelectorAll('.player-sort-rank-input');
+                const ranks = [];
+                let isValid = true;
+
+                inputs.forEach(inp => {
+                    const r = parseInt(inp.value);
+                    if (isNaN(r) || r < 1 || r > n) isValid = false;
+                    ranks.push({ label: String.fromCharCode(65 + parseInt(inp.dataset.index)), rank: r });
+                });
+
+                if (!isValid) {
+                    alert(`1から${n}までの数字をすべて入力してください`);
+                    return;
+                }
+
+                // Check for duplicates
+                const rankValues = ranks.map(r => r.rank);
+                const uniqueRanks = new Set(rankValues);
+                if (uniqueRanks.size !== n) {
+                    alert("番号が重複しています");
+                    return;
+                }
+
+                // Sort by rank and build string like "BACD"
+                ranks.sort((a, b) => a.rank - b.rank);
+                const answer = ranks.map(r => r.label).join('');
                 submitAnswer(roomId, playerId, answer);
             };
-
-            actionRow.appendChild(clearBtn);
-            actionRow.appendChild(submitBtn);
-            inputCont.appendChild(actionRow);
+            inputCont.appendChild(submitBtn);
         };
 
         renderSortInput();
     }
-    else if (q.type === 'free_oral' || q.type === 'multi') {
+    else if (q.type === 'multi') {
+        const grid = document.createElement('div');
+        grid.className = 'player-multi-grid';
+        q.c.forEach((choice, i) => {
+            const item = document.createElement('div');
+            item.className = 'player-multi-item';
+            item.id = `player-multi-item-${i}`;
+
+            const idx = document.createElement('div');
+            idx.className = 'multi-index';
+            idx.textContent = i + 1;
+
+            const text = document.createElement('div');
+            text.className = 'multi-text-hidden';
+            text.textContent = '?????';
+
+            item.appendChild(idx);
+            item.appendChild(text);
+            grid.appendChild(item);
+        });
+        inputCont.appendChild(grid);
+
+        // 多答の場合、司会者の操作を待つ「Answered」ボタンも必要であれば出す
+        document.getElementById('player-oral-done-area').classList.remove('hidden');
+        document.getElementById('player-oral-done-btn').onclick = () => { submitAnswer(roomId, playerId, "[Done]"); };
+    }
+    else if (q.type === 'free_oral') {
         document.getElementById('player-oral-done-area').classList.remove('hidden');
         document.getElementById('player-oral-done-btn').onclick = () => { submitAnswer(roomId, playerId, "[Oral]"); };
     }
@@ -731,6 +762,31 @@ function renderPlayerQuestion(q, roomId, playerId) {
         inputCont.appendChild(inp); inputCont.appendChild(sub);
     }
 }
+
+function updateMultiAnswers() {
+    const q = currentQuestion;
+    if (!q || q.type !== 'multi') return;
+    const revealed = localStatus.revealedMulti || {};
+
+    q.c.forEach((choice, i) => {
+        const item = document.getElementById(`player-multi-item-${i}`);
+        if (!item) return;
+
+        const isRevealed = revealed[i];
+        const textEl = item.querySelector('div:last-child');
+
+        if (isRevealed && !item.classList.contains('is-revealed')) {
+            item.classList.add('is-revealed');
+            textEl.className = 'multi-text-revealed';
+            textEl.textContent = choice;
+        } else if (!isRevealed) {
+            item.classList.remove('is-revealed');
+            textEl.className = 'multi-text-hidden';
+            textEl.textContent = '?????';
+        }
+    });
+}
+
 
 function submitAnswer(roomId, playerId, answer) {
     if (localStatus.step !== 'answering') {

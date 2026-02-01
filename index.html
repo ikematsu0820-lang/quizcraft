@@ -58,11 +58,8 @@
 
 
 
-        <div class="dashboard-hero-area dashboard-hero-grid">
+        <div class="dashboard-hero-area dashboard-hero-grid" style="grid-template-columns: 1fr;">
             <button id="dash-create-btn" class="dash-btn dash-btn-hero" data-text="Dashboard.BtnCreate">問題作成</button>
-            <button id="dash-studio-btn" class="dash-btn dash-btn-hero dash-btn-studio-gold">
-                <span class="btn-icon">🚀</span> スタジオ起動
-            </button>
         </div>
 
         <div class="dashboard-grid-secondary">
@@ -107,7 +104,9 @@
                 <button class="segmented-btn" data-type="player" title="参加者スマホ">📱 スマホ</button>
             </div>
             <div id="design-pager-container" class="design-pager-area hidden">
-                <!-- Steps (T, 1N, 1Q, etc.) will be injected here by JS -->
+                <button id="design-pager-prev" class="pager-arrow-btn">◀︎</button>
+                <div id="design-pager-status" class="pager-status-text">待機</div>
+                <button id="design-pager-next" class="pager-arrow-btn">▶︎</button>
             </div>
         </div>
 
@@ -336,6 +335,11 @@
             <div class="design-modal-content">
                 <h3 class="modal-title">タイトル画面設定</h3>
                 <div class="design-modal-body">
+                    <div class="config-group">
+                        <label class="config-label">表示するタイトル名</label>
+                        <input type="text" id="design-title-text-value" class="btn-block" placeholder="例: プレビュー用タイトル">
+                        <p class="text-xs text-gray mt-5">※デザイン確認用の入力です（保存はされません）</p>
+                    </div>
                     <div class="color-row">
                         <label>背景色</label>
                         <div class="color-picker-wrapper">
@@ -379,6 +383,10 @@
             <div class="design-modal-content">
                 <h3 class="modal-title">問題番号設定</h3>
                 <div class="design-modal-body">
+                    <div class="config-group">
+                        <label class="config-label">表示するテキスト</label>
+                        <input type="text" id="design-qnum-text-value" class="btn-block" placeholder="例: 第1問">
+                    </div>
                     <div class="color-row">
                         <label>背景色</label>
                         <div class="color-picker-wrapper">
@@ -622,44 +630,58 @@
                 <div id="studio-period-timeline" class="timeline-container mt-20"></div>
             </div>
 
-            <div id="studio-question-panel" class="question-monitor hidden">
-                <div class="monitor-header">
-                    <span id="studio-q-type-badge" class="badge-type">CHOICE</span>
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <span id="studio-timer-display" class="monitor-timer hidden">TIME: 10</span>
-                        <span id="studio-player-sync-status" class="badge-type"
-                            style="background:rgba(0,229,255,0.1); color:var(--color-primary);">READY</span>
+            <div id="studio-execution-grid" class="studio-execution-grid hidden">
+                <div class="studio-grid-left">
+                    <div class="current-screen-label">📸 今の画面</div>
+                    <div id="studio-monitor-frame" class="studio-monitor-frame">
+                        <div id="studio-question-panel" class="question-monitor">
+                            <div class="monitor-header">
+                                <span id="studio-q-type-badge" class="badge-type">CHOICE</span>
+                                <div style="display:flex; align-items:center; gap:10px;">
+                                    <span id="studio-timer-display" class="monitor-timer hidden">TIME: 10</span>
+                                    <span id="studio-player-sync-status" class="badge-type"
+                                        style="background:rgba(0,229,255,0.1); color:var(--color-primary);">READY</span>
+                                </div>
+                            </div>
+                            <div id="studio-q-text" class="monitor-q-text"></div>
+                            <div id="studio-choices-container" class="monitor-choices"></div>
+                            <div id="studio-correct-display" class="monitor-correct hidden">
+                                <div class="label" style="font-size:0.6em; margin-bottom:5px; opacity:0.7;">CORRECT
+                                    ANSWER
+                                </div>
+                                <div id="studio-correct-text"></div>
+                                <div id="studio-commentary-text"
+                                    style="font-size:0.5em; font-weight:normal; margin-top:10px; color:#aaa; line-height:1.4;">
+                                </div>
+                            </div>
+                            <div id="studio-sub-info" class="monitor-sub-info hidden"></div>
+                        </div>
                     </div>
                 </div>
-                <div id="studio-q-text" class="monitor-q-text"></div>
-                <div id="studio-choices-container" class="monitor-choices"></div>
-                <div id="studio-correct-display" class="monitor-correct hidden">
-                    <div class="label" style="font-size:0.6em; margin-bottom:5px; opacity:0.7;">CORRECT ANSWER</div>
-                    <div id="studio-correct-text"></div>
-                    <div id="studio-commentary-text"
-                        style="font-size:0.5em; font-weight:normal; margin-top:10px; color:#aaa; line-height:1.4;">
+
+                <div class="studio-grid-right">
+                    <div class="studio-grid-right-answers">
+                        <div class="sidebar-section-label">👥 回答者の回答</div>
+                        <div id="studio-answer-stats" class="studio-answer-stats-bar">
+                            <div id="studio-answered-count" class="stats-value">0 / 0</div>
+                            <div class="stats-progress-container">
+                                <div id="studio-answer-progress" class="stats-progress-bar"></div>
+                            </div>
+                        </div>
+                        <div id="studio-player-answers" class="studio-realtime-answers"></div>
                     </div>
-                </div>
-                <div id="studio-sub-info" class="monitor-sub-info hidden"></div>
-            </div>
 
-            <div id="studio-answer-stats" class="studio-answer-stats-bar hidden">
-                <div class="stats-icon">📥</div>
-                <div class="stats-label">回答状況:</div>
-                <div id="studio-answered-count" class="stats-value">0 / 0</div>
-                <div class="stats-progress-container">
-                    <div id="studio-answer-progress" class="stats-progress-bar"></div>
-                </div>
-            </div>
-            <div id="studio-player-answers" class="studio-realtime-answers hidden"></div>
-
-            <div id="studio-next-preview-panel" class="studio-next-preview hidden">
-                <div class="preview-header">
-                    <span class="preview-label">📺 次の画面</span>
-                    <span id="preview-step-label" class="preview-step-badge">STANDBY</span>
-                </div>
-                <div id="studio-next-preview-content" class="preview-content">
-                    <div class="preview-placeholder">待機中...</div>
+                    <div class="studio-grid-right-next">
+                        <div class="sidebar-section-label">📺 次の画面</div>
+                        <div id="studio-next-frame" class="studio-monitor-frame">
+                            <div id="studio-next-preview-panel" class="question-monitor">
+                                <div id="studio-next-monitor-content"
+                                    style="width:100%; height:100%; display:flex; flex-direction:column; justify-content:center;">
+                                    <div class="preview-placeholder">待機中...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

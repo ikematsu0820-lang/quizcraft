@@ -121,7 +121,6 @@ window.App.Creator = {
             else for (let i = 0; i < 4; i++) this.addChoiceInput(choicesDiv, i);
 
             this.createAddBtn(container, APP_TEXT.Creator.BtnAddChoice, () => this.addChoiceInput(choicesDiv));
-            this.createAddBtn(container, APP_TEXT.Creator.BtnAddChoice, () => this.addChoiceInput(choicesDiv));
 
             // Shuffle option
             const shuffleDiv = document.createElement('div');
@@ -166,10 +165,19 @@ window.App.Creator = {
             sortDiv.className = 'flex-col gap-5';
             container.appendChild(sortDiv);
 
-            if (data) data.c.forEach((txt, i) => this.addSortInput(sortDiv, i, txt));
-            else for (let i = 0; i < 4; i++) this.addSortInput(sortDiv, i);
+            if (data) {
+                // Determine order string (e.g., "BACD")
+                const orderStr = data.correct || "";
+                data.c.forEach((txt, i) => {
+                    const label = String.fromCharCode(65 + i);
+                    // Find what rank this label has in orderStr
+                    // e.g. if orderStr is "BACD", A is rank 2
+                    const rank = orderStr.indexOf(label) + 1;
+                    this.addSortInput(sortDiv, i, txt, rank || (i + 1));
+                });
+            }
+            else for (let i = 0; i < 4; i++) this.addSortInput(sortDiv, i, "", i + 1);
 
-            this.createAddBtn(container, APP_TEXT.Creator.BtnAddSort, () => this.addSortInput(sortDiv));
             this.createAddBtn(container, APP_TEXT.Creator.BtnAddSort, () => this.addSortInput(sortDiv));
 
             // Shuffle option
@@ -336,12 +344,16 @@ window.App.Creator = {
         this.updateLabels(parent);
     },
 
-    addSortInput: function (parent, index, text = "") {
+    addSortInput: function (parent, index, text = "", rank = "") {
         const row = document.createElement('div');
         row.className = 'sort-row flex-center gap-5';
         row.innerHTML = `
             <span class="sort-label bold cyan text-lg w-25 text-center">A</span>
-            <input type="text" class="sort-text-input flex-1" placeholder="Item" value="${text}">
+            <input type="text" class="sort-text-input flex-1" placeholder="項目を入力" value="${text}">
+            <div style="width:80px; display:flex; align-items:center; gap:5px;">
+                <span class="text-xs">順:</span>
+                <input type="number" class="sort-order-input" value="${rank}" min="1" max="20" style="width:40px; text-align:center;">
+            </div>
             <button class="btn-mini btn-dark w-30">×</button>
         `;
         row.querySelector('button').onclick = () => { row.remove(); this.updateSortLabels(parent); };
@@ -414,10 +426,22 @@ window.App.Creator = {
 
         } else if (type === 'sort') {
             const opts = [];
-            document.querySelectorAll('.sort-text-input').forEach(inp => { if (inp.value.trim()) opts.push(inp.value.trim()); });
+            const orders = [];
+            document.querySelectorAll('.sort-row').forEach((row, i) => {
+                const txt = row.querySelector('.sort-text-input').value.trim();
+                const rank = parseInt(row.querySelector('.sort-order-input').value);
+                if (txt) {
+                    opts.push(txt);
+                    orders.push({ label: String.fromCharCode(65 + i), rank: rank || (i + 1) });
+                }
+            });
             if (opts.length < 2) return null;
             newQ.c = opts;
-            newQ.correct = opts.map((_, i) => String.fromCharCode(65 + i)).join(''); // "ABCD..."
+
+            // Generate correct string like "BACD" based on ranks
+            orders.sort((a, b) => a.rank - b.rank);
+            newQ.correct = orders.map(o => o.label).join('');
+
             newQ.initialOrder = document.getElementById('sort-initial-order').value;
             const sortShuffleChk = document.getElementById('sort-shuffle-chk');
             newQ.shuffle = sortShuffleChk ? sortShuffleChk.checked : true;

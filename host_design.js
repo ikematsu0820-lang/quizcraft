@@ -99,6 +99,11 @@ App.Design = {
             };
         });
 
+        const prevBtn = document.getElementById('design-pager-prev');
+        const nextBtn = document.getElementById('design-pager-next');
+        if (prevBtn) prevBtn.onclick = () => this.moveQ(-1);
+        if (nextBtn) nextBtn.onclick = () => this.moveQ(1);
+
         document.getElementById('design-save-btn').onclick = () => this.save();
         document.getElementById('design-reset-btn').onclick = () => {
             if (confirm("初期値に戻しますか？")) {
@@ -410,33 +415,21 @@ App.Design = {
 
                 qData = qIdx >= 0 ? questions[qIdx] : null;
 
-                // Update Pager UI (Premium Slider Style)
+                // Update Pager UI
                 const pager = document.getElementById('design-pager-container');
-                if (pager) {
-                    pager.classList.toggle('hidden', questions.length === 0);
-                    pager.innerHTML = '';
+                if (pager) pager.classList.toggle('hidden', questions.length === 0);
 
-                    // Add dots for each step
-                    for (let i = 0; i < totalSteps; i++) {
-                        const dot = document.createElement('div');
-                        dot.className = 'pager-step-dot';
-                        if (i === this.previewQIndex) dot.classList.add('active');
+                const status = document.getElementById('design-pager-status');
+                const prev = document.getElementById('design-pager-prev');
+                const next = document.getElementById('design-pager-next');
 
-                        let label = 'T';
-                        if (i > 0) {
-                            const qNum = Math.floor((i + 1) / 2);
-                            const isNum = (i % 2 === 1);
-                            label = isNum ? `${qNum}N` : `${qNum}Q`;
-                            dot.classList.add(isNum ? 'is-prod' : 'is-q');
-                        } else {
-                            dot.classList.add('is-prod');
-                        }
+                let statusText = "TITLE";
+                if (stepType === 'qnumber') statusText = `第${qIdx + 1}問 (番号)`;
+                if (stepType === 'question') statusText = `第${qIdx + 1}問 (内容)`;
 
-                        dot.textContent = label;
-                        dot.onclick = () => this.jumpToStep(i, totalSteps);
-                        pager.appendChild(dot);
-                    }
-                }
+                if (status) status.textContent = statusText;
+                if (prev) prev.disabled = (this.previewQIndex === 0);
+                if (next) next.disabled = (this.previewQIndex === totalSteps - 1);
 
                 // If it's Title or QNumber, use Production Design rendering
                 if (stepType === 'title' || stepType === 'qnumber') {
@@ -452,6 +445,17 @@ App.Design = {
                 if (qData.c) choices = qData.c;
                 qType = qData.type;
             }
+
+            // Status label for player mockup
+            let statusLabel = "READY";
+            if (this.previewQIndex > 0) {
+                const qNum = Math.floor((this.previewQIndex + 1) / 2);
+                statusLabel = `第${qNum}問`;
+            } else {
+                statusLabel = document.getElementById('design-title-text-value')?.value || this.currentTarget?.data?.title || 'Program Title';
+            }
+
+            this.statusLabelForPlayer = statusLabel; // Store for other calls
         }
 
         let bgStyle = `background-color: ${d.mainBgColor};`;
@@ -551,10 +555,10 @@ App.Design = {
         `;
 
         // Player Preview Rendering
-        this.renderPlayerPreview(qText, choices, qType, d);
+        this.renderPlayerPreview(qText, choices, qType, d, this.statusLabelForPlayer);
     },
 
-    renderPlayerPreview: function (qText, choices, qType, design) {
+    renderPlayerPreview: function (qText, choices, qType, design, statusLabel = "") {
         const playerContent = document.getElementById('design-player-preview-content');
         if (!playerContent) return;
 
@@ -571,7 +575,9 @@ App.Design = {
 
         playerContent.innerHTML = `
             <div class="player-preview-mock" style="pointer-events:auto;">
-                <div class="p-status-bar" style="border-color:${design.qBorderColor}44;"></div>
+                <div class="p-status-bar" style="border-color:${design.qBorderColor}44;">
+                    ${statusLabel || 'READY'}
+                </div>
                 <div class="p-q-text preview-q-block ${this.activeQuickEdit === 'q' ? 'is-editing' : ''}" 
                      onclick="App.Design.openQuickEdit('q', event)"
                      style="background:${design.qBgColor}; border:1px solid ${design.qBorderColor}88; color:${design.qTextColor}; cursor:pointer;">
@@ -689,6 +695,12 @@ App.Design = {
 
             body.innerHTML = `
                 <div class="inspector-row">
+                    <div class="inspector-icon-box" title="内容">✍️</div>
+                    <div class="inspector-controls">
+                        <input type="text" id="quick-content-override" class="inspector-input-mini" style="flex:1;" placeholder="${isTitle ? '表示タイトル...' : '例: 第1問'}" value="${document.getElementById(isTitle ? 'design-title-text-value' : 'design-qnum-text-value')?.value || ''}">
+                    </div>
+                </div>
+                <div class="inspector-row">
                     <div class="inspector-icon-box" title="テキスト設定">T</div>
                     <div class="inspector-controls">
                         <div class="inspector-control-group">
@@ -741,6 +753,14 @@ App.Design = {
             if (sizeInp) {
                 sizeInp.oninput = () => {
                     document.getElementById(IDs.size).value = sizeInp.value;
+                    this.renderPreview();
+                };
+            }
+
+            const contentInp = document.getElementById('quick-content-override');
+            if (contentInp) {
+                contentInp.oninput = () => {
+                    document.getElementById(isTitle ? 'design-title-text-value' : 'design-qnum-text-value').value = contentInp.value;
                     this.renderPreview();
                 };
             }
@@ -888,16 +908,18 @@ App.Design = {
         };
 
         if (type === 'title') {
+            const displayTitle = document.getElementById('design-title-text-value')?.value || this.currentTarget?.data?.title || 'Program Title';
             html = `
                 <div class="preview-bg-block ${this.activeQuickEdit === 'title' ? 'is-editing' : ''}" 
                      onclick="App.Design.openQuickEdit('title', event)" 
                      style="width:100%; height:100%; background:${s.titleBgColor}; display:flex; align-items:center; justify-content:center; font-family:${s.titleFont}; cursor:pointer;">
-                    <div style="color:${s.titleTextColor}; font-size:${fontSize(s.titleSize)}; font-weight:900; text-align:center;">
-                        ${this.currentTarget?.data?.title || 'Program Title'}
+                    <div style="color:${s.titleTextColor}; font-size:${fontSize(s.titleSize)}; font-weight:900; text-align:center; padding: 0 50px;">
+                        ${displayTitle}
                     </div>
                 </div>
             `;
         } else if (type === 'qnumber') {
+            const displayQNum = document.getElementById('design-qnum-text-value')?.value || `第${qIdx + 1}問`;
             const pos = {
                 'center': 'align-items:center; justify-content:center;',
                 'top': 'align-items:flex-start; justify-content:center; padding-top:50px;',
@@ -908,13 +930,24 @@ App.Design = {
                      onclick="App.Design.openQuickEdit('qnumber', event)" 
                      style="width:100%; height:100%; background:${s.qNumberBgColor}; display:flex; ${pos[s.qNumberPosition]} font-family:${s.qNumberFont}; cursor:pointer;">
                     <div style="color:${s.qNumberTextColor}; font-size:${fontSize(s.qNumberSize)}; font-weight:900;">
-                        第${qIdx + 1}問
+                        ${displayQNum}
                     </div>
                 </div>
             `;
         }
         content.innerHTML = html;
-        this.renderPlayerPreview("まもなく開始されます...", [], "text", {});
+
+        // Sync Player Preview
+        let playerStatus = "READY";
+        let playerQText = "まもなく開始されます...";
+        if (type === 'title') {
+            playerStatus = document.getElementById('design-title-text-value')?.value || this.currentTarget?.data?.title || 'Program Title';
+            playerQText = "ENTRY OPEN";
+        } else if (type === 'qnumber') {
+            playerStatus = document.getElementById('design-qnum-text-value')?.value || `第${qIdx + 1}問`;
+            playerQText = "READY?";
+        }
+        this.renderPlayerPreview(playerQText, [], "text", {}, playerStatus);
     }
 };
 
