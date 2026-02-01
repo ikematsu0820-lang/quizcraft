@@ -2732,6 +2732,37 @@ input:checked+.pro-slider:before {
     gap: 15px;
 }
 
+#creator-view .sticky-action-bar {
+    background: transparent;
+    border: none;
+    pointer-events: none;
+    padding: 20px;
+}
+
+#creator-view #save-to-cloud-btn {
+    pointer-events: auto;
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    font-size: 0;
+    /* Hide text */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: var(--grad-primary);
+    box-shadow: 0 10px 40px rgba(0, 229, 255, 0.5);
+    border: none;
+    z-index: 6000;
+}
+
+#creator-view #save-to-cloud-btn::before {
+    content: '💾';
+    font-size: 30px;
+}
+
 .view {
     padding-bottom: 120px !important;
     /* Space for sticky bar */

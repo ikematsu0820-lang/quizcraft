@@ -319,7 +319,7 @@ App.Studio = {
                 syncBadge.style.background = "#333";
 
                 const pTitle = App.Data.periodPlaylist[App.State.currentPeriodIndex].title;
-                this.renderMonitorMessage("STANDBY", pTitle);
+                this.renderMonitorMessage("", pTitle);
                 document.getElementById('studio-execution-grid').classList.remove('hidden');
                 this.updateMonitorScaling();
                 this.updateNextPreview();
@@ -382,10 +382,11 @@ App.Studio = {
                     // Skip manual flip phase, go straight to answer reveal
                     btnMain.textContent = "正解を発表 (SHOW CORRECT)";
                     btnMain.onclick = () => this.setStep(5);
-                    syncBadge.textContent = "WAITING NEXT";
+                    syncBadge.textContent = "CLOSED (READY)";
                     syncBadge.style.background = "rgba(255, 75, 43, 0.2)";
                 }
 
+                this.renderMonitorMessage("", "TIME UP!");
                 window.db.ref(`rooms/${roomId}/status`).update({ step: 'closed', isBuzzActive: false });
                 break;
 
@@ -401,11 +402,21 @@ App.Studio = {
                 });
                 break;
 
-            case 5: // 正解発表
-                btnMain.textContent = "判定を実行 (JUDGE)";
-                btnMain.onclick = () => { this.judgeSimultaneous(); this.setStep(6); };
-                syncBadge.textContent = "CORRECT REVEAL";
+            case 5: // 正解発表 & 判定
+                btnMain.textContent = "次の問題へ (NEXT)";
+                btnMain.classList.add('action-next');
+                btnMain.onclick = () => this.setStep(7);
+                syncBadge.textContent = "CORRECT";
                 syncBadge.style.background = "rgba(46, 204, 113, 0.2)";
+
+                // Simultaneous judging (if not oral)
+                const isOralType = (q.type === 'multi' || q.type === 'free_oral');
+                if (!isOralType) {
+                    this.judgeSimultaneous();
+                } else {
+                    // For oral, show judges separately or just let host use individual buttons
+                    subControls.classList.remove('hidden');
+                }
 
                 document.getElementById('studio-correct-display').classList.remove('hidden');
                 document.getElementById('studio-commentary-text').textContent = q.commentary || "";
@@ -417,14 +428,8 @@ App.Studio = {
                 });
                 break;
 
-            case 6: // 判定 (Result Display)
-                btnMain.textContent = "ランキング更新 (RANKING)";
-                btnMain.classList.add('action-next');
-                btnMain.onclick = () => this.setStep(7);
-                syncBadge.textContent = "RESULT";
-                syncBadge.style.background = "rgba(241, 196, 15, 0.2)";
-
-                window.db.ref(`rooms/${roomId}/status`).update({ step: 'judging' });
+            case 6: // Skip judging display
+                this.setStep(7);
                 break;
 
             case 7: // 次へ
@@ -569,16 +574,21 @@ App.Studio = {
     },
 
     renderMonitorMessage: function (label, text) {
-        document.getElementById('studio-q-text').innerHTML = `
-            <div style="display:flex; justify-content:center; align-items:center; height:200px;">
-                <div style="font-size:2.5em; color:#ffd700; font-weight:bold; text-shadow:0 0 10px rgba(0,0,0,0.5);">
-                    ${text}
+        const qEl = document.getElementById('studio-q-text');
+        if (qEl) {
+            qEl.innerHTML = `
+                <div style="display:flex; justify-content:center; align-items:center; height:100%; width:100%;">
+                    <div style="font-size:2.5em; color:#ffd700; font-weight:bold; text-shadow:0 0 10px rgba(0,0,0,0.5);">
+                        ${text}
+                    </div>
                 </div>
-            </div>
-        `;
-        document.getElementById('studio-q-type-badge').textContent = label;
+            `;
+        }
+        const badge = document.getElementById('studio-q-type-badge');
+        if (badge) badge.textContent = label || "";
         document.getElementById('studio-choices-container').innerHTML = '';
         document.getElementById('studio-correct-display').classList.add('hidden');
+        this.updateMonitorScaling();
     },
 
     renderQuestionMonitor: function (q) {
@@ -919,31 +929,51 @@ App.Studio = {
 
             const checkHtml = isAnswered ? '<span class="answered-badge">✅</span>' : '<span class="waiting-dot">●</span>';
             card.innerHTML = `
-                <div style="display:flex; align-items:center; gap:8px;">
-                    ${checkHtml}
-                    <span class="player-ans-name">${p.name}</span>
+                <div style="display:flex; flex-direction:column; gap:5px; width:100%;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span class="player-ans-name" style="flex:1;">${p.name}</span>
+                        ${checkHtml}
+                    </div>
+                    <div class="player-ans-value ${!isAnswered ? 'waiting' : ''}" style="margin-top:2px;">${ansText}</div>
+                    <div class="judge-btns-mini ${isAnswered ? '' : 'hidden'}" style="display:flex; gap:5px; margin-top:8px;">
+                        <button class="btn-mini btn-success" style="flex:1; padding:4px 0;" onclick="App.Studio.updatePlayerScore('${id}', true)">〇</button>
+                        <button class="btn-mini btn-danger" style="flex:1; padding:4px 0;" onclick="App.Studio.updatePlayerScore('${id}', false)">✖</button>
+                    </div>
                 </div>
-                <span class="player-ans-value ${!isAnswered ? 'waiting' : ''}">${ansText}</span>
             `;
             area.appendChild(card);
         });
 
-        // Update Stats Bar
         const total = playerIds.length;
+        this.updateStatsBar(answeredCount, total);
+    },
+
+    updateStatsBar: function (answeredCount, total) {
         const countEl = document.getElementById('studio-answered-count');
         const progressEl = document.getElementById('studio-answer-progress');
         if (countEl) countEl.textContent = `${answeredCount} / ${total}`;
         if (progressEl) {
             const percent = total > 0 ? (answeredCount / total) * 100 : 0;
             progressEl.style.width = `${percent}%`;
-
-            // Pulse effect when someone answers
-            if (percent > 0) {
-                progressEl.classList.remove('pulse');
-                void progressEl.offsetWidth; // trigger reflow
-                progressEl.classList.add('pulse');
-            }
         }
+    },
+
+    updatePlayerScore: function (playerId, isCorrect) {
+        const roomId = App.State.currentRoomId;
+        const q = App.Data.studioQuestions[App.State.currentQIndex];
+        if (!q) return;
+        window.db.ref(`rooms/${roomId}/players/${playerId}`).once('value', snap => {
+            const p = snap.val();
+            if (!p) return;
+            const pts = isCorrect ? (q.points || 1) : -(q.loss || 0);
+            const result = isCorrect ? 'win' : 'lose';
+            snap.ref.update({
+                periodScore: (p.periodScore || 0) + pts,
+                totalScore: (p.totalScore || 0) + pts,
+                lastResult: result
+            });
+            App.Ui.showToast(`${p.name} さんを ${isCorrect ? '正解' : '不正解'} に判定しました`);
+        });
     },
 
     translateMode: function (mode) {

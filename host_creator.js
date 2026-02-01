@@ -155,11 +155,8 @@ window.App.Creator = {
         }
 
         else if (type === 'sort') {
-            const initVal = data ? data.initialOrder : 'random';
             container.innerHTML = `
                 <p class="text-sm text-gray mb-5">${APP_TEXT.Creator.DescSort}</p>
-                <label class="text-sm bold">${APP_TEXT.Creator.LabelSortInitial}</label>
-                <select id="sort-initial-order" class="mb-10 config-select btn-block"><option value="random" ${initVal === 'random' ? 'selected' : ''}>${APP_TEXT.Creator.SortInitialRandom}</option><option value="fixed" ${initVal === 'fixed' ? 'selected' : ''}>${APP_TEXT.Creator.SortInitialFixed}</option></select>
             `;
             const sortDiv = document.createElement('div');
             sortDiv.className = 'flex-col gap-5';
@@ -442,9 +439,8 @@ window.App.Creator = {
             orders.sort((a, b) => a.rank - b.rank);
             newQ.correct = orders.map(o => o.label).join('');
 
-            newQ.initialOrder = document.getElementById('sort-initial-order').value;
-            const sortShuffleChk = document.getElementById('sort-shuffle-chk');
-            newQ.shuffle = sortShuffleChk ? sortShuffleChk.checked : true;
+            newQ.initialOrder = 'random';
+            newQ.shuffle = true;
         } else if (type.startsWith('free')) {
             const ans = document.getElementById('creator-text-answer').value.trim();
             if (type === 'free_written' && !ans) { alert(APP_TEXT.Creator.AlertNoTextAns); return null; }
