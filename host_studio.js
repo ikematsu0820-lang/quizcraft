@@ -214,8 +214,9 @@ App.Studio = {
     },
 
     setupPeriod: function (index) {
+        console.log("Setup Period:", index);
         if (!App.Data.periodPlaylist || App.Data.periodPlaylist.length === 0) {
-            alert("再生するプレイリストがありません。");
+            alert("再生するプレイリストがありません。一度プログラムをセット（読込）してください。");
             return;
         }
 
@@ -226,25 +227,31 @@ App.Studio = {
         }
 
         App.State.currentPeriodIndex = index;
-        // Ensure settings exist defensively
         if (!item.progSettings) item.progSettings = { showRankingAfter: false, eliminationMode: 'none' };
 
         App.Data.studioQuestions = this.shuffleQuestions(item.questions || []);
         App.Data.currentConfig = item.config || { mode: 'normal' };
-        App.Data.currentConfig.periodTitle = item.title;
+        App.Data.currentConfig.periodTitle = item.title || "Untitled";
         App.State.currentQIndex = 0;
 
         const roomId = App.State.currentRoomId;
+        if (!roomId) {
+            alert("エラー: 部屋IDが取得できません。再起動してください。");
+            return;
+        }
+
+        // Firebase Sync
         window.db.ref(`rooms/${roomId}/config`).set(App.Data.currentConfig);
         window.db.ref(`rooms/${roomId}/questions`).set(App.Data.studioQuestions);
 
+        // UI Prep
         document.getElementById('studio-standby-panel').classList.add('hidden');
         document.getElementById('studio-execution-grid').classList.remove('hidden');
-        document.getElementById('studio-question-panel').classList.remove('hidden');
 
+        // Optional Panel logic
         const panelCtrl = document.getElementById('studio-panel-control');
         if (panelCtrl) {
-            if (item.config.gameType === 'panel') {
+            if (item.config && item.config.gameType === 'panel') {
                 panelCtrl.classList.remove('hidden');
                 this.renderPanelControl();
             } else {
@@ -254,15 +261,17 @@ App.Studio = {
 
         this.renderTimeline();
 
-        if (item.config.mode === 'solo') {
-            document.getElementById('studio-solo-info').classList.remove('hidden');
+        if (item.config && item.config.mode === 'solo') {
+            document.getElementById('studio-solo-info')?.classList.remove('hidden');
             this.soloState.lives = item.config.soloLife || 3;
-            document.getElementById('studio-life-display').textContent = this.soloState.lives;
+            const lifeDisp = document.getElementById('studio-life-display');
+            if (lifeDisp) lifeDisp.textContent = this.soloState.lives;
         } else {
-            document.getElementById('studio-solo-info').classList.add('hidden');
+            document.getElementById('studio-solo-info')?.classList.add('hidden');
         }
 
-        this.revealedMultiIndices = {}; // Reset local state
+        this.revealedMultiIndices = {};
+        console.log("Calling setStep(0)");
         this.setStep(0);
     },
 
@@ -608,6 +617,7 @@ App.Studio = {
         const layout = q.layout || 'standard';
         const align = q.align || 'center';
 
+        // Reset Panel Design
         panel.style.backgroundColor = d.mainBgColor || "#000";
         if (d.bgImage) {
             panel.style.backgroundImage = `url('${d.bgImage}')`;
@@ -617,19 +627,46 @@ App.Studio = {
             panel.style.backgroundImage = "none";
         }
 
-        qEl.style.color = d.qTextColor || "#fff";
-        qEl.style.backgroundColor = d.qBgColor || "rgba(255,255,255,0.05)";
-        qEl.style.borderColor = d.qBorderColor || "#00bfff";
-        qEl.style.borderStyle = "solid";
-        qEl.style.borderWidth = "6px";
-        qEl.style.borderRadius = "15px";
-        qEl.style.textAlign = align;
-        qEl.style.display = "flex";
-        qEl.style.alignItems = "center";
-        qEl.style.justifyContent = align === 'center' ? 'center' : (align === 'right' ? 'flex-end' : 'flex-start');
+        // Apply Layout logic
+        if (layout.startsWith('split')) {
+            panel.style.flexDirection = 'row-reverse';
+            panel.style.justifyContent = 'center';
+            panel.style.alignItems = 'center';
 
-        // Reset font size to base before auto-scaling
-        qEl.style.fontSize = d.qFontSize || "2.2em";
+            qEl.style.writingMode = 'vertical-rl';
+            qEl.style.textOrientation = 'upright';
+            qEl.style.height = '85%';
+            qEl.style.width = '20%';
+            qEl.style.margin = '0 0 0 5%';
+            qEl.style.borderLeft = 'none';
+            qEl.style.borderTop = `10px solid ${d.qBorderColor || 'var(--color-primary)'}`;
+            qEl.style.background = `linear-gradient(180deg, rgba(0, 229, 255, 0.15) 0%, transparent 100%)`;
+
+            cContainer.style.width = '60%';
+            cContainer.style.flexDirection = 'column';
+        } else {
+            panel.style.flexDirection = 'column';
+            panel.style.justifyContent = 'center';
+            panel.style.alignItems = 'center';
+
+            qEl.style.writingMode = 'initial';
+            qEl.style.textOrientation = 'initial';
+            qEl.style.height = 'auto';
+            qEl.style.width = '90%';
+            qEl.style.margin = '0 0 40px 0';
+            qEl.style.borderTop = 'none';
+            qEl.style.borderLeft = `10px solid ${d.qBorderColor || 'var(--color-primary)'}`;
+            qEl.style.background = `linear-gradient(90deg, rgba(0, 229, 255, 0.15) 0%, transparent 100%)`;
+
+            cContainer.style.width = '85%';
+            cContainer.style.flexDirection = 'column';
+        }
+
+        // Apply shared classes logic
+        qEl.style.color = d.qTextColor || "#fff";
+        qEl.style.textAlign = align;
+        qEl.style.fontSize = d.qFontSize || (layout.startsWith('split') ? "42px" : "48px");
+        qEl.textContent = q.q;
 
         let typeText = q.type.toUpperCase();
         if (q.type === 'letter_select') typeText = "LETTER PANEL";
@@ -637,24 +674,23 @@ App.Studio = {
 
         cContainer.innerHTML = '';
 
-        // Apply layout to container
-        if (layout.startsWith('split')) {
-            cContainer.style.gridTemplateColumns = layout === 'split_grid' ? '1fr 1fr' : '1fr';
-            // In split layout, choices often look better centered or aligned
-        } else {
-            cContainer.style.gridTemplateColumns = '1fr 1fr';
-        }
-
         if (q.type === 'choice' && q.c) {
             q.c.forEach((c, i) => {
                 const div = document.createElement('div');
                 div.className = 'monitor-choice-item';
-                div.textContent = `${String.fromCharCode(65 + i)}. ${c}`;
+
+                const prefix = document.createElement('span');
+                prefix.className = 'monitor-choice-prefix';
+                prefix.textContent = String.fromCharCode(65 + i);
+
+                const text = document.createElement('span');
+                text.textContent = c;
+
+                div.appendChild(prefix);
+                div.appendChild(text);
 
                 // Choice Design
-                div.style.color = d.cTextColor || "#eee";
-                div.style.backgroundColor = d.cBgColor || "rgba(255,255,255,0.05)";
-                div.style.borderColor = d.cBorderColor || "rgba(255,255,255,0.1)";
+                if (d.cTextColor) div.style.color = d.cTextColor;
                 if (d.cFontSize) div.style.fontSize = d.cFontSize;
 
                 cContainer.appendChild(div);
@@ -1038,8 +1074,15 @@ App.Studio = {
         const step = this.currentStepId;
 
         // Reset Panel Design
-        nextPanel.style.backgroundImage = "none";
-        nextPanel.style.backgroundColor = "#000";
+        const d = targetQ?.design || {};
+        nextPanel.style.backgroundColor = d.mainBgColor || "#000";
+        if (d.bgImage) {
+            nextPanel.style.backgroundImage = `url('${d.bgImage}')`;
+            nextPanel.style.backgroundSize = "cover";
+            nextPanel.style.backgroundPosition = "center";
+        } else {
+            nextPanel.style.backgroundImage = "none";
+        }
 
         let html = '';
         let targetQ = currentQ; // Default to current Q for internal transitions
@@ -1053,16 +1096,22 @@ App.Studio = {
         } else if (step === 1) {
             // Reveal Q -> Answering
             const layout = currentQ.layout || 'standard';
-            const gridCols = layout.startsWith('split') ? (layout === 'split_grid' ? '1fr 1fr' : '1fr') : '1fr 1fr';
+            const design = currentQ.design || {};
+            const qColor = design.qTextColor || '#fff';
+            const qBorder = design.qBorderColor || 'var(--color-primary)';
 
             html = `
                 <div class="monitor-header">
-                    <span class="badge-type" style="font-size:24px;">CHOICES</span>
-                    <span class="monitor-timer" style="font-size:24px; padding:8px 15px;">TIME: ${currentQ.timeLimit || 20}</span>
+                    <span class="badge-type">CHOICES</span>
+                    <span class="monitor-timer" style="font-size:24px; padding:8px 15px; background:rgba(255,255,255,0.1); border-radius:10px;">TIME: ${currentQ.timeLimit || 20}</span>
                 </div>
-                <div class="monitor-q-text" style="font-size:1.6em;">${currentQ.q}</div>
-                <div class="monitor-choices" style="grid-template-columns: ${gridCols}; gap:20px;">
-                    ${(currentQ.c || []).map((c, i) => `<div class="monitor-choice-item" style="font-size:24px;">${String.fromCharCode(65 + i)}. ${c}</div>`).join('')}
+                <div class="monitor-q-text" style="color:${qColor}; border-left-color:${qBorder}; font-size:1.6em;">${currentQ.q}</div>
+                <div class="monitor-choices" style="width:90%;">
+                    ${(currentQ.c || []).map((c, i) => `
+                        <div class="monitor-choice-item" style="font-size:24px;">
+                            <span class="monitor-choice-prefix">${String.fromCharCode(65 + i)}</span>
+                            <span>${c}</span>
+                        </div>`).join('')}
                 </div>
             `;
         } else if (step === 2 || step === 3 || step === 4) {
@@ -1269,9 +1318,8 @@ App.Studio = {
                 const maxHeight = 300;
                 if (qText.scrollHeight > maxHeight) {
                     const ratio = maxHeight / qText.scrollHeight;
-                    const newSize = Math.max(baseSize * ratio, 28); // minimum 24px-ish
+                    const newSize = Math.max(baseSize * ratio, 20); // allow more shrinkage
                     qText.style.fontSize = newSize + (baseSizeStr.includes('px') ? "px" : "pt");
-                    console.log(`Auto-scaled font size: ${baseSize} -> ${newSize} (ratio: ${ratio})`);
                 }
             }
         }
@@ -1289,7 +1337,7 @@ App.Studio = {
                 const currentQ = App.Data.studioQuestions[App.State.currentQIndex];
                 const nextQ = App.Data.studioQuestions[App.State.currentQIndex + 1];
                 const step = this.currentStepId;
-                const targetQ = (step >= 5 || step < 0) ? nextQ : currentQ; // Sync with updateNextPreview logic
+                const targetQ = (step >= 5 || step < 0) ? nextQ : currentQ;
 
                 if (targetQ) {
                     const baseSizeStr = (targetQ?.design?.qFontSize) || (step === 1 ? "1.6em" : "2.2em");
@@ -1302,7 +1350,7 @@ App.Studio = {
                     const maxHeight = 300;
                     if (nextQText.scrollHeight > maxHeight) {
                         const ratio = maxHeight / nextQText.scrollHeight;
-                        const newSize = Math.max(baseSize * ratio, 28);
+                        const newSize = Math.max(baseSize * ratio, 20); // allow more shrinkage
                         nextQText.style.fontSize = newSize + (baseSizeStr.includes('px') ? "px" : "pt");
                     }
                 }

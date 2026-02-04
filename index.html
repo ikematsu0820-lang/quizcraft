@@ -58,8 +58,9 @@
 
 
 
-        <div class="dashboard-hero-area dashboard-hero-grid" style="grid-template-columns: 1fr;">
+        <div class="dashboard-hero-area dashboard-hero-grid">
             <button id="dash-create-btn" class="dash-btn dash-btn-hero" data-text="Dashboard.BtnCreate">問題作成</button>
+            <button id="dash-studio-btn" class="dash-btn dash-btn-hero dash-btn-studio-gold">スタジオ起動</button>
         </div>
 
         <div class="dashboard-grid-secondary">
@@ -628,50 +629,39 @@
                         data-text="Studio.BtnLoad">Set</button>
                 </div>
                 <div id="studio-period-timeline" class="timeline-container mt-20"></div>
-            </div>
+            </div> <!-- closes studio-standby-panel -->
 
             <div id="studio-execution-grid" class="studio-execution-grid hidden">
-                <div class="studio-grid-left">
-                    <div class="current-screen-label">📸 今の画面</div>
-                    <div id="studio-monitor-frame" class="studio-monitor-frame">
-                        <div id="studio-question-panel" class="question-monitor">
-                            <div class="monitor-header">
-                                <span id="studio-q-type-badge" class="badge-type">CHOICE</span>
-                                <div style="display:flex; align-items:center; gap:10px;">
-                                    <span id="studio-timer-display" class="monitor-timer hidden">TIME: 10</span>
-                                    <span id="studio-player-sync-status" class="badge-type"
-                                        style="background:rgba(0,229,255,0.1); color:var(--color-primary);">READY</span>
+                <div class="studio-monitors-row">
+                    <div class="studio-monitor-item current">
+                        <div class="current-screen-label">📸 今の画面</div>
+                        <div id="studio-monitor-frame" class="studio-monitor-frame">
+                            <div id="studio-question-panel" class="question-monitor">
+                                <div class="monitor-header">
+                                    <span id="studio-q-type-badge" class="badge-type">CHOICE</span>
+                                    <div style="display:flex; align-items:center; gap:10px;">
+                                        <span id="studio-timer-display" class="monitor-timer hidden">TIME: 10</span>
+                                        <span id="studio-player-sync-status" class="badge-type"
+                                            style="background:rgba(0,229,255,0.1); color:var(--color-primary);">READY</span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div id="studio-q-text" class="monitor-q-text"></div>
-                            <div id="studio-choices-container" class="monitor-choices"></div>
-                            <div id="studio-correct-display" class="monitor-correct hidden">
-                                <div class="label" style="font-size:0.6em; margin-bottom:5px; opacity:0.7;">CORRECT
-                                    ANSWER
+                                <div id="studio-q-text" class="monitor-q-text"></div>
+                                <div id="studio-choices-container" class="monitor-choices"></div>
+                                <div id="studio-correct-display" class="monitor-correct hidden">
+                                    <div class="label" style="font-size:0.6em; margin-bottom:5px; opacity:0.7;">CORRECT
+                                        ANSWER
+                                    </div>
+                                    <div id="studio-correct-text"></div>
+                                    <div id="studio-commentary-text"
+                                        style="font-size:0.5em; font-weight:normal; margin-top:10px; color:#aaa; line-height:1.4;">
+                                    </div>
                                 </div>
-                                <div id="studio-correct-text"></div>
-                                <div id="studio-commentary-text"
-                                    style="font-size:0.5em; font-weight:normal; margin-top:10px; color:#aaa; line-height:1.4;">
-                                </div>
-                            </div>
-                            <div id="studio-sub-info" class="monitor-sub-info hidden"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="studio-grid-right">
-                    <div class="studio-grid-right-answers">
-                        <div class="sidebar-section-label">👥 回答者の回答</div>
-                        <div id="studio-answer-stats" class="studio-answer-stats-bar">
-                            <div id="studio-answered-count" class="stats-value">0 / 0</div>
-                            <div class="stats-progress-container">
-                                <div id="studio-answer-progress" class="stats-progress-bar"></div>
+                                <div id="studio-sub-info" class="monitor-sub-info hidden"></div>
                             </div>
                         </div>
-                        <div id="studio-player-answers" class="studio-realtime-answers"></div>
                     </div>
 
-                    <div class="studio-grid-right-next">
+                    <div class="studio-monitor-item next">
                         <div class="sidebar-section-label">📺 次の画面</div>
                         <div id="studio-next-frame" class="studio-monitor-frame">
                             <div id="studio-next-preview-panel" class="question-monitor">
@@ -683,8 +673,21 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="studio-answers-row">
+                    <div class="studio-grid-right-answers">
+                        <div class="sidebar-section-label">👥 回答者の回答</div>
+                        <div id="studio-answer-stats" class="studio-answer-stats-bar">
+                            <div id="studio-answered-count" class="stats-value">0 / 0</div>
+                            <div class="stats-progress-container">
+                                <div id="studio-answer-progress" class="stats-progress-bar"></div>
+                            </div>
+                        </div>
+                        <div id="studio-player-answers" class="studio-realtime-answers"></div>
+                    </div>
+                </div>
             </div>
-        </div>
+        </div> <!-- closes studio-main-area -->
 
         <div class="studio-footer-controls">
             <button id="btn-phase-main" class="btn-block btn-large-action">START</button>
@@ -721,7 +724,6 @@
                 </div>
             </div>
         </div>
-    </div>
     </div>
 
     <div id="ranking-view" class="view hidden center-text">
