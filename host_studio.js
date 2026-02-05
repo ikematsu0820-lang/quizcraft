@@ -10,6 +10,14 @@ App.Studio = {
     panelState: Array(25).fill(0),
     selectedPanelColor: 1,
 
+    onMainAction: function () {
+        // This is a fallback/dispatcher. Typically btnMain.onclick is overwritten by setStep.
+        // If it's called here, it usually means the button was clicked before a program was loaded.
+        if (App.Data.studioQuestions.length === 0) {
+            alert("⚠️ 最初にプログラム（セット）をロードしてください。");
+        }
+    },
+
     soloState: { lives: 3, timeBank: 60, challengerIndex: 0 },
 
     startRoom: function (isQuick = false) {
@@ -43,6 +51,12 @@ App.Studio = {
 
     enterHostMode: function (isQuick) {
         App.Ui.showView(App.Ui.views.hostControl);
+
+        const btnMain = document.getElementById('btn-phase-main');
+        if (btnMain) {
+            btnMain.classList.add('hidden');
+        }
+
         const code = App.State.currentRoomId;
 
         const targets = ['studio-header-room-id', 'studio-big-room-id'];
@@ -96,7 +110,6 @@ App.Studio = {
             document.getElementById('studio-execution-grid').classList.add('hidden');
             document.getElementById('studio-standby-panel').classList.remove('hidden');
             document.getElementById('studio-loader-ui').classList.remove('hidden');
-            document.getElementById('btn-phase-main').classList.add('hidden');
             this.loadProgramList();
         }
 
@@ -1073,27 +1086,21 @@ App.Studio = {
         const nextQ = App.Data.studioQuestions[App.State.currentQIndex + 1];
         const step = this.currentStepId;
 
-        // Reset Panel Design
-        const d = targetQ?.design || {};
-        nextPanel.style.backgroundColor = d.mainBgColor || "#000";
-        if (d.bgImage) {
-            nextPanel.style.backgroundImage = `url('${d.bgImage}')`;
-            nextPanel.style.backgroundSize = "cover";
-            nextPanel.style.backgroundPosition = "center";
-        } else {
-            nextPanel.style.backgroundImage = "none";
-        }
-
         let html = '';
-        let targetQ = currentQ; // Default to current Q for internal transitions
+        let targetQ = currentQ;
 
         if (step === 0) {
             // Standby -> Question Reveal
-            html = `
-                <div class="monitor-header"><span class="badge-type" style="font-size:24px;">QUESTION</span></div>
-                <div class="monitor-q-text">${currentQ.q}</div>
-            `;
-        } else if (step === 1) {
+            if (currentQ) {
+                html = `
+                    <div class="monitor-header"><span class="badge-type" style="font-size:24px;">QUESTION</span></div>
+                    <div class="monitor-q-text">${currentQ.q}</div>
+                `;
+            } else {
+                html = '<div class="preview-placeholder">待機中...</div>';
+            }
+        }
+        else if (step === 1) {
             // Reveal Q -> Answering
             const layout = currentQ.layout || 'standard';
             const design = currentQ.design || {};
@@ -1147,6 +1154,8 @@ App.Studio = {
                 nextPanel.style.backgroundImage = `url('${d.bgImage}')`;
                 nextPanel.style.backgroundSize = "cover";
                 nextPanel.style.backgroundPosition = "center";
+            } else {
+                nextPanel.style.backgroundImage = "none";
             }
 
             // Inject styles into HTML tags
@@ -1369,6 +1378,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-toggle-ans')?.addEventListener('click', () => App.Studio.toggleAns());
     document.getElementById('btn-force-next')?.addEventListener('click', () => App.Studio.goNext());
     document.getElementById('host-close-studio-btn')?.addEventListener('click', () => App.Dashboard.enter());
+    document.getElementById('btn-phase-main')?.addEventListener('click', () => {
+        if (App.Studio.onMainAction) App.Studio.onMainAction();
+    });
 });
 
 

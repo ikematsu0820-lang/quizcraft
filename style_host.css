@@ -1372,10 +1372,10 @@ select option {
 .studio-header-bar {
     background: rgba(20, 20, 25, 0.95);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 10px 15px;
+    padding: 6px 15px;
     display: flex;
     flex-wrap: wrap;
-    gap: 10px 20px;
+    gap: 8px 20px;
     align-items: center;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
     z-index: 100;
@@ -1385,8 +1385,8 @@ select option {
     .studio-header-bar {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        gap: 10px;
-        padding: 10px;
+        gap: 6px;
+        padding: 6px;
     }
 
     .status-item {
@@ -1412,13 +1412,30 @@ select option {
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-width: 60px;
+    min-width: 45px;
+    justify-content: center;
+}
+
+.status-value {
+    font-size: 1.1em;
+    font-weight: 800;
+    color: #fff;
+    font-family: 'Outfit', sans-serif;
+    letter-spacing: -0.5px;
+}
+
+.player-list-compact {
+    display: flex;
+    gap: 5px;
+    overflow-x: auto;
+    max-width: 100%;
+    padding-bottom: 2px;
 }
 
 @media (max-width: 480px) {
     .studio-header-bar {
-        gap: 8px 10px;
-        padding: 6px 10px;
+        gap: 4px 8px;
+        padding: 4px 8px;
     }
 
     .status-item {
@@ -1426,11 +1443,11 @@ select option {
     }
 
     .status-value {
-        font-size: 1em;
+        font-size: 0.9em;
     }
 
     .status-label {
-        font-size: 0.55em;
+        font-size: 0.5em;
     }
 
     .studio-header-bar .header-back-btn {
@@ -1477,16 +1494,16 @@ select option {
 
 .studio-main-area {
     flex: 1;
-    padding: 20px;
+    padding: 15px;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    align-items: stretch;
-    /* Change from center to stretch */
+    align-items: center;
     background-image:
         radial-gradient(circle at 10% 20%, rgba(0, 50, 255, 0.05) 0%, transparent 20%),
         radial-gradient(circle at 90% 80%, rgba(255, 0, 100, 0.05) 0%, transparent 20%);
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 @media (max-width: 600px) {
@@ -1669,6 +1686,12 @@ select option {
     transition: all 0.2s;
     width: 100%;
     margin-bottom: 20px;
+    display: none;
+    /* Hidden until program loaded */
+}
+
+#btn-phase-main:not(.hidden) {
+    display: block;
 }
 
 .btn-large-action:hover {
@@ -1932,48 +1955,35 @@ select option {
 }
 
 @media (max-width: 600px) {
-    .studio-main-area {
-        padding: 10px;
+    .studio-monitors-row {
+        flex-direction: column;
+        width: 100%;
+        gap: 15px;
     }
 
-    .question-monitor {
-        padding: 40px;
-        /* Reduced from 80px for better fit scaled down */
-        width: 1280px;
-        height: 720px;
+    .studio-monitor-item {
+        width: 100% !important;
     }
 
     .monitor-q-text {
-        margin-bottom: 20px;
+        font-size: 32px !important;
+        padding: 20px !important;
+    }
+
+    .monitor-choice-item {
+        font-size: 24px !important;
+        padding: 10px 20px !important;
     }
 
     .studio-footer-controls {
-        padding: 15px;
+        padding: 12px 20px 25px 20px;
     }
 
     .btn-large-action {
-        height: 50px;
-        font-size: 1.2em;
-        margin-bottom: 15px;
-    }
-
-    .sub-controls-grid {
-        gap: 10px;
-    }
-
-    .btn-judge {
-        height: 50px;
+        height: 54px;
         font-size: 1.1em;
-    }
-
-    .studio-answer-stats-bar {
-        width: 100%;
-        margin-top: 10px;
-    }
-
-    .studio-realtime-answers {
-        grid-template-columns: repeat(2, 1fr);
-        width: 100%;
+        margin-bottom: 12px;
+        border-radius: 14px;
     }
 }
 
