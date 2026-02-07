@@ -9,6 +9,7 @@ App.Studio = {
     currentStepId: 0,
     panelState: Array(25).fill(0),
     selectedPanelColor: 1,
+    selectedPlayerId: null,
 
     onMainAction: function () {
         // This is a fallback/dispatcher. Typically btnMain.onclick is overwritten by setStep.
@@ -96,12 +97,45 @@ App.Studio = {
 
             if (this.currentStepId === 3 || this.currentStepId === 4 || this.currentStepId === 5) {
                 this.renderRealtimeAnswers(players);
+                this.renderUnifiedConsole(players);
+            } else {
+                this.renderUnifiedConsole(players); // Still might want to see who joined
             }
 
             if (App.Data.currentConfig?.mode === 'buzz' && this.currentStepId === 3) {
                 this.checkBuzz(players);
             }
         });
+
+        // --- Mobile/Unified Console Button Sync ---
+        const mobBtnMain = document.getElementById('console-btn-phase-main');
+        const mobBtnCorrect = document.getElementById('console-btn-judge-correct');
+        const mobBtnWrong = document.getElementById('console-btn-judge-wrong');
+
+        if (mobBtnMain) {
+            mobBtnMain.onclick = () => {
+                const pcBtn = document.getElementById('btn-phase-main');
+                if (pcBtn) pcBtn.click();
+            };
+        }
+        if (mobBtnCorrect) {
+            mobBtnCorrect.onclick = () => {
+                if (this.selectedPlayerId) {
+                    this.updatePlayerScore(this.selectedPlayerId, true);
+                } else {
+                    App.Ui.showToast("回答者を選択してください");
+                }
+            };
+        }
+        if (mobBtnWrong) {
+            mobBtnWrong.onclick = () => {
+                if (this.selectedPlayerId) {
+                    this.updatePlayerScore(this.selectedPlayerId, false);
+                } else {
+                    App.Ui.showToast("回答者を選択してください");
+                }
+            };
+        }
 
         if (isQuick && App.Data.periodPlaylist.length > 0) {
             this.renderTimeline();
@@ -118,6 +152,22 @@ App.Studio = {
             if (App.Ui.currentViewId === 'host-control-view') this.updateMonitorScaling();
         });
         setTimeout(() => this.updateMonitorScaling(), 100);
+
+        // --- Tab Switcher Logic (Mobile) ---
+        const grid = document.getElementById('studio-execution-grid');
+        const tabBtns = document.querySelectorAll('.studio-tab-switcher .segmented-btn');
+        if (grid && tabBtns.length > 0) {
+            grid.setAttribute('data-active-tab', 'monitors'); // default
+            tabBtns.forEach(btn => {
+                btn.onclick = () => {
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    grid.setAttribute('data-active-tab', btn.dataset.tab);
+                    // Scaling might need update if container size changes
+                    setTimeout(() => this.updateMonitorScaling(), 50);
+                };
+            });
+        }
     },
 
     toggleUIForStandby: function (isStandby) {
@@ -298,6 +348,12 @@ App.Studio = {
         subControls.classList.add('hidden');
         btnMain.classList.remove('hidden');
 
+        // Sync Console Button
+        const mobBtnMain = document.getElementById('console-btn-phase-main');
+        if (mobBtnMain) {
+            mobBtnMain.className = btnMain.className; // Sync style classes
+        }
+
         const isStandby = (stepId === 0 || stepId === 1);
         this.toggleUIForStandby(isStandby);
 
@@ -459,6 +515,11 @@ App.Studio = {
                 break;
         }
         this.updateNextPreview();
+
+        // Sync button text to console
+        const pcBtn = document.getElementById('btn-phase-main');
+        const mobBtn = document.getElementById('console-btn-phase-main');
+        if (pcBtn && mobBtn) mobBtn.textContent = pcBtn.textContent;
     },
 
     goNext: function () {
@@ -590,7 +651,12 @@ App.Studio = {
         const roomId = App.State.currentRoomId;
         window.db.ref(`rooms/${roomId}/players`).once('value', snap => {
             snap.forEach(p => {
-                p.ref.update({ lastAnswer: null, lastResult: null, buzzTime: null });
+                p.ref.update({
+                    lastAnswer: null,
+                    lastResult: null,
+                    buzzTime: null,
+                    answerTime: null
+                });
             });
         });
     },
@@ -995,6 +1061,58 @@ App.Studio = {
 
         const total = playerIds.length;
         this.updateStatsBar(answeredCount, total);
+    },
+
+    renderUnifiedConsole: function (players) {
+        const horizontalList = document.getElementById('console-player-horizontal-list');
+        const selectedName = document.getElementById('console-selected-player-name');
+        const selectedAnswer = document.getElementById('console-selected-player-answer');
+        if (!horizontalList) return;
+
+        // Sort players by answerTime/buzzTime
+        const playerIds = Object.keys(players);
+        const sortedPlayers = playerIds
+            .map(id => ({ id, ...players[id] }))
+            .filter(p => p.lastAnswer !== null || p.buzzTime)
+            .sort((a, b) => {
+                const timeA = a.answerTime || a.buzzTime || Infinity;
+                const timeB = b.answerTime || b.buzzTime || Infinity;
+                return timeA - timeB;
+            });
+
+        // If no one selected yet, select the fastest
+        if (!this.selectedPlayerId && sortedPlayers.length > 0) {
+            this.selectedPlayerId = sortedPlayers[0].id;
+        }
+
+        horizontalList.innerHTML = '';
+        sortedPlayers.forEach(p => {
+            const chip = document.createElement('div');
+            chip.className = `console-player-chip ${this.selectedPlayerId === p.id ? 'active' : ''}`;
+            chip.textContent = p.name;
+            chip.onclick = () => {
+                this.selectedPlayerId = p.id;
+                this.renderUnifiedConsole(players);
+            };
+            horizontalList.appendChild(chip);
+        });
+
+        // Update Big Display
+        if (this.selectedPlayerId && players[this.selectedPlayerId]) {
+            const p = players[this.selectedPlayerId];
+            selectedName.textContent = p.name;
+
+            let ansText = p.lastAnswer || (p.buzzTime ? "BUZZED!" : "WAITING...");
+            const q = App.Data.studioQuestions[App.State.currentQIndex];
+            if (p.lastAnswer !== null && q && q.type === 'choice') {
+                const idx = parseInt(p.lastAnswer);
+                ansText = isNaN(idx) ? p.lastAnswer : `${String.fromCharCode(65 + idx)}. ${q.c[idx] || ''}`;
+            }
+            selectedAnswer.textContent = ansText;
+        } else {
+            selectedName.textContent = "回答者を選択";
+            selectedAnswer.textContent = "回答待ち...";
+        }
     },
 
     updateStatsBar: function (answeredCount, total) {

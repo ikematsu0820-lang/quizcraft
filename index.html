@@ -632,6 +632,14 @@
             </div> <!-- closes studio-standby-panel -->
 
             <div id="studio-execution-grid" class="studio-execution-grid hidden">
+                <!-- Tab Switcher (Mobile Only) - Optional now, but keeping for flexibility -->
+                <div class="studio-tab-switcher">
+                    <div class="preview-segmented-control">
+                        <button class="segmented-btn active" data-tab="monitors">📺 プレビュー</button>
+                        <button class="segmented-btn" data-tab="controls">🎛️ コンソール</button>
+                    </div>
+                </div>
+
                 <div class="studio-monitors-row">
                     <div class="studio-monitor-item current">
                         <div class="current-screen-label">📸 今の画面</div>
@@ -674,7 +682,35 @@
                     </div>
                 </div>
 
-                <div class="studio-answers-row">
+                <!-- Unified Console Layout (PC & Mobile) -->
+                <div class="studio-console-layout">
+                    <div class="console-main-row">
+                        <div class="console-selected-answer-area">
+                            <div class="console-selected-answer-box">
+                                <div id="console-selected-player-name" class="selected-name-label">選択中の回答者</div>
+                                <div id="console-selected-player-answer" class="selected-answer-text">回答待ち...</div>
+                            </div>
+                        </div>
+                        <div class="console-control-column">
+                            <div class="control-label">判定</div>
+                            <div class="console-judge-grid">
+                                <button id="console-btn-judge-correct" class="btn-judge btn-success">⭕</button>
+                                <button id="console-btn-judge-wrong" class="btn-judge btn-danger">❌</button>
+                            </div>
+                            <!-- Primary action button synced from studio-footer-controls -->
+                            <button id="console-btn-phase-main" class="btn-large-action">Q.1 開始</button>
+                        </div>
+                    </div>
+
+                    <div class="console-player-list-area">
+                        <div class="sidebar-section-label">👥 回答者一覧 (早い順)</div>
+                        <div id="console-player-horizontal-list" class="console-horizontal-scroll">
+                            <!-- JSで生成 -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="studio-answers-row hidden">
                     <div class="studio-grid-right-answers">
                         <div class="sidebar-section-label">👥 回答者の回答</div>
                         <div id="studio-answer-stats" class="studio-answer-stats-bar">

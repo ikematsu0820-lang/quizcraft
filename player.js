@@ -795,6 +795,7 @@ function submitAnswer(roomId, playerId, answer) {
     }
     isReanswering = false;
     window.db.ref(`rooms/${roomId}/players/${playerId}`).update({
-        lastAnswer: answer
+        lastAnswer: answer,
+        answerTime: firebase.database.ServerValue.TIMESTAMP
     });
 }
