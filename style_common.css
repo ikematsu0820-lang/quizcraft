@@ -365,9 +365,42 @@ textarea:focus,
 }
 
 .landing-btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.15);
     color: white;
     border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Specific Modern Buttons for Login/Entry */
+.landing-btn {
+    display: block;
+    width: 100%;
+    padding: 14px 20px;
+    border-radius: 50px;
+    font-size: 1.05em;
+    font-weight: 800;
+    text-align: center;
+    border: none;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    cursor: pointer;
+    margin-top: 10px;
+    letter-spacing: 0.5px;
+}
+
+.btn-host-modern,
+.btn-player-modern {
+    background: var(--grad-primary);
+    color: #000;
+    box-shadow: 0 8px 25px rgba(0, 229, 255, 0.3);
+}
+
+.landing-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 35px rgba(0, 229, 255, 0.5);
+    filter: brightness(1.1);
+}
+
+.landing-btn:active {
+    transform: translateY(-1px) scale(0.98);
 }
 
 
