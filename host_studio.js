@@ -292,7 +292,9 @@ App.Studio = {
         App.State.currentPeriodIndex = index;
         if (!item.progSettings) item.progSettings = { showRankingAfter: false, eliminationMode: 'none' };
 
-        App.Data.studioQuestions = this.shuffleQuestions(item.questions || []);
+        // Follow design studio's slide order by default, only shuffle if explicit config says so
+        const shuffle = (item.config && item.config.shuffleQuestions === true);
+        App.Data.studioQuestions = shuffle ? this.shuffleQuestions(item.questions || []) : (item.questions || []);
         App.Data.currentConfig = item.config || { mode: 'normal' };
         App.Data.currentConfig.periodTitle = item.title || "Untitled";
         App.State.currentQIndex = 0;
@@ -390,14 +392,24 @@ App.Studio = {
         const syncBadge = document.getElementById('studio-player-sync-status');
 
         switch (stepId) {
-            case 0: // 待機
-                btnMain.textContent = `Q.${App.State.currentQIndex + 1} 問題開始`;
-                btnMain.onclick = () => this.setStep(2); // Skip Step 1 (READING)
+            case 0: // 待機 / タイトル
+                const currentSet = App.Data.periodPlaylist[App.State.currentPeriodIndex];
+                const pTitle = currentSet.title;
+                const firstQ = App.Data.studioQuestions[0] || {};
+
+                // If it's the very beginning of the set, show the Title screen from production design
+                if (App.State.currentQIndex === 0 && firstQ.prodDesign) {
+                    this.renderProductionMonitor('title', firstQ);
+                    btnMain.textContent = `クイズ開始 (第1問へ)`;
+                } else {
+                    this.renderMonitorMessage("", pTitle);
+                    btnMain.textContent = `第${App.State.currentQIndex + 1}問 開始`;
+                }
+
+                btnMain.onclick = () => this.setStep(1); // Go to Q Number Step
                 syncBadge.textContent = "WAITING";
                 syncBadge.style.background = "#333";
 
-                const pTitle = App.Data.periodPlaylist[App.State.currentPeriodIndex].title;
-                this.renderMonitorMessage("", pTitle);
                 document.getElementById('studio-execution-grid').classList.remove('hidden');
                 this.updateMonitorScaling();
                 this.updateNextPreview();
@@ -409,19 +421,22 @@ App.Studio = {
                 });
                 break;
 
-            case 1: // 出題 (Monitor shows Q)
-                btnMain.textContent = "回答受付スタート (START)";
+            case 1: // 出題準備 (Question Number Slide)
+                btnMain.textContent = "問題を表示する (REVEAL)";
                 btnMain.classList.add('action-ready');
                 btnMain.onclick = () => this.setStep(2);
-                syncBadge.textContent = "QUESTION REVEAL";
+                syncBadge.textContent = "PREPARING";
                 syncBadge.style.background = "rgba(255, 215, 0, 0.2)";
 
-                this.renderQuestionMonitor(q);
+                if (q.prodDesign) {
+                    this.renderProductionMonitor('qnumber', q);
+                } else {
+                    this.renderMonitorMessage("", `第${App.State.currentQIndex + 1}問`);
+                }
+
                 window.db.ref(`rooms/${roomId}/status`).update({
-                    step: 'reveal_q',
-                    qText: q.q,
-                    qType: q.type,
-                    choices: q.c || null
+                    step: 'reveal_q_num',
+                    qNumLabel: `第${App.State.currentQIndex + 1}問`
                 });
                 break;
 
@@ -662,11 +677,12 @@ App.Studio = {
     },
 
     renderMonitorMessage: function (label, text) {
+        // Implementation remains same, but we reuse renderProductionMonitor logic internally if needed
         const qEl = document.getElementById('studio-q-text');
         if (qEl) {
             qEl.innerHTML = `
                 <div style="display:flex; justify-content:center; align-items:center; height:100%; width:100%;">
-                    <div style="font-size:2.5em; color:#ffd700; font-weight:bold; text-shadow:0 0 10px rgba(0,0,0,0.5);">
+                    <div style="font-size:2.5em; color:#ffd700; font-weight:bold; text-shadow:0 0 10px rgba(0,0,0,0.5); text-align:center; padding:0 30px;">
                         ${text}
                     </div>
                 </div>
@@ -676,6 +692,49 @@ App.Studio = {
         if (badge) badge.textContent = label || "";
         document.getElementById('studio-choices-container').innerHTML = '';
         document.getElementById('studio-correct-display').classList.add('hidden');
+        document.getElementById('studio-question-panel').style.backgroundImage = 'none';
+        document.getElementById('studio-question-panel').style.backgroundColor = '#000';
+        this.updateMonitorScaling();
+    },
+
+    renderProductionMonitor: function (type, q) {
+        const qEl = document.getElementById('studio-q-text');
+        const cContainer = document.getElementById('studio-choices-container');
+        const panel = document.getElementById('studio-question-panel');
+        if (!qEl || !cContainer || !panel) return;
+
+        const s = q.prodDesign || {};
+        cContainer.innerHTML = '';
+
+        let html = '';
+        if (type === 'title') {
+            const displayTitle = (s.titleText || App.Data.currentConfig.periodTitle || "Program Title").replace(/\\n/g, '<br>');
+            html = `
+                <div style="width:100%; height:100%; background:${s.titleBgColor || '#000'}; display:flex; align-items:center; justify-content:center; font-family:${s.titleFont || 'sans-serif'};">
+                    <div style="color:${s.titleTextColor || '#fff'}; font-size:${s.titleSize || '80px'}; font-weight:900; text-align:center; padding: 0 50px; line-height:1.2;">
+                        ${displayTitle}
+                    </div>
+                </div>
+            `;
+        } else if (type === 'qnumber') {
+            const displayQNum = (s.qNumberText || `第${App.State.currentQIndex + 1}問`).replace(/\\n/g, '<br>');
+            const pos = {
+                'center': 'align-items:center; justify-content:center;',
+                'top': 'align-items:flex-start; justify-content:center; padding-top:50px;',
+                'bottom': 'align-items:flex-end; justify-content:center; padding-bottom:50px;'
+            };
+            html = `
+                <div style="width:100%; height:100%; background:${s.qNumberBgColor || '#000'}; display:flex; ${pos[s.qNumberPosition || 'center']} font-family:${s.qNumberFont || 'sans-serif'};">
+                    <div style="color:${s.qNumberTextColor || '#fff'}; font-size:${s.qNumberSize || '80px'}; font-weight:900; text-align:center; line-height:1.2;">
+                        ${displayQNum}
+                    </div>
+                </div>
+            `;
+        }
+
+        qEl.innerHTML = html;
+        panel.style.backgroundColor = (type === 'title') ? (s.titleBgColor || '#000') : (s.qNumberBgColor || '#000');
+        panel.style.backgroundImage = 'none';
         this.updateMonitorScaling();
     },
 

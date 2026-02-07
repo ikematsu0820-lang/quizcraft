@@ -298,13 +298,15 @@ App.Design = {
             titleFont: getVal('prod-title-font', "sans-serif"),
             titleSize: getVal('prod-title-size', "80px"),
             titleAnimation: getVal('prod-title-animation', "fade"),
+            titleText: getVal('design-title-text-value', ""),
 
             qNumberBgColor: getVal('prod-qnum-bg-color', "#000000"),
             qNumberTextColor: getVal('prod-qnum-text-color', "#ffffff"),
             qNumberFont: getVal('prod-qnum-font', "sans-serif"),
             qNumberSize: getVal('prod-qnum-size', "80px"),
             qNumberAnimation: getVal('prod-qnum-animation', "slide"),
-            qNumberPosition: getVal('prod-qnum-position', "center")
+            qNumberPosition: getVal('prod-qnum-position', "center"),
+            qNumberText: getVal('design-qnum-text-value', "")
         };
     },
 
@@ -316,6 +318,7 @@ App.Design = {
         setVal('prod-title-font', p.titleFont);
         setVal('prod-title-size', p.titleSize);
         setVal('prod-title-animation', p.titleAnimation);
+        setVal('design-title-text-value', p.titleText || "");
 
         setVal('prod-qnum-bg-color', p.qNumberBgColor);
         setVal('prod-qnum-text-color', p.qNumberTextColor);
@@ -323,6 +326,7 @@ App.Design = {
         setVal('prod-qnum-size', p.qNumberSize);
         setVal('prod-qnum-animation', p.qNumberAnimation);
         setVal('prod-qnum-position', p.qNumberPosition);
+        setVal('design-qnum-text-value', p.qNumberText || "");
     },
 
     applyToUI: function (design, layout, align, prod) {
