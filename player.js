@@ -650,68 +650,56 @@ function renderPlayerQuestion(q, roomId, playerId) {
         const renderSortInput = () => {
             inputCont.innerHTML = '';
 
-            const container = document.createElement('div');
-            container.className = 'sort-input-container';
-            container.style.display = 'flex';
-            container.style.flexDirection = 'column';
-            container.style.gap = '10px';
+            const helpText = document.createElement('div');
+            helpText.className = 'player-sort-help';
+            helpText.innerHTML = '👆 項目をドラッグして正しい順序に入れ替えてください';
+            inputCont.appendChild(helpText);
 
+            const sortList = document.createElement('div');
+            sortList.id = 'player-sortable-list';
+            sortList.className = 'sortable-list';
+
+            // Create initial list (A, B, C...)
             items.forEach((txt, i) => {
-                const label = String.fromCharCode(65 + i);
-                const row = document.createElement('div');
-                row.className = 'sort-input-row';
-                row.style.display = 'flex';
-                row.style.alignItems = 'center';
-                row.style.background = 'rgba(255,255,255,0.05)';
-                row.style.border = '1px solid rgba(255,255,255,0.1)';
-                row.style.borderRadius = '8px';
-                row.style.padding = '10px 15px';
-
-                row.innerHTML = `
-                    <div style="width:30px; font-weight:900; color:var(--color-primary);">${label}</div>
-                    <div style="flex:1; font-size:0.9em;">${txt}</div>
-                    <div style="width:70px; display:flex; align-items:center; gap:5px;">
-                        <input type="number" class="player-sort-rank-input" data-index="${i}" 
-                            min="1" max="${n}" placeholder="順" 
-                            style="width:50px; background:#000; color:#fff; border:1px solid var(--color-primary); border-radius:4px; text-align:center; padding:5px 0;">
-                    </div>
+                const item = document.createElement('div');
+                item.className = 'sortable-item';
+                item.dataset.label = String.fromCharCode(65 + i);
+                item.innerHTML = `
+                    <div class="sortable-handle">☰</div>
+                    <div class="sortable-content">${txt}</div>
                 `;
-                container.appendChild(row);
+                sortList.appendChild(item);
             });
-            inputCont.appendChild(container);
+            inputCont.appendChild(sortList);
+
+            // Initialize Sortable
+            if (window.Sortable) {
+                new Sortable(sortList, {
+                    animation: 150,
+                    handle: '.sortable-handle',
+                    ghostClass: 'sortable-ghost',
+                    chosenClass: 'sortable-chosen',
+                    dragClass: 'sortable-drag'
+                });
+            }
 
             const submitBtn = document.createElement('button');
             submitBtn.className = 'btn-primary btn-block';
             submitBtn.style.marginTop = '20px';
-            submitBtn.textContent = '解答を送信';
+            submitBtn.textContent = '順序を確定して送信';
 
             submitBtn.onclick = () => {
-                const inputs = document.querySelectorAll('.player-sort-rank-input');
-                const ranks = [];
-                let isValid = true;
-
-                inputs.forEach(inp => {
-                    const r = parseInt(inp.value);
-                    if (isNaN(r) || r < 1 || r > n) isValid = false;
-                    ranks.push({ label: String.fromCharCode(65 + parseInt(inp.dataset.index)), rank: r });
+                const sortedItems = sortList.querySelectorAll('.sortable-item');
+                let answer = "";
+                sortedItems.forEach(el => {
+                    answer += el.dataset.label;
                 });
 
-                if (!isValid) {
-                    alert(`1から${n}までの数字をすべて入力してください`);
+                if (answer.length !== n) {
+                    alert("エラーが発生しました。");
                     return;
                 }
 
-                // Check for duplicates
-                const rankValues = ranks.map(r => r.rank);
-                const uniqueRanks = new Set(rankValues);
-                if (uniqueRanks.size !== n) {
-                    alert("番号が重複しています");
-                    return;
-                }
-
-                // Sort by rank and build string like "BACD"
-                ranks.sort((a, b) => a.rank - b.rank);
-                const answer = ranks.map(r => r.label).join('');
                 submitAnswer(roomId, playerId, answer);
             };
             inputCont.appendChild(submitBtn);
