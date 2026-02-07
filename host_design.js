@@ -105,6 +105,23 @@ App.Design = {
         if (nextBtn) nextBtn.onclick = () => this.moveQ(1);
 
         document.getElementById('design-save-btn').onclick = () => this.save();
+
+        const hideToggle = document.getElementById('design-pager-hide-toggle');
+        if (hideToggle) {
+            hideToggle.onclick = () => {
+                const qs = this.getQuestionsFromTarget();
+                if (!qs || qs.length === 0) return;
+                const info = this.getStepInfo(this.previewQIndex, qs);
+                if (info.type === 'title') {
+                    qs[0].isTitleHidden = !qs[0].isTitleHidden;
+                } else if (info.type === 'qnumber') {
+                    qs[info.qIdx].isQNumHidden = !qs[info.qIdx].isQNumHidden;
+                } else {
+                    qs[info.qIdx].isHidden = !qs[info.qIdx].isHidden;
+                }
+                this.renderPreview();
+            };
+        }
         document.getElementById('design-reset-btn').onclick = () => {
             if (confirm("初期値に戻しますか？")) {
                 this.setDefaultUI();
@@ -163,6 +180,13 @@ App.Design = {
         const totalSteps = 1 + (qs.length * 2);
         const newIdx = this.previewQIndex + delta;
         this.jumpToStep(newIdx, totalSteps);
+    },
+
+    getStepInfo: function (idx, questions) {
+        if (!questions || questions.length === 0) return { type: 'none' };
+        if (idx === 0) return { type: 'title', qIdx: 0 };
+        if (idx % 2 === 1) return { type: 'qnumber', qIdx: Math.floor((idx - 1) / 2) };
+        return { type: 'question', qIdx: Math.floor((idx - 2) / 2) };
     },
 
     jumpToStep: function (idx, total) {
@@ -371,15 +395,22 @@ App.Design = {
     renderPreview: function () {
         const content = document.getElementById('design-monitor-preview-content');
         const frame = document.getElementById('preview-monitor-container');
-        if (!content || !frame) return;
+        const playerFrame = document.getElementById('preview-player-container');
+        const playerContent = document.getElementById('design-player-preview-content');
 
-        // Monitor Scaling logic
-        const frameWidth = frame.clientWidth;
-        if (frameWidth > 0) {
-            const scale = frameWidth / 1280;
-            content.style.transform = `translate(-50%, -50%) scale(${scale})`;
-            content.style.transformOrigin = "center center";
-        }
+        if (!content || !frame || !playerFrame) return;
+
+        // Scaling logic for both frames
+        const scaleFrame = (targetFrame, targetContent, baseWidth) => {
+            const fw = targetFrame.clientWidth;
+            if (fw > 0) {
+                const s = fw / baseWidth;
+                targetContent.style.transform = `translate(-50%, -50%) scale(${s})`;
+                targetContent.style.transformOrigin = "center center";
+            }
+        };
+        scaleFrame(frame, content, 1280);
+        scaleFrame(playerFrame, playerContent, 375); // Mock base width
 
         const s = this.collectSettings();
         const d = s.design;
@@ -401,23 +432,20 @@ App.Design = {
             const totalSteps = 1 + (questions.length * 2);
 
             if (questions.length > 0) {
-                // Ensure index is valid
                 if (this.previewQIndex >= totalSteps) this.previewQIndex = 0;
-
-                // Determine step type
-                let stepType = 'title';
-                let qIdx = -1;
-                if (this.previewQIndex === 0) {
-                    stepType = 'title';
-                } else if (this.previewQIndex % 2 === 1) {
-                    stepType = 'qnumber';
-                    qIdx = Math.floor((this.previewQIndex - 1) / 2);
-                } else {
-                    stepType = 'question';
-                    qIdx = Math.floor((this.previewQIndex - 2) / 2);
-                }
-
+                const info = this.getStepInfo(this.previewQIndex, questions);
+                const stepType = info.type;
+                const qIdx = info.qIdx;
                 qData = qIdx >= 0 ? questions[qIdx] : null;
+
+                // Visibility status
+                let isHidden = false;
+                if (stepType === 'title') isHidden = !!questions[0].isTitleHidden;
+                else if (stepType === 'qnumber') isHidden = !!questions[qIdx].isQNumHidden;
+                else if (stepType === 'question') isHidden = !!questions[qIdx].isHidden;
+
+                const hideBtn = document.getElementById('design-pager-hide-toggle');
+                if (hideBtn) hideBtn.classList.toggle('is-hidden', isHidden);
 
                 // Update Pager UI
                 const pager = document.getElementById('design-pager-container');
@@ -430,16 +458,33 @@ App.Design = {
                 let statusText = "TITLE";
                 if (stepType === 'qnumber') statusText = `第${qIdx + 1}問 (番号)`;
                 if (stepType === 'question') statusText = `第${qIdx + 1}問 (内容)`;
-
                 if (status) status.textContent = statusText;
+
                 if (prev) prev.disabled = (this.previewQIndex === 0);
                 if (next) next.disabled = (this.previewQIndex === totalSteps - 1);
+
+                // Add "HIDDEN" overlay if active
+                const addOverlay = (target) => {
+                    const existing = target.querySelector('.preview-hidden-overlay');
+                    if (isHidden) {
+                        if (!existing) {
+                            const ov = document.createElement('div');
+                            ov.className = 'preview-hidden-overlay';
+                            ov.innerHTML = '<div class="msg">非表示設定中</div>';
+                            target.appendChild(ov);
+                        }
+                    } else if (existing) {
+                        existing.remove();
+                    }
+                };
 
                 // If it's Title or QNumber, use Production Design rendering
                 if (stepType === 'title' || stepType === 'qnumber') {
                     this.renderProductionStep(stepType, qIdx, questions);
+                    addOverlay(content);
                     return;
                 }
+                addOverlay(content);
             } else {
                 const pager = document.getElementById('design-pager-container');
                 if (pager) pager.classList.add('hidden');

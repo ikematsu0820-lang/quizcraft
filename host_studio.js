@@ -397,10 +397,19 @@ App.Studio = {
                 const pTitle = currentSet.title;
                 const firstQ = App.Data.studioQuestions[0] || {};
 
-                // If it's the very beginning of the set, show the Title screen from production design
-                if (App.State.currentQIndex === 0 && firstQ.prodDesign) {
-                    this.renderProductionMonitor('title', firstQ);
-                    btnMain.textContent = `クイズ開始 (第1問へ)`;
+                // If it's the very beginning of the set, check if Title should be shown
+                if (App.State.currentQIndex === 0) {
+                    if (firstQ.isTitleHidden) {
+                        this.setStep(1);
+                        return;
+                    }
+                    if (firstQ.prodDesign) {
+                        this.renderProductionMonitor('title', firstQ);
+                        btnMain.textContent = `クイズ開始 (第1問へ)`;
+                    } else {
+                        this.renderMonitorMessage("", pTitle);
+                        btnMain.textContent = `第${App.State.currentQIndex + 1}問 開始`;
+                    }
                 } else {
                     this.renderMonitorMessage("", pTitle);
                     btnMain.textContent = `第${App.State.currentQIndex + 1}問 開始`;
@@ -422,6 +431,10 @@ App.Studio = {
                 break;
 
             case 1: // 出題準備 (Question Number Slide)
+                if (q.isQNumHidden) {
+                    this.setStep(2);
+                    return;
+                }
                 btnMain.textContent = "問題を表示する (REVEAL)";
                 btnMain.classList.add('action-ready');
                 btnMain.onclick = () => this.setStep(2);
@@ -538,13 +551,21 @@ App.Studio = {
     },
 
     goNext: function () {
-        if (App.State.currentQIndex < App.Data.studioQuestions.length - 1) {
-            App.State.currentQIndex++;
-            this.resetPlayerStatus();
-            this.setStep(0); // 次の問題の待機からスタート
-        } else {
-            this.handleSetCompletion();
+        let nextIdx = App.State.currentQIndex + 1;
+        const questions = App.Data.studioQuestions;
+
+        while (nextIdx < questions.length) {
+            if (!questions[nextIdx].isHidden) {
+                App.State.currentQIndex = nextIdx;
+                this.resetPlayerStatus();
+                this.setStep(0);
+                return;
+            }
+            nextIdx++;
         }
+
+        // No more visible questions
+        this.handleSetCompletion();
     },
 
     handleSetCompletion: function () {

@@ -100,22 +100,22 @@
             </div>
         </div>
         <div class="pager-segmented-wrapper">
-            <div class="preview-segmented-control">
-                <button class="segmented-btn active" data-type="monitor" title="モニター画面">🖥️ モニター</button>
-                <button class="segmented-btn" data-type="player" title="参加者スマホ">📱 スマホ</button>
-            </div>
             <div id="design-pager-container" class="design-pager-area hidden">
                 <button id="design-pager-prev" class="pager-arrow-btn">◀︎</button>
                 <div id="design-pager-status" class="pager-status-text">待機</div>
                 <button id="design-pager-next" class="pager-arrow-btn">▶︎</button>
+                <!-- Slide Visibility Toggle -->
+                <button id="design-pager-hide-toggle" class="pager-hide-btn" title="このスライドを本番で表示しない">
+                    <span class="icon-show">👁️</span>
+                    <span class="icon-hide hidden">🙈</span>
+                </button>
             </div>
+            <!-- Removed segmented control to show both side-by-side -->
         </div>
 
-        <div class="design-preview-area-top">
-            <div id="preview-monitor-container" class="design-preview-frame">
-                <div id="design-monitor-preview-content"></div>
-            </div>
-            <div id="preview-player-container" class="design-preview-frame player-frame hidden">
+        <div class="design-preview-area-top side-by-side">
+            <!-- Smartphone (Player) on the LEFT -->
+            <div id="preview-player-container" class="design-preview-frame player-frame">
                 <div id="design-player-preview-content">
                     <div class="player-preview-mock">
                         <div class="p-status-bar"></div>
@@ -124,8 +124,12 @@
                     </div>
                 </div>
             </div>
-            <p class="preview-note">※実際の表示とは解像度が異なります</p>
+            <!-- Monitor (Host) on the RIGHT -->
+            <div id="preview-monitor-container" class="design-preview-frame">
+                <div id="design-monitor-preview-content"></div>
+            </div>
         </div>
+        <p class="preview-note">※実際の表示とは解像度が異なります</p>
         <div class="design-compact-menu" style="justify-content: center;">
             <button id="btn-open-layout" class="design-menu-btn-compact" title="レイアウト"><span class="menu-icon">📺</span>
                 レイアウト設定</button>
