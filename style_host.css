@@ -3256,3 +3256,37 @@ input:checked+.pro-slider:before {
         flex-shrink: 0;
     }
 }
+/* --- Creator Rank Picker Design --- */
+.sort-rank-picker {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.creator-rank-btn {
+    width: 24px;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #888;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.creator-rank-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+}
+
+.creator-rank-btn.active {
+    background: var(--color-primary);
+    color: #000;
+    border-color: transparent;
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
+}

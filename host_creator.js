@@ -335,13 +335,11 @@ window.App.Creator = {
         const row = document.createElement('div');
         row.className = 'sort-row flex-center gap-5';
         row.innerHTML = `
-            <span class="sort-label bold cyan text-lg w-25 text-center">A</span>
+            <span class="sort-label bold cyan text-lg w-20 text-center">A</span>
             <input type="text" class="sort-text-input flex-1" placeholder="項目を入力" value="${text}">
-            <div style="width:80px; display:flex; align-items:center; gap:5px;">
-                <span class="text-xs">順:</span>
-                <input type="number" class="sort-order-input" value="${rank}" min="1" max="20" style="width:40px; text-align:center;">
-            </div>
-            <button class="btn-mini btn-dark w-30">×</button>
+            <div class="sort-rank-picker flex gap-2"></div>
+            <input type="hidden" class="sort-order-input" value="${rank || index + 1}">
+            <button class="btn-mini btn-dark" style="width:25px; padding:2px;">×</button>
         `;
         row.querySelector('button').onclick = () => { row.remove(); this.updateSortLabels(parent); };
         parent.appendChild(row);
@@ -371,7 +369,30 @@ window.App.Creator = {
         parent.querySelectorAll('.choice-label-btn').forEach((el, i) => el.textContent = String.fromCharCode(65 + i));
     },
     updateSortLabels: function (parent) {
-        parent.querySelectorAll('.sort-label').forEach((el, i) => el.textContent = String.fromCharCode(65 + i));
+        const rows = parent.querySelectorAll('.sort-row');
+        const count = rows.length;
+        rows.forEach((row, i) => {
+            row.querySelector('.sort-label').textContent = String.fromCharCode(65 + i);
+            this.renderSortRankButtons(row, count);
+        });
+    },
+    renderSortRankButtons: function (row, total) {
+        const picker = row.querySelector('.sort-rank-picker');
+        if (!picker) return;
+        const hidden = row.querySelector('.sort-order-input');
+        const currentRank = parseInt(hidden.value);
+
+        picker.innerHTML = '';
+        for (let r = 1; r <= total; r++) {
+            const btn = document.createElement('div');
+            btn.className = 'creator-rank-btn' + (currentRank === r ? ' active' : '');
+            btn.textContent = r;
+            btn.onclick = () => {
+                hidden.value = r;
+                this.updateSortLabels(row.parentNode);
+            };
+            picker.appendChild(btn);
+        }
     },
 
     getData: function () {

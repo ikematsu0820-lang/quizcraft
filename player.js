@@ -647,6 +647,13 @@ function renderPlayerQuestion(q, roomId, playerId) {
         const items = q.c || [];
         const n = items.length;
 
+        // Shuffle initial items but keep their original label (A, B, C...)
+        let zipped = items.map((txt, i) => ({ txt, label: String.fromCharCode(65 + i) }));
+        for (let i = zipped.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [zipped[i], zipped[j]] = [zipped[j], zipped[i]];
+        }
+
         const renderSortInput = () => {
             inputCont.innerHTML = '';
 
@@ -659,14 +666,14 @@ function renderPlayerQuestion(q, roomId, playerId) {
             sortList.id = 'player-sortable-list';
             sortList.className = 'sortable-list';
 
-            // Create initial list (A, B, C...)
-            items.forEach((txt, i) => {
+            // Create zipped list
+            zipped.forEach((itemData) => {
                 const item = document.createElement('div');
                 item.className = 'sortable-item';
-                item.dataset.label = String.fromCharCode(65 + i);
+                item.dataset.label = itemData.label;
                 item.innerHTML = `
                     <div class="sortable-handle">☰</div>
-                    <div class="sortable-content">${txt}</div>
+                    <div class="sortable-content">${itemData.txt}</div>
                 `;
                 sortList.appendChild(item);
             });
