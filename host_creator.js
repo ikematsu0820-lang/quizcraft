@@ -9,6 +9,7 @@ window.App.Creator = {
     editingIndex: null,
     editingTitle: "",
     currentLetterSteps: [],
+    nextSortRank: 1, // For interactive sorting
 
     init: function () {
         this.editingIndex = null;
@@ -27,35 +28,93 @@ window.App.Creator = {
         this.renderList();
         window.App.Ui.showView(window.App.Ui.views.creator);
 
-        const typeSelect = document.getElementById('creator-q-type');
-        if (typeSelect) {
-            typeSelect.disabled = false;
+        const sel = document.getElementById('creator-q-type');
+        const subArea = document.getElementById('creator-q-subtype-area');
+        const subSel = document.getElementById('creator-q-subtype');
+        if (sel) {
+            sel.disabled = false;
+            subSel.disabled = false;
+            subArea.classList.add('hidden');
             document.getElementById('creator-type-locked-msg').classList.add('hidden');
-            this.renderForm(typeSelect.value);
+            this.renderForm(sel.value === 'free' ? subSel.value : sel.value);
         }
     },
 
     setupTypeSelect: function () {
         const sel = document.getElementById('creator-q-type');
+        const subArea = document.getElementById('creator-q-subtype-area');
+        const subSel = document.getElementById('creator-q-subtype');
         if (!sel || sel.options.length > 0) return;
 
-        const opts = [
+        const mainTypes = [
+            { v: 'free', t: APP_TEXT.Creator.TypeFree },
             { v: 'choice', t: APP_TEXT.Creator.TypeChoice },
-            { v: 'letter_select', t: APP_TEXT.Creator.TypeLetterSelect },
             { v: 'sort', t: APP_TEXT.Creator.TypeSort },
-            { v: 'free_oral', t: APP_TEXT.Creator.TypeFreeOral },
-            { v: 'free_written', t: APP_TEXT.Creator.TypeFreeWritten },
-            { v: 'multi', t: APP_TEXT.Creator.TypeMulti }
+            { v: 'multi_group', t: APP_TEXT.Creator.TypeMulti }
         ];
-        opts.forEach(o => {
+
+        const placeholder = document.createElement('option');
+        placeholder.value = "";
+        placeholder.textContent = "----問題形式を選んでください----";
+        placeholder.disabled = false;
+        placeholder.selected = true;
+        sel.appendChild(placeholder);
+
+        mainTypes.forEach(o => {
             const el = document.createElement('option');
             el.value = o.v;
             el.textContent = o.t;
             sel.appendChild(el);
         });
 
+        const updateSubTypes = (mainVal) => {
+            subSel.innerHTML = '';
+            let subItems = [];
+            if (mainVal === 'free') {
+                subItems = [
+                    { v: 'free_written', t: APP_TEXT.Creator.TypeFreeWritten },
+                    { v: 'free_oral', t: APP_TEXT.Creator.TypeFreeOral },
+                    { v: 'letter_select', t: APP_TEXT.Creator.TypeLetterSelect }
+                ];
+            } else if (mainVal === 'multi_group') {
+                subItems = [
+                    { v: 'multi_written', t: APP_TEXT.Creator.TypeMultiWritten },
+                    { v: 'multi_oral', t: APP_TEXT.Creator.TypeMultiOral }
+                ];
+            } else if (mainVal === 'choice') {
+                subItems = [
+                    { v: 'choice_single', t: "2-1) 単一回答" },
+                    { v: 'choice_multi', t: "2-2) 複数回答" }
+                ];
+            }
+
+            subItems.forEach(o => {
+                const el = document.createElement('option');
+                el.value = o.v;
+                el.textContent = o.t;
+                subSel.appendChild(el);
+            });
+        };
+
         sel.onchange = (e) => {
-            if (window.App.Data.createdQuestions.length === 0) this.renderForm(e.target.value);
+            const val = e.target.value;
+            if (!val) {
+                subArea.classList.add('hidden');
+                document.getElementById('creator-form-container').innerHTML = '';
+                return;
+            }
+            if (val === 'free' || val === 'multi_group' || val === 'choice') {
+                updateSubTypes(val);
+                subArea.classList.remove('hidden');
+                this.renderForm(subSel.value);
+            } else {
+                subArea.classList.add('hidden');
+                this.renderForm(val);
+            }
+        };
+
+        subSel.onchange = (e) => {
+            this.renderForm(e.target.value);
         };
     },
 
@@ -69,11 +128,118 @@ window.App.Creator = {
 
         this.setupTypeSelect();
 
-        const typeSelect = document.getElementById('creator-q-type');
+        const sel = document.getElementById('creator-q-type');
+        const subArea = document.getElementById('creator-q-subtype-area');
+        const subSel = document.getElementById('creator-q-subtype');
+
         if (window.App.Data.createdQuestions.length > 0) {
             const firstQ = window.App.Data.createdQuestions[0];
-            typeSelect.value = firstQ.type;
-            typeSelect.disabled = true;
+            const type = firstQ.type;
+
+            if (type.startsWith('free') || type === 'letter_select') {
+                sel.value = 'free';
+                const updateSubTypes = (mainVal) => {
+                    subSel.innerHTML = '';
+                    let subItems = [];
+                    if (mainVal === 'free') {
+                        subItems = [
+                            { v: 'free_written', t: APP_TEXT.Creator.TypeFreeWritten },
+                            { v: 'free_oral', t: APP_TEXT.Creator.TypeFreeOral },
+                            { v: 'letter_select', t: APP_TEXT.Creator.TypeLetterSelect }
+                        ];
+                    } else if (mainVal === 'multi_group') {
+                        subItems = [
+                            { v: 'multi_written', t: APP_TEXT.Creator.TypeMultiWritten },
+                            { v: 'multi_oral', t: APP_TEXT.Creator.TypeMultiOral }
+                        ];
+                    } else if (mainVal === 'choice') {
+                        subItems = [
+                            { v: 'choice_single', t: "2-1) 単一回答" },
+                            { v: 'choice_multi', t: "2-2) 複数回答" }
+                        ];
+                    }
+                    subItems.forEach(o => {
+                        const el = document.createElement('option');
+                        el.value = o.v;
+                        el.textContent = o.t;
+                        subSel.appendChild(el);
+                    });
+                };
+                updateSubTypes('free');
+                subArea.classList.remove('hidden');
+                subSel.value = type;
+            } else if (type.startsWith('multi')) {
+                sel.value = 'multi_group';
+                const updateSubTypes = (mainVal) => {
+                    subSel.innerHTML = '';
+                    let subItems = [];
+                    if (mainVal === 'free') {
+                        subItems = [
+                            { v: 'free_written', t: APP_TEXT.Creator.TypeFreeWritten },
+                            { v: 'free_oral', t: APP_TEXT.Creator.TypeFreeOral },
+                            { v: 'letter_select', t: APP_TEXT.Creator.TypeLetterSelect }
+                        ];
+                    } else if (mainVal === 'multi_group') {
+                        subItems = [
+                            { v: 'multi_written', t: APP_TEXT.Creator.TypeMultiWritten },
+                            { v: 'multi_oral', t: APP_TEXT.Creator.TypeMultiOral }
+                        ];
+                    } else if (mainVal === 'choice') {
+                        subItems = [
+                            { v: 'choice_single', t: "2-1) 単一回答" },
+                            { v: 'choice_multi', t: "2-2) 複数回答" }
+                        ];
+                    }
+                    subItems.forEach(o => {
+                        const el = document.createElement('option');
+                        el.value = o.v;
+                        el.textContent = o.t;
+                        subSel.appendChild(el);
+                    });
+                };
+                updateSubTypes('multi_group');
+                subArea.classList.remove('hidden');
+                subSel.value = type;
+            } else if (type === 'choice') {
+                sel.value = 'choice';
+                const updateSubTypes = (mainVal) => {
+                    subSel.innerHTML = '';
+                    let subItems = [];
+                    if (mainVal === 'free') {
+                        subItems = [
+                            { v: 'free_written', t: APP_TEXT.Creator.TypeFreeWritten },
+                            { v: 'free_oral', t: APP_TEXT.Creator.TypeFreeOral },
+                            { v: 'letter_select', t: APP_TEXT.Creator.TypeLetterSelect }
+                        ];
+                    } else if (mainVal === 'multi_group') {
+                        subItems = [
+                            { v: 'multi_written', t: APP_TEXT.Creator.TypeMultiWritten },
+                            { v: 'multi_oral', t: APP_TEXT.Creator.TypeMultiOral }
+                        ];
+                    } else if (mainVal === 'choice') {
+                        subItems = [
+                            { v: 'choice_single', t: "2-1) 単一回答" },
+                            { v: 'choice_multi', t: "2-2) 複数回答" }
+                        ];
+                    }
+                    subItems.forEach(o => {
+                        const el = document.createElement('option');
+                        el.value = o.v;
+                        el.textContent = o.t;
+                        subSel.appendChild(el);
+                    });
+                };
+                updateSubTypes('choice');
+                subArea.classList.remove('hidden');
+                const isMulti = firstQ.multi || firstQ.mode === 'multi';
+                subSel.value = isMulti ? 'choice_multi' : 'choice_single';
+            } else {
+                sel.value = type;
+                subArea.classList.add('hidden');
+            }
+
+            sel.disabled = true;
+            subSel.disabled = true;
             document.getElementById('creator-type-locked-msg').classList.remove('hidden');
 
             if (document.getElementById('creator-set-layout')) document.getElementById('creator-set-layout').value = firstQ.layout || 'standard';
@@ -83,7 +249,9 @@ window.App.Creator = {
                 window.applyDesignToUI(firstQ.design, firstQ.layout, firstQ.align);
             }
         } else {
-            typeSelect.disabled = false;
+            sel.disabled = false;
+            subSel.disabled = false;
+            subArea.classList.add('hidden');
             document.getElementById('creator-type-locked-msg').classList.add('hidden');
         }
 
@@ -95,14 +263,16 @@ window.App.Creator = {
     resetForm: function () {
         this.editingIndex = null;
         this.currentLetterSteps = [];
+
         document.getElementById('creator-form-title').textContent = APP_TEXT.Creator.HeadingNewQ;
         document.getElementById('add-question-btn').classList.remove('hidden');
         document.getElementById('update-question-area').classList.add('hidden');
         document.getElementById('question-text').value = '';
         document.getElementById('creator-commentary').value = '';
 
-        const typeSelect = document.getElementById('creator-q-type');
-        const type = typeSelect ? typeSelect.value : 'choice';
+        const sel = document.getElementById('creator-q-type');
+        const subSel = document.getElementById('creator-q-subtype');
+        const type = (sel && (['free', 'multi_group', 'choice'].includes(sel.value))) ? subSel.value : (sel ? sel.value : 'choice');
         this.renderForm(type);
     },
 
@@ -111,13 +281,79 @@ window.App.Creator = {
         if (!container) return;
         container.innerHTML = '';
 
+        // Handle Choice Subtypes
+        if (type === 'choice_single') {
+            this.choiceSubtype = 'single';
+            type = 'choice';
+        } else if (type === 'choice_multi') {
+            this.choiceSubtype = 'multi';
+            type = 'choice';
+        }
+
         if (type === 'choice') {
+            const subtype = this.choiceSubtype || 'single';
+
+            container.innerHTML = `
+                <div class="flex-between mb-5">
+                    <p class="text-sm text-gray mb-0">正解を選択してください。</p>
+                </div>
+            `;
+
             const choicesDiv = document.createElement('div');
             choicesDiv.id = 'creator-choices-list';
             choicesDiv.className = 'grid-gap-5';
             container.appendChild(choicesDiv);
 
-            if (data) data.c.forEach((txt, i) => this.addChoiceInput(choicesDiv, i, txt, data.correct.includes(i)));
+
+            // Bind Radio Change
+            container.querySelectorAll('input[name="choice-subtype"]').forEach(r => {
+                r.onchange = (e) => {
+                    this.choiceSubtype = e.target.value;
+                    // Re-render inputs to update click behavior and visuals
+                    // To preserve text, we might want to read current values first?
+                    // For simplicity, we just update the *behavior* of existing inputs if possible,
+                    // or re-render using current data.
+                    // Let's grab current data and re-render.
+                    const currentData = [];
+                    choicesDiv.querySelectorAll('.choice-row').forEach(row => {
+                        currentData.push({
+                            text: row.querySelector('.choice-text-input').value,
+                            checked: row.querySelector('.choice-correct-chk').checked
+                        });
+                    });
+
+                    choicesDiv.innerHTML = '';
+                    currentData.forEach((d, i) => {
+                        // If switching to Single, clear checks except maybe first? 
+                        // Or just let addChoiceInput handle it (it respects checked param).
+                        // If user switches Multi->Single, valid to have multiple checked initially?
+                        // No, validation will catch it. Or we can force clear.
+                        // Let's enforce single check if Single mode.
+                        let isChecked = d.checked;
+                        if (this.choiceSubtype === 'single' && isChecked) {
+                            // Only allow one? Loop logic difficult here.
+                            // Simplest: Uncheck all if switching to Single? Or keep inputs.
+                        }
+                        this.addChoiceInput(choicesDiv, i, d.text, d.checked);
+                    });
+                    // Ensure at least 4 inputs if empty (though logic above handles existing)
+                    if (currentData.length === 0) for (let i = 0; i < 4; i++) this.addChoiceInput(choicesDiv, i);
+
+                    // Update shuffle box visibility? No, shuffle applies to both.
+                };
+            });
+
+            if (data) {
+                // If editing, determine subtype from data
+                if (data.multi) this.choiceSubtype = 'multi';
+                else this.choiceSubtype = 'single';
+
+                // Update radio
+                const r = container.querySelector(`input[name="choice-subtype"][value="${this.choiceSubtype}"]`);
+                if (r) r.checked = true;
+
+                data.c.forEach((txt, i) => this.addChoiceInput(choicesDiv, i, txt, data.correct.includes(i)));
+            }
             else for (let i = 0; i < 4; i++) this.addChoiceInput(choicesDiv, i);
 
             this.createAddBtn(container, APP_TEXT.Creator.BtnAddChoice, () => this.addChoiceInput(choicesDiv));
@@ -156,40 +392,61 @@ window.App.Creator = {
 
         else if (type === 'sort') {
             container.innerHTML = `
-                <p class="text-sm text-gray mb-5">${APP_TEXT.Creator.DescSort}</p>
+                <div class="flex-between mb-5">
+                    <p class="text-sm text-gray mb-0">${APP_TEXT.Creator.DescSort}</p>
+                    <button id="btn-reset-sort-ranks" class="btn-mini btn-dark">順序をリセット</button>
+                </div>
             `;
             const sortDiv = document.createElement('div');
             sortDiv.className = 'flex-col gap-5';
             container.appendChild(sortDiv);
 
+            document.getElementById('btn-reset-sort-ranks').onclick = () => this.resetSortRanks(sortDiv);
+
             if (data) {
-                // Determine order string (e.g., "BACD")
                 const orderStr = data.correct || "";
+                let maxR = 0;
                 data.c.forEach((txt, i) => {
                     const label = String.fromCharCode(65 + i);
-                    // Find what rank this label has in orderStr
-                    // e.g. if orderStr is "BACD", A is rank 2
-                    const rank = orderStr.indexOf(label) + 1;
-                    this.addSortInput(sortDiv, i, txt, rank || (i + 1));
+                    const r = orderStr.indexOf(label);
+                    const rank = (r >= 0) ? r + 1 : "";
+                    if (rank > maxR) maxR = rank;
+                    this.addSortInput(sortDiv, i, txt, rank || "");
                 });
+                this.nextSortRank = maxR + 1;
+            } else {
+                this.nextSortRank = 1;
+                for (let i = 0; i < 4; i++) this.addSortInput(sortDiv, i);
             }
-            else for (let i = 0; i < 4; i++) this.addSortInput(sortDiv, i, "", i + 1);
 
             this.createAddBtn(container, APP_TEXT.Creator.BtnAddSort, () => this.addSortInput(sortDiv));
 
-            // No more shuffle checkbox here, sorting is handled by rank
+            // Shuffle option for Sort
+            const shuffleDiv = document.createElement('div');
+            shuffleDiv.className = 'config-group mt-10';
+            shuffleDiv.innerHTML = `
+                <label class="config-label" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" id="sort-shuffle-chk" ${data?.shuffle !== false ? 'checked' : ''}>
+                    <span>選択肢をシャッフルする</span>
+                </label>
+                <p class="text-sm text-gray" style="margin:5px 0 0 0;">※チェックを外すと、初期表示が固定されます（作成順）</p>
+            `;
+            container.appendChild(shuffleDiv);
         }
         else if (type.startsWith('free')) {
-            container.innerHTML = `<p class="text-sm text-gray mb-5">${APP_TEXT.Creator.DescText}</p>`;
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.id = 'creator-text-answer';
-            input.className = 'btn-block';
-            input.placeholder = 'Answer Keyword';
-            if (data && data.correct) input.value = Array.isArray(data.correct) ? data.correct.join(', ') : data.correct;
-            container.appendChild(input);
+            const row = document.createElement('div');
+            row.className = 'creator-row';
+            row.innerHTML = `
+                <label class="config-label">正解キーワード</label>
+                <input type="text" id="creator-text-answer" class="btn-block flex-1" placeholder="キーワード（複数ある場合はカンマ区切り）" style="margin-bottom:0;">
+            `;
+            const input = row.querySelector('input');
+            if (data && data.correct) {
+                input.value = Array.isArray(data.correct) ? data.correct.join(', ') : data.correct;
+            }
+            container.appendChild(row);
         }
-        else if (type === 'multi') {
+        else if (type.startsWith('multi')) {
             container.innerHTML = `<p class="text-sm text-gray mb-5">${APP_TEXT.Creator.DescMulti}</p>`;
             const multiDiv = document.createElement('div');
             multiDiv.className = 'grid-gap-5';
@@ -304,19 +561,49 @@ window.App.Creator = {
         if (parent.children.length >= 20) { alert(APP_TEXT.Creator.AlertMaxChoice); return; }
         const row = document.createElement('div');
         row.className = 'choice-row flex-center gap-5 p-5';
+
+        // Use radio or checkbox input based on subtype
+        // Note: For Single, we need 'name' to be shared across rows to enforce single selection.
+        // But dynamically added rows make 'name' handling tricky if grouping isn't handled.
+        // If we use standard Radio buttons, they handle mutual exclusion automatically if 'name' matches.
+
+        const inputType = (this.choiceSubtype === 'single') ? 'radio' : 'checkbox';
         const chk = document.createElement('input');
-        chk.type = 'checkbox';
+        chk.type = inputType;
+        chk.name = 'creator-choice-correct-group'; // Shared name for radios
         chk.className = 'choice-correct-chk';
         chk.checked = checked;
-        chk.style.display = 'none';
-        const labelBtn = document.createElement('div');
-        labelBtn.className = 'choice-label-btn';
-        if (checked) labelBtn.classList.add('active');
-        labelBtn.onclick = () => {
-            chk.checked = !chk.checked;
-            if (chk.checked) labelBtn.classList.add('active');
-            else labelBtn.classList.remove('active');
-        };
+
+        // Visually, we might want to keep the labelBtn style but update it?
+        // Or just use the native input + label?
+        // The user asked for "Radio buttons".
+        // Let's use visible inputs + Label A/B/C.
+
+        // Remove labelBtn toggle logic, rely on browser input behavior?
+        // But we want A/B/C styling.
+
+        const labelText = String.fromCharCode(65 + index);
+
+        // Use a wrapper label for clickability
+        const wrapper = document.createElement('label');
+        wrapper.className = 'choice-label-wrapper flex-center';
+        wrapper.style.cursor = 'pointer';
+        wrapper.style.gap = '5px';
+
+        // Style the input slightly bigger
+        chk.style.transform = 'scale(1.2)';
+        chk.style.cursor = 'pointer';
+
+        const labelSpan = document.createElement('span');
+        labelSpan.className = 'choice-label-text bold cyan text-lg w-20 text-center';
+        labelSpan.textContent = labelText;
+
+        wrapper.appendChild(chk);
+        wrapper.appendChild(labelSpan);
+
+        // If Single mode, ensure only one is checked? 
+        // Browser handles it via 'name'.
+
         const inp = document.createElement('input');
         inp.type = 'text';
         inp.className = 'choice-text-input flex-1';
@@ -326,31 +613,78 @@ window.App.Creator = {
         delBtn.textContent = '×';
         delBtn.className = 'btn-mini btn-dark w-30';
         delBtn.onclick = () => { row.remove(); this.updateLabels(parent); };
-        row.appendChild(chk); row.appendChild(labelBtn); row.appendChild(inp); row.appendChild(delBtn);
+
+        row.appendChild(wrapper);
+        row.appendChild(inp);
+        row.appendChild(delBtn);
+
         parent.appendChild(row);
         this.updateLabels(parent);
     },
 
     addSortInput: function (parent, index, text = "", rank = "") {
         const row = document.createElement('div');
-        row.className = 'sort-row flex-center gap-5';
-        row.innerHTML = `
-            <span class="sort-label bold cyan text-lg w-20 text-center">A</span>
-            <input type="text" class="sort-text-input flex-1" placeholder="項目を入力" value="${text}">
-            <div class="sort-rank-picker flex gap-2"></div>
-            <input type="hidden" class="sort-order-input" value="${rank || index + 1}">
-            <button class="btn-mini btn-dark" style="width:25px; padding:2px;">×</button>
+        row.className = 'sort-row';
+
+        const controlHtml = `
+            <div class="sort-rank-box" style="width:40px; height:40px; border:2px solid #444; border-radius:8px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-weight:900; font-size:1.2em; color:var(--color-primary); background:rgba(0,0,0,0.3);">
+                ${rank || ''}
+            </div>
+            <input type="hidden" class="sort-order-input" value="${rank || ''}">
         `;
-        row.querySelector('button').onclick = () => { row.remove(); this.updateSortLabels(parent); };
+
+        row.innerHTML = `
+        <span class="sort-label bold cyan text-lg w-20 text-center">${String.fromCharCode(65 + index)}</span>
+        <input type="text" class="sort-text-input flex-1" placeholder="項目を入力" value="${text}">
+        ${controlHtml}
+        <button class="btn-mini btn-dark btn-remove-sort" style="width:25px; padding:2px;">×</button>
+    `;
+
+        // Bind events
+        const rankBox = row.querySelector('.sort-rank-box');
+        const hidden = row.querySelector('.sort-order-input');
+        rankBox.onclick = () => {
+            if (hidden.value) return;
+            hidden.value = this.nextSortRank;
+            rankBox.textContent = this.nextSortRank;
+            rankBox.style.borderColor = 'var(--color-primary)';
+            this.nextSortRank++;
+        };
+
+        row.querySelector('.btn-remove-sort').onclick = () => {
+            row.remove();
+            this.updateSortLabels(parent);
+            this.resetSortRanks(parent);
+        };
         parent.appendChild(row);
         this.updateSortLabels(parent);
+    },
+
+    updateSortLabels: function (parent) {
+        parent.querySelectorAll('.sort-row').forEach((row, i) => {
+            const label = row.querySelector('.sort-label');
+            if (label) label.textContent = String.fromCharCode(65 + i);
+            // Also update radio value if single
+            const radio = row.querySelector('input[type="radio"]');
+            if (radio) radio.value = i;
+        });
+    },
+
+    resetSortRanks: function (parent) {
+        this.nextSortRank = 1;
+        parent.querySelectorAll('.sort-row').forEach(row => {
+            row.querySelector('.sort-order-input').value = "";
+            const box = row.querySelector('.sort-rank-box');
+            box.textContent = "";
+            box.style.borderColor = "#444";
+        });
     },
 
     addMultiInput: function (parent, index, text = "") {
         const row = document.createElement('div');
         row.className = 'flex-center gap-5';
         row.innerHTML = `
-            <span>✅</span><input type="text" class="multi-text-input flex-1" placeholder="Answer" value="${text}">
+            <input type="text" class="multi-text-input flex-1" placeholder="Answer" value="${text}">
             <button class="btn-mini btn-dark w-30">×</button>
         `;
         row.querySelector('button').onclick = () => row.remove();
@@ -366,46 +700,35 @@ window.App.Creator = {
     },
 
     updateLabels: function (parent) {
-        parent.querySelectorAll('.choice-label-btn').forEach((el, i) => el.textContent = String.fromCharCode(65 + i));
+        parent.querySelectorAll('.choice-label-text').forEach((el, i) => el.textContent = String.fromCharCode(65 + i));
     },
-    updateSortLabels: function (parent) {
-        const rows = parent.querySelectorAll('.sort-row');
-        const count = rows.length;
-        rows.forEach((row, i) => {
-            row.querySelector('.sort-label').textContent = String.fromCharCode(65 + i);
-            this.renderSortRankButtons(row, count);
-        });
-    },
-    renderSortRankButtons: function (row, total) {
-        const picker = row.querySelector('.sort-rank-picker');
-        if (!picker) return;
-        const hidden = row.querySelector('.sort-order-input');
-        const currentRank = parseInt(hidden.value);
 
-        picker.innerHTML = '';
-        for (let r = 1; r <= total; r++) {
-            const btn = document.createElement('div');
-            btn.className = 'creator-rank-btn' + (currentRank === r ? ' active' : '');
-            btn.textContent = r;
-            btn.onclick = () => {
-                hidden.value = r;
-                this.updateSortLabels(row.parentNode);
-            };
-            picker.appendChild(btn);
-        }
-    },
 
     getData: function () {
         const qText = document.getElementById('question-text').value.trim();
         if (!qText) { alert(APP_TEXT.Creator.AlertNoQ); return null; }
-        const type = document.getElementById('creator-q-type').value;
+        const sel = document.getElementById('creator-q-type');
+        const subSel = document.getElementById('creator-q-subtype');
+
+        let rawType = (sel && (['free', 'multi_group', 'choice'].includes(sel.value))) ? subSel.value : (sel ? sel.value : 'choice');
+        let normalizedType = rawType;
+        let choiceMode = 'single';
+
+        if (rawType === 'choice_single') {
+            normalizedType = 'choice';
+            choiceMode = 'single';
+        } else if (rawType === 'choice_multi') {
+            normalizedType = 'choice';
+            choiceMode = 'multi';
+        }
+
         let newQ = {
             q: qText,
-            type: type,
+            type: normalizedType,
             commentary: document.getElementById('creator-commentary').value
         };
 
-        if (type === 'choice') {
+        if (normalizedType === 'choice') {
             const rows = document.querySelectorAll('.choice-row');
             const opts = [], corr = [];
             rows.forEach((row, i) => {
@@ -417,14 +740,17 @@ window.App.Creator = {
             });
             if (opts.length < 2 || corr.length === 0) { alert(APP_TEXT.Creator.AlertLessChoice); return null; }
             newQ.c = opts; newQ.correct = corr; newQ.correctIndex = corr[0];
-            newQ.multi = (corr.length > 1);
+
+            // Use explicit mode from dropdown
+            newQ.mode = choiceMode;
+            newQ.multi = (newQ.mode === 'multi');
+
             // Save shuffle setting
             const shuffleChk = document.getElementById('choice-shuffle-chk');
             newQ.shuffle = shuffleChk ? shuffleChk.checked : true;
 
         }
-        // ★修正: 文字選択式のデータ保存 (Stepsを保存)
-        else if (type === 'letter_select') {
+        else if (normalizedType === 'letter_select') {
             if (this.currentLetterSteps.length === 0) {
                 alert("少なくとも1文字のステップを作成してください");
                 return null;
@@ -432,31 +758,42 @@ window.App.Creator = {
             newQ.steps = this.currentLetterSteps;
             newQ.correct = this.currentLetterSteps.map(s => s.correct).join('');
 
-        } else if (type === 'sort') {
+        } else if (normalizedType === 'sort') {
             const opts = [];
-            const orders = [];
+            const items = [];
+            let allRanked = true;
+
             document.querySelectorAll('.sort-row').forEach((row, i) => {
                 const txt = row.querySelector('.sort-text-input').value.trim();
-                const rank = parseInt(row.querySelector('.sort-order-input').value);
                 if (txt) {
                     opts.push(txt);
-                    orders.push({ label: String.fromCharCode(65 + i), rank: rank || (i + 1) });
+                    const label = String.fromCharCode(65 + i);
+                    const rankVal = row.querySelector('.sort-order-input').value;
+                    const rank = parseInt(rankVal);
+                    if (!rankVal) allRanked = false;
+                    items.push({ label, rank });
                 }
             });
+
             if (opts.length < 2) return null;
             newQ.c = opts;
 
-            // Generate correct string like "BACD" based on ranks
-            orders.sort((a, b) => a.rank - b.rank);
-            newQ.correct = orders.map(o => o.label).join('');
+            if (!allRanked) {
+                alert("すべての項目の並び順（番号）を指定してください。");
+                return null;
+            }
+            items.sort((a, b) => a.rank - b.rank);
+            newQ.correct = items.map(o => o.label).join('');
 
-            newQ.initialOrder = 'random';
-            newQ.shuffle = true;
-        } else if (type.startsWith('free')) {
+            const sortShuffleChk = document.getElementById('sort-shuffle-chk');
+            const doShuffle = sortShuffleChk ? sortShuffleChk.checked : true;
+            newQ.initialOrder = doShuffle ? 'random' : 'fixed';
+            newQ.shuffle = doShuffle;
+        } else if (normalizedType.startsWith('free')) {
             const ans = document.getElementById('creator-text-answer').value.trim();
-            if (type === 'free_written' && !ans) { alert(APP_TEXT.Creator.AlertNoTextAns); return null; }
+            if (normalizedType === 'free_written' && !ans) { alert(APP_TEXT.Creator.AlertNoTextAns); return null; }
             newQ.correct = ans ? ans.split(',').map(s => s.trim()).filter(s => s) : [];
-        } else if (type === 'multi') {
+        } else if (normalizedType.startsWith('multi')) {
             const opts = [];
             document.querySelectorAll('.multi-text-input').forEach(inp => { if (inp.value.trim()) opts.push(inp.value.trim()); });
             if (opts.length < 1) return null;
@@ -480,6 +817,7 @@ window.App.Creator = {
             this.renderList();
             window.App.Ui.showToast(APP_TEXT.Creator.MsgAddedToast);
             document.getElementById('creator-q-type').disabled = true;
+            document.getElementById('creator-q-subtype').disabled = true;
             document.getElementById('creator-type-locked-msg').classList.remove('hidden');
         }
     },

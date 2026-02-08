@@ -5,7 +5,7 @@
 App.ProductionDesign = {
     currentTarget: null,
     activeQuickEdit: null, // Track which area is being edited
-    currentDevice: 'monitor',
+    currentDevice: 'player',
 
     defaults: {
         // Program Title (プログラム名)
@@ -436,8 +436,8 @@ App.ProductionDesign = {
 
         // Map UI IDs
         const map = {
-            'title': { text: 'prod-title-text-color', bg: 'prod-title-bg-color' },
-            'qnumber': { text: 'prod-qnum-text-color', bg: 'prod-qnum-bg-color' },
+            'title': { text: 'prod-title-text-color', bg: 'prod-title-bg-color', size: 'prod-title-size' },
+            'qnumber': { text: 'prod-qnum-text-color', bg: 'prod-qnum-bg-color', size: 'prod-qnum-size' },
             'ranking': { text: 'prod-ranking-text-color', bg: 'prod-ranking-bg-color', accent: 'prod-ranking-accent-color' }
         };
         const IDs = map[type];
@@ -463,6 +463,23 @@ App.ProductionDesign = {
                 </div>
             </div>
         `;
+
+        if (IDs.size) {
+            itemsHtml += `
+            <div class="inspector-row">
+                <div class="inspector-icon-box" title="フォントサイズ">T</div>
+                <div class="inspector-controls">
+                    <div class="inspector-control-group">
+                        <span class="inspector-label-mini">大きさ</span>
+                        <div class="stepper-input">
+                            <button class="stepper-btn" id="stepper-down">▼</button>
+                            <input type="text" id="quick-font-size" class="inspector-input-mini" value="${document.getElementById(IDs.size).value}">
+                            <button class="stepper-btn" id="stepper-up">▲</button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        }
 
         if (type === 'ranking') {
             itemsHtml += `
@@ -511,9 +528,30 @@ App.ProductionDesign = {
             }
         };
 
+        const bindStepper = (inpId, targetId) => {
+            const inp = document.getElementById(inpId);
+            const target = document.getElementById(targetId);
+            const up = document.getElementById('stepper-up');
+            const down = document.getElementById('stepper-down');
+            if (!inp || !target) return;
+            const update = (val) => { inp.value = val; target.value = val; this.renderPreview(); };
+            inp.oninput = () => update(inp.value);
+            if (up) up.onclick = () => {
+                let v = parseInt(inp.value) || 0;
+                let unit = inp.value.replace(/[0-9]/g, '') || 'px';
+                update((v + 2) + unit);
+            };
+            if (down) down.onclick = () => {
+                let v = parseInt(inp.value) || 0;
+                let unit = inp.value.replace(/[0-9]/g, '') || 'px';
+                update(Math.max(0, v - 2) + unit);
+            };
+        };
+
         sync('quick-text-color', IDs.text, 'swatch-text-color');
         sync('quick-bg-color', IDs.bg, 'swatch-bg-color');
         if (type === 'ranking') sync('quick-accent-color', IDs.accent, 'swatch-accent-color');
+        if (IDs.size) bindStepper('quick-font-size', IDs.size);
     }
 };
 

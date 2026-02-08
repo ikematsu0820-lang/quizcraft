@@ -48,6 +48,23 @@ App.Design = {
     bindEvents: function () {
         document.getElementById('design-target-load-btn').onclick = () => this.loadTarget();
 
+        // Auto-refresh list on dropdown click (since refresh btn is hidden)
+        const targetSelect = document.getElementById('design-target-select');
+        if (targetSelect) {
+            targetSelect.addEventListener('focus', () => {
+                // Only reload if empty or just has placeholder
+                if (targetSelect.options.length <= 1) {
+                    this.loadTargetList();
+                }
+            });
+            // Auto-load on change
+            targetSelect.addEventListener('change', () => {
+                if (targetSelect.value) {
+                    this.loadTarget();
+                }
+            });
+        }
+
         document.querySelectorAll('#design-view input, #design-view select').forEach(el => {
             if (el.type !== 'file' && el.id !== 'design-target-select') {
                 el.oninput = () => this.renderPreview();
@@ -86,18 +103,43 @@ App.Design = {
         }
 
         this.setupModal('btn-open-layout', 'modal-design-layout');
+        this.setupModal('btn-open-grid-config', 'modal-design-grid');
         this.setupModal('btn-open-text', 'modal-design-text');
         this.setupModal('btn-open-object', 'modal-design-object');
         this.setupModal('btn-open-bg', 'modal-design-bg');
 
-        document.querySelectorAll('.btn-align').forEach(btn => {
-            btn.onclick = () => {
-                document.querySelectorAll('.btn-align').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                document.getElementById('creator-set-align').value = btn.dataset.align;
+        // Grid Config Apply
+        document.getElementById('btn-apply-grid-config').onclick = () => {
+            const rows = parseInt(document.getElementById('design-grid-rows').value) || 1;
+            const cols = parseInt(document.getElementById('design-grid-cols').value) || 1;
+
+            // Validation
+            const questions = this.getQuestionsFromTarget();
+            if (questions && this.previewQIndex > 0) {
+                const info = this.getStepInfo(this.previewQIndex, questions);
+                if (info.type === 'question' && info.qIdx >= 0) {
+                    const q = questions[info.qIdx];
+                    const choices = q.c || [];
+                    if (rows * cols < choices.length) {
+                        alert(`マス目が足りません。\n選択肢: ${choices.length}個 / マス目: ${rows * cols}個`);
+                        return;
+                    }
+                }
+            }
+
+            document.getElementById('modal-design-grid').classList.add('hidden');
+            this.renderPreview();
+        };
+
+        const layoutInline = document.getElementById('creator-set-layout-inline');
+        if (layoutInline) {
+            layoutInline.onchange = () => {
+                const val = layoutInline.value;
+                const main = document.getElementById('creator-set-layout');
+                if (main) main.value = val;
                 this.renderPreview();
             };
-        });
+        }
 
         const prevBtn = document.getElementById('design-pager-prev');
         const nextBtn = document.getElementById('design-pager-next');
@@ -122,24 +164,21 @@ App.Design = {
                 this.renderPreview();
             };
         }
-        document.getElementById('design-reset-btn').onclick = () => {
-            if (confirm("初期値に戻しますか？")) {
-                this.setDefaultUI();
-                this.renderPreview();
-            }
-        };
+        const resetBtn = document.getElementById('design-reset-btn');
+        if (resetBtn) {
+            resetBtn.onclick = () => {
+                if (confirm("初期値に戻しますか？")) {
+                    this.setDefaultUI();
+                    this.renderPreview();
+                }
+            };
+        }
 
         // Preview Toggles (Segmented Control)
-        document.querySelectorAll('.segmented-btn').forEach(btn => {
-            btn.onclick = () => {
-                document.querySelectorAll('.segmented-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                const type = btn.dataset.type;
-                document.getElementById('preview-monitor-container').classList.toggle('hidden', type !== 'monitor');
-                document.getElementById('preview-player-container').classList.toggle('hidden', type !== 'player');
-            };
-        });
-
+        const tPlayer = document.getElementById('design-toggle-player');
+        const tMonitor = document.getElementById('design-toggle-monitor');
+        if (tPlayer) tPlayer.onclick = () => this.switchDevice('player');
+        if (tMonitor) tMonitor.onclick = () => this.switchDevice('monitor');
         // Toolbar Collapse Toggle
         const toggleBtn = document.getElementById('btn-toggle-design-toolbar');
         if (toggleBtn) {
@@ -164,14 +203,40 @@ App.Design = {
         const quickModal = document.getElementById('modal-design-quick');
         if (quickModal) {
             quickModal.querySelectorAll('.modal-close-btn').forEach(btn => {
-                btn.onclick = () => {
-                    quickModal.classList.add('hidden');
-                    document.querySelectorAll('.preview-q-block, .preview-c-block').forEach(el => el.classList.remove('is-editing'));
-                    this.activeQuickEdit = null;
-                };
+                btn.onclick = () => this.closeQuickEdit();
             });
         }
+    },
 
+    closeQuickEdit: function () {
+        const quickModal = document.getElementById('modal-design-quick');
+        if (quickModal) quickModal.classList.add('hidden');
+        document.querySelectorAll('.preview-q-block, .preview-c-block, .preview-bg-block').forEach(el => el.classList.remove('is-editing'));
+        this.activeQuickEdit = null;
+        this.renderPreview();
+    },
+
+    switchDevice: function (type) {
+        console.log("[Design] switchDevice triggered:", type);
+        const playerBtn = document.getElementById('design-toggle-player');
+        const monitorBtn = document.getElementById('design-toggle-monitor');
+        const mContainer = document.getElementById('preview-monitor-container');
+        const pContainer = document.getElementById('preview-player-container');
+        const layoutBtn = document.getElementById('btn-open-layout-inline');
+
+        if (playerBtn) playerBtn.classList.toggle('active', type === 'player');
+        if (monitorBtn) monitorBtn.classList.toggle('active', type === 'monitor');
+        if (mContainer) mContainer.classList.toggle('hidden', type !== 'monitor');
+        if (pContainer) pContainer.classList.toggle('hidden', type !== 'player');
+
+        // Only show layout button in monitor mode
+        if (layoutBtn) layoutBtn.classList.toggle('hidden', type !== 'monitor');
+
+        // Only show layout dropdown wrapper in monitor mode
+        const dropdown = document.querySelector('.design-layout-selector-wrapper');
+        if (dropdown) dropdown.style.display = (type === 'monitor') ? 'block' : 'none';
+
+        this.renderPreview();
     },
 
     moveQ: function (delta) {
@@ -220,11 +285,23 @@ App.Design = {
 
     loadTargetList: function () {
         const select = document.getElementById('design-target-select');
-        select.innerHTML = '<option>Loading...</option>';
+        if (!select) return;
+
+        // Keep "Loading..." state only while fetching
+        const originalText = select.options[0] ? select.options[0].text : "-- 編集対象を選択 --";
+        select.innerHTML = '<option value="">Searching...</option>';
+
+        let showId = window.App.State.currentShowId || sessionStorage.getItem('qs_show_id') || "";
+        showId = showId.trim().toUpperCase().replace(/[\.\$#\[\]\/]/g, "");
+
+        if (!showId) {
+            select.innerHTML = '<option value="">-- No ID (Login Required) --</option>';
+            return;
+        }
 
         Promise.all([
-            window.db.ref(`saved_sets/${App.State.currentShowId}`).once('value'),
-            window.db.ref(`saved_programs/${App.State.currentShowId}`).once('value')
+            window.db.ref(`saved_sets/${showId}`).once('value'),
+            window.db.ref(`saved_programs/${showId}`).once('value')
         ]).then(([setSnap, progSnap]) => {
             select.innerHTML = '<option value="">-- 編集対象を選択 --</option>';
             const sets = setSnap.val() || {};
@@ -232,23 +309,40 @@ App.Design = {
 
             const optGroupSet = document.createElement('optgroup');
             optGroupSet.label = "Questions Sets";
-            Object.keys(sets).forEach(k => {
-                const opt = document.createElement('option');
-                opt.value = JSON.stringify({ type: 'set', key: k });
-                opt.textContent = sets[k].title;
-                optGroupSet.appendChild(opt);
-            });
-            select.appendChild(optGroupSet);
+            let setKeys = Object.keys(sets);
+            if (setKeys.length > 0) {
+                setKeys.forEach(k => {
+                    const opt = document.createElement('option');
+                    opt.value = JSON.stringify({ type: 'set', key: k });
+                    opt.textContent = sets[k].title || "Untitled Set";
+                    optGroupSet.appendChild(opt);
+                });
+                select.appendChild(optGroupSet);
+            }
 
             const optGroupProg = document.createElement('optgroup');
             optGroupProg.label = "Programs";
-            Object.keys(progs).forEach(k => {
+            let progKeys = Object.keys(progs);
+            if (progKeys.length > 0) {
+                progKeys.forEach(k => {
+                    const opt = document.createElement('option');
+                    opt.value = JSON.stringify({ type: 'prog', key: k });
+                    opt.textContent = progs[k].title || "Untitled Program";
+                    optGroupProg.appendChild(opt);
+                });
+                select.appendChild(optGroupProg);
+            }
+
+            if (setKeys.length === 0 && progKeys.length === 0) {
+                console.warn("[Design] No sets or programs found for ID:", showId);
                 const opt = document.createElement('option');
-                opt.value = JSON.stringify({ type: 'prog', key: k });
-                opt.textContent = progs[k].title;
-                optGroupProg.appendChild(opt);
-            });
-            select.appendChild(optGroupProg);
+                opt.disabled = true;
+                opt.textContent = "保存されたデータがありません";
+                select.appendChild(opt);
+            }
+        }).catch(err => {
+            console.error("[Design] Failed to load target list:", err);
+            select.innerHTML = '<option value="">Error Loading</option>';
         });
     },
 
@@ -256,10 +350,15 @@ App.Design = {
         const val = document.getElementById('design-target-select').value;
         if (!val) return alert("対象を選択してください");
 
+        let showId = window.App.State.currentShowId || sessionStorage.getItem('qs_show_id') || "";
+        showId = showId.trim().toUpperCase().replace(/[\.\$#\[\]\/]/g, "");
+
+        if (!showId) return alert("IDが見つかりません。再度ログインしてください。");
+
         const targetInfo = JSON.parse(val);
         const path = targetInfo.type === 'set'
-            ? `saved_sets/${App.State.currentShowId}/${targetInfo.key}`
-            : `saved_programs/${App.State.currentShowId}/${targetInfo.key}`;
+            ? `saved_sets/${showId}/${targetInfo.key}`
+            : `saved_programs/${showId}/${targetInfo.key}`;
 
         window.db.ref(path).once('value', snap => {
             const data = snap.val();
@@ -294,20 +393,29 @@ App.Design = {
     },
 
     collectSettings: function () {
+        const getVal = (id) => {
+            const chk = document.getElementById(id + '-transparent');
+            if (chk && chk.checked) return 'transparent';
+            return document.getElementById(id).value;
+        };
+        const getRaw = (id) => document.getElementById(id).value;
+
         return {
             design: {
-                mainBgColor: document.getElementById('design-main-bg-color').value,
+                mainBgColor: getVal('design-main-bg-color'),
                 bgImage: document.getElementById('design-bg-image-data').value,
-                qTextColor: document.getElementById('design-q-text').value,
-                qBgColor: document.getElementById('design-q-bg').value,
-                qBorderColor: document.getElementById('design-q-border').value,
-                qFontSize: document.getElementById('design-q-size').value,
-                cTextColor: document.getElementById('design-c-text').value,
-                cBgColor: document.getElementById('design-c-bg').value,
-                cBorderColor: document.getElementById('design-c-border').value,
-                cFontSize: document.getElementById('design-c-size').value
+                qTextColor: getVal('design-q-text'),
+                qBgColor: getVal('design-q-bg'),
+                qBorderColor: getVal('design-q-border'),
+                qFontSize: getRaw('design-q-size'),
+                cTextColor: getVal('design-c-text'),
+                cBgColor: getVal('design-c-bg'),
+                cBorderColor: getVal('design-c-border'),
+                cFontSize: getRaw('design-c-size'),
+                gridRows: getRaw('design-grid-rows'),
+                gridCols: getRaw('design-grid-cols')
             },
-            layout: document.getElementById('creator-set-layout').value,
+            layout: document.getElementById('creator-set-layout-inline')?.value || document.getElementById('creator-set-layout').value,
             align: document.getElementById('creator-set-align').value,
             prodDesign: this.collectProdSettings()
         };
@@ -315,7 +423,12 @@ App.Design = {
 
     collectProdSettings: function () {
         // Fallback IDs if they exist in the DOM (reusing production design IDs)
-        const getVal = (id, def) => document.getElementById(id)?.value || def;
+        const getVal = (id, def) => {
+            const el = document.getElementById(id);
+            const chk = document.getElementById(id + '-transparent');
+            if (chk && chk.checked) return 'transparent';
+            return el?.value || def;
+        };
         return {
             titleBgColor: getVal('prod-title-bg-color', "#000000"),
             titleTextColor: getVal('prod-title-text-color', "#ffffff"),
@@ -359,7 +472,20 @@ App.Design = {
 
         const setVal = (id, val, defaultKey) => {
             const el = document.getElementById(id);
-            if (el) el.value = val || this.defaults[defaultKey];
+            const chk = document.getElementById(id + '-transparent');
+            const finalVal = val || this.defaults[defaultKey];
+
+            // Check if value is logically transparent
+            const isTrans = finalVal === 'transparent' || finalVal === 'none' || (typeof finalVal === 'string' && finalVal.replace(/\s/g, '') === 'rgba(0,0,0,0)');
+
+            if (isTrans) {
+                if (chk) chk.checked = true;
+                // Keep el value as is or set to black (so picker shows something)
+                if (el && el.type === 'color') el.value = "#000000";
+            } else {
+                if (chk) chk.checked = false;
+                if (el) el.value = finalVal;
+            }
         };
 
         setVal('design-main-bg-color', design.mainBgColor, 'mainBgColor');
@@ -371,6 +497,8 @@ App.Design = {
         setVal('design-c-bg', design.cBgColor, 'cBgColor');
         setVal('design-c-border', design.cBorderColor, 'cBorderColor');
         setVal('design-c-size', design.cFontSize, 'cFontSize');
+        setVal('design-grid-rows', design.gridRows, 'gridRows');
+        setVal('design-grid-cols', design.gridCols, 'gridCols');
 
         document.getElementById('design-bg-image-data').value = design.bgImage || "";
         const status = document.getElementById('design-bg-image-status');
@@ -379,7 +507,12 @@ App.Design = {
             status.style.color = design.bgImage ? "#00ff00" : "#aaa";
         }
 
-        if (layout) document.getElementById('creator-set-layout').value = layout;
+        if (layout) {
+            const el1 = document.getElementById('creator-set-layout');
+            const el2 = document.getElementById('creator-set-layout-inline');
+            if (el1) el1.value = layout;
+            if (el2) el2.value = layout;
+        }
         if (align) {
             document.getElementById('creator-set-align').value = align;
             document.querySelectorAll('.btn-align').forEach(b => {
@@ -402,7 +535,8 @@ App.Design = {
 
         // Scaling logic for both frames
         const scaleFrame = (targetFrame, targetContent, baseWidth) => {
-            const fw = targetFrame.clientWidth;
+            const measureEl = targetFrame.querySelector('.design-preview-frame') || targetFrame;
+            const fw = measureEl.clientWidth;
             if (fw > 0) {
                 const s = fw / baseWidth;
                 targetContent.style.transform = `translate(-50%, -50%) scale(${s})`;
@@ -520,40 +654,64 @@ App.Design = {
             return val;
         };
 
-        const qStyle = `
+        const layout = s.layout || 'standard';
+
+        let qStyle = '';
+        const baseQStyle = `
             color:${d.qTextColor}; 
-            background:${d.qBgColor}; 
-            border:6px solid ${d.qBorderColor}; 
-            text-align:${s.align}; 
-            padding:30px; 
-            border-radius:15px; 
-            font-size:${fontSizeVal(d.qFontSize, '48px')}; 
             font-weight:bold; 
-            line-height:1.4;
-            margin-bottom:20px; 
+            font-size:${fontSizeVal(d.qFontSize, layout.startsWith('split') ? '42px' : '48px')};
             display:flex; 
             align-items:center; 
             justify-content:${s.align === 'center' ? 'center' : (s.align === 'right' ? 'flex-end' : 'flex-start')}; 
-            box-shadow:0 0 30px ${d.qBorderColor}40;
+            text-align:${s.align};
         `;
+
+        // Simple Box Style (User Request)
+        if (layout.startsWith('split')) {
+            qStyle = `
+                ${baseQStyle}
+                writing-mode: vertical-rl; 
+                text-orientation: upright;
+                height: 85%;
+                width: 20%;
+                margin-left: 5%;
+                border: 6px solid ${d.qBorderColor};
+                background-color: ${d.qBgColor || 'rgba(0,0,0,0.5)'};
+                padding: 30px;
+                box-sizing: border-box;
+            `;
+        } else {
+            qStyle = `
+                ${baseQStyle}
+                width: 90%; 
+                margin-bottom: 40px; 
+                padding: 30px;
+                box-sizing: border-box;
+                border: 6px solid ${d.qBorderColor};
+                background-color: ${d.qBgColor || 'rgba(0,0,0,0.5)'};
+            `;
+        }
 
         const cStyle = `
             color:${d.cTextColor}; 
-            background:${d.cBgColor}; 
-            border-bottom:3px solid ${d.cBorderColor}; 
-            padding:15px 20px; 
+            background: ${d.cBgColor || 'linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0%, transparent 100%)'};
+            border: 1px solid ${d.cBorderColor || 'rgba(255, 255, 255, 0.1)'};
+            padding: 15px 30px;
+            border-radius: 12px;
             font-size:${fontSizeVal(d.cFontSize, '32px')};
             display:flex; 
             align-items:center;
+            gap: 25px;
             pointer-events: none; /* Let parent catch click */
         `;
 
         const labelStyle = `
-            color:${d.cBorderColor}; 
+            color:${d.qBorderColor || '#00e5ff'}; 
             font-weight:900; 
-            font-size:36px;
-            margin-right:20px; 
-            font-family: monospace;
+            font-size:1.2em;
+            font-family: 'Arial Black', sans-serif;
+            text-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
         `;
 
         let layoutHtml = '';
@@ -566,32 +724,47 @@ App.Design = {
                 </div>
             `;
         } else {
-            if (s.layout === 'split_list' || s.layout === 'split_grid') {
-                layoutHtml = `
-                    <div style="display:flex; height:100%; gap:40px; padding:40px; box-sizing:border-box;">
-                        <div class="preview-q-block ${this.activeQuickEdit === 'q' ? 'is-editing' : ''}" onclick="event.stopPropagation(); App.Design.openQuickEdit('q', event)" style="flex:1; ${qStyle}; margin:0; writing-mode: vertical-rl; text-orientation: upright; justify-content:center;">${qText}</div>
-                        <div class="preview-c-block ${this.activeQuickEdit === 'c' ? 'is-editing' : ''}" onclick="event.stopPropagation(); App.Design.openQuickEdit('c', event)" style="flex:1; display:flex; flex-direction:column; justify-content:center; gap:20px;">
-                            ${choices.map((c, i) => `
-                                <div style="${cStyle}">
-                                    <span style="${labelStyle}">${String.fromCharCode(65 + i)}</span> ${c}
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
+            // General layout logic (Standard vs Split)
+            const isSplit = layout.startsWith('split');
+            const wrapperStyle = isSplit
+                ? "display:flex; flex-direction:row-reverse; justify-content:center; align-items:center; height:100%; width:100%;"
+                : "display:flex; flex-direction:column; justify-content:center; align-items:center; height:100%; width:100%;";
+
+            const cWidth = isSplit ? "60%" : "85%";
+
+            // Grid logic
+            const rows = parseInt(d.gridRows) || 0;
+            const cols = parseInt(d.gridCols) || 0;
+            let cBlockStyle = '';
+
+            if (rows > 0 && cols > 0) {
+                cBlockStyle = `display:grid; grid-template-columns: repeat(${cols}, 1fr); gap:20px; width:${cWidth};`;
             } else {
-                layoutHtml = `
-                    <div style="padding:50px; box-sizing:border-box; display:flex; flex-direction:column; height:100%; justify-content:center;">
-                        <div class="preview-q-block ${this.activeQuickEdit === 'q' ? 'is-editing' : ''}" onclick="event.stopPropagation(); App.Design.openQuickEdit('q', event)" style="${qStyle} min-height:200px;">${qText}</div>
-                        <div class="preview-c-block ${this.activeQuickEdit === 'c' ? 'is-editing' : ''}" onclick="event.stopPropagation(); App.Design.openQuickEdit('c', event)" style="margin-top:20px; display:flex; flex-direction:column; gap:15px;">
-                             ${choices.map((c, i) => `
-                                <div style="${cStyle}">
-                                    <span style="${labelStyle}">${String.fromCharCode(65 + i)}</span> ${c}
-                                </div>
-                            `).join('')}
-                        </div>
+                cBlockStyle = `display:flex; flex-direction:column; justify-content:center; gap:20px; width:${cWidth};`;
+            }
+
+            layoutHtml = `
+                <div style="${wrapperStyle}">
+                    <div class="preview-q-block ${this.activeQuickEdit === 'q' ? 'is-editing' : ''}" onclick="event.stopPropagation(); App.Design.openQuickEdit('q', event)" style="${qStyle}">${qText}</div>
+                    <div class="preview-c-block ${this.activeQuickEdit === 'c' ? 'is-editing' : ''}" onclick="event.stopPropagation(); App.Design.openQuickEdit('c', event)" style="${cBlockStyle}">
+                        ${choices.map((c, i) => `
+                            <div style="${cStyle}">
+                                <span style="${labelStyle}">${String.fromCharCode(65 + i)}</span> <span>${c}</span>
+                            </div>
+                        `).join('')}
                     </div>
-                `;
+                </div>
+            `;
+        }
+
+        // Toggle Grid Config Button visibility
+        const btnGrid = document.getElementById('btn-open-grid-config');
+        if (btnGrid) {
+            const isGridType = ['choice', 'sort'].includes(qType) || (qType && qType.startsWith('multi'));
+            if (isGridType) {
+                btnGrid.classList.remove('hidden');
+            } else {
+                btnGrid.classList.add('hidden');
             }
         }
 
@@ -725,6 +898,39 @@ App.Design = {
             content.style.transform = '';
         }
 
+        const syncHelper = (id, targetId, swatchId) => {
+            const el = document.getElementById(id);
+            const targetEl = document.getElementById(targetId);
+            const swatch = document.getElementById(swatchId);
+            if (el && targetEl) {
+                el.oninput = () => {
+                    targetEl.value = el.value;
+                    if (swatch) swatch.style.background = el.value;
+                    this.renderPreview();
+                };
+            }
+        };
+
+        const bindStepper = (inpId, targetId) => {
+            const inp = document.getElementById(inpId);
+            const target = document.getElementById(targetId);
+            const up = document.getElementById('stepper-up');
+            const down = document.getElementById('stepper-down');
+            if (!inp || !target) return;
+            const update = (val) => { inp.value = val; target.value = val; this.renderPreview(); };
+            inp.oninput = () => update(inp.value);
+            if (up) up.onclick = () => {
+                let v = parseInt(inp.value) || 0;
+                let unit = inp.value.replace(/[0-9]/g, '') || 'px';
+                update((v + 2) + unit);
+            };
+            if (down) down.onclick = () => {
+                let v = parseInt(inp.value) || 0;
+                let unit = inp.value.replace(/[0-9]/g, '') || 'px';
+                update(Math.max(0, v - 2) + unit);
+            };
+        };
+
         // Reset highlight
         document.querySelectorAll('.preview-q-block, .preview-c-block, .preview-bg-block').forEach(el => el.classList.remove('is-editing'));
 
@@ -753,15 +959,24 @@ App.Design = {
                     <div class="inspector-icon-box" title="テキスト設定">T</div>
                     <div class="inspector-controls">
                         <div class="inspector-control-group">
-                            <span class="inspector-label-mini">文字色</span>
+                            <span class="inspector-label-mini">色</span>
                             <div class="color-swatch-wrapper">
                                 <input type="color" id="quick-text-color" class="color-picker-hidden" value="${document.getElementById(IDs.text).value}">
                                 <div class="color-swatch" id="swatch-text-color" style="background:${document.getElementById(IDs.text).value}"></div>
                             </div>
+                            <div style="margin-top:5px; text-align:center;">
+                                <label style="font-size:0.8em; cursor:pointer;">
+                                    <input type="checkbox" id="quick-text-transparent-toggle" ${document.getElementById(IDs.text + '-transparent').checked ? 'checked' : ''}> 透明
+                                </label>
+                            </div>
                         </div>
                         <div class="inspector-control-group">
                             <span class="inspector-label-mini">大きさ</span>
-                            <input type="text" id="quick-font-size" class="inspector-input-mini" value="${document.getElementById(IDs.size).value}" style="width:60px;">
+                            <div class="stepper-input">
+                                <button class="stepper-btn" id="stepper-down">▼</button>
+                                <input type="text" id="quick-font-size" class="inspector-input-mini" value="${document.getElementById(IDs.size).value}">
+                                <button class="stepper-btn" id="stepper-up">▲</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -774,6 +989,11 @@ App.Design = {
                                 <input type="color" id="quick-bg-color" class="color-picker-hidden" value="${document.getElementById(IDs.bg).value}">
                                 <div class="color-swatch" id="swatch-bg-color" style="background:${document.getElementById(IDs.bg).value}"></div>
                             </div>
+                            <div style="margin-top:5px; text-align:center;">
+                                <label style="font-size:0.8em; cursor:pointer;">
+                                    <input type="checkbox" id="quick-bg-transparent-toggle" ${document.getElementById(IDs.bg + '-transparent').checked ? 'checked' : ''}> 透明
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -783,28 +1003,45 @@ App.Design = {
                     </button>
                 </div>
             `;
-            const syncHelper = (id, targetId, swatchId) => {
-                const el = document.getElementById(id);
-                const targetEl = document.getElementById(targetId);
-                const swatch = document.getElementById(swatchId);
-                if (el && targetEl) {
-                    el.oninput = () => {
-                        targetEl.value = el.value;
-                        if (swatch) swatch.style.background = el.value;
-                        this.renderPreview();
-                    };
-                }
-            };
+
+
             syncHelper('quick-text-color', IDs.text, 'swatch-text-color');
             syncHelper('quick-bg-color', IDs.bg, 'swatch-bg-color');
+            bindStepper('quick-font-size', IDs.size);
 
-            const sizeInp = document.getElementById('quick-font-size');
-            if (sizeInp) {
-                sizeInp.oninput = () => {
-                    document.getElementById(IDs.size).value = sizeInp.value;
-                    this.renderPreview();
-                };
-            }
+            const bindTrans = (toggleId, targetId, swatchId, pickerId) => {
+                const toggle = document.getElementById(toggleId);
+                const swatch = document.getElementById(swatchId);
+                const picker = document.getElementById(pickerId);
+                if (toggle) {
+                    const updateVisual = () => {
+                        const isChecked = toggle.checked;
+                        document.getElementById(targetId + '-transparent').checked = isChecked;
+                        if (isChecked) {
+                            swatch.style.background = "transparent";
+                            swatch.style.backgroundImage = "linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)";
+                            swatch.style.backgroundSize = "10px 10px";
+                        } else {
+                            swatch.style.background = picker.value;
+                            swatch.style.backgroundImage = "none";
+                        }
+                        this.renderPreview();
+                    };
+                    toggle.onchange = updateVisual;
+                    // Initial update
+                    if (toggle.checked) updateVisual();
+                    // Picker unchecks transparent
+                    picker.addEventListener('input', () => {
+                        toggle.checked = false;
+                        document.getElementById(targetId + '-transparent').checked = false;
+                        swatch.style.backgroundImage = "none";
+                        // renderPreview called by syncHelper
+                    });
+                }
+            };
+
+            bindTrans('quick-text-transparent-toggle', IDs.text, 'swatch-text-color', 'quick-text-color');
+            bindTrans('quick-bg-transparent-toggle', IDs.bg, 'swatch-bg-color', 'quick-bg-color');
 
             const contentInp = document.getElementById('quick-content-override');
             if (contentInp) {
@@ -868,7 +1105,11 @@ App.Design = {
                     </div>
                     <div class="inspector-control-group">
                         <span class="inspector-label-mini">大きさ</span>
-                        <input type="text" id="quick-font-size" class="inspector-input-mini" value="${document.getElementById(`design-${prefix}-size`).value}" style="width:60px;">
+                        <div class="stepper-input">
+                            <button class="stepper-btn" id="stepper-down">▼</button>
+                            <input type="text" id="quick-font-size" class="inspector-input-mini" value="${document.getElementById(`design-${prefix}-size`).value}">
+                            <button class="stepper-btn" id="stepper-up">▲</button>
+                        </div>
                     </div>
                     ${type === 'q' ? `
                     <div class="align-btn-group-toolbar">
@@ -896,6 +1137,11 @@ App.Design = {
                             <input type="color" id="quick-bg-color" class="color-picker-hidden" value="${document.getElementById(`design-${prefix}-bg`).value}">
                             <div class="color-swatch" id="swatch-bg-color" style="background:${document.getElementById(`design-${prefix}-bg`).value}"></div>
                         </div>
+                        <div style="margin-top:5px; text-align:center;">
+                            <label style="font-size:0.8em; cursor:pointer;">
+                                <input type="checkbox" id="quick-bg-transparent-toggle" ${document.getElementById(`design-${prefix}-bg-transparent`).checked ? 'checked' : ''}> 透明
+                            </label>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -912,6 +1158,12 @@ App.Design = {
                 el.oninput = () => {
                     targetEl.value = el.value;
                     if (swatch) swatch.style.background = el.value;
+                    // Uncheck transparent if color picked
+                    const transChk = document.getElementById('quick-bg-transparent-toggle');
+                    if (transChk && id === 'quick-bg-color') {
+                        transChk.checked = false;
+                        document.getElementById(targetId + '-transparent').checked = false;
+                    }
                     this.renderPreview();
                 };
             }
@@ -921,13 +1173,31 @@ App.Design = {
         sync('quick-border-color', `design-${prefix}-border`, 'swatch-border-color');
         sync('quick-bg-color', `design-${prefix}-bg`, 'swatch-bg-color');
 
-        const sizeInp = document.getElementById('quick-font-size');
-        if (sizeInp) {
-            sizeInp.oninput = () => {
-                document.getElementById(`design-${prefix}-size`).value = sizeInp.value;
+        // Transparent Toggle Logic
+        const transToggle = document.getElementById('quick-bg-transparent-toggle');
+        if (transToggle) {
+            transToggle.onchange = () => {
+                const isChecked = transToggle.checked;
+                document.getElementById(`design-${prefix}-bg-transparent`).checked = isChecked;
+                const swatch = document.getElementById('swatch-bg-color');
+                if (isChecked) {
+                    swatch.style.background = "transparent";
+                    swatch.style.backgroundImage = "linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)";
+                    swatch.style.backgroundSize = "10px 10px";
+                    swatch.style.backgroundPosition = "0 0, 0 5px, 5px -5px, -5px 0px";
+                } else {
+                    swatch.style.background = document.getElementById(`design-${prefix}-bg`).value;
+                    swatch.style.backgroundImage = "none";
+                }
                 this.renderPreview();
             };
+            // Initial state visual update
+            if (transToggle.checked) {
+                transToggle.dispatchEvent(new Event('change'));
+            }
         }
+
+        bindStepper('quick-font-size', `design-${prefix}-size`);
 
         body.querySelectorAll('.btn-align-q').forEach(btn => {
             btn.onclick = () => {
@@ -962,8 +1232,8 @@ App.Design = {
                 <div class="preview-bg-block ${this.activeQuickEdit === 'title' ? 'is-editing' : ''}" 
                      onclick="App.Design.openQuickEdit('title', event)" 
                      style="width:100%; height:100%; background:${s.titleBgColor}; display:flex; align-items:center; justify-content:center; font-family:${s.titleFont}; cursor:pointer;">
-                    <div style="color:${s.titleTextColor}; font-size:${fontSize(s.titleSize)}; font-weight:900; text-align:center; padding: 0 50px;">
-                        ${displayTitle}
+                    <div style="color:${s.titleTextColor}; font-size:${fontSize(s.titleSize || '80px')}; font-weight:900; text-align:center; padding: 0 50px; line-height:1.2;">
+                        ${displayTitle.replace(/\\n/g, '<br>')}
                     </div>
                 </div>
             `;
@@ -978,8 +1248,8 @@ App.Design = {
                 <div class="preview-bg-block ${this.activeQuickEdit === 'qnumber' ? 'is-editing' : ''}" 
                      onclick="App.Design.openQuickEdit('qnumber', event)" 
                      style="width:100%; height:100%; background:${s.qNumberBgColor}; display:flex; ${pos[s.qNumberPosition]} font-family:${s.qNumberFont}; cursor:pointer;">
-                    <div style="color:${s.qNumberTextColor}; font-size:${fontSize(s.qNumberSize)}; font-weight:900;">
-                        ${displayQNum}
+                    <div style="color:${s.qNumberTextColor}; font-size:${fontSize(s.qNumberSize || '80px')}; font-weight:900; line-height:1.2;">
+                        ${displayQNum.replace(/\\n/g, '<br>')}
                     </div>
                 </div>
             `;

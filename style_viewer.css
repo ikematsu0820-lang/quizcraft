@@ -77,9 +77,8 @@ body {
     line-height: 1.5;
     color: #fff;
     text-align: center;
-    border: none;
-    border-left: 8px solid var(--color-primary);
-    background: linear-gradient(90deg, rgba(0, 229, 255, 0.1) 0%, transparent 100%);
+    border: 6px solid var(--color-primary);
+    background: rgba(0, 0, 0, 0.5);
     padding: 5vh;
     margin-bottom: 5vh;
     width: 90%;

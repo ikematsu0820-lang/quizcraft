@@ -84,10 +84,12 @@ App.Config = {
         if (questions.length > 0) {
             qType = questions[0].type;
             if (qType === 'choice') typeDisplay = APP_TEXT.Creator.TypeChoice;
-            else if (qType === 'letter_select') typeDisplay = "文字選択 (Letter)";
+            else if (qType === 'letter_select') typeDisplay = APP_TEXT.Creator.TypeLetterSelect;
             else if (qType === 'sort') typeDisplay = APP_TEXT.Creator.TypeSort;
             else if (qType === 'free_oral') { typeDisplay = APP_TEXT.Creator.TypeFreeOral; isOral = true; }
             else if (qType === 'free_written') typeDisplay = APP_TEXT.Creator.TypeFreeWritten;
+            else if (qType === 'multi_written') typeDisplay = APP_TEXT.Creator.TypeMultiWritten;
+            else if (qType === 'multi_oral') { typeDisplay = APP_TEXT.Creator.TypeMultiOral; isOral = true; }
             else if (qType === 'multi') typeDisplay = APP_TEXT.Creator.TypeMulti;
         }
 
@@ -103,14 +105,13 @@ App.Config = {
             </div>
         `;
 
-        html += `<div class="config-section-title">ルールの策定</div>`;
 
         html += `
             <div class="config-item-box">
                 <div class="mb-15">
                 <label class="config-label">1. ${APP_TEXT.Config.LabelMode} (Answer Authority)</label>
                 <div class="mode-segmented-control">
-                    <button type="button" class="mode-segmented-btn ${isOral || qType === 'multi' ? 'disabled' : ''}" data-mode="normal" ${isOral || qType === 'multi' ? 'disabled' : ''}>
+                    <button type="button" class="mode-segmented-btn ${isOral || qType.startsWith('multi') ? 'disabled' : ''}" data-mode="normal" ${isOral || qType.startsWith('multi') ? 'disabled' : ''}>
                         <span class="icon">⚡</span>
                         <span class="label">一斉</span>
                     </button>
@@ -133,7 +134,7 @@ App.Config = {
                     <option value="turn">Turn</option>
                     <option value="solo">Solo</option>
                 </select>
-                ${qType === 'multi' ? '<p style="font-size:0.8em; color:#ffd700; margin-top:5px;">※多答形式は一斉回答を利用できません</p>' : ''}
+                ${qType.startsWith('multi') ? '<p style="font-size:0.8em; color:#ffd700; margin-top:5px;">※多答形式は一斉回答を利用できません</p>' : ''}
                 <div id="mode-detail-area"></div>
                 </div>
 
@@ -212,10 +213,10 @@ App.Config = {
         this.setupBulkButtons();
 
         if (conf.mode) {
-            if ((isOral || qType === 'multi') && conf.mode === 'normal') modeSel.value = 'buzz';
+            if ((isOral || qType.startsWith('multi')) && conf.mode === 'normal') modeSel.value = 'buzz';
             else modeSel.value = conf.mode;
         } else {
-            modeSel.value = (isOral || qType === 'multi') ? 'buzz' : 'normal';
+            modeSel.value = (isOral || qType.startsWith('multi')) ? 'buzz' : 'normal';
         }
 
         if (conf.gameType) typeSel.value = conf.gameType;
@@ -297,7 +298,7 @@ App.Config = {
         let html = '';
 
         if (mode === 'normal') {
-            const canRetry = ['choice', 'sort', 'letter_select', 'multi'].includes(qType);
+            const canRetry = ['choice', 'sort', 'letter_select'].includes(qType) || qType.startsWith('multi');
             let limitSelect = '';
             if (canRetry) {
                 limitSelect = `

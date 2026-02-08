@@ -96,19 +96,43 @@ window.App.Viewer = {
         // --- 1. STANDBY ---
         if (st.step === 'standby') {
             statusDiv.textContent = "WAITING";
-            this.applyDefaultDesign(viewContainer, null);
-            const title = st.programTitle || this.config.periodTitle || "Quiz Studio";
 
-            mainText.innerHTML = `
-                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; width:100%;">
-                    <div style="font-size:5vw; font-weight:900; color:#ffd700; text-shadow:0 0 30px rgba(255,215,0,0.5); margin-bottom:20px; text-align:center; padding:0 20px;">
-                        ${title}
+            const firstQ = this.questions[0] || {};
+            if (firstQ.prodDesign && (firstQ.prodDesign.titleText || firstQ.prodDesign.titleBgColor || firstQ.isTitleHidden === false)) {
+                this.renderProduction(viewContainer, mainText, 'title', firstQ, st);
+            } else {
+                this.applyDefaultDesign(viewContainer, null);
+                const title = st.programTitle || this.config.periodTitle || "Quiz Studio";
+
+                mainText.innerHTML = `
+                    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; width:100%;">
+                        <div style="font-size:5vw; font-weight:900; color:#ffd700; text-shadow:0 0 30px rgba(255,215,0,0.5); margin-bottom:20px; text-align:center; padding:0 20px;">
+                            ${title}
+                        </div>
+                        <div style="font-size:2vw; color:#fff; font-family:monospace; letter-spacing:5px;">ROOM ID: ${this.roomId}</div>
+                        <div style="margin-top:50px; font-size:1.5vw; color:#00bfff; animation:pulse 2s infinite;">READY TO START...</div>
                     </div>
-                    <div style="font-size:2vw; color:#fff; font-family:monospace; letter-spacing:5px;">ROOM ID: ${this.roomId}</div>
-                    <div style="margin-top:50px; font-size:1.5vw; color:#00bfff; animation:pulse 2s infinite;">READY TO START...</div>
-                </div>
-                <style>@keyframes pulse { 0%{opacity:0.6;} 50%{opacity:1;} 100%{opacity:0.6;} }</style>
-            `;
+                    <style>@keyframes pulse { 0%{opacity:0.6;} 50%{opacity:1;} 100%{opacity:0.6;} }</style>
+                `;
+            }
+        }
+        // --- 1.5. REVEAL Q NUM ---
+        else if (st.step === 'reveal_q_num') {
+            statusDiv.textContent = "NEXT Q";
+            const q = this.questions[st.qIndex] || {};
+
+            if (q.prodDesign) {
+                this.renderProduction(viewContainer, mainText, 'qnumber', q, st);
+            } else {
+                this.applyDefaultDesign(viewContainer, null);
+                mainText.innerHTML = `
+                    <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;">
+                        <div style="font-size:12vw; color:#fff; font-weight:900; text-shadow:0 0 30px rgba(0,0,0,0.5);">
+                            ${st.qNumLabel || `第 ${st.qIndex + 1} 問`}
+                        </div>
+                    </div>
+                `;
+            }
         }
         // --- 2. REVEAL Q (Phase 1) ---
         else if (st.step === 'reveal_q') {
@@ -216,6 +240,47 @@ window.App.Viewer = {
             mainText.innerHTML = '';
             this.renderBombGrid(st.cards);
         }
+    },
+
+    renderProduction: function (container, contentBox, type, q, st) {
+        const s = q.prodDesign || {};
+
+        let html = '';
+        if (type === 'title') {
+            const title = st.programTitle || this.config.periodTitle || "Quiz Studio";
+            const displayTitle = (s.titleText || title).replace(/\\n/g, '<br>');
+
+            container.style.backgroundColor = s.titleBgColor || '#000';
+            container.style.backgroundImage = 'none';
+
+            html = `
+                <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-family:${s.titleFont || 'sans-serif'};">
+                    <div style="color:${s.titleTextColor || '#fff'}; font-size:${s.titleSize || '8vw'}; font-weight:900; text-align:center; padding: 0 50px; line-height:1.2;">
+                        ${displayTitle}
+                    </div>
+                </div>
+            `;
+        } else if (type === 'qnumber') {
+            const displayQNum = (s.qNumberText || `第${st.qIndex + 1}問`).replace(/\\n/g, '<br>');
+            const pos = {
+                'center': 'align-items:center; justify-content:center;',
+                'top': 'align-items:flex-start; justify-content:center; padding-top:50px;',
+                'bottom': 'align-items:flex-end; justify-content:center; padding-bottom:50px;'
+            };
+
+            container.style.backgroundColor = s.qNumberBgColor || '#000';
+            container.style.backgroundImage = 'none';
+
+            html = `
+                <div style="width:100%; height:100%; display:flex; ${pos[s.qNumberPosition || 'center']}; font-family:${s.qNumberFont || 'sans-serif'};">
+                    <div style="color:${s.qNumberTextColor || '#fff'}; font-size:${s.qNumberSize || '15vw'}; font-weight:900; text-align:center; line-height:1.2;">
+                        ${displayQNum}
+                    </div>
+                </div>
+            `;
+        }
+
+        contentBox.innerHTML = html;
     },
 
     renderAllPlayerAnswers: function (container, mode, q) {
@@ -383,6 +448,7 @@ window.App.Viewer = {
         const align = q.align || 'center';
         const revealedMulti = st.revealedMulti || {};
 
+        // Background
         container.style.backgroundColor = d.mainBgColor || '#0a0a0a';
         if (d.bgImage) {
             container.style.backgroundImage = `url(${d.bgImage})`;
@@ -392,29 +458,40 @@ window.App.Viewer = {
             container.style.backgroundImage = (d.mainBgColor === '#0a0a0a') ? "radial-gradient(circle at center, #1a1a1a 0%, #000000 100%)" : "none";
         }
 
-        const qStyleBase = `color:${d.qTextColor || '#fff'}; background:${d.qBgColor || 'rgba(255,255,255,0.1)'}; border:6px solid ${d.qBorderColor || '#fff'}; text-align:${align}; box-shadow:0 10px 40px rgba(0,0,0,0.5);`;
-        const cStyle = `color:${d.cTextColor || '#ccc'}; background:${d.cBgColor || 'transparent'}; border-bottom:2px solid ${d.cBorderColor || '#555'}; padding:1.5vh 2vw; font-size:3vh; display:flex; align-items:center; opacity:1; transition: opacity 0.3s;`;
-        const pStyle = `color:${d.qBorderColor || '#00bfff'}; margin-right:20px; font-weight:900; font-size:1.2em; font-family:monospace;`;
-
         let html = '';
+
+        // Common Styles for Text
+        const textColor = d.qTextColor || '#fff';
+        const borderColor = d.qBorderColor || 'var(--color-primary)';
+
+        // Free Input
         if (q.type === 'free_oral' || q.type === 'free_written') {
             contentBox.style.flexDirection = 'column';
             contentBox.style.justifyContent = 'center';
             contentBox.style.alignItems = 'center';
-            html += `<div style="${qStyleBase} width:80%; height:60%; display:flex; align-items:center; justify-content:${align === 'left' ? 'flex-start' : align === 'right' ? 'flex-end' : 'center'}; font-size:8vh; font-weight:bold; border-radius:20px; padding:50px;">${q.q}</div>`;
-            let typeLabel = (q.type === 'free_oral') ? "フリー（口頭回答）" : "フリー（記述式）";
-            html += `<div style="color:${d.cTextColor || '#aaa'}; font-size:3vh; margin-top:30px;">[ ${typeLabel} ]</div>`;
-        } else if (q.type === 'multi') {
+
+            // Reusing q-area for consistent look
+            html += `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align}; font-size:6vh; width:80%;">
+                ${q.q}
+            </div>`;
+
+            let typeLabel = (q.type === 'free_oral') ? "フリー回答（口頭決済）" : "フリー回答（記述式）";
+            html += `<div style="color:${d.cTextColor || '#aaa'}; font-size:3vh; margin-top:2vh;">[ ${typeLabel} ]</div>`;
+
+        } else if (q.type.startsWith('multi')) {
             contentBox.style.flexDirection = 'column';
             contentBox.style.justifyContent = 'center';
             contentBox.style.alignItems = 'center';
-            html += `<div style="${qStyleBase} width:85%; margin-bottom:4vh; padding:3vh; font-size:4.5vh; font-weight:bold; border-radius:10px;">${q.q}</div>`;
+
+            html += `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align}; margin-bottom:4vh;">
+                ${q.q}
+            </div>`;
 
             if (q.c) {
                 html += `<div style="width:80%; display:grid; grid-template-columns: repeat(2, 1fr); gap:1.5vh;">`;
                 q.c.forEach((c, i) => {
                     const isRevealed = !!revealedMulti[i];
-                    const boxStyle = `background:rgba(0,0,0,0.5); border:2px solid ${isRevealed ? (d.qBorderColor || '#00bfff') : '#333'}; padding:1.5vh; border-radius:8px; display:flex; align-items:center; min-height:8vh; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); ${isRevealed ? 'transform: scale(1.05);' : ''}`;
+                    const boxStyle = `background:rgba(0,0,0,0.5); border:2px solid ${isRevealed ? borderColor : '#333'}; padding:1.5vh; border-radius:8px; display:flex; align-items:center; min-height:8vh; transition: all 0.3s; ${isRevealed ? 'transform: scale(1.02);' : ''}`;
                     const numStyle = `color:${isRevealed ? '#fff' : '#555'}; font-weight:900; font-size:3vh; margin-right:15px; width:40px;`;
                     const textStyle = `color:${isRevealed ? '#fff' : 'transparent'}; font-size:2.8vh; font-weight:bold;`;
                     html += `
@@ -427,30 +504,68 @@ window.App.Viewer = {
                 html += `</div>`;
             }
         } else {
+            // Standard / Split
             if (layout === 'standard') {
                 contentBox.style.flexDirection = 'column';
                 contentBox.style.justifyContent = 'center';
                 contentBox.style.alignItems = 'center';
-                html += `<div style="${qStyleBase} width:85%; margin-bottom:5vh; padding:4vh; font-size:5vh; font-weight:bold; border-radius:10px;">${q.q}</div>`;
+
+                html += `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align};">
+                    ${q.q}
+                </div>`;
+
                 if (q.c) {
-                    html += `<div style="width:75%; display:flex; flex-direction:column; gap:2vh;">`;
+                    const rows = parseInt(d.gridRows) || 0;
+                    const cols = parseInt(d.gridCols) || 0;
+                    let gridStyle = '';
+                    if (rows > 0 && cols > 0) {
+                        gridStyle = `display:grid; grid-template-columns: repeat(${cols}, 1fr); gap:2vh;`;
+                    }
+
+                    html += `<div class="c-area" style="${gridStyle}">`;
                     q.c.forEach((c, i) => {
-                        html += `<div style="${cStyle}"><span style="${pStyle}">${String.fromCharCode(65 + i)}</span> ${c}</div>`;
+                        const bgStyle = d.cBgColor ? `background:${d.cBgColor};` : '';
+                        const bStyle = d.cBorderColor ? `border:1px solid ${d.cBorderColor};` : '';
+                        html += `<div class="choice-item" style="color:${d.cTextColor || '#ddd'}; ${bgStyle} ${bStyle}">
+                            <span class="choice-prefix" style="color:${borderColor}">${String.fromCharCode(65 + i)}</span> 
+                            ${c}
+                        </div>`;
                     });
                     html += `</div>`;
                 }
             } else {
-                contentBox.style.flexDirection = 'row-reverse';
-                contentBox.style.justifyContent = 'center';
-                contentBox.style.alignItems = 'center';
-                html += `<div style="${qStyleBase} writing-mode:vertical-rl; text-orientation:upright; width:20vw; height:85vh; display:flex; align-items:center; justify-content:center; font-size:6vh; font-weight:bold; margin-left:5vw; border-radius:15px;">${q.q}</div>`;
+                // Split
+                const isSplit = true; // reusing existing logic
+                // For split, we use special container class or inline layout
+                // Since css has .layout-split-list, let's use it wrapper?
+                // But container is 'viewer-main-text' (passed as mainText). We append to it?
+                // No, contentBox IS mainText.
+
+                // We need to apply 'layout-split-list' to the container for CSS to take effect?
+                // Or wrap it.
+                // CSS .layout-split-list targets THE CONTAINER of .q-area and .c-area.
+                // Let's create a wrapper.
+
+                html += `<div class="viewer-layout-container layout-split-list" style="width:100%; height:85%; display:flex; flex-direction:row-reverse; justify-content:center; align-items:center;">
+                    <div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align}; width:25vw; height:80vh; margin:0 0 0 5vw;">
+                        ${q.q}
+                    </div>
+                    <div class="c-area" style="width:50vw; box-sizing:border-box; ${(parseInt(d.gridRows) > 0 && parseInt(d.gridCols) > 0)
+                        ? `display:grid; grid-template-columns:repeat(${parseInt(d.gridCols)}, 1fr); gap:2vh;`
+                        : ''
+                    }">`;
+
                 if (q.c) {
-                    html += `<div style="width:50vw; display:flex; flex-direction:column; gap:3vh;">`;
                     q.c.forEach((c, i) => {
-                        html += `<div style="${cStyle}"><span style="${pStyle}">${String.fromCharCode(65 + i)}</span> ${c}</div>`;
+                        const bgStyle = d.cBgColor ? `background:${d.cBgColor};` : '';
+                        const bStyle = d.cBorderColor ? `border:1px solid ${d.cBorderColor};` : '';
+                        html += `<div class="choice-item" style="color:${d.cTextColor || '#ddd'}; ${bgStyle} ${bStyle}">
+                            <span class="choice-prefix" style="color:${borderColor}">${String.fromCharCode(65 + i)}</span> 
+                            ${c}
+                        </div>`;
                     });
-                    html += `</div>`;
                 }
+                html += `</div></div>`;
             }
         }
         contentBox.innerHTML = html;

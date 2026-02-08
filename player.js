@@ -225,7 +225,7 @@ function updateUI() {
     // クイズエリア（問題文・選択肢）は、待機中以外は基本表示する方針に変更
     if (st.step === 'question' || st.step === 'answering' || st.step === 'answer') {
         quizArea.classList.remove('hidden');
-        if (currentQuestion && currentQuestion.type === 'multi') {
+        if (currentQuestion && currentQuestion.type.startsWith('multi')) {
             updateMultiAnswers();
         }
     } else {
@@ -290,12 +290,18 @@ function updateUI() {
                 buzzArea.classList.add('hidden');
                 toggleInputEnabled(true);
                 handleNormalResponseUI(p, quizArea, waitMsg);
+                // Auto-focus input for winner
+                setTimeout(() => {
+                    const inp = document.querySelector('#player-input-container input');
+                    if (inp) inp.focus();
+                }, 100);
             }
             else {
                 buzzArea.classList.add('hidden');
                 toggleInputEnabled(false);
                 waitMsg.classList.remove('hidden');
-                waitMsg.innerHTML = "🔒 <b>LOCKED</b><br>他のプレイヤーが回答中です...";
+                const winnerName = st.currentAnswererName || "他のプレイヤー";
+                waitMsg.innerHTML = `🔒 <b>LOCKED</b><br>${winnerName} が回答中です...`;
             }
         } else {
             // 通常一斉回答
@@ -583,9 +589,22 @@ function renderPlayerQuestion(q, roomId, playerId) {
                 [choices[i], choices[j]] = [choices[j], choices[i]];
             }
         }
+        const isMulti = q.multi || false;
+        const selected = new Set();
+        const btns = [];
+
         choices.forEach((item, i) => {
             const btn = document.createElement('button');
             btn.className = 'answer-btn';
+            btn.style.border = '4px solid transparent'; // Prepare for highlight
+            btn.style.transition = 'all 0.1s';
+
+            // Add visual indicator (Radio or Check)
+            const icon = isMulti ? (selected.has(item.originalIndex) ? '☑ ' : '☐ ') : (selected.has(item.originalIndex) ? '◉ ' : '○ ');
+            // Actually, icon update needs to happen on click.
+            // Let's just use text for now or simple visual highlight.
+            // Keeping text clean is better. We depend on Border.
+
             btn.innerHTML = `<span style="font-weight:900; margin-right:10px; opacity:0.8; font-family:monospace;">${String.fromCharCode(65 + item.originalIndex)}</span> ${item.text}`;
             btn.dataset.ans = item.originalIndex;
 
@@ -594,9 +613,53 @@ function renderPlayerQuestion(q, roomId, playerId) {
             else if (i === 2) btn.classList.add('btn-green');
             else btn.classList.add('btn-yellow');
 
-            btn.onclick = () => submitAnswer(roomId, playerId, item.originalIndex);
+            // If single mode, maybe dim unselected ones?
+            // Let's use opacity logic similar to Sort-Multi.
+            btn.style.opacity = '0.8';
+
+            btn.onclick = () => {
+                const val = item.originalIndex;
+                if (isMulti) {
+                    if (selected.has(val)) {
+                        selected.delete(val);
+                        btn.style.opacity = '0.8';
+                        btn.style.borderColor = 'transparent';
+                        btn.style.transform = 'scale(1)';
+                    } else {
+                        selected.add(val);
+                        btn.style.opacity = '1';
+                        btn.style.borderColor = '#fff';
+                        btn.style.transform = 'scale(1.02)';
+                    }
+                } else {
+                    // Single mode
+                    selected.clear();
+                    selected.add(val);
+                    btns.forEach(b => {
+                        b.style.opacity = '0.6';
+                        b.style.borderColor = 'transparent';
+                        b.style.transform = 'scale(1)';
+                    });
+                    btn.style.opacity = '1';
+                    btn.style.borderColor = '#fff';
+                    btn.style.transform = 'scale(1.02)';
+                }
+            };
+            btns.push(btn);
             inputCont.appendChild(btn);
         });
+
+        const submitBtn = document.createElement('button');
+        submitBtn.className = 'btn-primary btn-block';
+        submitBtn.textContent = '決定';
+        submitBtn.style.marginTop = '15px';
+        submitBtn.onclick = () => {
+            if (selected.size === 0) return;
+            const ansArray = Array.from(selected).sort((a, b) => a - b);
+            if (isMulti) submitAnswer(roomId, playerId, ansArray);
+            else submitAnswer(roomId, playerId, ansArray[0]);
+        };
+        inputCont.appendChild(submitBtn);
     }
     else if (q.type === 'letter_select') {
         let pool = [];
@@ -647,74 +710,64 @@ function renderPlayerQuestion(q, roomId, playerId) {
         const items = q.c || [];
         const n = items.length;
 
-        // Shuffle initial items but keep their original label (A, B, C...)
+
+        // Common Shuffle Logic
         let zipped = items.map((txt, i) => ({ txt, label: String.fromCharCode(65 + i) }));
-        for (let i = zipped.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [zipped[i], zipped[j]] = [zipped[j], zipped[i]];
+        if (q.shuffle !== false) {
+            for (let i = zipped.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [zipped[i], zipped[j]] = [zipped[j], zipped[i]];
+            }
         }
 
-        const renderSortInput = () => {
-            inputCont.innerHTML = '';
+        inputCont.innerHTML = '';
 
-            const helpText = document.createElement('div');
-            helpText.className = 'player-sort-help';
-            helpText.innerHTML = '👆 項目をドラッグして正しい順序に入れ替えてください';
-            inputCont.appendChild(helpText);
+        const helpText = document.createElement('div');
+        helpText.className = 'player-sort-help';
+        helpText.innerHTML = '👆 項目をドラッグして正しい順序に入れ替えてください';
+        inputCont.appendChild(helpText);
 
-            const sortList = document.createElement('div');
-            sortList.id = 'player-sortable-list';
-            sortList.className = 'sortable-list';
+        const sortList = document.createElement('div');
+        sortList.id = 'player-sortable-list';
+        sortList.className = 'sortable-list';
 
-            // Create zipped list
-            zipped.forEach((itemData) => {
-                const item = document.createElement('div');
-                item.className = 'sortable-item';
-                item.dataset.label = itemData.label;
-                item.innerHTML = `
-                    <div class="sortable-handle">☰</div>
-                    <div class="sortable-content">${itemData.txt}</div>
-                `;
-                sortList.appendChild(item);
+        zipped.forEach((itemData) => {
+            const item = document.createElement('div');
+            item.className = 'sortable-item';
+            item.dataset.label = itemData.label;
+            item.innerHTML = `
+                <div class="sortable-handle">☰</div>
+                <div class="sortable-content">${itemData.txt}</div>
+            `;
+            sortList.appendChild(item);
+        });
+        inputCont.appendChild(sortList);
+
+        if (window.Sortable) {
+            new Sortable(sortList, {
+                animation: 150,
+                handle: '.sortable-handle',
+                ghostClass: 'sortable-ghost',
+                chosenClass: 'sortable-chosen',
+                dragClass: 'sortable-drag'
             });
-            inputCont.appendChild(sortList);
+        }
 
-            // Initialize Sortable
-            if (window.Sortable) {
-                new Sortable(sortList, {
-                    animation: 150,
-                    handle: '.sortable-handle',
-                    ghostClass: 'sortable-ghost',
-                    chosenClass: 'sortable-chosen',
-                    dragClass: 'sortable-drag'
-                });
-            }
-
-            const submitBtn = document.createElement('button');
-            submitBtn.className = 'btn-primary btn-block';
-            submitBtn.style.marginTop = '20px';
-            submitBtn.textContent = '順序を確定して送信';
-
-            submitBtn.onclick = () => {
-                const sortedItems = sortList.querySelectorAll('.sortable-item');
-                let answer = "";
-                sortedItems.forEach(el => {
-                    answer += el.dataset.label;
-                });
-
-                if (answer.length !== n) {
-                    alert("エラーが発生しました。");
-                    return;
-                }
-
-                submitAnswer(roomId, playerId, answer);
-            };
-            inputCont.appendChild(submitBtn);
+        const submitBtn = document.createElement('button');
+        submitBtn.className = 'btn-primary btn-block';
+        submitBtn.textContent = '順序を確定して送信';
+        submitBtn.style.marginTop = '20px';
+        submitBtn.onclick = () => {
+            const sortedItems = sortList.querySelectorAll('.sortable-item');
+            let answer = "";
+            sortedItems.forEach(el => answer += el.dataset.label);
+            if (answer.length !== n) { alert("エラーが発生しました。"); return; }
+            submitAnswer(roomId, playerId, answer);
         };
-
-        renderSortInput();
+        inputCont.appendChild(submitBtn);
     }
-    else if (q.type === 'multi') {
+
+    else if (q.type.startsWith('multi')) {
         const grid = document.createElement('div');
         grid.className = 'player-multi-grid';
         q.c.forEach((choice, i) => {
@@ -736,9 +789,23 @@ function renderPlayerQuestion(q, roomId, playerId) {
         });
         inputCont.appendChild(grid);
 
-        // 多答の場合、司会者の操作を待つ「Answered」ボタンも必要であれば出す
-        document.getElementById('player-oral-done-area').classList.remove('hidden');
-        document.getElementById('player-oral-done-btn').onclick = () => { submitAnswer(roomId, playerId, "[Done]"); };
+        if (q.type === 'multi_written') {
+            const inp = document.createElement('input');
+            inp.type = 'text'; inp.placeholder = '回答を入力...'; inp.className = 'modern-input'; inp.style.marginTop = '15px';
+            const sub = document.createElement('button');
+            sub.className = 'btn-primary btn-block'; sub.textContent = '送信'; sub.style.marginTop = '10px';
+            sub.onclick = () => {
+                if (inp.value.trim() === "") return;
+                submitAnswer(roomId, playerId, inp.value.trim());
+                inp.value = ""; // Clear for next answer in multi-written
+            };
+            inputCont.appendChild(inp);
+            inputCont.appendChild(sub);
+        } else {
+            // multi_oral or legacy multi
+            document.getElementById('player-oral-done-area').classList.remove('hidden');
+            document.getElementById('player-oral-done-btn').onclick = () => { submitAnswer(roomId, playerId, "[Done]"); };
+        }
     }
     else if (q.type === 'free_oral') {
         document.getElementById('player-oral-done-area').classList.remove('hidden');
@@ -760,7 +827,7 @@ function renderPlayerQuestion(q, roomId, playerId) {
 
 function updateMultiAnswers() {
     const q = currentQuestion;
-    if (!q || q.type !== 'multi') return;
+    if (!q || !q.type.startsWith('multi')) return;
     const revealed = localStatus.revealedMulti || {};
 
     q.c.forEach((choice, i) => {

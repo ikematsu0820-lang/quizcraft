@@ -157,6 +157,23 @@ window.App.bindEvents = function () {
         if (window.App.Studio && window.App.Studio.startRoom) window.App.Studio.startRoom();
     });
     document.getElementById('dash-viewer-btn')?.addEventListener('click', () => U.showView(V.viewerLogin));
+
+    // FAB Save Bindings
+    document.getElementById('fab-creator-save')?.addEventListener('click', () => {
+        if (window.App.Creator?.save) window.App.Creator.save();
+    });
+    document.getElementById('fab-config-save')?.addEventListener('click', () => {
+        if (window.App.Config?.saveRulesToSet) window.App.Config.saveRulesToSet();
+    });
+    document.getElementById('fab-design-save')?.addEventListener('click', () => {
+        if (window.App.Design?.save) window.App.Design.save();
+    });
+    document.getElementById('fab-prod-save')?.addEventListener('click', () => {
+        if (window.App.ProductionDesign?.save) window.App.ProductionDesign.save();
+    });
+    document.getElementById('fab-prog-save')?.addEventListener('click', () => {
+        if (window.App.ProgConfig?.saveProgram) window.App.ProgConfig.saveProgram();
+    });
 };
 
 window.App.Dashboard = {
@@ -376,9 +393,7 @@ window.App.Dashboard = {
                     window.App.Design.init(this.currentEditKey, this.currentEditData);
                 }
             };
-            document.getElementById('edit-menu-sound').onclick = () => {
-                window.App.Ui.showToast("サウンド設定は準備中です");
-            };
+
             document.getElementById('edit-menu-close').onclick = () => {
                 modal.classList.add('hidden');
             };

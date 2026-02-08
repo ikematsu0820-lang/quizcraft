@@ -7,7 +7,7 @@ const APP_TEXT = {
     Version: "Cloud Edition v67",
 
     Main: { HostBtn: "クイズを作る", PlayerBtn: "クイズに答える" },
-    Login: { Title: "番組IDを入力", Placeholder: "例: QUIZ2026", SubmitBtn: "ログイン / 新規作成", BackBtn: "ホーム", AlertEmpty: "番組IDを入力してください", AlertError: "ID文字種エラー" },
+    Login: { Title: "番組IDを入力", Placeholder: "QUIZ2026", SubmitBtn: "ログイン / 新規作成", BackBtn: "ホーム", AlertEmpty: "番組IDを入力してください", AlertError: "ID文字種エラー" },
 
     Dashboard: {
         Logout: "ログアウト", BtnCreate: "問題作成", BtnConfig: "ルール設定",
@@ -16,22 +16,25 @@ const APP_TEXT = {
     },
 
     Creator: {
-        Title: "問題作成", BackBtn: "ダッシュボード", LabelSetName: "セット名", PlaceholderSetName: "例: 第1ステージ", HeadingNewQ: "新規問題追加", HeadingEditQ: "問題編集",
+        Title: "問題作成", BackBtn: "ダッシュボード", LabelSetName: "セット名", PlaceholderSetName: "第1ステージ", HeadingNewQ: "", HeadingEditQ: "問題編集",
 
-        LabelTypeFixed: "問題形式 (セット内固定)",
-        TypeChoice: "選択式",
-        TypeLetterSelect: "文字選択",
-        TypeSort: "並べ替え",
-        TypeFreeOral: "フリー (口頭回答)",
-        TypeFreeWritten: "フリー (記述式)",
-        TypeMulti: "多答クイズ (口頭回答)",
+        LabelTypeFixed: "問題形式",
+        TypeFree: "① 一問一答",
+        TypeChoice: "②選択式",
+        TypeLetterSelect: "1-3) 文字パネル（自由入力・自動判定）",
+        TypeSort: "③ 並べ替え",
+        TypeFreeOral: "1-2) 口頭回答（口頭・司会判定）",
+        TypeFreeWritten: "1-1) 記述式（自由入力・司会判定）",
+        TypeMulti: "④ 多答クイズ",
+        TypeMultiWritten: "4-1) 記述式（自由入力・司会判定）",
+        TypeMultiOral: "4-2) 口頭回答（口頭・司会判定）",
 
         PlaceholderQ: "問題文を入力", BtnAdd: "リストに追加", BtnUpdateQ: "更新する", BtnCancel: "キャンセル", ListHeading: "作成中のリスト", BtnSave: "クラウドに保存して完了", BtnUpdate: "更新して完了", OptMulti: "正解を選択",
         LabelTextFormat: "回答形式", TextFormatWritten: "記述式", TextFormatOral: "口頭 (正解入力任意)", LabelSortInitial: "初期配置", SortInitialRandom: "ランダム (推奨)", SortInitialFixed: "固定 (作成順)",
         DescSort: "※各項目の横に正しい順序を入力してください（1, 2, ...）", DescText: "※正解キーワード（カンマ区切り）", DescMulti: "※全ての項目が正解になります",
         BtnAddChoice: "＋ 選択肢を追加", BtnAddSort: "＋ 項目を追加", BtnAddMulti: "＋ 正解を追加",
 
-        HeadingSettings: "セット設定 (全体共通)",
+        HeadingSettings: "",
         LabelLayout: "モニターレイアウト", LayoutStandard: "標準 (上:問題 / 下:選択肢)", LayoutSplitList: "左右分割 (右:縦書き問題 / 左:リスト)", LayoutSplitGrid: "左右分割 (右:縦書き問題 / 左:グリッド)", LabelAlign: "文字の配置", AlignLeft: "左揃え", AlignCenter: "中央揃え", AlignRight: "右揃え",
         LabelDesign: "デザイン設定", GroupMain: "全体背景 (Main)", GroupQ: "問題文エリア (Question)", GroupC: "選択肢エリア (Choices)", LabelColorText: "文字", LabelColorBg: "背景", LabelColorBorder: "枠線", BtnSelectImage: "画像を選択", BtnClearImage: "画像解除", MsgImageLoaded: "画像セット中", MsgNoImage: "画像なし (単色背景)",
         AlertNoQ: "問題文を入力してください", AlertLessChoice: "選択肢は2つ以上必要です", AlertMaxChoice: "選択肢は最大20個までです", AlertNoCorrect: "正解を選んでください", AlertNoTextAns: "正解を入力してください", MsgSavedToast: "保存しました！", MsgAddedToast: "追加しました", MsgUpdatedToast: "更新しました",

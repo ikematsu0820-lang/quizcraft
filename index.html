@@ -86,20 +86,27 @@
             <h2>セットデザイン</h2>
             <button id="design-back-btn" class="header-back-btn">ダッシュボード</button>
         </div>
-        <div class="design-toolbar-toggle-area">
-            <button id="btn-toggle-design-toolbar" class="btn-mini btn-dark">📂 ロード解除 / 切り替え</button>
-        </div>
-        <div id="design-toolbar-container">
-            <div class="design-toolbar">
-                <div class="toolbar-select">
-                    <select id="design-target-select" class="btn-block">
+        <div class="mb-20">
+            <div class="mb-15">
+                <label class="config-label-large">編集対象を選択</label>
+                <div class="flex-row gap-10">
+                    <select id="design-target-select" class="btn-block config-select flex-1">
                         <option value="">-- 編集対象を選択 --</option>
                     </select>
+                    <button id="design-target-load-btn" class="btn-primary hidden" style="width:100px;">Load</button>
                 </div>
-                <button id="design-target-load-btn" class="btn-primary toolbar-btn">Load</button>
             </div>
+            <!-- Hidden refresh button for compatibility if needed, or we can just auto-refresh -->
+            <button id="design-target-refresh-btn" class="hidden"></button>
         </div>
         <div class="pager-segmented-wrapper">
+            <div class="preview-segmented-control design-preview-device-selector" id="design-device-selector"
+                style="margin-bottom: 10px;">
+                <button id="design-toggle-player" class="segmented-btn active" data-type="player"
+                    onclick="App.Design.switchDevice('player')">📱 スマホ</button>
+                <button id="design-toggle-monitor" class="segmented-btn" data-type="monitor"
+                    onclick="App.Design.switchDevice('monitor')">🖥️ モニター</button>
+            </div>
             <div id="design-pager-container" class="design-pager-area hidden">
                 <button id="design-pager-prev" class="pager-arrow-btn">◀︎</button>
                 <div id="design-pager-status" class="pager-status-text">待機</div>
@@ -107,16 +114,28 @@
                 <!-- Slide Visibility Toggle -->
                 <button id="design-pager-hide-toggle" class="pager-hide-btn" title="このスライドを本番で表示しない">
                     <span class="icon-show">👁️</span>
-                    <span class="icon-hide hidden">🙈</span>
+                    <span class="icon-hide">🙈</span>
                 </button>
+
+                <!-- Layout Dropdown (Monitor Only) -->
+                <div class="design-layout-selector-wrapper" style="margin-left: 15px; display: none;">
+                    <select id="creator-set-layout-inline" class="config-select"
+                        style="padding: 5px 10px; border-radius: 4px; background: rgba(0, 150, 255, 0.2); border: 1px solid rgba(0, 229, 255, 0.5); color: #fff;">
+                        <option value="standard">上下分割 (標準)</option>
+                        <option value="split">左右分割</option>
+                    </select>
+                    <button id="btn-open-grid-config" class="btn-tool-mini hidden" title="選択肢の配置設定"
+                        style="margin-left: 10px; padding: 5px 10px; background: rgba(255, 215, 0, 0.2); border: 1px solid rgba(255, 215, 0, 0.5); color: #fff; border-radius: 4px; cursor: pointer;">
+                        ▦ 配置
+                    </button>
+                </div>
             </div>
-            <!-- Removed segmented control to show both side-by-side -->
         </div>
 
-        <div class="design-preview-area-top side-by-side">
-            <!-- Smartphone (Player) on the LEFT -->
-            <div class="preview-group player-group">
-                <div id="preview-player-container" class="design-preview-frame player-frame">
+        <div class="design-preview-area-top">
+            <!-- Smartphone (Player) -->
+            <div id="preview-player-container" class="preview-group player-group">
+                <div class="design-preview-frame player-frame">
                     <div id="design-player-preview-content">
                         <div class="player-preview-mock">
                             <div class="p-status-bar"></div>
@@ -128,23 +147,15 @@
                 <div class="preview-label">回答者画面デモ</div>
             </div>
 
-            <!-- Monitor (Host) on the RIGHT -->
-            <div class="preview-group monitor-group">
-                <div id="preview-monitor-container" class="design-preview-frame">
+            <!-- Monitor (Host) -->
+            <div id="preview-monitor-container" class="preview-group monitor-group hidden">
+                <div class="design-preview-frame">
                     <div id="design-monitor-preview-content"></div>
                 </div>
                 <div class="preview-label">モニター画面デモ</div>
             </div>
         </div>
         <p class="preview-note">※実際の表示とは解像度が異なります</p>
-        <div class="design-compact-menu" style="justify-content: center;">
-            <button id="btn-open-layout" class="design-menu-btn-compact" title="レイアウト"><span class="menu-icon">📺</span>
-                レイアウト設定</button>
-        </div>
-        <div class="sticky-action-bar">
-            <button id="design-reset-btn" class="btn-dark btn-mini" style="width:100px;">初期値</button>
-            <button id="design-save-btn" class="btn-success btn-block btn-large">デザインを保存して完了</button>
-        </div>
 
         <div id="modal-design-layout" class="design-modal-overlay hidden">
             <div class="design-modal-content">
@@ -152,9 +163,8 @@
                 <div class="design-modal-body">
                     <label class="config-label">レイアウトを選択</label>
                     <select id="creator-set-layout" class="btn-block">
-                        <option value="standard">標準 (上下)</option>
-                        <option value="split_list">左右分割 (リスト)</option>
-                        <option value="split_grid">左右分割 (グリッド)</option>
+                        <option value="standard">上下分割 (標準)</option>
+                        <option value="split">左右分割</option>
                     </select>
                 </div>
                 <div class="modal-close-action">
@@ -179,23 +189,29 @@
 
                     <div class="color-row">
                         <label>問題文の文字色</label>
-                        <div class="color-picker-wrapper">
-                            <input type="color" id="design-q-text" class="color-picker-full">
+                        <div class="color-picker-wrapper" style="display:flex; align-items:center; gap:5px;">
+                            <input type="color" id="design-q-text" class="color-picker-full" style="flex:1;">
+                            <label style="font-size:12px; white-space:nowrap; display:flex; align-items:center;"><input
+                                    type="checkbox" id="design-q-text-transparent" style="margin-right:3px;">
+                                色なし</label>
                         </div>
                     </div>
                     <div class="config-group">
                         <label class="config-label">問題文の文字サイズ</label>
-                        <input type="text" id="design-q-size" class="btn-block" placeholder="例: 48px">
+                        <input type="text" id="design-q-size" class="btn-block" placeholder="48px">
                     </div>
                     <div class="color-row mt-10">
                         <label>選択肢の文字色</label>
-                        <div class="color-picker-wrapper">
-                            <input type="color" id="design-c-text" class="color-picker-full">
+                        <div class="color-picker-wrapper" style="display:flex; align-items:center; gap:5px;">
+                            <input type="color" id="design-c-text" class="color-picker-full" style="flex:1;">
+                            <label style="font-size:12px; white-space:nowrap; display:flex; align-items:center;"><input
+                                    type="checkbox" id="design-c-text-transparent" style="margin-right:3px;">
+                                色なし</label>
                         </div>
                     </div>
                     <div class="config-group">
                         <label class="config-label">選択肢の文字サイズ</label>
-                        <input type="text" id="design-c-size" class="btn-block" placeholder="例: 32px">
+                        <input type="text" id="design-c-size" class="btn-block" placeholder="32px">
                     </div>
                 </div>
                 <div class="modal-close-action">
@@ -210,28 +226,38 @@
                     <h4 class="sub-title">問題文エリア</h4>
                     <div class="color-row">
                         <label>枠線の色</label>
-                        <div class="color-picker-wrapper">
-                            <input type="color" id="design-q-border" class="color-picker-full">
+                        <div class="color-picker-wrapper" style="display:flex; align-items:center; gap:5px;">
+                            <input type="color" id="design-q-border" class="color-picker-full" style="flex:1;">
+                            <label style="font-size:12px; white-space:nowrap; display:flex; align-items:center;"><input
+                                    type="checkbox" id="design-q-border-transparent" style="margin-right:3px;">
+                                色なし</label>
                         </div>
                     </div>
                     <div class="color-row">
                         <label>背景の色</label>
-                        <div class="color-picker-wrapper">
-                            <input type="color" id="design-q-bg" class="color-picker-full">
+                        <div class="color-picker-wrapper" style="display:flex; align-items:center; gap:5px;">
+                            <input type="color" id="design-q-bg" class="color-picker-full" style="flex:1;">
+                            <label style="font-size:12px; white-space:nowrap; display:flex; align-items:center;"><input
+                                    type="checkbox" id="design-q-bg-transparent" style="margin-right:3px;"> 色なし</label>
                         </div>
                     </div>
 
                     <h4 class="sub-title">選択肢エリア</h4>
                     <div class="color-row">
                         <label>枠線の色</label>
-                        <div class="color-picker-wrapper">
-                            <input type="color" id="design-c-border" class="color-picker-full">
+                        <div class="color-picker-wrapper" style="display:flex; align-items:center; gap:5px;">
+                            <input type="color" id="design-c-border" class="color-picker-full" style="flex:1;">
+                            <label style="font-size:12px; white-space:nowrap; display:flex; align-items:center;"><input
+                                    type="checkbox" id="design-c-border-transparent" style="margin-right:3px;">
+                                色なし</label>
                         </div>
                     </div>
                     <div class="color-row">
                         <label>背景の色</label>
-                        <div class="color-picker-wrapper">
-                            <input type="color" id="design-c-bg" class="color-picker-full">
+                        <div class="color-picker-wrapper" style="display:flex; align-items:center; gap:5px;">
+                            <input type="color" id="design-c-bg" class="color-picker-full" style="flex:1;">
+                            <label style="font-size:12px; white-space:nowrap; display:flex; align-items:center;"><input
+                                    type="checkbox" id="design-c-bg-transparent" style="margin-right:3px;"> 色なし</label>
                         </div>
                     </div>
                 </div>
@@ -240,6 +266,34 @@
                 </div>
             </div>
         </div>
+
+        <!-- Grid Config Modal -->
+        <div id="modal-design-grid" class="design-modal-overlay hidden">
+            <div class="design-modal-content" style="max-width:350px;">
+                <h3 class="modal-title">選択肢の配置設定</h3>
+                <div class="design-modal-body">
+                    <p style="color:#aaa; font-size:0.9em; margin-bottom:15px; text-align:center;">グリッドの行数・列数を設定</p>
+                    <div style="display:flex; gap:15px; margin-bottom:20px;">
+                        <div style="flex:1;">
+                            <label class="config-label" style="text-align:center; display:block;">行数 (Rows)</label>
+                            <input type="number" id="design-grid-rows" class="form-control" value="4" min="1" max="10"
+                                style="text-align:center; width:100%; padding:10px; border-radius:8px; border:none; background:#333; color:#fff; box-sizing:border-box;">
+                        </div>
+                        <div style="flex:1;">
+                            <label class="config-label" style="text-align:center; display:block;">列数 (Cols)</label>
+                            <input type="number" id="design-grid-cols" class="form-control" value="1" min="1" max="10"
+                                style="text-align:center; width:100%; padding:10px; border-radius:8px; border:none; background:#333; color:#fff; box-sizing:border-box;">
+                        </div>
+                    </div>
+                </div>
+                <div style="display:flex; gap:10px; margin-top:10px;">
+                    <button class="btn-block modal-close-btn" style="background:#555; color:#ccc;">キャンセル</button>
+                    <button class="btn-block" id="btn-apply-grid-config"
+                        style="background:var(--color-primary); color:#000; font-weight:bold;">決定</button>
+                </div>
+            </div>
+        </div>
+
         <div id="modal-design-bg" class="design-modal-overlay hidden">
             <!-- Existing content -->
             <div class="design-modal-content">
@@ -247,8 +301,11 @@
                 <div class="design-modal-body">
                     <div class="color-row">
                         <label>全体背景色</label>
-                        <div class="color-picker-wrapper">
-                            <input type="color" id="design-main-bg-color" class="color-picker-full">
+                        <div class="color-picker-wrapper" style="display:flex; align-items:center; gap:5px;">
+                            <input type="color" id="design-main-bg-color" class="color-picker-full" style="flex:1;">
+                            <label style="font-size:12px; white-space:nowrap; display:flex; align-items:center;"><input
+                                    type="checkbox" id="design-main-bg-color-transparent" style="margin-right:3px;">
+                                色なし</label>
                         </div>
                     </div>
 
@@ -282,7 +339,8 @@
                 <!-- JSで動的に構築 -->
             </div>
             <div class="modal-close-action">
-                <button class="btn-block btn-primary modal-close-btn toolbar-done-btn">完了</button>
+                <button class="btn-block btn-primary modal-close-btn toolbar-done-btn"
+                    onclick="App.Design.closeQuickEdit()">完了</button>
             </div>
         </div>
     </div>
@@ -315,15 +373,12 @@
                     <button class="segmented-btn" data-type="ranking" title="ランキング">🏆</button>
                 </div>
                 <div class="preview-segmented-control prod-preview-device-selector">
-                    <button class="segmented-btn active" data-device="monitor" title="モニター画面">🖥️ モニター</button>
-                    <button class="segmented-btn" data-device="player" title="参加者スマホ">📱 スマホ</button>
+                    <button class="segmented-btn active" data-device="player" title="参加者スマホ">📱 スマホ</button>
+                    <button class="segmented-btn" data-device="monitor" title="モニター画面">🖥️ モニター</button>
                 </div>
             </div>
 
-            <div id="preview-monitor-container-prod" class="design-preview-frame">
-                <div id="prod-design-preview-content"></div>
-            </div>
-            <div id="preview-player-container-prod" class="design-preview-frame player-frame hidden">
+            <div id="preview-player-container-prod" class="design-preview-frame player-frame">
                 <div id="prod-player-preview-content">
                     <div class="player-preview-mock">
                         <div class="p-status-bar"></div>
@@ -334,162 +389,14 @@
                     </div>
                 </div>
             </div>
+            <div id="preview-monitor-container-prod" class="design-preview-frame hidden">
+                <div id="prod-design-preview-content"></div>
+            </div>
             <p class="preview-note">※実際の表示とは解像度が異なります</p>
         </div>
 
         <!-- Compact menu removed as it was redundant with segmented control -->
-        <div class="sticky-action-bar">
-            <button id="prod-design-reset-btn" class="btn-dark btn-mini" style="width:100px;">初期値</button>
-            <button id="prod-design-save-btn" class="btn-success btn-block btn-large">演出設定を保存して完了</button>
-        </div>
 
-        <div id="modal-prod-title" class="design-modal-overlay hidden">
-            <div class="design-modal-content">
-                <h3 class="modal-title">タイトル画面設定</h3>
-                <div class="design-modal-body">
-                    <div class="config-group">
-                        <label class="config-label">表示するタイトル名</label>
-                        <input type="text" id="design-title-text-value" class="btn-block" placeholder="例: プレビュー用タイトル">
-                        <p class="text-xs text-gray mt-5">※デザイン確認用の入力です（保存はされません）</p>
-                    </div>
-                    <div class="color-row">
-                        <label>背景色</label>
-                        <div class="color-picker-wrapper">
-                            <input type="color" id="prod-title-bg-color" class="color-picker-full" value="#000000">
-                        </div>
-                    </div>
-                    <div class="color-row">
-                        <label>文字色</label>
-                        <div class="color-picker-wrapper">
-                            <input type="color" id="prod-title-text-color" class="color-picker-full" value="#ffd700">
-                        </div>
-                    </div>
-                    <div class="config-group">
-                        <label class="config-label">フォント</label>
-                        <select id="prod-title-font" class="btn-block">
-                            <option value="sans-serif">Sans-serif (標準)</option>
-                            <option value="serif">Serif (明朝)</option>
-                            <option value="monospace">Monospace (等幅)</option>
-                        </select>
-                    </div>
-                    <div class="config-group">
-                        <label class="config-label">文字サイズ</label>
-                        <input type="text" id="prod-title-size" class="btn-block" value="120px" placeholder="例: 120px">
-                    </div>
-                    <div class="config-group">
-                        <label class="config-label">アニメーション</label>
-                        <select id="prod-title-animation" class="btn-block">
-                            <option value="fade">フェード</option>
-                            <option value="slide">スライド</option>
-                            <option value="pop">ポップ</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-close-action">
-                    <button class="btn-block btn-dark modal-close-btn">閉じる</button>
-                </div>
-            </div>
-        </div>
-
-        <div id="modal-prod-qnum" class="design-modal-overlay hidden">
-            <div class="design-modal-content">
-                <h3 class="modal-title">問題番号設定</h3>
-                <div class="design-modal-body">
-                    <div class="config-group">
-                        <label class="config-label">表示するテキスト</label>
-                        <input type="text" id="design-qnum-text-value" class="btn-block" placeholder="例: 第1問">
-                    </div>
-                    <div class="color-row">
-                        <label>背景色</label>
-                        <div class="color-picker-wrapper">
-                            <input type="color" id="prod-qnum-bg-color" class="color-picker-full" value="#000000">
-                        </div>
-                    </div>
-                    <div class="color-row">
-                        <label>文字色</label>
-                        <div class="color-picker-wrapper">
-                            <input type="color" id="prod-qnum-text-color" class="color-picker-full" value="#ffffff">
-                        </div>
-                    </div>
-                    <div class="config-group">
-                        <label class="config-label">フォント</label>
-                        <select id="prod-qnum-font" class="btn-block">
-                            <option value="sans-serif">Sans-serif (標準)</option>
-                            <option value="serif">Serif (明朝)</option>
-                            <option value="monospace">Monospace (等幅)</option>
-                        </select>
-                    </div>
-                    <div class="config-group">
-                        <label class="config-label">文字サイズ</label>
-                        <input type="text" id="prod-qnum-size" class="btn-block" placeholder="例: 10vh">
-                    </div>
-                    <div class="config-group">
-                        <label class="config-label">表示位置</label>
-                        <select id="prod-qnum-position" class="btn-block">
-                            <option value="center">中央</option>
-                            <option value="top">上部</option>
-                            <option value="bottom">下部</option>
-                        </select>
-                    </div>
-                    <div class="config-group">
-                        <label class="config-label">アニメーション</label>
-                        <select id="prod-qnum-animation" class="btn-block">
-                            <option value="fade">フェード</option>
-                            <option value="slide">スライド</option>
-                            <option value="pop">ポップ</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-close-action">
-                    <button class="btn-block btn-dark modal-close-btn">閉じる</button>
-                </div>
-            </div>
-        </div>
-
-        <div id="modal-prod-ranking" class="design-modal-overlay hidden">
-            <div class="design-modal-content">
-                <h3 class="modal-title">ランキング設定</h3>
-                <div class="design-modal-body">
-                    <div class="color-row">
-                        <label>背景色</label>
-                        <div class="color-picker-wrapper">
-                            <input type="color" id="prod-ranking-bg-color" class="color-picker-full" value="#000000">
-                        </div>
-                    </div>
-                    <div class="color-row">
-                        <label>文字色</label>
-                        <div class="color-picker-wrapper">
-                            <input type="color" id="prod-ranking-text-color" class="color-picker-full" value="#ffffff">
-                        </div>
-                    </div>
-                    <div class="color-row">
-                        <label>アクセント色</label>
-                        <div class="color-picker-wrapper">
-                            <input type="color" id="prod-ranking-accent-color" class="color-picker-full">
-                        </div>
-                    </div>
-                    <div class="config-group">
-                        <label class="config-label">フォント</label>
-                        <select id="prod-ranking-font" class="btn-block">
-                            <option value="sans-serif">Sans-serif (標準)</option>
-                            <option value="serif">Serif (明朝)</option>
-                            <option value="monospace">Monospace (等幅)</option>
-                        </select>
-                    </div>
-                    <div class="config-group">
-                        <label class="config-label">アニメーション</label>
-                        <select id="prod-ranking-animation" class="btn-block">
-                            <option value="fade">フェード</option>
-                            <option value="cascade">カスケード</option>
-                            <option value="pop">ポップ</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-close-action">
-                    <button class="btn-block btn-dark modal-close-btn">閉じる</button>
-                </div>
-            </div>
-        </div>
     </div>
 
     <div id="creator-view" class="view hidden">
@@ -498,21 +405,32 @@
             <button id="creator-back-btn" class="header-back-btn">ダッシュボード</button>
         </div>
         <div class="panel-section section-blue mb-20">
-            <h4 class="panel-title" data-text="Creator.HeadingSettings">Set Settings</h4>
-            <label class="config-label" data-text="Creator.LabelTypeFixed">Fixed Type</label>
-            <select id="creator-q-type" class="btn-block bold-select"></select>
+            <div class="creator-row">
+                <label class="config-label" data-text="Creator.LabelTypeFixed">Fixed Type</label>
+                <select id="creator-q-type" class="btn-block bold-select"></select>
+            </div>
+            <div id="creator-q-subtype-area" class="mt-10 hidden">
+                <div class="creator-row">
+                    <label class="config-label">回答形式を選択</label>
+                    <select id="creator-q-subtype" class="btn-block bold-select"></select>
+                </div>
+            </div>
             <p id="creator-type-locked-msg" class="locked-msg hidden" data-text="Creator.MsgTypeLocked">Locked</p>
         </div>
         <div class="panel-section section-pink mb-20">
             <h3 id="creator-form-title" class="panel-title-large" data-text="Creator.HeadingNewQ">New Question</h3>
-            <input type="text" id="question-text" class="btn-block mb-10" placeholder="">
+            <div class="mb-10">
+                <label class="config-label q-label-prominent">問題文</label>
+                <input type="text" id="question-text" class="btn-block mb-0" placeholder="問題を入力してください">
+            </div>
             <div id="creator-form-container" class="mb-10"></div>
 
             <div class="panel-section section-gray mb-10">
-                <h5 class="sub-title">解説設定</h5>
-                <label class="config-label">解説テキスト (正解発表時に表示)</label>
-                <textarea id="creator-commentary" class="btn-block" placeholder="例: 世界で一番高い山はエベレストです。海拔8848.86m。"
-                    rows="2"></textarea>
+                <div class="creator-row" style="align-items: flex-start;">
+                    <label class="config-label" style="padding-top: 8px;">解説設定</label>
+                    <textarea id="creator-commentary" class="btn-block" placeholder="解説を入力して下さい" rows="2"
+                        style="flex:1; margin-bottom:0;"></textarea>
+                </div>
             </div>
             <button id="add-question-btn" class="btn-primary btn-block mt-10" data-text="Creator.BtnAdd">Add</button>
             <div id="update-question-area" class="hidden grid-2-col gap-10 mt-10">
@@ -525,11 +443,6 @@
             <div id="q-list" class="scroll-list mb-15"></div>
         </div>
 
-        <!-- Sticky Save Action -->
-        <div class="sticky-action-bar">
-            <button id="save-to-cloud-btn" class="btn-success btn-block btn-large"
-                data-text="Creator.BtnSave">Save</button>
-        </div>
     </div>
 
     <div id="config-view" class="view hidden">
@@ -537,16 +450,12 @@
             <h2 data-text="Config.Title">Rule Settings</h2>
             <button id="config-header-back-btn" class="header-back-btn">ダッシュボード</button>
         </div>
-        <div class="panel-section section-cyan mb-20">
-            <h3 class="panel-title-center">セットのルールを策定</h3>
+        <div class="mb-20">
             <div class="mb-15">
                 <label class="config-label-large" data-text="Config.LabelSet">対象セットを選択</label>
                 <select id="config-set-select" class="btn-block config-select"></select>
             </div>
             <div id="config-builder-ui"></div>
-        </div>
-        <div id="config-action-area" class="hidden sticky-action-bar">
-            <button id="config-save-set-rules-btn" class="btn-success btn-block btn-large">セットのルールを保存（上書き/別名）</button>
         </div>
     </div>
 
@@ -574,10 +483,6 @@
             <button id="prog-open-load-modal-btn" class="btn-dark btn-block mt-10">📂 保存済み番組を読み込む</button>
         </div>
 
-        <div class="sticky-action-bar" style="flex-direction: column; gap: 10px; padding-top: 10px;">
-            <button id="prog-save-program-btn" class="btn-success btn-block btn-large"
-                style="max-width: 400px;">番組の構成を保存して完了</button>
-        </div>
 
         <!-- Load Modal -->
         <div id="prog-load-modal" class="modal-overlay hidden">
@@ -600,12 +505,8 @@
                 <span class="status-label">部屋ID</span>
                 <span id="studio-header-room-id" class="status-value text-yellow" title="クリックしてコピー">---</span>
             </div>
-            <div class="status-item"><span class="status-label">モード</span><span id="studio-mode-display"
-                    class="status-value text-cyan">NORMAL</span></div>
             <div class="status-item"><span class="status-label">問題数</span><span id="studio-q-num-display"
                     class="status-value">1/10</span></div>
-            <div class="status-item"><span class="status-label">状態</span><span id="studio-step-display"
-                    class="status-value">STANDBY</span></div>
             <div class="status-item">
                 <span class="status-label">参加人数</span>
                 <span id="studio-player-count-display" class="status-value">0</span>
@@ -907,9 +808,7 @@
                     <button id="edit-menu-design" class="btn-block btn-success" style="padding:15px; font-size:1.1em;">
                         🎨 問題デザイン
                     </button>
-                    <button id="edit-menu-sound" class="btn-block btn-dark" style="padding:15px; font-size:1.1em;">
-                        🔊 サウンド (準備中)
-                    </button>
+
                 </div>
             </div>
             <div class="modal-close-action">
@@ -918,3 +817,189 @@
         </div>
     </div>
 </body>
+<!-- Global FAB Save Actions -->
+<div class="fab-save-container">
+    <!-- Creator Save -->
+    <button id="fab-creator-save" class="fab-btn fab-only-visible" title="セットを保存">
+        <span class="fab-icon">💾</span>
+        <span class="fab-label">SAVE</span>
+    </button>
+    <!-- Rule Config Save -->
+    <button id="fab-config-save" class="fab-btn fab-only-visible" title="ルールを保存">
+        <span class="fab-icon">⚙️</span>
+        <span class="fab-label">RULES</span>
+    </button>
+    <!-- Set Design Save -->
+    <button id="fab-design-save" class="fab-btn fab-only-visible" title="デザインを保存">
+        <span class="fab-icon">🎨</span>
+        <span class="fab-label">DESIGN</span>
+    </button>
+    <!-- Production Design Save -->
+    <button id="fab-prod-save" class="fab-btn fab-only-visible" title="演出設定を保存">
+        <span class="fab-icon">🎬</span>
+        <span class="fab-label">SCENE</span>
+    </button>
+    <!-- Program Config Save -->
+    <button id="fab-prog-save" class="fab-btn fab-only-visible" title="番組構成を保存">
+        <span class="fab-icon">📺</span>
+        <span class="fab-label">PLAN</span>
+    </button>
+</div>
+</body>
+
+</html>
+<div id="modal-prod-title" class="design-modal-overlay hidden">
+    <div class="design-modal-content">
+        <h3 class="modal-title">タイトル画面設定</h3>
+        <div class="design-modal-body">
+            <div class="config-group">
+                <label class="config-label">表示するタイトル名</label>
+                <input type="text" id="design-title-text-value" class="btn-block" placeholder="例: プレビュー用タイトル">
+                <p class="text-xs text-gray mt-5">※デザイン確認用の入力です（保存はされません）</p>
+            </div>
+            <div class="color-row">
+                <label>背景色</label>
+                <div class="color-picker-wrapper">
+                    <input type="color" id="prod-title-bg-color" class="color-picker-full" value="#000000">
+                    <label class="text-xs ml-5" style="display:inline-flex; align-items:center;"><input type="checkbox"
+                            id="prod-title-bg-color-transparent" style="margin-right:3px;"> 色なし</label>
+                </div>
+            </div>
+            <div class="color-row">
+                <label>文字色</label>
+                <div class="color-picker-wrapper">
+                    <input type="color" id="prod-title-text-color" class="color-picker-full" value="#ffd700">
+                    <label class="text-xs ml-5" style="display:inline-flex; align-items:center;"><input type="checkbox"
+                            id="prod-title-text-color-transparent" style="margin-right:3px;"> 色なし</label>
+                </div>
+            </div>
+            <div class="config-group">
+                <label class="config-label">フォント</label>
+                <select id="prod-title-font" class="btn-block">
+                    <option value="sans-serif">Sans-serif (標準)</option>
+                    <option value="serif">Serif (明朝)</option>
+                    <option value="monospace">Monospace (等幅)</option>
+                </select>
+            </div>
+            <div class="config-group">
+                <label class="config-label">文字サイズ</label>
+                <input type="text" id="prod-title-size" class="btn-block" value="" placeholder="120px">
+            </div>
+            <div class="config-group">
+                <label class="config-label">アニメーション</label>
+                <select id="prod-title-animation" class="btn-block">
+                    <option value="fade">フェード</option>
+                    <option value="slide">スライド</option>
+                    <option value="pop">ポップ</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-close-action">
+            <button class="btn-block btn-dark modal-close-btn">閉じる</button>
+        </div>
+    </div>
+</div>
+
+<div id="modal-prod-qnum" class="design-modal-overlay hidden">
+    <div class="design-modal-content">
+        <h3 class="modal-title">問題番号設定</h3>
+        <div class="design-modal-body">
+            <div class="config-group">
+                <label class="config-label">表示するテキスト</label>
+                <input type="text" id="design-qnum-text-value" class="btn-block" placeholder="例: 第1問">
+            </div>
+            <div class="color-row">
+                <label>背景色</label>
+                <div class="color-picker-wrapper">
+                    <input type="color" id="prod-qnum-bg-color" class="color-picker-full" value="#000000">
+                    <label class="text-xs ml-5" style="display:inline-flex; align-items:center;"><input type="checkbox"
+                            id="prod-qnum-bg-color-transparent" style="margin-right:3px;"> 色なし</label>
+                </div>
+            </div>
+            <div class="color-row">
+                <label>文字色</label>
+                <div class="color-picker-wrapper">
+                    <input type="color" id="prod-qnum-text-color" class="color-picker-full" value="#ffffff">
+                    <label class="text-xs ml-5" style="display:inline-flex; align-items:center;"><input type="checkbox"
+                            id="prod-qnum-text-color-transparent" style="margin-right:3px;"> 色なし</label>
+                </div>
+            </div>
+            <div class="config-group">
+                <label class="config-label">フォント</label>
+                <select id="prod-qnum-font" class="btn-block">
+                    <option value="sans-serif">Sans-serif (標準)</option>
+                    <option value="serif">Serif (明朝)</option>
+                    <option value="monospace">Monospace (等幅)</option>
+                </select>
+            </div>
+            <div class="config-group">
+                <label class="config-label">文字サイズ</label>
+                <input type="text" id="prod-qnum-size" class="btn-block" placeholder="10vh">
+            </div>
+            <div class="config-group">
+                <label class="config-label">表示位置</label>
+                <select id="prod-qnum-position" class="btn-block">
+                    <option value="center">中央</option>
+                    <option value="top">上部</option>
+                    <option value="bottom">下部</option>
+                </select>
+            </div>
+            <div class="config-group">
+                <label class="config-label">アニメーション</label>
+                <select id="prod-qnum-animation" class="btn-block">
+                    <option value="fade">フェード</option>
+                    <option value="slide">スライド</option>
+                    <option value="pop">ポップ</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-close-action">
+            <button class="btn-block btn-dark modal-close-btn">閉じる</button>
+        </div>
+    </div>
+</div>
+
+<div id="modal-prod-ranking" class="design-modal-overlay hidden">
+    <div class="design-modal-content">
+        <h3 class="modal-title">ランキング設定</h3>
+        <div class="design-modal-body">
+            <div class="color-row">
+                <label>背景色</label>
+                <div class="color-picker-wrapper">
+                    <input type="color" id="prod-ranking-bg-color" class="color-picker-full" value="#000000">
+                </div>
+            </div>
+            <div class="color-row">
+                <label>文字色</label>
+                <div class="color-picker-wrapper">
+                    <input type="color" id="prod-ranking-text-color" class="color-picker-full" value="#ffffff">
+                </div>
+            </div>
+            <div class="color-row">
+                <label>アクセント色</label>
+                <div class="color-picker-wrapper">
+                    <input type="color" id="prod-ranking-accent-color" class="color-picker-full">
+                </div>
+            </div>
+            <div class="config-group">
+                <label class="config-label">フォント</label>
+                <select id="prod-ranking-font" class="btn-block">
+                    <option value="sans-serif">Sans-serif (標準)</option>
+                    <option value="serif">Serif (明朝)</option>
+                    <option value="monospace">Monospace (等幅)</option>
+                </select>
+            </div>
+            <div class="config-group">
+                <label class="config-label">アニメーション</label>
+                <select id="prod-ranking-animation" class="btn-block">
+                    <option value="fade">フェード</option>
+                    <option value="cascade">カスケード</option>
+                    <option value="pop">ポップ</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-close-action">
+            <button class="btn-block btn-dark modal-close-btn">閉じる</button>
+        </div>
+    </div>
+</div>

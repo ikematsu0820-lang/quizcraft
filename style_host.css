@@ -21,9 +21,8 @@ textarea,
     /* Pro tool standard */
     font-weight: 500;
     backdrop-filter: blur(8px);
-    height: 36px;
-    /* Compact */
     min-height: 32px;
+    text-align: left !important;
 }
 
 input:focus,
@@ -411,9 +410,67 @@ select option {
    --------------------------------------------------- */
 .panel-section,
 .creator-set-settings {
-    /* Uses glass styles from style_common.css */
+    /* Uses glass styles from style_common.css by default */
     padding: 15px;
     margin-bottom: 20px;
+}
+
+#creator-view .panel-section {
+    background: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+}
+
+.bold-select {
+    font-size: 13px !important;
+    font-weight: 800;
+}
+
+.creator-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 12px;
+}
+
+.creator-row label {
+    margin-bottom: 0 !important;
+    white-space: nowrap;
+    min-width: 160px;
+    font-size: 13px;
+    color: var(--color-text-sub);
+    font-weight: 600;
+}
+
+.creator-row .bold-select {
+    flex: 1;
+    margin-bottom: 0 !important;
+}
+
+.sort-rank-box {
+    transition: all 0.2s ease;
+}
+
+.sort-rank-box:hover {
+    background: rgba(0, 229, 255, 0.2) !important;
+    border-color: var(--color-primary) !important;
+}
+
+.sort-rank-box:active {
+    transform: scale(0.95);
+}
+
+select.bold-select {
+    padding-left: 5px !important;
+    padding-right: 25px !important;
+    /* Space for the arrow */
+    text-align-last: center;
+    /* Better for centering select text */
+    height: auto !important;
+    line-height: 1.2;
 }
 
 .panel-title {
@@ -425,6 +482,18 @@ select option {
     font-size: 1.1em;
 }
 
+.panel-title-large {
+    font-size: 1.4em;
+    font-weight: 900;
+    color: #fff;
+    margin-bottom: 20px;
+}
+
+.panel-title:empty,
+.panel-title-large:empty {
+    display: none !important;
+}
+
 .config-label,
 .mini-label {
     color: var(--color-text-sub);
@@ -434,16 +503,24 @@ select option {
     margin-bottom: 6px;
 }
 
-.choice-row,
-.sort-row {
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-    padding: 10px;
-    margin-bottom: 8px;
+.choice-row {
     display: flex;
     align-items: center;
     gap: 10px;
+    margin-bottom: 10px;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    /* 補助線 */
+}
+
+.sort-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding: 2px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    /* 補助線 */
 }
 
 .choice-label-btn {
@@ -929,6 +1006,12 @@ select option {
     border-radius: 12px;
 }
 
+/* Smartphone vertical frame spec */
+.player-frame {
+    aspect-ratio: 9 / 19 !important;
+    max-width: 160px !important;
+}
+
 #design-monitor-preview-content,
 #prod-design-preview-content,
 #design-player-preview-content,
@@ -1001,32 +1084,10 @@ select option {
     margin-bottom: 20px;
 }
 
-.design-toolbar {
-    background: rgba(255, 255, 255, 0.05);
-    padding: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    backdrop-filter: blur(10px);
-}
-
-.toolbar-select {
-    flex: 1;
-}
-
-.toolbar-select select {
-    margin-bottom: 0 !important;
-    padding: 10px !important;
-    font-size: 0.9em !important;
-}
-
+.design-toolbar,
+.toolbar-select select,
 .toolbar-btn {
-    padding: 10px 18px;
-    border-radius: 10px;
-    font-weight: bold;
-    font-size: 0.9em;
+    display: none;
 }
 
 /* Slim Segmented Control */
@@ -1037,6 +1098,10 @@ select option {
     gap: 10px;
     margin-bottom: 20px;
     width: 100%;
+    position: relative;
+    z-index: 200;
+    /* Higher z-index */
+    pointer-events: auto;
 }
 
 .preview-segmented-control {
@@ -1046,6 +1111,9 @@ select option {
     padding: 4px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     width: 100%;
+    position: relative;
+    z-index: 210;
+    pointer-events: auto !important;
 }
 
 /* Sliding Transition for Preview - Target children to avoid conflict with scale transform */
@@ -1190,6 +1258,9 @@ select option {
     font-size: 0.85em;
     cursor: pointer;
     transition: all 0.3s;
+    pointer-events: auto !important;
+    position: relative;
+    z-index: 500;
 }
 
 .segmented-btn.active {
@@ -3379,6 +3450,14 @@ input:checked+.pro-slider:before {
     border-color: #ff416c;
 }
 
+.pager-hide-btn .icon-hide {
+    display: none;
+}
+
+.pager-hide-btn .icon-show {
+    display: block;
+}
+
 .pager-hide-btn.is-hidden .icon-show {
     display: none;
 }
@@ -3413,4 +3492,149 @@ input:checked+.pro-slider:before {
     font-size: 1.2em;
     box-shadow: 0 0 20px rgba(255, 65, 108, 0.6);
     transform: rotate(-5deg);
+}
+
+/* --- Stepper Input for Font Size --- */
+.stepper-input {
+    display: flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+}
+
+.stepper-btn {
+    background: transparent;
+    border: none;
+    color: var(--color-primary);
+    width: 28px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 10px;
+    transition: background 0.2s;
+}
+
+.stepper-btn:hover {
+    background: rgba(0, 229, 255, 0.1);
+}
+
+.stepper-btn:active {
+    background: rgba(0, 229, 255, 0.2);
+}
+
+.stepper-input input {
+    border: none !important;
+    background: transparent !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    height: 32px !important;
+    font-weight: 800 !important;
+    color: #fff !important;
+    width: 60px !important;
+    text-align: center;
+    box-shadow: none !important;
+}
+
+/* --- Enhanced Reactive Preview Buttons --- */
+.preview-bg-block {
+    overflow: hidden;
+}
+
+.preview-bg-block::before {
+    content: "CLICK TO EDIT DISPLAY";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 229, 255, 0.9);
+    color: #000;
+    padding: 10px 20px;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    pointer-events: none;
+    z-index: 100;
+    box-shadow: 0 10px 30px rgba(0, 229, 255, 0.5);
+}
+
+.preview-bg-block:hover::before {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1);
+}
+
+/* Rule removed to fix click interaction */
+
+/* FAB Save Badge */
+.fab-btn::after {
+    content: attr(title);
+    position: absolute;
+    right: 80px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateX(10px);
+    transition: all 0.2s;
+    pointer-events: none;
+}
+
+.fab-btn:hover::after {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* --- Utility Fixes for Text & Labels --- */
+.text-gray {
+    color: #888888 !important;
+}
+
+.text-sm {
+    font-size: 0.8em !important;
+}
+
+.text-xs {
+    font-size: 0.7em !important;
+}
+
+.no-wrap {
+    white-space: nowrap;
+}
+
+.flex-center {
+    display: flex;
+    align-items: center;
+}
+
+.ml-10 {
+    margin-left: 10px;
+}
+
+/* Prominent Question Label */
+.config-label.q-label-prominent {
+    color: #ffffff !important;
+    font-size: 18px !important;
+    font-weight: 900 !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    margin-bottom: 8px !important;
+    border-left: 4px solid var(--color-primary);
+    padding-left: 10px;
+    display: block;
+}
+
+/* Sort Instruction Text Override */
+.sort-instruction {
+    color: #888888 !important;
+    font-size: 0.85em !important;
+    margin-bottom: 5px !important;
 }

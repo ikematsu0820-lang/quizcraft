@@ -102,7 +102,7 @@ App.Studio = {
                 this.renderUnifiedConsole(players); // Still might want to see who joined
             }
 
-            if (App.Data.currentConfig?.mode === 'buzz' && this.currentStepId === 3) {
+            if (App.Data.currentConfig?.mode === 'buzz' && this.currentStepId === 2) {
                 this.checkBuzz(players);
             }
         });
@@ -171,7 +171,7 @@ App.Studio = {
     },
 
     toggleUIForStandby: function (isStandby) {
-        const hideIds = ['studio-mode-display', 'studio-q-num-display', 'studio-step-display'];
+        const hideIds = ['studio-q-num-display'];
         hideIds.forEach(id => {
             const el = document.getElementById(id);
             if (el && el.parentNode) {
@@ -383,9 +383,11 @@ App.Studio = {
         }
 
         const stepsJA = ['待機', '出題', '回答受付', '締め切り', '回答表示', '正解発表', '判定', '結果'];
-        document.getElementById('studio-step-display').textContent = stepsJA[stepId];
+        const stepEl = document.getElementById('studio-step-display');
+        if (stepEl) stepEl.textContent = stepsJA[stepId];
         document.getElementById('studio-q-num-display').textContent = `${App.State.currentQIndex + 1}/${App.Data.studioQuestions.length}`;
-        document.getElementById('studio-mode-display').textContent = this.translateMode(App.Data.currentConfig.mode);
+        const modeEl = document.getElementById('studio-mode-display');
+        if (modeEl) modeEl.textContent = this.translateMode(App.Data.currentConfig.mode);
 
         const q = App.Data.studioQuestions[App.State.currentQIndex];
         const roomId = App.State.currentRoomId;
@@ -516,7 +518,7 @@ App.Studio = {
                 syncBadge.style.background = "rgba(46, 204, 113, 0.2)";
 
                 // Simultaneous judging (if not oral)
-                const isOralType = (q.type === 'multi' || q.type === 'free_oral');
+                const isOralType = (q.type.startsWith('multi') || q.type === 'free_oral');
                 if (!isOralType) {
                     this.judgeSimultaneous();
                 } else {
@@ -727,6 +729,15 @@ App.Studio = {
         const s = q.prodDesign || {};
         cContainer.innerHTML = '';
 
+        // Reset qEl styles from previous question render
+        qEl.style.border = 'none';
+        qEl.style.background = 'transparent';
+        qEl.style.padding = '0';
+        qEl.style.margin = '0';
+        qEl.style.width = '100%';
+        qEl.style.height = '100%';
+        qEl.style.writingMode = 'horizontal-tb'; // reset vertical layout
+
         let html = '';
         if (type === 'title') {
             const displayTitle = (s.titleText || App.Data.currentConfig.periodTitle || "Program Title").replace(/\\n/g, '<br>');
@@ -783,7 +794,9 @@ App.Studio = {
             panel.style.backgroundSize = "cover";
             panel.style.backgroundPosition = "center";
         } else {
-            panel.style.backgroundImage = "none";
+            panel.style.backgroundImage = (d.mainBgColor === '#0a0a0a' || !d.mainBgColor)
+                ? "radial-gradient(circle at center, #1a1a1a 0%, #000000 100%)"
+                : "none";
         }
 
         // Apply Layout logic
@@ -798,11 +811,22 @@ App.Studio = {
             qEl.style.width = '20%';
             qEl.style.margin = '0 0 0 5%';
             qEl.style.borderLeft = 'none';
-            qEl.style.borderTop = `10px solid ${d.qBorderColor || 'var(--color-primary)'}`;
-            qEl.style.background = `linear-gradient(180deg, rgba(0, 229, 255, 0.15) 0%, transparent 100%)`;
+            qEl.style.borderTop = 'none';
+            qEl.style.border = `6px solid ${d.qBorderColor || 'var(--color-primary)'}`;
+            qEl.style.backgroundColor = d.qBgColor || 'rgba(0,0,0,0.5)';
+            qEl.style.backgroundImage = 'none';
 
-            cContainer.style.width = '60%';
-            cContainer.style.flexDirection = 'column';
+            if (parseInt(d.gridRows) > 0 && parseInt(d.gridCols) > 0) {
+                cContainer.style.display = 'grid';
+                cContainer.style.gridTemplateColumns = `repeat(${parseInt(d.gridCols)}, 1fr)`;
+                cContainer.style.gap = '20px';
+                cContainer.style.width = '60%';
+            } else {
+                cContainer.style.display = 'flex';
+                cContainer.style.flexDirection = 'column';
+                cContainer.style.width = '60%';
+                cContainer.style.gap = '15px';
+            }
         } else {
             panel.style.flexDirection = 'column';
             panel.style.justifyContent = 'center';
@@ -814,11 +838,22 @@ App.Studio = {
             qEl.style.width = '90%';
             qEl.style.margin = '0 0 40px 0';
             qEl.style.borderTop = 'none';
-            qEl.style.borderLeft = `10px solid ${d.qBorderColor || 'var(--color-primary)'}`;
-            qEl.style.background = `linear-gradient(90deg, rgba(0, 229, 255, 0.15) 0%, transparent 100%)`;
+            qEl.style.borderLeft = 'none';
+            qEl.style.border = `6px solid ${d.qBorderColor || 'var(--color-primary)'}`;
+            qEl.style.backgroundColor = d.qBgColor || 'rgba(0,0,0,0.5)';
+            qEl.style.backgroundImage = 'none';
 
-            cContainer.style.width = '85%';
-            cContainer.style.flexDirection = 'column';
+            if (parseInt(d.gridRows) > 0 && parseInt(d.gridCols) > 0) {
+                cContainer.style.display = 'grid';
+                cContainer.style.gridTemplateColumns = `repeat(${parseInt(d.gridCols)}, 1fr)`;
+                cContainer.style.gap = '20px';
+                cContainer.style.width = '85%';
+            } else {
+                cContainer.style.display = 'flex';
+                cContainer.style.flexDirection = 'column';
+                cContainer.style.width = '85%';
+                cContainer.style.gap = '15px';
+            }
         }
 
         // Apply shared classes logic
@@ -851,6 +886,11 @@ App.Studio = {
                 // Choice Design
                 if (d.cTextColor) div.style.color = d.cTextColor;
                 if (d.cFontSize) div.style.fontSize = d.cFontSize;
+                if (d.cBgColor) div.style.background = d.cBgColor;
+                if (d.cBorderColor) div.style.border = `1px solid ${d.cBorderColor}`;
+
+                // Prefix Color (Match Viewer logic)
+                prefix.style.color = d.qBorderColor || 'var(--color-primary)';
 
                 cContainer.appendChild(div);
             });
@@ -882,7 +922,7 @@ App.Studio = {
                 cContainer.appendChild(div);
             });
         }
-        else if (q.type === 'multi') {
+        else if (q.type.startsWith('multi')) {
             q.c.forEach((c, i) => {
                 const btn = document.createElement('button');
                 btn.className = 'monitor-choice-item';
@@ -910,7 +950,7 @@ App.Studio = {
     toggleMultiAnswer: function (index) {
         const roomId = App.State.currentRoomId;
         const q = App.Data.studioQuestions[App.State.currentQIndex];
-        if (!q || q.type !== 'multi') return;
+        if (!q || !q.type.startsWith('multi')) return;
 
         this.revealedMultiIndices[index] = !this.revealedMultiIndices[index];
 
@@ -957,7 +997,7 @@ App.Studio = {
     },
 
     checkBuzz: function (players) {
-        if (this.currentStepId !== 3 || this.buzzWinner) return;
+        if (this.currentStepId !== 2 || this.buzzWinner) return;
         const candidates = Object.entries(players).filter(([_, p]) => p.buzzTime && !p.lastResult).sort((a, b) => a[1].buzzTime - b[1].buzzTime);
         if (candidates.length > 0) {
             this.buzzWinner = candidates[0][0];
@@ -967,7 +1007,7 @@ App.Studio = {
             info.innerHTML = `<span style="color:orange; font-weight:bold;">早押し: ${name}</span>`;
             info.classList.add('anim-pop-in');
             setTimeout(() => info.classList.remove('anim-pop-in'), 400);
-            window.db.ref(`rooms/${App.State.currentRoomId}/status`).update({ currentAnswerer: this.buzzWinner, isBuzzActive: false });
+            window.db.ref(`rooms/${App.State.currentRoomId}/status`).update({ currentAnswerer: this.buzzWinner, currentAnswererName: name, isBuzzActive: false });
         }
     },
 
@@ -1189,6 +1229,38 @@ App.Studio = {
                 ansText = isNaN(idx) ? p.lastAnswer : `${String.fromCharCode(65 + idx)}. ${q.c[idx] || ''}`;
             }
             selectedAnswer.textContent = ansText;
+
+            // Add Judge Buttons for Buzz Mode (if not yet judged)
+            // Remove old buttons if any
+            const oldBtns = document.getElementById('console-judge-btns');
+            if (oldBtns) oldBtns.remove();
+
+            if (App.Data.currentConfig.mode === 'buzz' && !p.lastResult && p.id === (this.buzzWinner || App.State.currentAnswerer)) { // Only for current buzzer
+                // Check logic: this.buzzWinner might be null if reloaded? 
+                // Use status.currentAnswerer? We don't have it easily here unless we store it.
+                // But p.buzzTime is key.
+                if (p.buzzTime) {
+                    const btnHtml = `
+                        <div id="console-judge-btns" style="display:flex; gap:10px; margin-top:10px; justify-content:center;">
+                             <button class="btn btn-success" onclick="App.Studio.updatePlayerScore('${p.id}', true)">正解 (O)</button>
+                             <button class="btn btn-danger" onclick="App.Studio.updatePlayerScore('${p.id}', false)">不正解 (X)</button>
+                        </div>
+                     `;
+                    selectedAnswer.insertAdjacentHTML('afterend', btnHtml);
+                }
+            } else if (App.Data.currentConfig.mode === 'buzz' && !p.lastResult && p.lastAnswer) {
+                // For text answer buzz (if buzzer logic didn't catch it?)
+                // Generally buzzWinner should be set.
+                // Fallback to show buttons if they have answered.
+                const btnHtml = `
+                    <div id="console-judge-btns" style="display:flex; gap:10px; margin-top:10px; justify-content:center;">
+                         <button class="btn btn-success" onclick="App.Studio.updatePlayerScore('${p.id}', true)">正解 (O)</button>
+                         <button class="btn btn-danger" onclick="App.Studio.updatePlayerScore('${p.id}', false)">不正解 (X)</button>
+                    </div>
+                 `;
+                selectedAnswer.insertAdjacentHTML('afterend', btnHtml);
+            }
+
         } else {
             selectedName.textContent = "回答者を選択";
             selectedAnswer.textContent = "回答待ち...";
@@ -1220,6 +1292,33 @@ App.Studio = {
                 lastResult: result
             });
             App.Ui.showToast(`${p.name} さんを ${isCorrect ? '正解' : '不正解'} に判定しました`);
+
+            // BUZZ MODE LOGIC
+            if (App.Data.currentConfig.mode === 'buzz') {
+                if (isCorrect) {
+                    // Winner! Disable buzz.
+                    window.db.ref(`rooms/${roomId}/status`).update({ isBuzzActive: false });
+                    this.buzzWinner = null;
+                    App.Ui.showToast("正解！早押し終了");
+                } else {
+                    // Wrong! Resume.
+                    this.buzzWinner = null;
+                    window.db.ref(`rooms/${roomId}/status`).update({
+                        currentAnswerer: null,
+                        currentAnswererName: null,
+                        isBuzzActive: true
+                    });
+
+                    // Clear buzzTime for others (Fresh Start)
+                    window.db.ref(`rooms/${roomId}/players`).once('value', allSnap => {
+                        allSnap.forEach(child => {
+                            // Don't clear lost status (already handled by update above?)
+                            child.ref.update({ buzzTime: null });
+                        });
+                    });
+                    App.Ui.showToast("不正解。早押し再開！");
+                }
+            }
         });
     },
 
