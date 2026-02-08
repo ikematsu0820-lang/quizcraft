@@ -298,38 +298,12 @@ App.Config = {
         let html = '';
 
         if (mode === 'normal') {
-            const canRetry = ['choice', 'sort', 'letter_select'].includes(qType) || qType.startsWith('multi');
-            let limitSelect = '';
-            if (canRetry) {
-                limitSelect = `
-                    <select id="config-normal-limit" class="btn-block config-select">
-                        <option value="unlimited" ${conf.normalLimit === 'unlimited' ? 'selected' : ''}>${APP_TEXT.Config.NormalLimitUnlimited}</option>
-                        <option value="one" ${conf.normalLimit === 'one' ? 'selected' : ''}>${APP_TEXT.Config.NormalLimitOne}</option>
-                    </select>`;
-            } else {
-                limitSelect = `
-                    <select id="config-normal-limit" class="btn-block config-select" disabled style="opacity:0.7; cursor:not-allowed;">
-                        <option value="one" selected>1回のみ (固定)</option>
-                    </select>
-                    <p style="font-size:0.8em; color:#ffd700; margin-top:5px;">※この形式は回答の修正ができません</p>
-                `;
-            }
-
             html += `
                 <div class="mode-settings-box mode-box-normal">
-                    <div class="grid-2-col">
-                        <div>
-                            <label class="config-label">${APP_TEXT.Config.LabelNormalLimit}</label>
-                            ${limitSelect}
-                        </div>
-                        <div>
-                            <label class="config-label">回答のオープン方法</label>
-                            <select id="config-manual-flip" class="btn-block config-select">
-                                <option value="false" ${conf.manualFlip === false ? 'selected' : ''}>自動 (即正解発表へ)</option>
-                                <option value="true" ${conf.manualFlip === true ? 'selected' : ''}>手動 (一斉オープンを挟む)</option>
-                            </select>
-                        </div>
-                    </div>
+                    <p style="color:#aaa; font-size:0.9em; text-align:center;">
+                        一斉回答モードの設定はありません。<br>
+                        (修正:無制限 / オープン:自動)
+                    </p>
                 </div>`;
         } else if (mode === 'buzz') {
             // ★修正: 選択肢の文言をわかりやすく変更
@@ -379,23 +353,6 @@ App.Config = {
             html += `
                 <div class="mode-settings-box mode-box-solo">
                     <div class="grid-2-col">
-                        <div>
-                            <label class="config-label">${APP_TEXT.Config.LabelSoloStyle}</label>
-                            <select id="config-solo-style" class="btn-block config-select">
-                                <option value="manual" ${conf.soloStyle === 'manual' ? 'selected' : ''}>${APP_TEXT.Config.SoloStyleManual}</option>
-                                <option value="correct" ${conf.soloStyle === 'correct' ? 'selected' : ''}>${APP_TEXT.Config.SoloStyleCorrect}</option>
-                                <option value="auto" ${conf.soloStyle === 'auto' ? 'selected' : ''}>${APP_TEXT.Config.SoloStyleAuto}</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="config-label">${APP_TEXT.Config.LabelSoloTimeType}</label>
-                            <select id="config-solo-time-type" class="btn-block config-select">
-                                <option value="per_q" ${conf.soloTimeType === 'per_q' ? 'selected' : ''}>${APP_TEXT.Config.SoloTimePerQ}</option>
-                                <option value="total" ${conf.soloTimeType === 'total' ? 'selected' : ''}>${APP_TEXT.Config.SoloTimeTotal}</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="grid-2-col mt-10">
                         <div>
                             <label class="config-label">${APP_TEXT.Config.LabelSoloTimeValue}</label>
                             <div class="flex-center">

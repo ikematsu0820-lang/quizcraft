@@ -195,10 +195,10 @@ function updateUI() {
 
     const badge = document.getElementById('alive-badge');
     if (p.isAlive) {
-        badge.textContent = "ENTRY"; badge.style.background = "#00bfff"; badge.style.color = "#000";
+        if (badge) { badge.textContent = "ENTRY"; badge.style.background = "#00bfff"; badge.style.color = "#000"; }
         document.getElementById('player-dead-overlay').classList.add('hidden');
     } else {
-        badge.textContent = "LOSE"; badge.style.background = "#555"; badge.style.color = "#aaa";
+        if (badge) { badge.textContent = "LOSE"; badge.style.background = "#555"; badge.style.color = "#aaa"; }
         document.getElementById('player-dead-overlay').classList.remove('hidden');
     }
 
