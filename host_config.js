@@ -109,7 +109,7 @@ App.Config = {
         html += `
             <div class="config-item-box">
                 <div class="mb-15">
-                <label class="config-label">1. ${APP_TEXT.Config.LabelMode} (Answer Authority)</label>
+                <label class="config-label">1. ${APP_TEXT.Config.LabelMode}</label>
                 <div class="mode-segmented-control">
                     <button type="button" class="mode-segmented-btn ${isOral || qType.startsWith('multi') ? 'disabled' : ''}" data-mode="normal" ${isOral || qType.startsWith('multi') ? 'disabled' : ''}>
                         <span class="icon">⚡</span>
@@ -119,11 +119,12 @@ App.Config = {
                         <span class="icon">🚨</span>
                         <span class="label">早押し</span>
                     </button>
-                    <button type="button" class="mode-segmented-btn" data-mode="turn">
+                    <!-- Disabled Turn/Solo as per request -->
+                    <button type="button" class="mode-segmented-btn disabled" data-mode="turn" disabled style="opacity:0.5; cursor:not-allowed;">
                         <span class="icon">🔄</span>
                         <span class="label">順番</span>
                     </button>
-                    <button type="button" class="mode-segmented-btn" data-mode="solo">
+                    <button type="button" class="mode-segmented-btn disabled" data-mode="solo" disabled style="opacity:0.5; cursor:not-allowed;">
                         <span class="icon">🏆</span>
                         <span class="label">ソロ</span>
                     </button>
@@ -141,12 +142,11 @@ App.Config = {
                 <hr style="border:0; border-top:1px dashed #444; margin:20px 0;">
 
                 <div class="mb-15">
-                    <label class="config-label">2. ゲームタイプ (Reward Type)</label>
+                    <label class="config-label">2. ゲームタイプ</label>
                     <select id="config-game-type" class="btn-block config-select">
-                        <option value="score">得点制 (Score)</option>
-                        <option value="panel">陣取り (Panel 25)</option>
-                        <option value="race">レース / すごろく (Race)</option>
-                        <option value="slot">u5909u52d5u5f97u70b9 (Slot)</option>
+                        <option value="score">得点制</option>
+                        <option value="panel">パネル制</option>
+                        <option value="slot">変動得点制</option>
                     </select>
                     <div id="gametype-detail-area"></div>
                 </div>
@@ -380,20 +380,12 @@ App.Config = {
         let html = '';
         if (gameType === 'panel') {
             html += `<div class="mode-settings-box mode-box-normal" style="border-color:#ffd700; margin-top:5px;">
-                <label style="color:#ffd700;">★ 陣取りモード (Panel 25)</label>
+                <label style="color:#ffd700;">★ パネル制</label>
                 <p class="unit-text">25枚のパネル操作盤を有効にします。</p>
-            </div>`;
-        } else if (gameType === 'race') {
-            html += `<div class="mode-settings-box mode-box-normal" style="border-color:#00ff00; margin-top:5px;">
-                <label style="color:#00ff00;">★ レースモード (Race)</label>
-                <div class="mt-5">
-                    <label class="config-label">ゴールまでのポイント</label>
-                    <input type="number" id="conf-pass-count" value="${conf.passCount || 10}" class="config-select">
-                </div>
             </div>`;
         } else if (gameType === 'slot') {
             html += `<div class="mode-settings-box mode-box-normal" style="border-color:#ff00ff; margin-top:5px;">
-                <label style="color:#ff00ff;">★ 変動得点モード (Slot)</label>
+                <label style="color:#ff00ff;">★ 変動得点制</label>
                 <p class="unit-text">正解時にスロットを回し、出た目が得点になります。</p>
                 <div class="mt-5">
                     <label class="config-label">スロットの範囲</label>

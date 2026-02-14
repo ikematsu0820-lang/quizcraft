@@ -140,7 +140,7 @@ function startPlayerListener(roomId, playerId) {
 
         localStatus = st;
 
-        if (st.step === 'answering' || st.step === 'question' || st.step === 'answer') {
+        if (['answering', 'question', 'answer', 'reveal_q', 'reveal_correct'].includes(st.step)) {
             window.db.ref(`rooms/${roomId}/questions/${st.qIndex}`).once('value', qSnap => {
                 const q = qSnap.val();
                 if (q) {
@@ -160,7 +160,7 @@ function triggerStepAnimation(step) {
 
     // Quick flash or pop depending on step
     if (step === 'ready') main.classList.add('anim-pop-in');
-    else if (step === 'question') main.classList.add('anim-slide-up');
+    else if (step === 'question' || step === 'reveal_q') main.classList.add('anim-slide-up');
 
     setTimeout(() => {
         main.classList.remove('anim-pop-in', 'anim-slide-up');
@@ -221,9 +221,10 @@ function updateUI() {
     waitMsg.classList.add('hidden');
     resultOverlay.classList.add('hidden');
     rankingOverlay.classList.add('hidden');
+    buzzArea.classList.add('hidden'); // ★追加: 毎回隠して、必要な時だけ出す
 
     // クイズエリア（問題文・選択肢）は、待機中以外は基本表示する方針に変更
-    if (st.step === 'question' || st.step === 'answering' || st.step === 'answer') {
+    if (['question', 'answering', 'answer', 'reveal_q', 'reveal_correct'].includes(st.step)) {
         quizArea.classList.remove('hidden');
         if (currentQuestion && currentQuestion.type.startsWith('multi')) {
             updateMultiAnswers();
@@ -260,21 +261,62 @@ function updateUI() {
         quizArea.classList.add('hidden');
     }
     else if (st.step === 'reveal_q') {
-        // 出題中（表示のみ、回答不可）
+        // 出題中 (Simplified Flow: Allow answering immediately)
         quizArea.classList.remove('hidden');
-        toggleInputEnabled(false);
+
+        if (p.lastResult === 'win') {
+            toggleInputEnabled(false);
+            const changeArea = document.getElementById('change-btn-area');
+            if (changeArea) changeArea.innerHTML = '';
+
+            waitMsg.classList.remove('hidden');
+            waitMsg.style.background = "rgba(46, 204, 113, 0.2)";
+            waitMsg.style.color = "#2ecc71";
+            waitMsg.style.border = "1px solid #2ecc71";
+            waitMsg.style.padding = "20px";
+            waitMsg.innerHTML = `<div class="status-badge" style="background:#2ecc71;">CORRECT</div><p style="margin-top:10px; font-weight:bold; font-size:1.5em;">正解です！</p>`;
+        } else if (p.lastResult === 'lose') {
+            toggleInputEnabled(false);
+            const changeArea = document.getElementById('change-btn-area');
+            if (changeArea) changeArea.innerHTML = '';
+
+            waitMsg.classList.remove('hidden');
+            waitMsg.style.background = "rgba(231, 76, 60, 0.2)";
+            waitMsg.style.color = "#e74c3c";
+            waitMsg.style.border = "1px solid #e74c3c";
+            waitMsg.style.padding = "20px";
+            waitMsg.innerHTML = `<div class="status-badge" style="background:#e74c3c;">WRONG</div><p style="margin-top:10px; font-weight:bold; font-size:1.5em;">不正解...</p>`;
+        } else {
+            handleNormalResponseUI(p, quizArea, waitMsg);
+            toggleInputEnabled(true);
+        }
     }
     else if (st.step === 'answering') {
         quizArea.classList.remove('hidden');
         if (roomConfig.mode === 'buzz') {
-            // 早押しモード
+            // 早押しモード: 勝者以外は回答画面操作不可
             if (p.lastResult === 'lose') {
                 showLoserMessage(lobby, buzzArea);
                 toggleInputEnabled(false);
             }
-            else if (st.isBuzzActive) {
-                buzzArea.classList.remove('hidden');
+            else if (p.lastResult === 'win') {
+                // ★追加: 正解者への即時フィードバック
+                buzzArea.classList.add('hidden');
                 toggleInputEnabled(false);
+                const changeArea = document.getElementById('change-btn-area');
+                if (changeArea) changeArea.innerHTML = '';
+
+                waitMsg.classList.remove('hidden');
+                waitMsg.style.background = "rgba(46, 204, 113, 0.2)";
+                waitMsg.style.color = "#2ecc71";
+                waitMsg.style.border = "1px solid #2ecc71";
+                waitMsg.style.padding = "20px";
+                waitMsg.innerHTML = `<div class="status-badge" style="background:#2ecc71;">CORRECT</div><p style="margin-top:10px; font-weight:bold; font-size:1.5em;">正解です！</p>`;
+            }
+            else if (st.isBuzzActive) {
+                // 早押しボタン受付中
+                buzzArea.classList.remove('hidden');
+                toggleInputEnabled(false); // クイズ回答エリアはまだ無効
                 const btn = document.getElementById('player-buzz-btn');
                 if (p.buzzTime) {
                     btn.disabled = true;
@@ -287,6 +329,7 @@ function updateUI() {
                 }
             }
             else if (st.currentAnswerer === myPlayerId) {
+                // 自分が早押し勝者 -> 回答権獲得
                 buzzArea.classList.add('hidden');
                 toggleInputEnabled(true);
                 handleNormalResponseUI(p, quizArea, waitMsg);
@@ -296,17 +339,52 @@ function updateUI() {
                     if (inp) inp.focus();
                 }, 100);
             }
-            else {
+            else if (st.currentAnswerer) {
+                // 誰か他の人が回答権獲得中 -> 自分は操作不可
                 buzzArea.classList.add('hidden');
                 toggleInputEnabled(false);
                 waitMsg.classList.remove('hidden');
                 const winnerName = st.currentAnswererName || "他のプレイヤー";
                 waitMsg.innerHTML = `🔒 <b>LOCKED</b><br>${winnerName} が回答中です...`;
+
+                // ★追加: 誤答などでリセットされるまでロックされ続ける仕様
+            }
+            else {
+                // 誰も回答権がない状態 (例: 誤答後リセット待ち、または開始前)
+                // 基本的には isBuzzActive が true になるはずだが、念のためロック
+                buzzArea.classList.add('hidden');
+                toggleInputEnabled(false);
+                waitMsg.classList.remove('hidden');
+                waitMsg.innerHTML = "待機中...";
             }
         } else {
-            // 通常一斉回答
-            handleNormalResponseUI(p, quizArea, waitMsg);
-            toggleInputEnabled(true);
+            // 通常一斉回答 (Normal Mode)
+            if (p.lastResult === 'win') {
+                toggleInputEnabled(false);
+                const changeArea = document.getElementById('change-btn-area');
+                if (changeArea) changeArea.innerHTML = '';
+
+                waitMsg.classList.remove('hidden');
+                waitMsg.style.background = "rgba(46, 204, 113, 0.2)";
+                waitMsg.style.color = "#2ecc71";
+                waitMsg.style.border = "1px solid #2ecc71";
+                waitMsg.style.padding = "20px";
+                waitMsg.innerHTML = `<div class="status-badge" style="background:#2ecc71;">CORRECT</div><p style="margin-top:10px; font-weight:bold; font-size:1.5em;">正解です！</p>`;
+            } else if (p.lastResult === 'lose') {
+                toggleInputEnabled(false);
+                const changeArea = document.getElementById('change-btn-area');
+                if (changeArea) changeArea.innerHTML = '';
+
+                waitMsg.classList.remove('hidden');
+                waitMsg.style.background = "rgba(231, 76, 60, 0.2)";
+                waitMsg.style.color = "#e74c3c";
+                waitMsg.style.border = "1px solid #e74c3c";
+                waitMsg.style.padding = "20px";
+                waitMsg.innerHTML = `<div class="status-badge" style="background:#e74c3c;">WRONG</div><p style="margin-top:10px; font-weight:bold; font-size:1.5em;">不正解...</p>`;
+            } else {
+                handleNormalResponseUI(p, quizArea, waitMsg);
+                toggleInputEnabled(true);
+            }
         }
     }
     else if (st.step === 'closed') {
@@ -322,7 +400,22 @@ function updateUI() {
         quizArea.classList.remove('hidden');
         toggleInputEnabled(false);
         waitMsg.classList.remove('hidden');
-        waitMsg.innerHTML = `<div class="status-badge" style="background:#9b59b6;">REVEAL</div><p style="margin-top:10px;">全員の回答を表示しています</p>`;
+
+        if (p.lastResult === 'win') {
+            waitMsg.style.background = "rgba(46, 204, 113, 0.2)";
+            waitMsg.style.color = "#2ecc71";
+            waitMsg.style.border = "1px solid #2ecc71";
+            waitMsg.style.padding = "20px";
+            waitMsg.innerHTML = `<div class="status-badge" style="background:#2ecc71;">CORRECT</div><p style="margin-top:10px; font-weight:bold; font-size:1.5em;">正解です！</p>`;
+        } else if (p.lastResult === 'lose') {
+            waitMsg.style.background = "rgba(231, 76, 60, 0.2)";
+            waitMsg.style.color = "#e74c3c";
+            waitMsg.style.border = "1px solid #e74c3c";
+            waitMsg.style.padding = "20px";
+            waitMsg.innerHTML = `<div class="status-badge" style="background:#e74c3c;">WRONG</div><p style="margin-top:10px; font-weight:bold; font-size:1.5em;">不正解...</p>`;
+        } else {
+            waitMsg.innerHTML = `<div class="status-badge" style="background:#9b59b6;">REVEAL</div><p style="margin-top:10px;">全員の回答を表示しています</p>`;
+        }
     }
     else if (st.step === 'reveal_correct') {
         if (currentQuestion) renderResultScreen(p, true);
@@ -454,24 +547,22 @@ function renderResultScreen(p) {
             <div class="result-symbol result-correct-symbol"></div>
             <div class="result-badge badge-correct">CORRECT</div>
         `;
-        document.body.classList.add('flash-correct');
-        setTimeout(() => document.body.classList.remove('flash-correct'), 600);
+        // Removed flash effect
     } else if (p.lastResult === 'lose') {
         judgeHtml = `
             <div class="result-symbol result-wrong-symbol"></div>
             <div class="result-badge badge-wrong">WRONG</div>
         `;
-        document.body.classList.add('flash-wrong');
-        setTimeout(() => document.body.classList.remove('flash-wrong'), 600);
+        // Removed flash effect
     }
 
     ansBox.innerHTML = `
         <div style="display:flex; flex-direction:column; align-items:center; margin-bottom:20px;">
             ${judgeHtml}
         </div>
-        <div style="background:var(--color-primary); color:#000; padding:12px; border-radius:12px; font-weight:900; text-align:center; margin-top:10px; box-shadow:0 10px 25px rgba(0, 229, 255, 0.2);">
-            <div style="font-size:0.7em; letter-spacing:1px; margin-bottom:4px; opacity:0.8;">CORRECT ANSWER</div>
-            <div style="font-size:1.6em;">${correctText}</div>
+        <div style="background:#fff; color:#000; padding:20px; border-radius:12px; font-weight:900; text-align:center; margin-top:20px; box-shadow:0 0 20px rgba(255, 255, 255, 0.3);">
+            <div style="font-size:0.8em; letter-spacing:1px; margin-bottom:8px; opacity:0.6; color:#000;">CORRECT ANSWER</div>
+            <div style="font-size:1.8em; line-height:1.4;">${correctText}</div>
         </div>
         <div style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#fff; padding:12px; border-radius:12px; font-weight:bold; text-align:center; margin-top:12px;">
             <div style="font-size:0.7em; color:var(--color-text-sub); margin-bottom:4px; letter-spacing:1px;">YOUR ANSWER</div>
@@ -710,7 +801,6 @@ function renderPlayerQuestion(q, roomId, playerId) {
         const items = q.c || [];
         const n = items.length;
 
-
         // Common Shuffle Logic
         let zipped = items.map((txt, i) => ({ txt, label: String.fromCharCode(65 + i) }));
         if (q.shuffle !== false) {
@@ -722,49 +812,186 @@ function renderPlayerQuestion(q, roomId, playerId) {
 
         inputCont.innerHTML = '';
 
-        const helpText = document.createElement('div');
-        helpText.className = 'player-sort-help';
-        helpText.innerHTML = '👆 項目をドラッグして正しい順序に入れ替えてください';
-        inputCont.appendChild(helpText);
+        if (n <= 5) {
+            // --- Click Order Mode (<= 5 items) ---
+            const helpText = document.createElement('div');
+            helpText.className = 'player-sort-help';
+            helpText.innerHTML = '👆 正しい順序で項目をタップしてください';
+            inputCont.appendChild(helpText);
 
-        const sortList = document.createElement('div');
-        sortList.id = 'player-sortable-list';
-        sortList.className = 'sortable-list';
+            // Container for sequence display
+            const seqContainer = document.createElement('div');
+            seqContainer.className = 'sort-seq-container';
+            seqContainer.style.display = 'flex';
+            seqContainer.style.gap = '10px';
+            seqContainer.style.marginBottom = '20px';
+            seqContainer.style.justifyContent = 'center';
+            inputCont.appendChild(seqContainer);
 
-        zipped.forEach((itemData) => {
-            const item = document.createElement('div');
-            item.className = 'sortable-item';
-            item.dataset.label = itemData.label;
-            item.innerHTML = `
-                <div class="sortable-handle">☰</div>
-                <div class="sortable-content">${itemData.txt}</div>
-            `;
-            sortList.appendChild(item);
-        });
-        inputCont.appendChild(sortList);
+            // Create slots for the sequence
+            const slots = [];
+            for (let i = 0; i < n; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'sort-seq-slot';
+                slot.textContent = (i + 1);
+                slot.style.width = '40px';
+                slot.style.height = '40px';
+                slot.style.border = '2px solid #555';
+                slot.style.borderRadius = '8px';
+                slot.style.display = 'flex';
+                slot.style.alignItems = 'center';
+                slot.style.justifyContent = 'center';
+                slot.style.fontSize = '1.2em';
+                slot.style.fontWeight = 'bold';
+                slot.style.background = '#222';
+                slot.style.color = '#777';
+                slots.push(slot);
+                seqContainer.appendChild(slot);
+            }
 
-        if (window.Sortable) {
-            new Sortable(sortList, {
-                animation: 150,
-                handle: '.sortable-handle',
-                ghostClass: 'sortable-ghost',
-                chosenClass: 'sortable-chosen',
-                dragClass: 'sortable-drag'
+            // Buttons Container
+            const btnContainer = document.createElement('div');
+            btnContainer.style.display = 'grid';
+            btnContainer.style.gap = '10px';
+            inputCont.appendChild(btnContainer);
+
+            let currentSelection = []; // Array of labels
+
+            const updateSlots = () => {
+                slots.forEach((slot, i) => {
+                    if (i < currentSelection.length) {
+                        slot.textContent = currentSelection[i];
+                        slot.style.borderColor = '#00bfff';
+                        slot.style.color = '#fff';
+                        slot.style.background = '#00bfff33';
+                    } else {
+                        slot.textContent = (i + 1);
+                        slot.style.borderColor = '#555';
+                        slot.style.color = '#777';
+                        slot.style.background = '#222';
+                    }
+                });
+
+                // Check completion
+                if (currentSelection.length === n) {
+                    submitBtn.disabled = false;
+                    submitBtn.classList.remove('btn-disabled');
+                    submitBtn.classList.add('btn-primary');
+                } else {
+                    submitBtn.disabled = true;
+                    submitBtn.classList.add('btn-disabled');
+                    submitBtn.classList.remove('btn-primary');
+                }
+            };
+
+            zipped.forEach((itemData) => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-choice-block'; // Re-use choice button style or similar
+                btn.style.display = 'flex';
+                btn.style.justifyContent = 'space-between';
+                btn.style.alignItems = 'center';
+                btn.style.border = '1px solid #666';
+                btn.style.background = '#4a4a4a';
+                btn.style.color = '#fff';
+                btn.style.borderRadius = '8px';
+                btn.style.width = '100%';
+                btn.style.marginBottom = '0';
+                btn.style.fontSize = '1.1em';
+                btn.style.boxShadow = '0 2px 5px rgba(0,0,0,0.3)';
+
+                btn.innerHTML = `<span>${itemData.txt}</span>`;
+
+                btn.onclick = () => {
+                    if (currentSelection.includes(itemData.label)) return; // Already selected
+
+                    currentSelection.push(itemData.label);
+                    // Visual disable
+                    btn.style.opacity = '0.3';
+                    btn.style.pointerEvents = 'none';
+                    updateSlots();
+
+                    // Auto-submit if last item? No, user requested "last triggers confirm" implies explicit or auto?
+                    // "押した順で最後に確定" -> "Pressed order, confirm at end" usually means explicit submit or auto-submit on completion.
+                    // Let's safe side: explicit submit button which becomes active.
+                };
+                btnContainer.appendChild(btn);
+
+                // Attach reference to clear later
+                itemData.btnEl = btn;
             });
-        }
 
-        const submitBtn = document.createElement('button');
-        submitBtn.className = 'btn-primary btn-block';
-        submitBtn.textContent = '順序を確定して送信';
-        submitBtn.style.marginTop = '20px';
-        submitBtn.onclick = () => {
-            const sortedItems = sortList.querySelectorAll('.sortable-item');
-            let answer = "";
-            sortedItems.forEach(el => answer += el.dataset.label);
-            if (answer.length !== n) { alert("エラーが発生しました。"); return; }
-            submitAnswer(roomId, playerId, answer);
-        };
-        inputCont.appendChild(submitBtn);
+            // Reset Button
+            const resetBtn = document.createElement('button');
+            resetBtn.textContent = '順序をリセット';
+            resetBtn.className = 'btn-dark btn-block';
+            resetBtn.style.marginTop = '15px';
+            resetBtn.onclick = () => {
+                currentSelection = [];
+                updateSlots();
+                zipped.forEach(d => {
+                    d.btnEl.style.opacity = '1';
+                    d.btnEl.style.pointerEvents = 'auto';
+                });
+            };
+            inputCont.appendChild(resetBtn);
+
+            const submitBtn = document.createElement('button');
+            submitBtn.className = 'btn-block btn-disabled';
+            submitBtn.textContent = '決定';
+            submitBtn.disabled = true;
+            submitBtn.style.marginTop = '10px';
+            submitBtn.onclick = () => {
+                if (currentSelection.length !== n) return;
+                submitAnswer(roomId, playerId, currentSelection.join(''));
+            };
+            inputCont.appendChild(submitBtn);
+
+        } else {
+            // --- Drag & Drop Mode (>= 6 items) ---
+            const helpText = document.createElement('div');
+            helpText.className = 'player-sort-help';
+            helpText.innerHTML = '👆 項目をドラッグして正しい順序に入れ替えてください';
+            inputCont.appendChild(helpText);
+
+            const sortList = document.createElement('div');
+            sortList.id = 'player-sortable-list';
+            sortList.className = 'sortable-list';
+
+            zipped.forEach((itemData) => {
+                const item = document.createElement('div');
+                item.className = 'sortable-item';
+                item.dataset.label = itemData.label;
+                item.innerHTML = `
+                    <div class="sortable-handle">☰</div>
+                    <div class="sortable-content">${itemData.txt}</div>
+                `;
+                sortList.appendChild(item);
+            });
+            inputCont.appendChild(sortList);
+
+            if (window.Sortable) {
+                new Sortable(sortList, {
+                    animation: 150,
+                    handle: '.sortable-handle',
+                    ghostClass: 'sortable-ghost',
+                    chosenClass: 'sortable-chosen',
+                    dragClass: 'sortable-drag'
+                });
+            }
+
+            const submitBtn = document.createElement('button');
+            submitBtn.className = 'btn-primary btn-block';
+            submitBtn.textContent = '順序を確定して送信';
+            submitBtn.style.marginTop = '20px';
+            submitBtn.onclick = () => {
+                const sortedItems = sortList.querySelectorAll('.sortable-item');
+                let answer = "";
+                sortedItems.forEach(el => answer += el.dataset.label);
+                if (answer.length !== n) { alert("エラーが発生しました。"); return; }
+                submitAnswer(roomId, playerId, answer);
+            };
+            inputCont.appendChild(submitBtn);
+        }
     }
 
     else if (q.type.startsWith('multi')) {
@@ -851,8 +1078,9 @@ function updateMultiAnswers() {
 
 
 function submitAnswer(roomId, playerId, answer) {
-    if (localStatus.step !== 'answering') {
-        console.warn("Answer rejected: Not in answering phase");
+    if (!['answering', 'question', 'reveal_q'].includes(localStatus.step)) {
+        console.warn("Answer rejected: Not in answering phase (" + localStatus.step + ")");
+        // Optional: show toast "受付時間外です"
         return;
     }
     isReanswering = false;

@@ -1776,19 +1776,45 @@ select.bold-select {
 
 .monitor-correct {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    bottom: 20px;
+    right: 20px;
+    top: auto;
+    /* Reset top */
+    left: auto;
+    /* Reset left */
+    transform: none;
+    /* Reset transform */
     z-index: 100;
-    background: rgba(0, 0, 0, 0.9);
-    border: 5px solid var(--color-accent);
-    padding: 40px 60px;
-    border-radius: 30px;
+
+    /* Less obstructive style */
+    background: rgba(0, 0, 0, 0.85);
+    border: 1px solid var(--color-accent);
+    padding: 8px 20px;
+    border-radius: 12px;
     color: var(--color-accent);
-    box-shadow: 0 0 80px rgba(255, 215, 0, 0.3);
-    text-align: center;
-    min-width: 60%;
-    animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+    text-align: right;
+
+    min-width: 0;
+    /* Allow shrinking */
+    max-width: 80%;
+    /* Prevent too wide on small screens */
+
+    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.monitor-correct .label {
+    font-size: 10px !important;
+    margin-bottom: 2px !important;
+    opacity: 0.8;
+    letter-spacing: 1px;
+}
+
+#studio-correct-text {
+    font-size: 1.4em;
+    font-weight: 800;
+    line-height: 1.2;
+    text-shadow: none;
 }
 
 #studio-correct-text {
@@ -3112,35 +3138,7 @@ input:checked+.pro-slider:before {
     white-space: nowrap;
 }
 
-/* --- Mobile Studio Tab Switcher --- */
-@media (max-width: 900px) {
-    .studio-tab-switcher {
-        display: block;
-        width: 100%;
-        margin-bottom: 10px;
-    }
 
-    /* Tab Logic Visibility */
-    .studio-execution-grid:not([data-active-tab="monitors"]) .studio-monitors-row {
-        display: none !important;
-    }
-
-    .studio-execution-grid[data-active-tab="controls"] .studio-answers-row {
-        display: flex !important;
-        flex: 1;
-        min-height: 0;
-    }
-
-    .studio-execution-grid:not([data-active-tab="controls"]) .studio-answers-row {
-        display: none !important;
-    }
-}
-
-@media (min-width: 901px) {
-    .studio-tab-switcher {
-        display: none;
-    }
-}
 
 /* --- New Mobile Unified Console Layout --- */
 /* --- Unified Console Layout (Renamed and Refined) --- */
@@ -3317,18 +3315,7 @@ input:checked+.pro-slider:before {
         height: 56px !important;
     }
 
-    /* Tab Logic Visibility */
-    .studio-execution-grid:not([data-active-tab="monitors"]) .studio-monitors-row {
-        display: none !important;
-    }
 
-    .studio-execution-grid[data-active-tab="controls"] .studio-console-layout {
-        display: flex !important;
-    }
-
-    .studio-execution-grid:not([data-active-tab="controls"]) .studio-console-layout {
-        display: none !important;
-    }
 
     /* Extra spacing at bottom for browser UI */
     .studio-main-area::after {
@@ -3637,4 +3624,159 @@ input:checked+.pro-slider:before {
     color: #888888 !important;
     font-size: 0.85em !important;
     margin-bottom: 5px !important;
+}
+/* --- Studio Status Indicators --- */
+#studio-top-status-area {
+    width: 100%;
+    max-width: 500px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+#studio-q-number-large {
+    background: #e0e0e0;
+    color: #111;
+    font-size: 28px;
+    font-weight: 800;
+    padding: 10px;
+    margin-bottom: 12px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    border-bottom: 4px solid #bbb;
+}
+
+#studio-monitor-status-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.studio-status-indicator {
+    flex: 1;
+    background: #444;
+    color: #888;
+    padding: 10px 5px;
+    font-size: 13px;
+    font-weight: bold;
+    border-radius: 6px;
+    border: 2px solid #333;
+    text-align: center;
+    transition: all 0.2s;
+}
+
+.studio-status-indicator.active {
+    background: #ffc107; /* Yellow/Orange */
+    color: #d32f2f;      /* Red Text */
+    border-color: #f44336; /* Red Border */
+    box-shadow: 0 0 15px rgba(255, 193, 7, 0.4);
+    transform: translateY(-2px);
+}
+
+/* Multi-Answer Console Styling */
+.multi-ans-wrapper {
+    width: 100%;
+    margin-top: 10px;
+    background: #252525;
+    border-radius: 8px;
+    padding: 10px;
+    border: 1px solid #444;
+}
+
+.multi-ans-container {
+    display: grid;
+    grid-template-columns: 1fr; /* Full width list */
+    gap: 6px;
+    width: 100%;
+    max-height: 250px;
+    overflow-y: auto;
+    padding-right: 5px; /* space for scroll bar */
+    padding-bottom: 5px;
+}
+
+/* Custom Scrollbar for better UX */
+.multi-ans-container::-webkit-scrollbar {
+    width: 6px;
+}
+.multi-ans-container::-webkit-scrollbar-track {
+    background: #111;
+    border-radius: 3px;
+}
+.multi-ans-container::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 3px;
+}
+.multi-ans-container::-webkit-scrollbar-thumb:hover {
+    background: #888;
+}
+
+.multi-ans-item {
+    background: #333;
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 10px 15px;
+    font-size: 14px;
+    color: #bbb;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    position: relative;
+    user-select: none;
+}
+
+.multi-ans-item:hover {
+    background: #3a3a3a;
+    border-color: #666;
+    transform: translateX(2px);
+}
+
+.multi-ans-item.revealed {
+    background: linear-gradient(90deg, #2ecc71 0%, #27ae60 100%);
+    border-color: #27ae60;
+    color: white;
+    font-weight: bold;
+    box-shadow: 0 4px 10px rgba(46, 204, 113, 0.2);
+}
+
+.multi-ans-idx {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 24px;
+    height: 24px;
+    background: rgba(255,255,255,0.1);
+    color: #888;
+    border-radius: 50%;
+    margin-right: 12px;
+    font-size: 11px;
+    font-family: monospace;
+    flex-shrink: 0;
+}
+
+.multi-ans-item.revealed .multi-ans-idx {
+    background: rgba(255,255,255,0.3);
+    color: #fff;
+    font-weight: normal;
+}
+
+.multi-ans-text {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Status Icon (Check) */
+.multi-ans-check {
+    opacity: 0;
+    transform: scale(0);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    color: #fff;
+    margin-left: 10px;
+    font-size: 16px;
+}
+
+.multi-ans-item.revealed .multi-ans-check {
+    opacity: 1;
+    transform: scale(1);
 }

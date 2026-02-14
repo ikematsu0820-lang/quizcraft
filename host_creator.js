@@ -84,7 +84,7 @@ window.App.Creator = {
             } else if (mainVal === 'choice') {
                 subItems = [
                     { v: 'choice_single', t: "2-1) 単一回答" },
-                    { v: 'choice_multi', t: "2-2) 複数回答" }
+                    { v: 'choice_multi', t: "2-2) ドボン問題" }
                 ];
             }
 
@@ -155,7 +155,7 @@ window.App.Creator = {
                     } else if (mainVal === 'choice') {
                         subItems = [
                             { v: 'choice_single', t: "2-1) 単一回答" },
-                            { v: 'choice_multi', t: "2-2) 複数回答" }
+                            { v: 'choice_multi', t: "2-2) ドボン問題" }
                         ];
                     }
                     subItems.forEach(o => {
@@ -187,7 +187,7 @@ window.App.Creator = {
                     } else if (mainVal === 'choice') {
                         subItems = [
                             { v: 'choice_single', t: "2-1) 単一回答" },
-                            { v: 'choice_multi', t: "2-2) 複数回答" }
+                            { v: 'choice_multi', t: "2-2) ドボン問題" }
                         ];
                     }
                     subItems.forEach(o => {
@@ -219,7 +219,7 @@ window.App.Creator = {
                     } else if (mainVal === 'choice') {
                         subItems = [
                             { v: 'choice_single', t: "2-1) 単一回答" },
-                            { v: 'choice_multi', t: "2-2) 複数回答" }
+                            { v: 'choice_multi', t: "2-2) ドボン問題" }
                         ];
                     }
                     subItems.forEach(o => {
@@ -293,9 +293,12 @@ window.App.Creator = {
         if (type === 'choice') {
             const subtype = this.choiceSubtype || 'single';
 
+            const isDobon = (this.choiceSubtype === 'multi');
+            const msg = isDobon ? "不正解を選択してください。" : "正解を選択してください。";
+
             container.innerHTML = `
                 <div class="flex-between mb-5">
-                    <p class="text-sm text-gray mb-0">正解を選択してください。</p>
+                    <p class="text-sm text-gray mb-0">${msg}</p>
                 </div>
             `;
 

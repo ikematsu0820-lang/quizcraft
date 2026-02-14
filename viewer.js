@@ -139,14 +139,15 @@ window.App.Viewer = {
             statusDiv.textContent = "QUIZ";
             const q = this.questions[st.qIndex] || {};
             this.applyDefaultDesign(viewContainer, q.design);
-            this.renderQuestionLayout(viewContainer, mainText, q, st);
+            this.renderQuestionLayout(viewContainer, mainText, q, st, st.revealedMulti);
         }
         // --- 3. ANSWERING (Phase 2) ---
         else if (st.step === 'answering') {
             statusDiv.textContent = "THINKING";
             const q = this.questions[st.qIndex] || {};
             this.applyDefaultDesign(viewContainer, q.design);
-            this.renderQuestionLayout(viewContainer, mainText, q, st);
+            this.renderQuestionLayout(viewContainer, mainText, q, st, st.revealedMulti);
+
 
             if (st.timeLimit) {
                 const timerArea = document.getElementById('viewer-timer-bar-area');
@@ -167,7 +168,7 @@ window.App.Viewer = {
         else if (st.step === 'closed') {
             statusDiv.textContent = "LOCKED";
             const q = this.questions[st.qIndex] || {};
-            this.renderQuestionLayout(viewContainer, mainText, q, st);
+            this.renderQuestionLayout(viewContainer, mainText, q, st, st.revealedMulti);
             const msg = document.createElement('div');
             msg.style = "position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:12vh; font-weight:900; color:#ff3d00; text-shadow:0 0 40px rgba(0,0,0,0.9); animation:popInCenter 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index:500;";
             msg.textContent = "TIME UP!";
@@ -178,15 +179,41 @@ window.App.Viewer = {
             statusDiv.textContent = "RESPONSES";
             const q = this.questions[st.qIndex] || {};
             this.applyDefaultDesign(viewContainer, q.design);
-            this.renderQuestionLayout(viewContainer, mainText, q, st);
 
-            this.renderAllPlayerAnswers(mainText, st.displayMode || 'flip', q);
+            // Check if Question Changed
+            if (this._lastQIndex !== st.qIndex) {
+                this._lastQIndex = st.qIndex;
+                this.revealedMultiIndexes = new Set();
+            }
+
+            // Handle Multi-Answer Progressive Reveal
+            if (q.type && q.type.startsWith('multi')) {
+                // Combine persistent state (st.revealedMulti) with session state (revealedMultiIndexes)
+                // st.revealedMulti is the source of truth from Host Control
+                const combinedRevealed = { ...(st.revealedMulti || {}) };
+
+                // Fallback for legacy singluar updates if any
+                if (st.revealMultiIndex !== undefined && st.revealMultiIndex !== null) {
+                    this.revealedMultiIndexes = this.revealedMultiIndexes || new Set();
+                    this.revealedMultiIndexes.add(st.revealMultiIndex);
+                }
+                if (this.revealedMultiIndexes) {
+                    this.revealedMultiIndexes.forEach(i => combinedRevealed[i] = true);
+                }
+
+                this.renderQuestionLayout(viewContainer, mainText, q, st, combinedRevealed);
+
+            } else {
+                // Normal Player Reveal
+                this.renderQuestionLayout(viewContainer, mainText, q, st);
+                this.renderAllPlayerAnswers(mainText, st.displayMode || 'flip', q);
+            }
         }
         // --- 6. REVEAL CORRECT (Phase 5) ---
         else if (st.step === 'reveal_correct' || st.step === 'answer') {
             statusDiv.textContent = "ANSWER";
             const q = this.questions[st.qIndex] || {};
-            this.renderQuestionLayout(viewContainer, mainText, q, st);
+            this.renderQuestionLayout(viewContainer, mainText, q, st, st.revealedMulti);
 
             const accent = q.design?.qBorderColor || '#00bfff';
             const answerBox = document.createElement('div');
@@ -201,8 +228,12 @@ window.App.Viewer = {
             const ansStr = st.correct || this.getAnswerString(q);
             const fontSize = ansStr.length > 20 ? '4vh' : ansStr.length > 10 ? '6vh' : '8vh';
 
+            const isDobon = (q.mode === 'dobon');
+            const labelText = isDobon ? "TRAP ANSWERS (不正解)" : "CORRECT ANSWER";
+            const labelColor = isDobon ? "#ff5555" : accent;
+
             answerBox.innerHTML = `
-                <div style="font-size:3vh; color:${accent}; font-weight:800; margin-bottom:15px; letter-spacing:2px;">CORRECT ANSWER</div>
+                <div style="font-size:3vh; color:${labelColor}; font-weight:800; margin-bottom:15px; letter-spacing:2px;">${labelText}</div>
                 <div style="font-size:${fontSize}; font-weight:900; line-height:1.2; word-break:break-all; max-width:80vw;">${ansStr}</div>
                 <div style="font-size:2.5vh; color:#aaa; font-weight:normal; margin-top:20px; border-top:1px solid #333; padding-top:20px;">${st.commentary || q.commentary || ""}</div>
             `;
@@ -442,11 +473,12 @@ window.App.Viewer = {
         container.innerHTML = html;
     },
 
-    renderQuestionLayout: function (container, contentBox, q, st = {}) {
+    renderQuestionLayout: function (container, contentBox, q, st = {}, revealedMulti = {}) {
         const d = q.design || {};
         const layout = q.layout || 'standard';
         const align = q.align || 'center';
-        const revealedMulti = st.revealedMulti || {};
+        // revealedMulti passed as argument overrides st.revealedMulti if any
+        // const revealedMulti = st.revealedMulti || {}; // Remove this line if using argument
 
         // Background
         container.style.backgroundColor = d.mainBgColor || '#0a0a0a';
@@ -478,33 +510,8 @@ window.App.Viewer = {
             let typeLabel = (q.type === 'free_oral') ? "フリー回答（口頭決済）" : "フリー回答（記述式）";
             html += `<div style="color:${d.cTextColor || '#aaa'}; font-size:3vh; margin-top:2vh;">[ ${typeLabel} ]</div>`;
 
-        } else if (q.type.startsWith('multi')) {
-            contentBox.style.flexDirection = 'column';
-            contentBox.style.justifyContent = 'center';
-            contentBox.style.alignItems = 'center';
-
-            html += `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align}; margin-bottom:4vh;">
-                ${q.q}
-            </div>`;
-
-            if (q.c) {
-                html += `<div style="width:80%; display:grid; grid-template-columns: repeat(2, 1fr); gap:1.5vh;">`;
-                q.c.forEach((c, i) => {
-                    const isRevealed = !!revealedMulti[i];
-                    const boxStyle = `background:rgba(0,0,0,0.5); border:2px solid ${isRevealed ? borderColor : '#333'}; padding:1.5vh; border-radius:8px; display:flex; align-items:center; min-height:8vh; transition: all 0.3s; ${isRevealed ? 'transform: scale(1.02);' : ''}`;
-                    const numStyle = `color:${isRevealed ? '#fff' : '#555'}; font-weight:900; font-size:3vh; margin-right:15px; width:40px;`;
-                    const textStyle = `color:${isRevealed ? '#fff' : 'transparent'}; font-size:2.8vh; font-weight:bold;`;
-                    html += `
-                        <div style="${boxStyle}">
-                            <div style="${numStyle}">${i + 1}</div>
-                            <div style="${textStyle}">${c}</div>
-                        </div>
-                    `;
-                });
-                html += `</div>`;
-            }
         } else {
-            // Standard / Split
+            // Standard / Split (Includes Multi-Answer now)
             if (layout === 'standard') {
                 contentBox.style.flexDirection = 'column';
                 contentBox.style.justifyContent = 'center';
@@ -524,11 +531,18 @@ window.App.Viewer = {
 
                     html += `<div class="c-area" style="${gridStyle}">`;
                     q.c.forEach((c, i) => {
-                        const bgStyle = d.cBgColor ? `background:${d.cBgColor};` : '';
-                        const bStyle = d.cBorderColor ? `border:1px solid ${d.cBorderColor};` : '';
-                        html += `<div class="choice-item" style="color:${d.cTextColor || '#ddd'}; ${bgStyle} ${bStyle}">
-                            <span class="choice-prefix" style="color:${borderColor}">${String.fromCharCode(65 + i)}</span> 
-                            ${c}
+                        const isRevealed = revealedMulti[i];
+                        const bgStyle = isRevealed ? 'background:#2ecc71;' : (d.cBgColor ? `background:${d.cBgColor};` : '');
+                        const bStyle = isRevealed ? 'border:3px solid #fff;' : (d.cBorderColor ? `border:1px solid ${d.cBorderColor};` : '');
+                        const colorStyle = isRevealed ? 'color:#fff;' : `color:${d.cTextColor || '#ddd'};`;
+                        const transformStyle = isRevealed ? 'transform: scale(1.05); z-index:10;' : '';
+
+                        const isMulti = q.type && q.type.startsWith('multi');
+                        const isHidden = isMulti && !isRevealed;
+
+                        html += `<div class="choice-item" style="${colorStyle} ${bgStyle} ${bStyle} ${transformStyle} transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+                            <span class="choice-prefix" style="color:${isRevealed ? '#fff' : borderColor}">${String.fromCharCode(65 + i)}</span> 
+                            <span style="${isHidden ? 'visibility:hidden;' : ''}">${c}</span>
                         </div>`;
                     });
                     html += `</div>`;
@@ -557,11 +571,18 @@ window.App.Viewer = {
 
                 if (q.c) {
                     q.c.forEach((c, i) => {
-                        const bgStyle = d.cBgColor ? `background:${d.cBgColor};` : '';
-                        const bStyle = d.cBorderColor ? `border:1px solid ${d.cBorderColor};` : '';
-                        html += `<div class="choice-item" style="color:${d.cTextColor || '#ddd'}; ${bgStyle} ${bStyle}">
-                            <span class="choice-prefix" style="color:${borderColor}">${String.fromCharCode(65 + i)}</span> 
-                            ${c}
+                        const isRevealed = revealedMulti[i];
+                        const bgStyle = isRevealed ? 'background:#2ecc71;' : (d.cBgColor ? `background:${d.cBgColor};` : '');
+                        const bStyle = isRevealed ? 'border:3px solid #fff;' : (d.cBorderColor ? `border:1px solid ${d.cBorderColor};` : '');
+                        const colorStyle = isRevealed ? 'color:#fff;' : `color:${d.cTextColor || '#ddd'};`;
+                        const transformStyle = isRevealed ? 'transform: scale(1.05); z-index:10;' : '';
+
+                        const isMulti = q.type && q.type.startsWith('multi');
+                        const isHidden = isMulti && !isRevealed;
+
+                        html += `<div class="choice-item" style="${colorStyle} ${bgStyle} ${bStyle} ${transformStyle} transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+                            <span class="choice-prefix" style="color:${isRevealed ? '#fff' : borderColor}">${String.fromCharCode(65 + i)}</span> 
+                            <span style="${isHidden ? 'visibility:hidden;' : ''}">${c}</span>
                         </div>`;
                     });
                 }

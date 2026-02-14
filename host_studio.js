@@ -22,6 +22,12 @@ App.Studio = {
     soloState: { lives: 3, timeBank: 60, challengerIndex: 0 },
 
     startRoom: function (isQuick = false) {
+        if (!App.State.currentShowId) {
+            // alert("番組IDが設定されていません");
+            App.Ui.showToast("番組IDエラー: ダッシュボードから入り直してください");
+            return;
+        }
+
         this.isQuick = isQuick;
         App.Data.studioQuestions = [];
         App.State.currentQIndex = 0;
@@ -46,7 +52,16 @@ App.Studio = {
                 box.classList.add('new-room');
                 setTimeout(() => box.classList.remove('new-room'), 600);
             }
-            this.enterHostMode(isQuick);
+            App.Ui.showView(App.Ui.views.hostControl);
+            this.enterHostMode();
+
+            // If Quick Start (playlist already populated), start immediately
+            if (isQuick && App.Data.periodPlaylist && App.Data.periodPlaylist.length > 0) {
+                console.log("Quick Start: Auto-loading set...");
+                this.setupPeriod(0);
+            } else {
+                this.loadProgramList();
+            }
         });
     },
 
@@ -91,11 +106,12 @@ App.Studio = {
 
         window.db.ref(`rooms/${code}/players`).on('value', snap => {
             const players = snap.val() || {};
+            App.Data.players = players; // Store globally for access in setStep
             const count = Object.keys(players).length;
             document.getElementById('studio-player-count-display').textContent = count;
             this.updatePlayerList(players);
 
-            if (this.currentStepId === 3 || this.currentStepId === 4 || this.currentStepId === 5) {
+            if (this.currentStepId === 2 || this.currentStepId === 3 || this.currentStepId === 4 || this.currentStepId === 5) {
                 this.renderRealtimeAnswers(players);
                 this.renderUnifiedConsole(players);
             } else {
@@ -104,6 +120,21 @@ App.Studio = {
 
             if (App.Data.currentConfig?.mode === 'buzz' && this.currentStepId === 2) {
                 this.checkBuzz(players);
+
+                // Auto Judge for Buzz Mode (Choice/Sort/Letter)
+                if (this.buzzWinner && players[this.buzzWinner]) {
+                    const winner = players[this.buzzWinner];
+                    const q = App.Data.studioQuestions[App.State.currentQIndex];
+                    // Only auto-judge if they have answered AND not yet judged
+                    if (winner.lastAnswer !== null && winner.lastAnswer !== undefined && !winner.lastResult) {
+                        if (q && ['choice', 'sort', 'letter_select'].includes(q.type)) {
+                            // Introduce a small delay to ensure UI updates? Or immediate?
+                            // Immediate is fine for UX, but maybe add 500ms for dramatic effect?
+                            // Let's do immediate for responsiveness.
+                            this.judgeBuzzAuto(winner, q);
+                        }
+                    }
+                }
             }
         });
 
@@ -152,23 +183,9 @@ App.Studio = {
             if (App.Ui.currentViewId === 'host-control-view') this.updateMonitorScaling();
         });
         setTimeout(() => this.updateMonitorScaling(), 100);
-
-        // --- Tab Switcher Logic (Mobile) ---
-        const grid = document.getElementById('studio-execution-grid');
-        const tabBtns = document.querySelectorAll('.studio-tab-switcher .segmented-btn');
-        if (grid && tabBtns.length > 0) {
-            grid.setAttribute('data-active-tab', 'monitors'); // default
-            tabBtns.forEach(btn => {
-                btn.onclick = () => {
-                    tabBtns.forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    grid.setAttribute('data-active-tab', btn.dataset.tab);
-                    // Scaling might need update if container size changes
-                    setTimeout(() => this.updateMonitorScaling(), 50);
-                };
-            });
-        }
     },
+
+
 
     toggleUIForStandby: function (isStandby) {
         const hideIds = ['studio-q-num-display'];
@@ -180,6 +197,91 @@ App.Studio = {
         });
         const footerTools = document.querySelector('.footer-tools');
         if (footerTools) footerTools.style.display = isStandby ? 'none' : 'flex';
+    },
+
+    updateStudioStatus: function (stepId) {
+        // Update Q Number Display (Use 'Q1', 'Q2' etc.)
+        const qNumEl = document.getElementById('studio-q-number-large');
+        if (qNumEl) {
+            const idx = (App.State.currentQIndex !== undefined) ? App.State.currentQIndex + 1 : '-';
+            qNumEl.textContent = `Q ${idx}`;
+        }
+
+        // Update Status Indicators
+        // Map steps to indicators: 
+        // 0=Start/Title, 1=QNum -> QNum Indicator
+        // 2=RevealQ/Answering, 3=Closed -> Question Indicator
+        // 4=RevealP, 5=RevealC, 6=Judge, 7=Result -> Answer Indicator
+        const map = {
+            'status-ind-qnum': [0, 1], // Title / Q Num
+            'status-ind-question': [2, 3], // Answering, Lockdown
+            'status-ind-answer': [4, 5, 6, 7] // Reveal Phases
+        };
+
+        for (const [id, steps] of Object.entries(map)) {
+            const el = document.getElementById(id);
+            if (el) {
+                if (steps.includes(stepId)) {
+                    el.classList.add('active');
+                } else {
+                    el.classList.remove('active');
+                }
+            }
+        }
+    },
+
+    syncMainButton: function () {
+        const pcBtn = document.getElementById('btn-phase-main');
+        const mobBtn = document.getElementById('console-btn-phase-main');
+        if (pcBtn && mobBtn) {
+            mobBtn.textContent = pcBtn.textContent;
+
+            // Sync onclick handler safely
+            mobBtn.onclick = (e) => {
+                e.preventDefault();
+                if (pcBtn.onclick) {
+                    pcBtn.onclick(e);
+                } else {
+                    pcBtn.click();
+                }
+            };
+
+            // Sync visibility
+            if (pcBtn.classList.contains('hidden')) mobBtn.classList.add('hidden');
+            else mobBtn.classList.remove('hidden');
+
+            // Sync feedback classes & update styles for Giant Button
+            const syncClasses = ['action-stop', 'action-ready', 'action-next', 'anim-beat'];
+            syncClasses.forEach(cls => {
+                if (pcBtn.classList.contains(cls)) mobBtn.classList.add(cls);
+                else mobBtn.classList.remove(cls);
+            });
+
+            // Apply Dynamic Gradient based on class
+            if (pcBtn.classList.contains('action-next')) {
+                mobBtn.style.background = 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)'; // Green for Next
+                mobBtn.style.boxShadow = '0 4px 15px rgba(46, 204, 113, 0.4)';
+            } else if (pcBtn.classList.contains('action-stop')) {
+                mobBtn.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)'; // Red for Stop
+                mobBtn.style.boxShadow = '0 4px 15px rgba(231, 76, 60, 0.4)';
+            } else if (pcBtn.classList.contains('action-ready')) {
+                mobBtn.style.background = 'linear-gradient(135deg, #00bfff 0%, #0077aa 100%)'; // Blue for Ready/Start
+                mobBtn.style.boxShadow = '0 4px 15px rgba(0, 191, 255, 0.4)';
+            } else {
+                mobBtn.style.background = '#444'; // Default Grey
+                mobBtn.style.boxShadow = 'none';
+            }
+
+            // Sync disabled state
+            mobBtn.disabled = pcBtn.disabled;
+            if (mobBtn.disabled) {
+                mobBtn.style.background = '#333';
+                mobBtn.style.color = '#777';
+                mobBtn.style.boxShadow = 'none';
+            } else {
+                mobBtn.style.color = '#fff';
+            }
+        }
     },
 
     loadProgramList: function () {
@@ -230,36 +332,42 @@ App.Studio = {
         };
 
         btn.onclick = () => {
-            const key = select.value;
-            if (!key || !this.localProgramsCache[key]) return;
-
-            const prog = this.localProgramsCache[key];
-            App.Data.periodPlaylist = prog.playlist || [];
-
-            if (App.Data.periodPlaylist.length === 0) {
-                alert("⚠️ このプログラムにはセットが登録されていません。");
-                return;
-            }
-
-            document.getElementById('studio-loader-ui').classList.add('hidden');
-            document.getElementById('studio-program-info').textContent = "番組読込完了: " + prog.title;
-
-            this.renderTimeline();
-
-            const btnMain = document.getElementById('btn-phase-main');
-            btnMain.textContent = "番組を開始 (START PROGRAM)";
-            btnMain.classList.remove('hidden');
-            btnMain.className = 'btn-block btn-large-action action-ready';
-
-            btnMain.onclick = null;
-            btnMain.onclick = () => {
-                try {
-                    this.setupPeriod(0);
-                } catch (e) {
-                    alert("開始エラー: " + e.message);
-                }
-            };
+            // alert("現在、スタジオ機能の開始ボタンは再設計中です。");
+            App.Ui.showToast("開始ボタンは現在再設計中です（実装待ち）");
         };
+        /*
+        const key = select.value;
+        if (!key || !this.localProgramsCache[key]) return;
+
+        const prog = this.localProgramsCache[key];
+        App.Data.periodPlaylist = prog.playlist || [];
+
+        if (App.Data.periodPlaylist.length === 0) {
+            alert("⚠️ このプログラムにはセットが登録されていません。");
+            return;
+        }
+
+        document.getElementById('studio-loader-ui').classList.add('hidden');
+        document.getElementById('studio-program-info').textContent = "番組読込完了: " + prog.title;
+
+        this.renderTimeline();
+
+        const btnMain = document.getElementById('btn-phase-main');
+        btnMain.textContent = "番組を開始 (START PROGRAM)";
+        btnMain.classList.remove('hidden');
+        btnMain.className = 'btn-block btn-large-action action-ready';
+
+        btnMain.onclick = null;
+        btnMain.onclick = () => {
+            try {
+                this.setupPeriod(0);
+            } catch (e) {
+                alert("開始エラー: " + e.message);
+            }
+        };
+        this.syncMainButton();
+        */
+        // };
     },
 
     renderTimeline: function () {
@@ -294,7 +402,9 @@ App.Studio = {
 
         // Follow design studio's slide order by default, only shuffle if explicit config says so
         const shuffle = (item.config && item.config.shuffleQuestions === true);
-        App.Data.studioQuestions = shuffle ? this.shuffleQuestions(item.questions || []) : (item.questions || []);
+        let qs = item.questions || [];
+        if (!Array.isArray(qs)) qs = Object.values(qs);
+        App.Data.studioQuestions = shuffle ? this.shuffleQuestions(qs) : qs;
         App.Data.currentConfig = item.config || { mode: 'normal' };
         App.Data.currentConfig.periodTitle = item.title || "Untitled";
         App.State.currentQIndex = 0;
@@ -336,24 +446,25 @@ App.Studio = {
         }
 
         this.revealedMultiIndices = {};
-        console.log("Calling setStep(0)");
         this.setStep(0);
     },
 
     setStep: function (stepId) {
         this.currentStepId = stepId;
+        this.updateStudioStatus(stepId); // Sync Status Indicators
         this.updateNextPreview(); // Update preview when step changes
+
         const btnMain = document.getElementById('btn-phase-main');
         const subControls = document.getElementById('studio-sub-controls');
 
         btnMain.className = 'btn-block btn-large-action';
-        subControls.classList.add('hidden');
+        if (subControls) subControls.classList.add('hidden');
         btnMain.classList.remove('hidden');
 
         // Sync Console Button
         const mobBtnMain = document.getElementById('console-btn-phase-main');
         if (mobBtnMain) {
-            mobBtnMain.className = btnMain.className; // Sync style classes
+            mobBtnMain.className = btnMain.className;
         }
 
         const isStandby = (stepId === 0 || stepId === 1);
@@ -361,15 +472,8 @@ App.Studio = {
 
         const ansArea = document.getElementById('studio-player-answers');
         const statsArea = document.getElementById('studio-answer-stats');
-        if (ansArea) {
-            // Keep the container visible in the grid, but you could hide contents if wanted. 
-            // For now, let's allow it to be visible or hidden as before, 
-            // but the parent container in HTML handles the overall layout.
-            ansArea.classList.toggle('hidden', stepId < 2 || stepId > 6);
-        }
-        if (statsArea) {
-            statsArea.classList.toggle('hidden', stepId !== 2);
-        }
+        if (ansArea) ansArea.classList.toggle('hidden', stepId < 2 || stepId > 6);
+        if (statsArea) statsArea.classList.toggle('hidden', stepId !== 2);
 
         // --- Production: Visual feedback on phase change ---
         const mainArea = document.querySelector('.studio-main-area');
@@ -384,12 +488,22 @@ App.Studio = {
 
         const stepsJA = ['待機', '出題', '回答受付', '締め切り', '回答表示', '正解発表', '判定', '結果'];
         const stepEl = document.getElementById('studio-step-display');
-        if (stepEl) stepEl.textContent = stepsJA[stepId];
-        document.getElementById('studio-q-num-display').textContent = `${App.State.currentQIndex + 1}/${App.Data.studioQuestions.length}`;
+        if (stepEl) stepEl.textContent = stepsJA[stepId] || "UNKNOWN";
+
+        const qCount = App.Data.studioQuestions ? App.Data.studioQuestions.length : 0;
+        document.getElementById('studio-q-num-display').textContent = `${(App.State.currentQIndex || 0) + 1}/${qCount}`;
+
         const modeEl = document.getElementById('studio-mode-display');
-        if (modeEl) modeEl.textContent = this.translateMode(App.Data.currentConfig.mode);
+        if (modeEl && App.Data.currentConfig) modeEl.textContent = this.translateMode(App.Data.currentConfig.mode);
 
         const q = App.Data.studioQuestions[App.State.currentQIndex];
+        if (!q && stepId !== 0) {
+            console.error("setStep: Question not found for index", App.State.currentQIndex);
+            // Allow Step 0 (Standby) to proceed even if Q is logic is tricky
+            // If truly no Q, we might just return, but Step 0 normally handles 'title' display
+            return;
+        }
+
         const roomId = App.State.currentRoomId;
         const syncBadge = document.getElementById('studio-player-sync-status');
 
@@ -399,10 +513,14 @@ App.Studio = {
                 const pTitle = currentSet.title;
                 const firstQ = App.Data.studioQuestions[0] || {};
 
+                // Update Simple UI Status
+                const stepDisplay = document.getElementById('studio-step-display');
+                if (stepDisplay) stepDisplay.textContent = "WAITING / " + pTitle;
+
                 // If it's the very beginning of the set, check if Title should be shown
                 if (App.State.currentQIndex === 0) {
                     if (firstQ.isTitleHidden) {
-                        this.setStep(1);
+                        this.setStep(2); // Skip Title & QNum, go to Question
                         return;
                     }
                     if (firstQ.prodDesign) {
@@ -417,7 +535,9 @@ App.Studio = {
                     btnMain.textContent = `第${App.State.currentQIndex + 1}問 開始`;
                 }
 
-                btnMain.onclick = () => this.setStep(1); // Go to Q Number Step
+                // btnMain.onclick = () => this.setStep(1); // Old: Go to Q Number Step
+                btnMain.onclick = () => this.setStep(2); // New: Go directly to Question (Step 2) for Q1
+                btnMain.classList.add('action-ready'); // Add class to trigger blue color
                 syncBadge.textContent = "WAITING";
                 syncBadge.style.background = "#333";
 
@@ -437,6 +557,12 @@ App.Studio = {
                     this.setStep(2);
                     return;
                 }
+
+                // Update Simple UI Status
+                if (document.getElementById('studio-step-display')) {
+                    document.getElementById('studio-step-display').textContent = "PREPARING Q." + (App.State.currentQIndex + 1);
+                }
+
                 btnMain.textContent = "問題を表示する (REVEAL)";
                 btnMain.classList.add('action-ready');
                 btnMain.onclick = () => this.setStep(2);
@@ -451,176 +577,196 @@ App.Studio = {
 
                 window.db.ref(`rooms/${roomId}/status`).update({
                     step: 'reveal_q_num',
+                    qIndex: App.State.currentQIndex,
                     qNumLabel: `第${App.State.currentQIndex + 1}問`
                 });
                 break;
 
-            case 2: // 回答受付 (Timer Start)
-                btnMain.textContent = "回答締め切り (CLOSE / STOP)";
-                btnMain.classList.add('action-stop');
-                btnMain.onclick = () => { this.setStep(3); };
-                syncBadge.textContent = "ANSWERING";
-                syncBadge.style.background = "rgba(0, 229, 255, 0.2)";
-
-                this.renderQuestionMonitor(q);
-
-                let updateData = {
-                    step: 'answering',
-                    qText: q.q,
-                    qType: q.type,
-                    choices: q.c || null,
-                    startTime: firebase.database.ServerValue.TIMESTAMP,
-                    isBuzzActive: (App.Data.currentConfig.mode === 'buzz')
-                };
-                const qLimit = q.timeLimit || 0;
-                if (qLimit > 0) updateData.timeLimit = qLimit;
-
-                window.db.ref(`rooms/${roomId}/status`).update(updateData);
-                break;
-
-            case 3: // 締め切り (Locked)
-                const useManualFlip = App.Data.currentConfig.manualFlip || false;
-
-                if (useManualFlip) {
-                    btnMain.textContent = "回答を一斉オープン (FLIP)";
-                    btnMain.onclick = () => this.setStep(4);
-                    syncBadge.textContent = "CLOSED";
-                    syncBadge.style.background = "rgba(255, 75, 43, 0.2)";
-                } else {
-                    // Skip manual flip phase, go straight to answer reveal
-                    btnMain.textContent = "正解を発表 (SHOW CORRECT)";
-                    btnMain.onclick = () => this.setStep(5);
-                    syncBadge.textContent = "CLOSED (READY)";
-                    syncBadge.style.background = "rgba(255, 75, 43, 0.2)";
+            case 2: // 出題中 (Question Display)
+                // Update Simple UI Status
+                if (document.getElementById('studio-step-display')) {
+                    document.getElementById('studio-step-display').textContent = "Q." + (App.State.currentQIndex + 1) + " (THINKING)";
                 }
 
-                this.renderMonitorMessage("", "TIME UP!");
-                window.db.ref(`rooms/${roomId}/status`).update({ step: 'closed', isBuzzActive: false });
+                const currentQ = App.Data.studioQuestions[App.State.currentQIndex];
+                if (!currentQ.prodDesign) {
+                    this.renderQuestionMonitor(currentQ); // Fallback standard
+                } else {
+                    this.renderProductionMonitor('question', currentQ);
+                }
+
+                const isBuzz = (App.Data.currentConfig.mode === 'buzz');
+
+                if (isBuzz) {
+                    // Buzz Mode: Start IMMEDIATELY
+                    btnMain.textContent = "正解を表示 (ANSWER)";
+                    btnMain.classList.remove('action-ready');
+                    btnMain.classList.add('action-next');
+                    btnMain.onclick = () => this.setStep(5); // Go to Answer
+
+                    syncBadge.textContent = "BUZZ OPEN";
+                    syncBadge.style.background = "#e74c3c";
+
+                    // Use 'answering' step so Player.js shows the buzz button logic
+                    window.db.ref(`rooms/${roomId}/status`).update({
+                        step: 'answering',
+                        qIndex: App.State.currentQIndex,
+                        qText: currentQ.q,
+                        isBuzzActive: true // Active immediately
+                    });
+
+                } else {
+                    // Normal Mode (Unified Flow: Question -> Answer)
+                    // For multi-answer questions, the host can reveal answers individually during this phase (Step 2)
+                    // so we don't need a separate "Reveal Answers" (Step 4) phase.
+                    btnMain.textContent = "正解を表示 (ANSWER)";
+                    btnMain.onclick = () => this.setStep(5);
+
+                    btnMain.classList.remove('action-ready');
+                    btnMain.classList.add('action-next');
+                    syncBadge.textContent = "ACTIVE";
+                    syncBadge.style.background = "#e74c3c";
+
+                    window.db.ref(`rooms/${roomId}/status`).update({
+                        step: 'reveal_q',
+                        qIndex: App.State.currentQIndex,
+                        qText: currentQ.q
+                    });
+                }
+
+                this.updateNextPreview(); // Ensure next is previewed (Answer slide)
                 break;
 
-            case 4: // 回答表示 (Flip)
-                btnMain.textContent = "正解を発表 (SHOW CORRECT)";
+            case 4: // 回答オープン (Multi-Answer Reveal Step)
+                if (document.getElementById('studio-step-display')) {
+                    document.getElementById('studio-step-display').textContent = "Q." + (App.State.currentQIndex + 1) + " (REVEAL)";
+                }
+
+                btnMain.textContent = "正解を表示 (ANSWER)";
+                btnMain.classList.remove('action-ready');
+                btnMain.classList.add('action-next');
                 btnMain.onclick = () => this.setStep(5);
-                syncBadge.textContent = "REVEAL ANSWERS";
-                syncBadge.style.background = "rgba(155, 89, 182, 0.2)";
+
+                syncBadge.textContent = "REVEAL";
+                syncBadge.style.background = "#9b59b6"; // Purple
 
                 window.db.ref(`rooms/${roomId}/status`).update({
                     step: 'reveal_player',
-                    displayMode: App.Data.currentConfig.displayMode || q.displayMode || 'flip'
+                    qIndex: App.State.currentQIndex
                 });
                 break;
 
-            case 5: // 正解発表 & 判定
-                btnMain.textContent = "次の問題へ (NEXT)";
-                btnMain.classList.add('action-next');
-                btnMain.onclick = () => this.setStep(7);
-                syncBadge.textContent = "CORRECT";
-                syncBadge.style.background = "rgba(46, 204, 113, 0.2)";
-
-                // Simultaneous judging (if not oral)
-                const isOralType = (q.type.startsWith('multi') || q.type === 'free_oral');
-                if (!isOralType) {
-                    this.judgeSimultaneous();
-                } else {
-                    // For oral, show judges separately or just let host use individual buttons
-                    subControls.classList.remove('hidden');
+            case 5: // 正解表示 (Answer)
+                // Update Simple UI Status
+                if (document.getElementById('studio-step-display')) {
+                    document.getElementById('studio-step-display').textContent = "Q." + (App.State.currentQIndex + 1) + " (ANSWER)";
                 }
 
-                document.getElementById('studio-correct-display').classList.remove('hidden');
-                document.getElementById('studio-commentary-text').textContent = q.commentary || "";
+                // q is already defined at the top of setStep
+
+                // Show Answer on Monitor
+                if (q.prodDesign) {
+                    this.renderProductionMonitor('answer', q);
+                } else {
+                    // Standard text based
+                    const corrDisp = document.getElementById('studio-correct-display');
+                    if (corrDisp) corrDisp.classList.remove('hidden');
+                    document.getElementById('studio-correct-text').textContent = this.getAnswerString(q);
+                    document.getElementById('studio-commentary-text').textContent = q.commentary || "";
+                }
+
+                btnMain.textContent = "次の問題へ (NEXT Q)";
+                btnMain.classList.remove('action-next');
+                btnMain.classList.add('action-ready'); // Ready for next
+                btnMain.onclick = () => this.goNext();
+
+                syncBadge.textContent = "ANSWER";
+                syncBadge.style.background = "#2ecc71";
 
                 window.db.ref(`rooms/${roomId}/status`).update({
                     step: 'reveal_correct',
+                    qIndex: App.State.currentQIndex,
                     correct: this.getAnswerString(q),
                     commentary: q.commentary || ""
                 });
+
+                // Automatic Judging for Choice / Sort / Letter Select (Skip for Buzz or Written)
+                if (App.Data.currentConfig.mode !== 'buzz' && ['choice', 'sort', 'letter_select'].includes(q.type)) {
+                    this.judgeSimultaneous();
+                }
                 break;
 
-            case 6: // Skip judging display
-                this.setStep(7);
-                break;
+            // Case 6, 7 removed as they are integrated into Case 5's next action
 
-            case 7: // 次へ
-                this.goNext();
-                break;
         }
         this.updateNextPreview();
+        this.renderMultiAnswerControls(q);
+
+        // Update Console with current Q and Players
+        this.renderUnifiedConsole(App.Data.players || {});
 
         // Sync button text to console
-        const pcBtn = document.getElementById('btn-phase-main');
-        const mobBtn = document.getElementById('console-btn-phase-main');
-        if (pcBtn && mobBtn) mobBtn.textContent = pcBtn.textContent;
+        this.syncMainButton();
     },
 
     goNext: function () {
         let nextIdx = App.State.currentQIndex + 1;
         const questions = App.Data.studioQuestions;
 
+        console.log("goNext called. Current:", App.State.currentQIndex, "Total:", questions.length);
+
         while (nextIdx < questions.length) {
             if (!questions[nextIdx].isHidden) {
+                console.log("Found next Q at:", nextIdx);
                 App.State.currentQIndex = nextIdx;
                 this.resetPlayerStatus();
-                this.setStep(0);
+
+                // Reset Multi-Answer State
+                this.revealedMultiIndices = {};
+                // Clear from Firebase immediately to prevent ghost reveals
+                const roomId = App.State.currentRoomId;
+                if (roomId) {
+                    window.db.ref(`rooms/${roomId}/status/revealedMulti`).remove();
+                }
+
+                // For Q2+, step 1 is normally Q Number.
+                // Q1 checked Title in Step 0.
+                const nextStep = (App.State.currentQIndex === 0) ? 0 : 1;
+                this.currentStepId = null; // Force re-render
+                this.setStep(nextStep);
                 return;
             }
             nextIdx++;
         }
 
-        // No more visible questions
+        console.log("No more questions. Finishing set.");
         this.handleSetCompletion();
     },
 
     handleSetCompletion: function () {
-        const item = App.Data.periodPlaylist[App.State.currentPeriodIndex];
-        const nextIdx = App.State.currentPeriodIndex + 1;
-        const hasNext = nextIdx < App.Data.periodPlaylist.length;
+        console.log("Set complete.");
 
-        // 1. 順位表示のチェック
-        if (item.progSettings?.showRankingAfter && this.currentStepId !== 8) {
-            this.currentStepId = 8; // Internal transition state
-            window.db.ref(`rooms/${App.State.currentRoomId}/status`).update({ step: 'intermediate_ranking' });
+        const currentSet = App.Data.periodPlaylist[App.State.currentPeriodIndex];
+        const progSettings = currentSet.progSettings || {};
 
-            const btnMain = document.getElementById('btn-phase-main');
-            btnMain.className = 'btn-block btn-large-action action-ready';
-
-            if (item.progSettings?.eliminationMode !== 'none') {
-                btnMain.textContent = "脱落者の判定へ (JUDGE ELIMINATION)";
-                btnMain.onclick = () => this.handleSetCompletion();
-            } else if (hasNext) {
-                btnMain.textContent = `次のセットを開始 (${App.Data.periodPlaylist[nextIdx].title})`;
-                btnMain.onclick = () => this.setupPeriod(nextIdx);
-            } else {
-                this.showFinalRankingOption();
-            }
+        // 1. Check Ranking
+        if (progSettings.showRankingAfter) {
+            this.setStep(8);
             return;
         }
 
-        // 2. 脱落判定のチェック
-        if (item.progSettings?.eliminationMode !== 'none' && this.currentStepId !== 9) {
-            this.currentStepId = 9;
-            this.performElimination(item.progSettings);
-
-            const btnMain = document.getElementById('btn-phase-main');
-            btnMain.className = 'btn-block btn-large-action action-ready';
-
-            if (hasNext) {
-                btnMain.textContent = `次のセットを開始 (${App.Data.periodPlaylist[nextIdx].title})`;
-                btnMain.onclick = () => this.setupPeriod(nextIdx);
-            } else {
-                this.showFinalRankingOption();
-            }
-            return;
-        }
-
-        // 基本の遷移（設定がない場合）
-        if (hasNext) {
-            if (confirm("このセットは終了です。次のセットへ進みますか？")) {
-                this.setupPeriod(nextIdx);
-            } else {
-                this.showNextSetWait(nextIdx);
-            }
+        // 2. Check Loop or Next Set
+        let nextPeriodIdx = App.State.currentPeriodIndex + 1;
+        if (nextPeriodIdx < App.Data.periodPlaylist.length) {
+            App.Ui.showToast("次のセットに進みます");
+            this.setupPeriod(nextPeriodIdx);
         } else {
-            this.showFinalRankingOption();
+            // End of program
+            if (progSettings.loopProgram) {
+                this.setupPeriod(0);
+            } else {
+                this.showFinalRankingOption();
+            }
         }
     },
 
@@ -672,6 +818,7 @@ App.Studio = {
             document.getElementById('studio-standby-panel').classList.remove('hidden');
             document.getElementById('btn-phase-main').classList.add('hidden');
             document.getElementById('studio-program-info').innerHTML = "<h2 style='color:#ffd700'>全プログラム終了 (COMPLETED)</h2><p>モニターに結果を表示中...</p>";
+            this.syncMainButton();
         }
     },
 
@@ -683,10 +830,17 @@ App.Studio = {
         btn.classList.remove('hidden');
         btn.className = 'btn-block btn-large-action action-ready';
         btn.onclick = () => this.setupPeriod(nextIdx);
+        this.syncMainButton();
     },
 
     resetPlayerStatus: function () {
         const roomId = App.State.currentRoomId;
+        this.revealedMultiIndices = {}; // Reset multi-answer reveal state
+        if (document.getElementById('console-multi-controls')) {
+            document.getElementById('console-multi-controls').innerHTML = '';
+            document.getElementById('console-multi-controls').classList.add('hidden');
+        }
+
         window.db.ref(`rooms/${roomId}/players`).once('value', snap => {
             snap.forEach(p => {
                 p.ref.update({
@@ -700,258 +854,183 @@ App.Studio = {
     },
 
     renderMonitorMessage: function (label, text) {
-        // Implementation remains same, but we reuse renderProductionMonitor logic internally if needed
-        const qEl = document.getElementById('studio-q-text');
-        if (qEl) {
-            qEl.innerHTML = `
-                <div style="display:flex; justify-content:center; align-items:center; height:100%; width:100%;">
-                    <div style="font-size:2.5em; color:#ffd700; font-weight:bold; text-shadow:0 0 10px rgba(0,0,0,0.5); text-align:center; padding:0 30px;">
-                        ${text}
+        try {
+            // Implementation remains same, but we reuse renderProductionMonitor logic internally if needed
+            const qEl = document.getElementById('studio-q-text');
+            if (qEl) {
+                qEl.innerHTML = `
+                    <div style="display:flex; justify-content:center; align-items:center; height:100%; width:100%;">
+                        <div style="font-size:2.5em; color:#ffd700; font-weight:bold; text-shadow:0 0 10px rgba(0,0,0,0.5); text-align:center; padding:0 30px;">
+                            ${text}
+                        </div>
                     </div>
-                </div>
-            `;
-        }
-        const badge = document.getElementById('studio-q-type-badge');
-        if (badge) badge.textContent = label || "";
-        document.getElementById('studio-choices-container').innerHTML = '';
-        document.getElementById('studio-correct-display').classList.add('hidden');
-        document.getElementById('studio-question-panel').style.backgroundImage = 'none';
-        document.getElementById('studio-question-panel').style.backgroundColor = '#000';
-        this.updateMonitorScaling();
+                `;
+            }
+            const badge = document.getElementById('studio-q-type-badge');
+            if (badge) badge.textContent = label || "";
+            if (document.getElementById('studio-choices-container')) document.getElementById('studio-choices-container').innerHTML = '';
+            if (document.getElementById('studio-correct-display')) document.getElementById('studio-correct-display').classList.add('hidden');
+            if (document.getElementById('studio-question-panel')) {
+                document.getElementById('studio-question-panel').style.backgroundImage = 'none';
+                document.getElementById('studio-question-panel').style.backgroundColor = '#000';
+            }
+            this.updateMonitorScaling();
+        } catch (e) { console.error("Render Monitor Error:", e); }
     },
 
     renderProductionMonitor: function (type, q) {
+        // Simplified for Host View: Just text summary
         const qEl = document.getElementById('studio-q-text');
-        const cContainer = document.getElementById('studio-choices-container');
-        const panel = document.getElementById('studio-question-panel');
-        if (!qEl || !cContainer || !panel) return;
+        if (!qEl) return;
 
-        const s = q.prodDesign || {};
-        cContainer.innerHTML = '';
-
-        // Reset qEl styles from previous question render
-        qEl.style.border = 'none';
-        qEl.style.background = 'transparent';
-        qEl.style.padding = '0';
-        qEl.style.margin = '0';
-        qEl.style.width = '100%';
-        qEl.style.height = '100%';
-        qEl.style.writingMode = 'horizontal-tb'; // reset vertical layout
-
-        let html = '';
+        let text = "";
         if (type === 'title') {
-            const displayTitle = (s.titleText || App.Data.currentConfig.periodTitle || "Program Title").replace(/\\n/g, '<br>');
-            html = `
-                <div style="width:100%; height:100%; background:${s.titleBgColor || '#000'}; display:flex; align-items:center; justify-content:center; font-family:${s.titleFont || 'sans-serif'};">
-                    <div style="color:${s.titleTextColor || '#fff'}; font-size:${s.titleSize || '80px'}; font-weight:900; text-align:center; padding: 0 50px; line-height:1.2;">
-                        ${displayTitle}
-                    </div>
-                </div>
-            `;
+            text = `[TITLE] ${(q.prodDesign && q.prodDesign.titleText) || App.Data.currentConfig.periodTitle}`;
         } else if (type === 'qnumber') {
-            const displayQNum = (s.qNumberText || `第${App.State.currentQIndex + 1}問`).replace(/\\n/g, '<br>');
-            const pos = {
-                'center': 'align-items:center; justify-content:center;',
-                'top': 'align-items:flex-start; justify-content:center; padding-top:50px;',
-                'bottom': 'align-items:flex-end; justify-content:center; padding-bottom:50px;'
-            };
-            html = `
-                <div style="width:100%; height:100%; background:${s.qNumberBgColor || '#000'}; display:flex; ${pos[s.qNumberPosition || 'center']} font-family:${s.qNumberFont || 'sans-serif'};">
-                    <div style="color:${s.qNumberTextColor || '#fff'}; font-size:${s.qNumberSize || '80px'}; font-weight:900; text-align:center; line-height:1.2;">
-                        ${displayQNum}
-                    </div>
-                </div>
-            `;
+            text = `[Q#] ${(q.prodDesign && q.prodDesign.qNumberText) || `Q${App.State.currentQIndex + 1}`}`;
         }
 
-        qEl.innerHTML = html;
-        panel.style.backgroundColor = (type === 'title') ? (s.titleBgColor || '#000') : (s.qNumberBgColor || '#000');
-        panel.style.backgroundImage = 'none';
-        this.updateMonitorScaling();
+        qEl.innerHTML = `<div style="padding:20px; font-size:1.5em; text-align:center; color:#ccc;">${text}</div>`;
+        document.getElementById('studio-choices-container').innerHTML = '';
+
+        // Remove styling
+        const panel = document.getElementById('studio-question-panel');
+        if (panel) {
+            panel.style.background = 'transparent';
+            panel.removeAttribute('style');
+        }
+        try {
+            // Simplified for Host View: Just text summary
+            const qEl = document.getElementById('studio-q-text');
+            if (!qEl) return;
+
+            let text = "";
+            if (type === 'title') {
+                text = `[TITLE] ${(q.prodDesign && q.prodDesign.titleText) || App.Data.currentConfig.periodTitle}`;
+            } else if (type === 'qnumber') {
+                text = `[Q#] ${(q.prodDesign && q.prodDesign.qNumberText) || `Q${App.State.currentQIndex + 1}`}`;
+            }
+
+            qEl.innerHTML = `<div style="padding:20px; font-size:1.5em; text-align:center; color:#ccc;">${text}</div>`;
+            document.getElementById('studio-choices-container').innerHTML = '';
+
+            // Remove styling
+            const panel = document.getElementById('studio-question-panel');
+            if (panel) {
+                panel.style.background = 'transparent';
+                panel.removeAttribute('style');
+            }
+        } catch (e) { console.error("Render Production Monitor Error:", e); }
     },
 
     renderQuestionMonitor: function (q) {
         if (!q) return;
-        this.updateMonitorScaling();
 
-        const qEl = document.getElementById('studio-q-text');
-        const cContainer = document.getElementById('studio-choices-container');
-        const panel = document.getElementById('studio-question-panel');
+        try {
+            const qEl = document.getElementById('studio-q-text');
+            const cContainer = document.getElementById('studio-choices-container');
+            const panel = document.getElementById('studio-question-panel');
 
-        if (!qEl || !cContainer || !panel) return;
+            if (!qEl || !cContainer || !panel) return;
 
-        qEl.textContent = q.q;
+            // Reset Styles
+            panel.removeAttribute('style');
+            panel.style.padding = '0';
+            panel.style.background = 'transparent';
 
-        // Apply Design
-        const d = q.design || {};
-        const layout = q.layout || 'standard';
-        const align = q.align || 'center';
-
-        // Reset Panel Design
-        panel.style.backgroundColor = d.mainBgColor || "#000";
-        if (d.bgImage) {
-            panel.style.backgroundImage = `url('${d.bgImage}')`;
-            panel.style.backgroundSize = "cover";
-            panel.style.backgroundPosition = "center";
-        } else {
-            panel.style.backgroundImage = (d.mainBgColor === '#0a0a0a' || !d.mainBgColor)
-                ? "radial-gradient(circle at center, #1a1a1a 0%, #000000 100%)"
-                : "none";
-        }
-
-        // Apply Layout logic
-        if (layout.startsWith('split')) {
-            panel.style.flexDirection = 'row-reverse';
-            panel.style.justifyContent = 'center';
-            panel.style.alignItems = 'center';
-
-            qEl.style.writingMode = 'vertical-rl';
-            qEl.style.textOrientation = 'upright';
-            qEl.style.height = '85%';
-            qEl.style.width = '20%';
-            qEl.style.margin = '0 0 0 5%';
-            qEl.style.borderLeft = 'none';
-            qEl.style.borderTop = 'none';
-            qEl.style.border = `6px solid ${d.qBorderColor || 'var(--color-primary)'}`;
-            qEl.style.backgroundColor = d.qBgColor || 'rgba(0,0,0,0.5)';
-            qEl.style.backgroundImage = 'none';
-
-            if (parseInt(d.gridRows) > 0 && parseInt(d.gridCols) > 0) {
-                cContainer.style.display = 'grid';
-                cContainer.style.gridTemplateColumns = `repeat(${parseInt(d.gridCols)}, 1fr)`;
-                cContainer.style.gap = '20px';
-                cContainer.style.width = '60%';
-            } else {
-                cContainer.style.display = 'flex';
-                cContainer.style.flexDirection = 'column';
-                cContainer.style.width = '60%';
-                cContainer.style.gap = '15px';
-            }
-        } else {
-            panel.style.flexDirection = 'column';
-            panel.style.justifyContent = 'center';
-            panel.style.alignItems = 'center';
-
-            qEl.style.writingMode = 'initial';
-            qEl.style.textOrientation = 'initial';
+            // Question Text
+            qEl.style.fontSize = '1.4em';
+            qEl.style.fontWeight = 'bold';
+            qEl.style.marginBottom = '15px';
+            qEl.style.color = '#fff';
+            qEl.style.textAlign = 'left';
+            qEl.style.writingMode = 'horizontal-tb';
+            qEl.style.width = '100%';
             qEl.style.height = 'auto';
-            qEl.style.width = '90%';
-            qEl.style.margin = '0 0 40px 0';
-            qEl.style.borderTop = 'none';
-            qEl.style.borderLeft = 'none';
-            qEl.style.border = `6px solid ${d.qBorderColor || 'var(--color-primary)'}`;
-            qEl.style.backgroundColor = d.qBgColor || 'rgba(0,0,0,0.5)';
-            qEl.style.backgroundImage = 'none';
+            qEl.style.border = 'none';
+            qEl.textContent = `Q. ${q.q}`;
 
-            if (parseInt(d.gridRows) > 0 && parseInt(d.gridCols) > 0) {
-                cContainer.style.display = 'grid';
-                cContainer.style.gridTemplateColumns = `repeat(${parseInt(d.gridCols)}, 1fr)`;
-                cContainer.style.gap = '20px';
-                cContainer.style.width = '85%';
+            // Clear previous choices
+            cContainer.innerHTML = '';
+            cContainer.style.display = 'block';
+            cContainer.style.width = '100%';
+
+            // Choices Container
+            const container = document.createElement('div');
+            container.style.color = '#ccc';
+            container.style.display = 'flex';
+            container.style.flexDirection = 'column';
+            container.style.background = 'transparent';
+
+            if (q.c && q.c.length > 0) {
+                // Determine layout
+                const isGrid = (q.c.length > 4);
+                if (isGrid) {
+                    container.style.display = 'grid';
+                    container.style.gridTemplateColumns = '1fr 1fr';
+                    container.style.gap = '8px';
+                }
+
+                q.c.forEach((choice, i) => {
+                    const chDiv = document.createElement('div');
+                    chDiv.style.padding = '8px 12px';
+                    chDiv.style.background = '#333';
+                    chDiv.style.marginBottom = isGrid ? '0' : '5px';
+                    chDiv.style.borderRadius = '4px';
+                    chDiv.style.fontSize = '0.9em';
+                    chDiv.textContent = `${i + 1}. ${choice}`;
+                    container.appendChild(chDiv);
+                });
             } else {
-                cContainer.style.display = 'flex';
-                cContainer.style.flexDirection = 'column';
-                cContainer.style.width = '85%';
-                cContainer.style.gap = '15px';
+                if (q.type === 'sort') {
+                    container.textContent = "(並べ替え問題)";
+                }
             }
+            cContainer.appendChild(container);
+
+            // Correct Answer Display (Simple) - Hidden by default, shown later
+            const ansDiv = document.createElement('div');
+            ansDiv.id = 'studio-correct-display';
+            ansDiv.className = 'hidden';
+            ansDiv.style.marginTop = '20px';
+            ansDiv.style.padding = '10px';
+            ansDiv.style.background = '#222';
+            ansDiv.style.borderLeft = '4px solid ' + ((q.mode === 'dobon') ? '#ff5555' : '#2ecc71');
+
+            const ansLabel = document.createElement('div');
+            ansLabel.className = 'label';
+            ansLabel.style.fontSize = '0.8em';
+            ansLabel.style.color = '#888';
+            ansLabel.textContent = (q.mode === 'dobon') ? "TRAP ANSWERS (不正解)" : "CORRECT ANSWER";
+
+            const ansText = document.createElement('div');
+            ansText.id = 'studio-correct-text';
+            ansText.style.fontSize = '1.2em';
+            ansText.style.fontWeight = 'bold';
+            ansText.style.color = '#fff';
+            ansText.textContent = this.getAnswerString ? this.getAnswerString(q) : "??";
+
+            ansDiv.appendChild(ansLabel);
+            ansDiv.appendChild(ansText);
+
+            // Append Correct Answer Display to cContainer or main container?
+            // Usually hidden initially.
+            // Let's attach it to cContainer for now so it exists in DOM if needed?
+            // Wait, previous code attached it to `container` or `cContainer`.
+            // Let's attach to cContainer.
+            cContainer.appendChild(ansDiv);
+
+            this.updateMonitorScaling();
+        } catch (e) {
+            console.error("Render Question Monitor Error:", e);
         }
-
-        // Apply shared classes logic
-        qEl.style.color = d.qTextColor || "#fff";
-        qEl.style.textAlign = align;
-        qEl.style.fontSize = d.qFontSize || (layout.startsWith('split') ? "42px" : "48px");
-        qEl.textContent = q.q;
-
-        let typeText = q.type.toUpperCase();
-        if (q.type === 'letter_select') typeText = "LETTER PANEL";
-        document.getElementById('studio-q-type-badge').textContent = typeText;
-
-        cContainer.innerHTML = '';
-
-        if (q.type === 'choice' && q.c) {
-            q.c.forEach((c, i) => {
-                const div = document.createElement('div');
-                div.className = 'monitor-choice-item';
-
-                const prefix = document.createElement('span');
-                prefix.className = 'monitor-choice-prefix';
-                prefix.textContent = String.fromCharCode(65 + i);
-
-                const text = document.createElement('span');
-                text.textContent = c;
-
-                div.appendChild(prefix);
-                div.appendChild(text);
-
-                // Choice Design
-                if (d.cTextColor) div.style.color = d.cTextColor;
-                if (d.cFontSize) div.style.fontSize = d.cFontSize;
-                if (d.cBgColor) div.style.background = d.cBgColor;
-                if (d.cBorderColor) div.style.border = `1px solid ${d.cBorderColor}`;
-
-                // Prefix Color (Match Viewer logic)
-                prefix.style.color = d.qBorderColor || 'var(--color-primary)';
-
-                cContainer.appendChild(div);
-            });
-        }
-        else if (q.type === 'letter_select') {
-            const div = document.createElement('div');
-            div.style.gridColumn = "span 2";
-            div.style.textAlign = "center";
-            div.style.fontSize = "1.5em";
-            div.style.color = "#ffd700";
-            div.style.fontWeight = "bold";
-            div.style.padding = "20px";
-            div.style.border = "2px dashed #555";
-            div.style.borderRadius = "8px";
-
-            if (q.steps) {
-                const correctStr = q.steps.map(s => s.correct).join('');
-                div.textContent = `正解: ${correctStr} (パネル形式)`;
-            } else {
-                div.textContent = `正解: ${q.correct} (パネル形式)`;
-            }
-            cContainer.appendChild(div);
-        }
-        else if (q.type === 'sort') {
-            q.c.forEach((c, i) => {
-                const div = document.createElement('div');
-                div.className = 'monitor-choice-item';
-                div.textContent = `${String.fromCharCode(65 + i)}. ${c}`;
-                cContainer.appendChild(div);
-            });
-        }
-        else if (q.type.startsWith('multi')) {
-            q.c.forEach((c, i) => {
-                const btn = document.createElement('button');
-                btn.className = 'monitor-choice-item';
-                btn.style.cursor = 'pointer';
-                btn.style.width = '100%';
-                btn.style.textAlign = 'left';
-                btn.style.border = this.revealedMultiIndices[i] ? '2px solid #00ffcc' : '1px solid #444';
-                btn.style.background = this.revealedMultiIndices[i] ? 'rgba(0,255,204,0.1)' : 'rgba(255,255,255,0.05)';
-                btn.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span>${i + 1}. ${c}</span>
-                        <span>${this.revealedMultiIndices[i] ? '👁️ 表示中' : '🌑 未表示'}</span>
-                    </div>
-                `;
-                btn.onclick = () => this.toggleMultiAnswer(i);
-                cContainer.appendChild(btn);
-            });
-        }
-
-        const correctText = this.getAnswerString(q);
-        document.getElementById('studio-correct-text').textContent = correctText;
-        document.getElementById('studio-correct-display').classList.remove('hidden');
     },
-
     toggleMultiAnswer: function (index) {
         const roomId = App.State.currentRoomId;
         const q = App.Data.studioQuestions[App.State.currentQIndex];
         if (!q || !q.type.startsWith('multi')) return;
 
+        this.revealedMultiIndices = this.revealedMultiIndices || {};
         this.revealedMultiIndices[index] = !this.revealedMultiIndices[index];
 
         // Update Firebase
@@ -959,8 +1038,47 @@ App.Studio = {
             revealedMulti: this.revealedMultiIndices
         });
 
-        // Re-render host view
+        // Re-render simplified host view (if any)
         this.renderQuestionMonitor(q);
+        // Re-render controls
+        this.renderMultiAnswerControls(q);
+    },
+
+    renderMultiAnswerControls: function (q) {
+        let container = document.getElementById('console-multi-controls');
+        if (!container) return;
+
+        container.innerHTML = '';
+        if (!q || !q.type.startsWith('multi') || !q.c) {
+            container.classList.add('hidden');
+            return;
+        }
+
+        container.classList.remove('hidden');
+        this.revealedMultiIndices = this.revealedMultiIndices || {};
+
+        q.c.forEach((choice, i) => {
+            const btn = document.createElement('button');
+            const isRevealed = !!this.revealedMultiIndices[i];
+
+            btn.className = isRevealed ? 'btn btn-success' : 'btn btn-dark';
+            btn.style.minWidth = '40px';
+            btn.style.height = 'auto'; // Auto height for text
+            btn.style.minHeight = '40px';
+            btn.style.fontWeight = 'bold';
+            btn.style.fontSize = '0.9em';
+            btn.style.padding = '5px 10px';
+            btn.style.whiteSpace = 'normal'; // Allow wrapping
+
+            // Show number AND text
+            btn.innerHTML = `<span style="font-size:0.8em; opacity:0.7; display:block; margin-bottom:2px;">${i + 1}</span>${choice}`;
+
+            btn.title = choice;
+            btn.style.flex = "1 0 120px"; // Flexible width with min-basis
+
+            btn.onclick = () => this.toggleMultiAnswer(i);
+            container.appendChild(btn);
+        });
     },
 
     renderPanelControl: function () {
@@ -1079,8 +1197,32 @@ App.Studio = {
                 const p = pSnap.val();
                 let isCor = false;
 
+                // Skip if no answer or already judged
+                if (p.lastAnswer === null || p.lastAnswer === undefined || p.lastResult) return;
+
                 if (q.type === 'choice') {
-                    if (p.lastAnswer == q.correct) isCor = true;
+                    if (q.mode === 'dobon') {
+                        const ansIdx = parseInt(p.lastAnswer);
+                        // Dobon: q.correct stores traps. If match -> Lose. Else -> Win.
+                        if (Array.isArray(q.correct) && q.correct.includes(ansIdx)) {
+                            isCor = false;
+                        } else {
+                            isCor = true;
+                        }
+                    } else {
+                        // Normal Choice: Compare loosely (string vs number)
+                        if (Array.isArray(q.correct)) {
+                            // If correct answers are multiple (e.g. any of these), or exact match required?
+                            // Usually "choice" implies single selection unless multi-select UI.
+                            // Assuming single selection vs single correct index.
+                            // If q.correct is array [0, 2] -> if p.lastAnswer is in array -> True (OR logic)
+                            // or exact match (AND logic)? Usually OR for standard quiz unless specified.
+                            // Let's assume loosely equal to one of them.
+                            if (q.correct.some(c => c == p.lastAnswer)) isCor = true;
+                        } else {
+                            if (p.lastAnswer == q.correct) isCor = true;
+                        }
+                    }
                 } else if (q.type === 'letter_select') {
                     let correctStr = q.steps ? q.steps.map(s => s.correct).join('') : q.correct;
                     if (p.lastAnswer === correctStr) isCor = true;
@@ -1089,6 +1231,7 @@ App.Studio = {
                     let correctStr = Array.isArray(q.correct) ? q.correct.map(idx => String.fromCharCode(65 + idx)).join('') : q.correct;
                     if (p.lastAnswer === correctStr) isCor = true;
                 } else {
+                    // Simple equality
                     if (p.lastAnswer == q.correct) isCor = true;
                 }
 
@@ -1109,6 +1252,28 @@ App.Studio = {
                 }
             });
         });
+    },
+
+    judgeBuzzAuto: function (player, q) {
+        if (!player || !q) return;
+        let isCor = false;
+
+        if (q.type === 'choice') {
+            if (Array.isArray(q.correct)) {
+                if (q.correct.some(c => c == player.lastAnswer)) isCor = true;
+            } else {
+                if (player.lastAnswer == q.correct) isCor = true;
+            }
+        } else if (q.type === 'sort') {
+            let correctStr = Array.isArray(q.correct) ? q.correct.map(idx => String.fromCharCode(65 + idx)).join('') : q.correct;
+            if (player.lastAnswer === correctStr) isCor = true;
+        } else if (q.type === 'letter_select') {
+            let correctStr = q.steps ? q.steps.map(s => s.correct).join('') : q.correct;
+            if (player.lastAnswer === correctStr) isCor = true;
+        }
+
+        // Apply judgement
+        this.judgeBuzz(isCor);
     },
 
     getAnswerString: function (q) {
@@ -1155,8 +1320,12 @@ App.Studio = {
                 // Usually host wants to see if they've answered, but maybe not the content until flip to keep it exciting?
                 // But for now let's keep showing the content as it was, but more prominent.
                 if (q && q.type === 'choice') {
-                    const idx = parseInt(p.lastAnswer);
-                    ansText = isNaN(idx) ? p.lastAnswer : String.fromCharCode(65 + idx);
+                    if (Array.isArray(p.lastAnswer)) {
+                        ansText = p.lastAnswer.map(i => String.fromCharCode(65 + parseInt(i))).join(', ');
+                    } else {
+                        const idx = parseInt(p.lastAnswer);
+                        ansText = isNaN(idx) ? p.lastAnswer : String.fromCharCode(65 + idx);
+                    }
                 } else {
                     ansText = p.lastAnswer;
                 }
@@ -1185,22 +1354,94 @@ App.Studio = {
 
     renderUnifiedConsole: function (players) {
         const horizontalList = document.getElementById('console-player-horizontal-list');
-        const selectedName = document.getElementById('console-selected-player-name');
-        const selectedAnswer = document.getElementById('console-selected-player-answer');
+        // New Card Elements
+        const cardQ = document.getElementById('console-card-question');
+        const cardCorrect = document.getElementById('console-card-correct');
+        const cardPName = document.getElementById('console-card-player-name');
+        const cardPAns = document.getElementById('console-card-player-answer-content');
+        const cardBtns = document.getElementById('console-card-judge-area');
+
         if (!horizontalList) return;
+
+        // Current Question Info
+        const q = App.Data.studioQuestions[App.State.currentQIndex];
+        if (q && cardQ) {
+            // Truncate if too long?
+            cardQ.textContent = q.q || "(No Text)";
+        }
+        if (q && cardCorrect) {
+            cardCorrect.innerHTML = ""; // Clear previous content
+
+            // Reset layout for normal questions
+            cardCorrect.parentNode.style.flexDirection = 'row';
+            cardCorrect.parentNode.style.alignItems = 'center';
+
+            if (q.type.startsWith('multi')) {
+                // Multi-answer: manual reveal buttons with improved UI
+
+                // Adjust Parent Layout for Multi-Answer
+                cardCorrect.parentNode.style.flexDirection = 'column';
+                cardCorrect.parentNode.style.alignItems = 'stretch';
+
+                const correctList = Array.isArray(q.correct) ? q.correct : [q.correct];
+
+                // Wrapper
+                const wrapper = document.createElement('div');
+                wrapper.className = 'multi-ans-wrapper';
+
+                // Scroll Container
+                const container = document.createElement('div');
+                container.className = 'multi-ans-container';
+
+                correctList.forEach((ans, idx) => {
+                    const item = document.createElement('div');
+                    const isRevealed = !!(this.revealedMultiIndices && this.revealedMultiIndices[idx]);
+
+                    item.className = 'multi-ans-item' + (isRevealed ? ' revealed' : '');
+
+                    // Internal Structure: Index | Text | Check
+                    item.innerHTML = `
+                        <div class="multi-ans-idx">${idx + 1}</div>
+                        <div class="multi-ans-text" title="${ans}">${ans}</div>
+                        <div class="multi-ans-check">✓</div>
+                    `;
+
+                    item.onclick = (e) => {
+                        e.stopPropagation();
+                        this.toggleMultiAnswer(idx);
+
+                        // Local Toggle
+                        const newStatus = !!(this.revealedMultiIndices && this.revealedMultiIndices[idx]);
+                        if (newStatus) {
+                            item.classList.add('revealed');
+                        } else {
+                            item.classList.remove('revealed');
+                        }
+                    };
+                    container.appendChild(item);
+                });
+
+                wrapper.appendChild(container);
+                cardCorrect.appendChild(wrapper);
+
+            } else {
+                // Single Answer (Normal)
+                cardCorrect.textContent = this.getAnswerString(q) || "---";
+            }
+        }
 
         // Sort players by answerTime/buzzTime
         const playerIds = Object.keys(players);
         const sortedPlayers = playerIds
             .map(id => ({ id, ...players[id] }))
-            .filter(p => p.lastAnswer !== null || p.buzzTime)
+            // .filter(p => p.lastAnswer !== null || p.buzzTime) // REMOVED: Show all players for manual judging
             .sort((a, b) => {
                 const timeA = a.answerTime || a.buzzTime || Infinity;
                 const timeB = b.answerTime || b.buzzTime || Infinity;
                 return timeA - timeB;
             });
 
-        // If no one selected yet, select the fastest
+        // If no one selected yet, select the fastest or first
         if (!this.selectedPlayerId && sortedPlayers.length > 0) {
             this.selectedPlayerId = sortedPlayers[0].id;
         }
@@ -1217,53 +1458,126 @@ App.Studio = {
             horizontalList.appendChild(chip);
         });
 
-        // Update Big Display
+        // Update Big Display (Card)
+        if (cardPAns) cardPAns.innerHTML = '';
+        if (cardBtns) cardBtns.innerHTML = '';
+
         if (this.selectedPlayerId && players[this.selectedPlayerId]) {
             const p = players[this.selectedPlayerId];
-            selectedName.textContent = p.name;
+            if (cardPName) cardPName.textContent = p.name;
 
-            let ansText = p.lastAnswer || (p.buzzTime ? "BUZZED!" : "WAITING...");
-            const q = App.Data.studioQuestions[App.State.currentQIndex];
+            let ansText = p.lastAnswer;
+            if (ansText === null || ansText === undefined) {
+                if (p.buzzTime) ansText = "BUZZED!";
+                else if (q && q.type.includes('oral')) ansText = "(口頭回答待ち)";
+                else ansText = "WAITING...";
+            }
+
             if (p.lastAnswer !== null && q && q.type === 'choice') {
-                const idx = parseInt(p.lastAnswer);
-                ansText = isNaN(idx) ? p.lastAnswer : `${String.fromCharCode(65 + idx)}. ${q.c[idx] || ''}`;
-            }
-            selectedAnswer.textContent = ansText;
-
-            // Add Judge Buttons for Buzz Mode (if not yet judged)
-            // Remove old buttons if any
-            const oldBtns = document.getElementById('console-judge-btns');
-            if (oldBtns) oldBtns.remove();
-
-            if (App.Data.currentConfig.mode === 'buzz' && !p.lastResult && p.id === (this.buzzWinner || App.State.currentAnswerer)) { // Only for current buzzer
-                // Check logic: this.buzzWinner might be null if reloaded? 
-                // Use status.currentAnswerer? We don't have it easily here unless we store it.
-                // But p.buzzTime is key.
-                if (p.buzzTime) {
-                    const btnHtml = `
-                        <div id="console-judge-btns" style="display:flex; gap:10px; margin-top:10px; justify-content:center;">
-                             <button class="btn btn-success" onclick="App.Studio.updatePlayerScore('${p.id}', true)">正解 (O)</button>
-                             <button class="btn btn-danger" onclick="App.Studio.updatePlayerScore('${p.id}', false)">不正解 (X)</button>
-                        </div>
-                     `;
-                    selectedAnswer.insertAdjacentHTML('afterend', btnHtml);
+                if (Array.isArray(p.lastAnswer)) {
+                    ansText = p.lastAnswer.map(i => `${String.fromCharCode(65 + parseInt(i))}. ${q.c[i] || ''}`).join('<br>');
+                } else {
+                    const idx = parseInt(p.lastAnswer);
+                    ansText = isNaN(idx) ? p.lastAnswer : `${String.fromCharCode(65 + idx)}. ${q.c[idx] || ''}`;
                 }
-            } else if (App.Data.currentConfig.mode === 'buzz' && !p.lastResult && p.lastAnswer) {
-                // For text answer buzz (if buzzer logic didn't catch it?)
-                // Generally buzzWinner should be set.
-                // Fallback to show buttons if they have answered.
-                const btnHtml = `
-                    <div id="console-judge-btns" style="display:flex; gap:10px; margin-top:10px; justify-content:center;">
-                         <button class="btn btn-success" onclick="App.Studio.updatePlayerScore('${p.id}', true)">正解 (O)</button>
-                         <button class="btn btn-danger" onclick="App.Studio.updatePlayerScore('${p.id}', false)">不正解 (X)</button>
-                    </div>
-                 `;
-                selectedAnswer.insertAdjacentHTML('afterend', btnHtml);
+            } else if (p.lastAnswer && q && q.type === 'sort') {
+                // Sort logic display if needed
             }
 
+            if (cardPAns) cardPAns.innerHTML = ansText;
+
+            // Judge Buttons Logic
+            const isAutoJudged = (q && ['choice', 'sort', 'letter_select'].includes(q.type));
+
+            // Check if already judged (has result)
+            if (p.lastResult) {
+                // Determine status text for judged questions
+                const statusDiv = document.createElement('div');
+                statusDiv.style.width = '100%';
+                statusDiv.style.textAlign = 'center';
+
+                if (p.lastResult === 'win') {
+                    statusDiv.className = 'btn-success';
+                    statusDiv.style.padding = '15px';
+                    statusDiv.style.borderRadius = '0';
+                    statusDiv.innerHTML = '判定済: 正解 (CORRECT)';
+                    statusDiv.style.opacity = '0.7';
+                } else if (p.lastResult === 'lose') {
+                    statusDiv.className = 'btn-danger';
+                    statusDiv.style.padding = '15px';
+                    statusDiv.style.borderRadius = '0';
+                    statusDiv.innerHTML = '判定済: 不正解 (WRONG)';
+                    statusDiv.style.opacity = '0.7';
+                }
+                if (cardBtns) cardBtns.appendChild(statusDiv);
+
+            } else if (!isAutoJudged) {
+                // Show manual buttons only if NOT auto-judged AND NOT yet judged
+                const btnO = document.createElement('button');
+                btnO.className = 'btn-success';
+                btnO.style.flex = '1';
+                btnO.style.margin = '0';
+                btnO.style.borderRadius = '0';
+                btnO.style.padding = '15px';
+                btnO.style.fontSize = '1.2em';
+                btnO.textContent = "正解 (O)";
+                btnO.onclick = (e) => {
+                    e.stopPropagation(); // Stop propagation just in case
+                    console.log("Btn O Clicked for", this.selectedPlayerId);
+                    App.Studio.updatePlayerScore(this.selectedPlayerId, true);
+                };
+
+                const btnX = document.createElement('button');
+                btnX.className = 'btn-danger';
+                btnX.style.flex = '1';
+                btnX.style.margin = '0';
+                btnX.style.borderRadius = '0';
+                btnX.style.padding = '15px';
+                btnX.style.fontSize = '1.2em';
+                btnX.textContent = "不正解 (X)";
+                btnX.onclick = (e) => {
+                    e.stopPropagation();
+                    console.log("Btn X Clicked for", this.selectedPlayerId);
+                    App.Studio.updatePlayerScore(this.selectedPlayerId, false);
+                };
+
+                if (p.lastAnswer !== null && p.lastAnswer !== undefined) {
+                    if (cardBtns) {
+                        cardBtns.innerHTML = ''; // Clear just to be safe
+                        cardBtns.appendChild(btnO);
+                        cardBtns.appendChild(btnX);
+                    }
+                } else {
+                    // まだ回答していない場合
+                    const statusDiv = document.createElement('div');
+                    statusDiv.style.width = '100%';
+                    statusDiv.style.padding = '15px';
+                    statusDiv.style.textAlign = 'center';
+                    statusDiv.style.color = '#888';
+                    statusDiv.textContent = "回答待ち (WAITING)";
+                    if (cardBtns) {
+                        cardBtns.innerHTML = '';
+                        cardBtns.appendChild(statusDiv);
+                    }
+                }
+            } else {
+                // Auto-judged but waiting?
+                const statusDiv = document.createElement('div');
+                statusDiv.style.width = '100%';
+                statusDiv.style.padding = '10px';
+                statusDiv.style.textAlign = 'center';
+                statusDiv.style.color = '#888';
+
+                if (p.lastAnswer) {
+                    statusDiv.textContent = "自動判定中...";
+                } else {
+                    statusDiv.textContent = "回答待ち (WAITING)";
+                }
+                if (cardBtns) cardBtns.appendChild(statusDiv);
+            }
         } else {
-            selectedName.textContent = "回答者を選択";
-            selectedAnswer.textContent = "回答待ち...";
+            if (cardPName) cardPName.textContent = "---";
+            if (cardPAns) cardPAns.textContent = "SELECT PLAYER";
         }
     },
 
@@ -1292,6 +1606,35 @@ App.Studio = {
                 lastResult: result
             });
             App.Ui.showToast(`${p.name} さんを ${isCorrect ? '正解' : '不正解'} に判定しました`);
+
+            // ★ Multi-Answer Auto-Reveal Logic
+            if (isCorrect && q.type && q.type.startsWith('multi')) {
+                let matchedIndex = -1;
+                // Try to find match in correct answers or choices
+                if (q.c) {
+                    // 1. Check if p.lastAnswer is an index (0, 1, 2...)
+                    const ansIdx = parseInt(p.lastAnswer);
+                    if (!isNaN(ansIdx) && q.c[ansIdx]) {
+                        matchedIndex = ansIdx;
+                    }
+                    // 2. Check if p.lastAnswer matches label (e.g. "Chiyoda-ku")
+                    else {
+                        matchedIndex = q.c.findIndex(c => c === p.lastAnswer);
+                    }
+                }
+
+                if (matchedIndex !== -1) {
+                    this.revealedMultiIndices = this.revealedMultiIndices || {};
+                    if (!this.revealedMultiIndices[matchedIndex]) {
+                        this.revealedMultiIndices[matchedIndex] = true;
+                        window.db.ref(`rooms/${roomId}/status`).update({
+                            revealedMulti: this.revealedMultiIndices
+                        });
+                        // Re-render controls to reflect change on host
+                        this.renderMultiAnswerControls(q);
+                    }
+                }
+            }
 
             // BUZZ MODE LOGIC
             if (App.Data.currentConfig.mode === 'buzz') {
@@ -1330,7 +1673,14 @@ App.Studio = {
     quickStart: function (setData) {
         console.log("Quick starting set:", setData.title);
         const unextDesign = { mainBgColor: "#0a0a0a", qTextColor: "#fff", qBgColor: "rgba(255,255,255,0.05)", qBorderColor: "#00bfff" };
-        const questions = (setData.questions || []).map(q => { if (!q.design) q.design = unextDesign; return q; });
+        let rawQ = setData.questions || [];
+        if (!Array.isArray(rawQ)) rawQ = Object.values(rawQ);
+        const questions = rawQ.map(q => {
+            // Create a clean copy to avoid reference issues
+            const newQ = Object.assign({}, q);
+            if (!newQ.design) newQ.design = Object.assign({}, unextDesign);
+            return newQ;
+        });
 
         // Merge saved config with defaults
         const defaultConfig = { mode: 'normal', gameType: 'score', theme: 'dark' };
@@ -1349,7 +1699,9 @@ App.Studio = {
     },
 
     quickStartProg: function (progData) {
-        App.Data.periodPlaylist = progData.playlist || [];
+        let list = progData.playlist || [];
+        if (!Array.isArray(list)) list = Object.values(list);
+        App.Data.periodPlaylist = list;
         if (App.Data.periodPlaylist.length === 0) {
             alert("このプログラムにはセットが含まれていません。");
             return;
@@ -1362,113 +1714,71 @@ App.Studio = {
         const listEl = document.getElementById('studio-player-list-display');
         if (!listEl) return;
 
-        const playerNames = Object.values(players).map(p => p.name || 'Guest');
+        const playerArray = Object.keys(players).map(key => ({ id: key, ...players[key] }));
 
-        if (playerNames.length === 0) {
+        if (playerArray.length === 0) {
             listEl.innerHTML = '<span style="color:#666; font-size:0.8em;">待機中...</span>';
         } else {
-            listEl.innerHTML = playerNames.map(name =>
-                `<span class="player-chip">${name}</span>`
-            ).join('');
+            listEl.innerHTML = '';
+            playerArray.forEach(p => {
+                const chip = document.createElement('span');
+                chip.className = 'player-chip';
+                chip.textContent = p.name || 'Guest';
+                chip.style.cursor = 'pointer';
+                if (this.selectedPlayerId === p.id) {
+                    chip.style.borderColor = '#00bfff';
+                    chip.style.background = 'rgba(0, 191, 255, 0.2)';
+                }
+                chip.onclick = () => {
+                    this.selectedPlayerId = p.id;
+                    this.updatePlayerList(players); // Re-render to show selection
+                    this.renderUnifiedConsole(players);
+                };
+                listEl.appendChild(chip);
+            });
         }
     },
 
-    // Update next screen preview
+    // Simplified Text Display for Next Preview
     updateNextPreview: function () {
         const nextContent = document.getElementById('studio-next-monitor-content');
-        const nextPanel = document.getElementById('studio-next-preview-panel');
-        if (!nextContent || !nextPanel) return;
+        if (!nextContent) return;
 
+        // Simplified Text Logic
+        nextContent.innerHTML = '';
+        nextContent.style.padding = '10px';
+        nextContent.style.color = '#888';
+        nextContent.style.fontSize = '1.2em';
+        nextContent.style.textAlign = 'center';
+        nextContent.style.display = 'flex';
+        nextContent.style.flexDirection = 'column';
+        nextContent.style.justifyContent = 'center';
+        nextContent.style.height = '100%';
+
+        const step = this.currentStepId;
         const currentQ = App.Data.studioQuestions[App.State.currentQIndex];
         const nextQ = App.Data.studioQuestions[App.State.currentQIndex + 1];
-        const step = this.currentStepId;
 
-        let html = '';
-        let targetQ = currentQ;
+        let targetQ = (step >= 5 || step < 0) ? nextQ : currentQ;
+        let label = (targetQ === nextQ) ? "NEXT Q" : "CURRENT PREVIEW";
 
-        if (step === 0) {
-            // Standby -> Question Reveal
-            if (currentQ) {
-                html = `
-                    <div class="monitor-header"><span class="badge-type" style="font-size:24px;">QUESTION</span></div>
-                    <div class="monitor-q-text">${currentQ.q}</div>
-                `;
-            } else {
-                html = '<div class="preview-placeholder">待機中...</div>';
-            }
-        }
-        else if (step === 1) {
-            // Reveal Q -> Answering
-            const layout = currentQ.layout || 'standard';
-            const design = currentQ.design || {};
-            const qColor = design.qTextColor || '#fff';
-            const qBorder = design.qBorderColor || 'var(--color-primary)';
-
-            html = `
-                <div class="monitor-header">
-                    <span class="badge-type">CHOICES</span>
-                    <span class="monitor-timer" style="font-size:24px; padding:8px 15px; background:rgba(255,255,255,0.1); border-radius:10px;">TIME: ${currentQ.timeLimit || 20}</span>
-                </div>
-                <div class="monitor-q-text" style="color:${qColor}; border-left-color:${qBorder}; font-size:1.6em;">${currentQ.q}</div>
-                <div class="monitor-choices" style="width:90%;">
-                    ${(currentQ.c || []).map((c, i) => `
-                        <div class="monitor-choice-item" style="font-size:24px;">
-                            <span class="monitor-choice-prefix">${String.fromCharCode(65 + i)}</span>
-                            <span>${c}</span>
-                        </div>`).join('')}
-                </div>
-            `;
-        } else if (step === 2 || step === 3 || step === 4) {
-            // Closed/Reveal Player -> Show Correct
-            html = `
-                <div class="monitor-header"><span class="badge-type" style="background:#2ecc71; color:white; font-size:24px;">CORRECT</span></div>
-                <div class="monitor-q-text" style="font-size:1.2em; margin-bottom:20px;">${currentQ.q}</div>
-                <div class="monitor-correct" style="margin-top:0;">
-                    <div style="font-size:0.5em; margin-bottom:10px; opacity:0.7;">CORRECT ANSWER</div>
-                    <div style="font-size:1.8em; font-weight:900; color:var(--color-primary);">${this.getAnswerString(currentQ)}</div>
-                </div>
-            `;
-        } else {
-            // Result -> Next Q
-            if (nextQ) {
-                targetQ = nextQ;
-                html = `
-                    <div class="monitor-header"><span class="badge-type" style="font-size:24px;">NEXT QUESTION</span></div>
-                    <div class="monitor-q-text" style="font-size:1.2em;">Q.${App.State.currentQIndex + 2}</div>
-                    <div style="font-size:0.8em; color:#888;">${nextQ.q.substring(0, 40)}...</div>
-                `;
-            } else {
-                html = '<div class="preview-placeholder">全問題終了</div>';
-            }
+        if (!targetQ) {
+            nextContent.textContent = "待機中 (End of List)";
+            return;
         }
 
-        // Apply Design to Next Preview if we have a target question
-        if (targetQ && targetQ.design) {
-            const d = targetQ.design;
-            const align = targetQ.align || 'center';
-            nextPanel.style.backgroundColor = d.mainBgColor || "#000";
-            if (d.bgImage) {
-                nextPanel.style.backgroundImage = `url('${d.bgImage}')`;
-                nextPanel.style.backgroundSize = "cover";
-                nextPanel.style.backgroundPosition = "center";
-            } else {
-                nextPanel.style.backgroundImage = "none";
-            }
+        const qText = targetQ.q || "";
+        const ans = this.getAnswerString ? this.getAnswerString(targetQ) : "??";
 
-            // Inject styles into HTML tags
-            const qStyle = `color:${d.qTextColor || '#fff'}; background:${d.qBgColor || 'rgba(0,0,0,0.1)'}; border:6px solid ${d.qBorderColor || '#00bfff'}; border-radius:15px; text-align:${align}; padding:20px; font-size:${d.qFontSize || (step === 1 ? '1.6em' : '2.2em')};`;
-            const cStyle = `color:${d.cTextColor || '#eee'}; background:${d.cBgColor || 'rgba(0,0,0,0.1)'}; border-bottom:1px solid ${d.cBorderColor || '#444'}; font-size:${d.cFontSize || '24px'};`;
-
-            if (html.includes('monitor-q-text')) {
-                html = html.replace('class="monitor-q-text"', `class="monitor-q-text" style="${qStyle}"`);
-            }
-            if (html.includes('monitor-choice-item')) {
-                html = html.replaceAll('class="monitor-choice-item"', `class="monitor-choice-item" style="${cStyle}"`);
-            }
-        }
-
-        nextContent.innerHTML = html;
-        this.updateMonitorScaling();
+        nextContent.innerHTML = `
+            <div style="font-size:0.7em; margin-bottom:10px; opacity:0.7; border-bottom:1px solid #444; padding-bottom:5px;">${label}</div>
+            <div style="font-weight:bold; color:#fff; font-size:1.0em; margin-bottom:10px; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical;">
+                Q. ${qText}
+            </div>
+            <div style="font-size:0.8em; margin-top:5px; color:#aaa;">
+                正解: <span style="color:#2ecc71;">${ans}</span>
+            </div>
+        `;
     },
 
     // Shuffle choices for questions
@@ -1601,67 +1911,8 @@ App.Studio = {
     },
 
     updateMonitorScaling: function () {
-        // Current Screen Scaling
-        const frame = document.getElementById('studio-monitor-frame');
-        const panel = document.getElementById('studio-question-panel');
-        if (frame && panel && frame.clientWidth > 0) {
-            const scale = frame.clientWidth / 1280;
-            panel.style.transform = `translate(-50%, -50%) scale(${scale})`;
-
-            // Auto-scaling font size for long text
-            const qText = panel.querySelector('.monitor-q-text');
-            if (qText) {
-                // Reset to base size first (to measure actual height)
-                const currentQ = App.Data.studioQuestions[App.State.currentQIndex];
-                const baseSizeStr = (currentQ?.design?.qFontSize) || "2.2em";
-                qText.style.fontSize = baseSizeStr;
-
-                // If it's a fixed px size, convert to float for calculation
-                let baseSize = 70; // fallback approx for 2.2em on 32pt base
-                if (baseSizeStr.includes('px')) baseSize = parseFloat(baseSizeStr);
-
-                // Max height for q-text in 1280x720 panel (approx 300px)
-                const maxHeight = 300;
-                if (qText.scrollHeight > maxHeight) {
-                    const ratio = maxHeight / qText.scrollHeight;
-                    const newSize = Math.max(baseSize * ratio, 20); // allow more shrinkage
-                    qText.style.fontSize = newSize + (baseSizeStr.includes('px') ? "px" : "pt");
-                }
-            }
-        }
-
-        // Next Screen Scaling
-        const nextFrame = document.getElementById('studio-next-frame');
-        const nextPanel = document.getElementById('studio-next-preview-panel');
-        if (nextFrame && nextPanel && nextFrame.clientWidth > 0) {
-            const scale = nextFrame.clientWidth / 1280;
-            nextPanel.style.transform = `translate(-50%, -50%) scale(${scale})`;
-
-            // Auto-scaling font size for long text in Next Preview
-            const nextQText = nextPanel.querySelector('.monitor-q-text');
-            if (nextQText) {
-                const currentQ = App.Data.studioQuestions[App.State.currentQIndex];
-                const nextQ = App.Data.studioQuestions[App.State.currentQIndex + 1];
-                const step = this.currentStepId;
-                const targetQ = (step >= 5 || step < 0) ? nextQ : currentQ;
-
-                if (targetQ) {
-                    const baseSizeStr = (targetQ?.design?.qFontSize) || (step === 1 ? "1.6em" : "2.2em");
-                    nextQText.style.fontSize = baseSizeStr;
-
-                    let baseSize = 70;
-                    if (baseSizeStr.includes('px')) baseSize = parseFloat(baseSizeStr);
-                    else if (baseSizeStr.includes('em')) baseSize = parseFloat(baseSizeStr) * 32;
-
-                    const maxHeight = 300;
-                    if (nextQText.scrollHeight > maxHeight) {
-                        const ratio = maxHeight / nextQText.scrollHeight;
-                        const newSize = Math.max(baseSize * ratio, 20); // allow more shrinkage
-                        nextQText.style.fontSize = newSize + (baseSizeStr.includes('px') ? "px" : "pt");
-                    }
-                }
-            }
-        }
+        // Disabled: User requested simple text display instead of scaled frame.
+        // This function is kept empty to prevent errors if called.
     },
 };
 

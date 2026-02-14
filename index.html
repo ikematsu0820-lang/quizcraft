@@ -500,178 +500,190 @@
     </div>
 
     <div id="host-control-view" class="view hidden host-studio-layout">
-        <div class="studio-header-bar">
-            <div class="status-item">
-                <span class="status-label">部屋ID</span>
-                <span id="studio-header-room-id" class="status-value text-yellow" title="クリックしてコピー">---</span>
-            </div>
-            <div class="status-item"><span class="status-label">問題数</span><span id="studio-q-num-display"
-                    class="status-value">1/10</span></div>
-            <div class="status-item">
-                <span class="status-label">参加人数</span>
-                <span id="studio-player-count-display" class="status-value">0</span>
-            </div>
-            <div class="status-item" style="flex: 1; max-width: 300px;">
-                <span class="status-label">参加者</span>
-                <div id="studio-player-list-display" class="player-list-compact">
-                    <span style="color:#666; font-size:0.8em;">待機中...</span>
+        <!-- Simple New Header -->
+        <div class="simple-studio-header"
+            style="display:flex; justify-content:space-between; align-items:center; padding:15px 20px; background:#111; border-bottom:1px solid #333;">
+            <div style="display:flex; gap:20px; align-items:center;">
+                <div class="room-info">
+                    <span style="color:#888; font-size:12px; display:block;">ROOM ID</span>
+                    <span id="studio-header-room-id"
+                        style="color:#ffd700; font-size:24px; font-family:monospace; font-weight:bold;">---</span>
+                </div>
+                <div class="room-info">
+                    <span style="color:#888; font-size:12px; display:block;">PLAYERS</span>
+                    <span id="studio-player-count-display"
+                        style="color:#fff; font-size:24px; font-weight:bold;">0</span>
                 </div>
             </div>
-
-            <div id="studio-solo-info" class="status-item hidden">
-                <span class="status-label">挑戦者</span><span id="studio-challenger-name"
-                    class="status-value text-pink">---</span>
-                <span class="status-label ml-10">ライフ</span><span id="studio-life-display" class="status-value">3</span>
-            </div>
-            <button id="host-close-studio-btn" class="header-back-btn" style="margin-left: auto;">ダッシュボード</button>
+            <button id="host-close-studio-btn" class="btn-dark" style="padding:5px 15px; font-size:12px;">EXIT</button>
         </div>
 
-        <div class="studio-main-area">
-            <div id="studio-standby-panel" class="center-message">
-                <div class="big-room-id-box">
-                    <span class="label">部屋ID (クリックしてコピー)</span>
-                    <span id="studio-big-room-id" title="クリックしてコピー">------</span>
-                </div>
+        <!-- Main Action Area -->
+        <div class="simple-studio-main"
+            style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:20px;">
 
-                <div id="studio-program-info" class="text-gray mb-20"></div>
-
-                <div id="studio-loader-ui" class="panel-section section-blue" style="max-width:400px; margin:0 auto;">
-                    <select id="studio-program-select" class="btn-block config-select mb-10"></select>
-                    <button id="studio-load-program-btn" class="btn-primary btn-block"
-                        data-text="Studio.BtnLoad">Set</button>
-                </div>
-                <div id="studio-period-timeline" class="timeline-container mt-20"></div>
-            </div> <!-- closes studio-standby-panel -->
-
-            <div id="studio-execution-grid" class="studio-execution-grid hidden">
-                <!-- Tab Switcher (Mobile Only) - Optional now, but keeping for flexibility -->
-                <div class="studio-tab-switcher">
-                    <div class="preview-segmented-control">
-                        <button class="segmented-btn active" data-tab="monitors">📺 プレビュー</button>
-                        <button class="segmented-btn" data-tab="controls">🎛️ コンソール</button>
-                    </div>
-                </div>
-
-                <div class="studio-monitors-row">
-                    <div class="studio-monitor-item current">
-                        <div class="current-screen-label">📸 今の画面</div>
-                        <div id="studio-monitor-frame" class="studio-monitor-frame">
-                            <div id="studio-question-panel" class="question-monitor">
-                                <div class="monitor-header">
-                                    <span id="studio-q-type-badge" class="badge-type">CHOICE</span>
-                                    <div style="display:flex; align-items:center; gap:10px;">
-                                        <span id="studio-timer-display" class="monitor-timer hidden">TIME: 10</span>
-                                        <span id="studio-player-sync-status" class="badge-type"
-                                            style="background:rgba(0,229,255,0.1); color:var(--color-primary);">READY</span>
-                                    </div>
-                                </div>
-                                <div id="studio-q-text" class="monitor-q-text"></div>
-                                <div id="studio-choices-container" class="monitor-choices"></div>
-                                <div id="studio-correct-display" class="monitor-correct hidden">
-                                    <div class="label" style="font-size:0.6em; margin-bottom:5px; opacity:0.7;">CORRECT
-                                        ANSWER
-                                    </div>
-                                    <div id="studio-correct-text"></div>
-                                    <div id="studio-commentary-text"
-                                        style="font-size:0.5em; font-weight:normal; margin-top:10px; color:#aaa; line-height:1.4;">
-                                    </div>
-                                </div>
-                                <div id="studio-sub-info" class="monitor-sub-info hidden"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="studio-monitor-item next">
-                        <div class="sidebar-section-label">📺 次の画面</div>
-                        <div id="studio-next-frame" class="studio-monitor-frame">
-                            <div id="studio-next-preview-panel" class="question-monitor">
-                                <div id="studio-next-monitor-content"
-                                    style="width:100%; height:100%; display:flex; flex-direction:column; justify-content:center;">
-                                    <div class="preview-placeholder">待機中...</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Unified Console Layout (PC & Mobile) -->
-                <div class="studio-console-layout">
-                    <div class="console-main-row">
-                        <div class="console-selected-answer-area">
-                            <div class="console-selected-answer-box">
-                                <div id="console-selected-player-name" class="selected-name-label">選択中の回答者</div>
-                                <div id="console-selected-player-answer" class="selected-answer-text">回答待ち...</div>
-                            </div>
-                        </div>
-                        <div class="console-control-column">
-                            <div class="control-label">判定</div>
-                            <div class="console-judge-grid">
-                                <button id="console-btn-judge-correct" class="btn-judge btn-success">⭕</button>
-                                <button id="console-btn-judge-wrong" class="btn-judge btn-danger">❌</button>
-                            </div>
-                            <!-- Primary action button synced from studio-footer-controls -->
-                            <button id="console-btn-phase-main" class="btn-large-action">Q.1 開始</button>
-                        </div>
-                    </div>
-
-                    <div class="console-player-list-area">
-                        <div class="sidebar-section-label">👥 回答者一覧 (早い順)</div>
-                        <div id="console-player-horizontal-list" class="console-horizontal-scroll">
-                            <!-- JSで生成 -->
-                        </div>
-                    </div>
-                </div>
-
-                <div class="studio-answers-row hidden">
-                    <div class="studio-grid-right-answers">
-                        <div class="sidebar-section-label">👥 回答者の回答</div>
-                        <div id="studio-answer-stats" class="studio-answer-stats-bar">
-                            <div id="studio-answered-count" class="stats-value">0 / 0</div>
-                            <div class="stats-progress-container">
-                                <div id="studio-answer-progress" class="stats-progress-bar"></div>
-                            </div>
-                        </div>
-                        <div id="studio-player-answers" class="studio-realtime-answers"></div>
-                    </div>
+            <div id="studio-status-wrapper" style="width:100%; max-width:400px; margin-bottom:15px;">
+                <div id="studio-q-number-large"
+                    style="background:#e0e0e0; color:#111; font-size:28px; font-weight:800; padding:10px; margin-bottom:12px; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,0.3); border-bottom:4px solid #bbb; text-align:center;">
+                    ---</div>
+                <div id="studio-monitor-status-row" style="display:flex; justify-content:space-between; gap:8px;">
+                    <div class="studio-status-indicator" id="status-ind-qnum">問題番号表示</div>
+                    <div class="studio-status-indicator" id="status-ind-question">問題表示</div>
+                    <div class="studio-status-indicator" id="status-ind-answer">正解表示</div>
                 </div>
             </div>
-        </div> <!-- closes studio-main-area -->
 
-        <div class="studio-footer-controls">
-            <button id="btn-phase-main" class="btn-block btn-large-action hidden">START</button>
-            <div id="studio-sub-controls" class="sub-controls-grid hidden">
-                <button id="btn-judge-correct" class="btn-success btn-judge">⭕ 正解</button>
-                <button id="btn-judge-wrong" class="btn-danger btn-judge">❌ 不正解</button>
+            <div id="studio-step-display"
+                style="display:none; color:#888; margin-bottom:20px; font-size:14px; letter-spacing:1px;">
+                WAITING</div>
+
+            <!-- The Giant Button -->
+            <button id="console-btn-phase-main" class="btn-giant-action" style="
+                width: 100%;
+                max-width: 400px;
+                height: 120px;
+                font-size: 24px;
+                font-weight: bold;
+                border-radius: 16px;
+                background: linear-gradient(135deg, #00bfff 0%, #0077aa 100%);
+                border: none;
+                color: white;
+                box-shadow: 0 4px 15px rgba(0, 191, 255, 0.3);
+                transition: transform 0.1s;
+                position: relative;
+                overflow: hidden;
+            ">
+                START QUIZ
+            </button>
+
+            <!-- Sub Status / Q Number -->
+            <div id="studio-mode-display" style="display:none; margin-top:20px; color:#555; font-size:12px;"></div>
+
+            <!-- Central Console Card -->
+            <div class="console-card-wrapper"
+                style="width:100%; max-width:500px; margin-top:20px; background:#222; border-radius:12px; overflow:hidden; border:1px solid #444; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+
+                <!-- 1. Question Text -->
+                <div style="background:#333; padding:10px 15px; border-bottom:1px solid #444;">
+                    <div style="font-size:10px; color:#888; margin-bottom:4px;">QUESTION</div>
+                    <div id="console-card-question" style="color:#fff; font-size:14px; line-height:1.4;">---</div>
+                </div>
+
+                <!-- 2. Correct Answer -->
+                <div
+                    style="background:#2a2a2a; padding:8px 15px; border-bottom:1px solid #444; display:flex; justify-content:space-between; align-items:center;">
+                    <div style="font-size:10px; color:#888;">CORRECT ANSWER</div>
+                    <div id="console-card-correct" style="color:#2ecc71; font-weight:bold; font-size:14px;">---</div>
+                </div>
+
+                <!-- 3. Player's Answer (Main) -->
+                <div style="background:#444; padding:30px 20px; text-align:center; position:relative;">
+                    <div id="console-card-player-name"
+                        style="position:absolute; top:10px; left:10px; font-size:10px; color:#aaa; background:#222; padding:2px 8px; border-radius:4px;">
+                        PLAYER</div>
+                    <div id="console-card-player-answer-content"
+                        style="color:#fff; font-size:28px; font-weight:bold; min-height:1.2em; word-break:break-all;">
+                        (Select Player)</div>
+                </div>
+
+                <!-- 4. Judge Buttons -->
+                <div id="console-card-judge-area" style="display:flex;">
+                    <!-- Buttons injected via JS -->
+                </div>
             </div>
-            <div class="footer-tools">
-                <button id="btn-toggle-ans" class="btn-mini btn-dark">正解表示</button>
-                <button id="btn-force-next" class="btn-mini btn-dark">強制スキップ</button>
+
+            <!-- Participants List -->
+            <div class="simple-player-section" style="width:100%; max-width:600px; margin-top:30px;">
+                <div
+                    style="color:#666; font-size:12px; margin-bottom:10px; border-bottom:1px solid #333; padding-bottom:5px;">
+                    PARTICIPANTS</div>
+                <div id="console-player-horizontal-list" class="console-horizontal-scroll"
+                    style="display:flex; gap:10px; overflow-x:auto; padding-bottom:10px;">
+                    <!-- Players injected here -->
+                </div>
             </div>
         </div>
 
-        <!-- Panel Selection Modal -->
-        <div id="panel-selection-modal" class="design-modal-overlay hidden">
-            <div class="design-modal-content" style="max-width: 600px;">
-                <h3 class="modal-title">パネル選択</h3>
-                <div class="design-modal-body">
-                    <div id="panel-winner-info"
-                        style="text-align:center; margin-bottom:20px; font-size:1.2em; color:#0f0;">
-                        <span id="panel-winner-name"></span> が正解！
-                    </div>
-                    <div style="margin-bottom:15px; text-align:center;">
-                        <label style="color:#aaa; margin-right:10px;">選択する色:</label>
-                        <div id="panel-color-selector"
-                            style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
-                        </div>
-                    </div>
-                    <div id="panel-selection-grid" class="panel-grid-5x5">
-                    </div>
-                </div>
-                <div class="modal-close-action">
-                    <button id="panel-selection-close" class="btn-block btn-dark">完了</button>
-                </div>
+        <!-- Restored: Answer Stats & Grid (Moved from Legacy) -->
+        <div style="width:100%; max-width:800px; margin-top:20px;">
+            <div id="studio-answer-stats"></div>
+            <div id="studio-answered-count" style="text-align:center; color:#888; margin-top:5px;"></div>
+            <div id="studio-answer-progress"
+                style="height:4px; background:#444; margin-top:5px; width:0%; transition:width 0.3s;"></div>
+            <div id="studio-player-answers"
+                style="display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:10px; margin-top:15px;">
             </div>
         </div>
+    </div>
+
+    <!-- HIDDEN LEGACY CONTAINER (To prevent JS errors) -->
+    <div id="studio-legacy-container" class="hidden" style="display:none !important;">
+        <div id="studio-q-num-display"></div>
+        <div id="studio-player-list-display"></div>
+        <div id="studio-solo-info"></div>
+        <div id="studio-challenger-name"></div>
+        <div id="studio-life-display"></div>
+        <div id="studio-standby-panel"></div>
+        <div id="studio-program-info"></div>
+        <div id="studio-period-timeline"></div>
+        <div id="studio-monitor-frame"></div>
+        <div id="studio-question-panel"></div>
+        <div id="studio-q-text"></div>
+        <div id="studio-choices-container"></div>
+        <div id="studio-q-type-badge"></div>
+        <div id="studio-timer-display"></div>
+        <div id="studio-player-sync-status"></div>
+        <div id="studio-correct-display"></div>
+        <div id="studio-correct-text"></div>
+        <div id="studio-commentary-text"></div>
+        <div id="studio-sub-info"></div>
+        <div id="studio-next-frame"></div>
+        <div id="studio-next-preview-panel"></div>
+        <div id="studio-next-monitor-content"></div>
+        <!-- Moved to Main -->
+
+
+        <!-- Footer Controls (Logic requires these) -->
+        <button id="btn-phase-main"></button>
+        <div id="studio-sub-controls"></div>
+        <button id="btn-judge-correct"></button>
+        <button id="btn-judge-wrong"></button>
+        <button id="btn-toggle-ans"></button>
+        <button id="btn-force-next"></button>
+
+        <!-- Loaders -->
+        <div id="studio-loader-ui">
+            <select id="studio-program-select"></select>
+            <button id="studio-load-program-btn"></button>
+        </div>
+        <div id="studio-execution-grid"></div>
+        <div id="studio-panel-control"></div>
+        <div id="studio-sub-controls-legacy"></div>
+    </div>
+    </div>
+
+    <!-- Panel Selection Modal -->
+    <div id="panel-selection-modal" class="design-modal-overlay hidden">
+        <div class="design-modal-content" style="max-width: 600px;">
+            <h3 class="modal-title">パネル選択</h3>
+            <div class="design-modal-body">
+                <div id="panel-winner-info" style="text-align:center; margin-bottom:20px; font-size:1.2em; color:#0f0;">
+                    <span id="panel-winner-name"></span> が正解！
+                </div>
+                <div style="margin-bottom:15px; text-align:center;">
+                    <label style="color:#aaa; margin-right:10px;">選択する色:</label>
+                    <div id="panel-color-selector"
+                        style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+                    </div>
+                </div>
+                <div id="panel-selection-grid" class="panel-grid-5x5">
+                </div>
+            </div>
+            <div class="modal-close-action">
+                <button id="panel-selection-close" class="btn-block btn-dark">完了</button>
+            </div>
+        </div>
+    </div>
     </div>
 
     <div id="ranking-view" class="view hidden center-text">
@@ -777,16 +789,16 @@
     <!-- Drag & Drop Library -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script src="firebase.js"></script>
-    <script src="text_config.js?v=95"></script>
-    <script src="host_core.js?v=95"></script>
-    <script src="host_design.js?v=95"></script>
-    <script src="host_production_design.js?v=95"></script>
-    <script src="host_creator.js?v=95"></script>
-    <script src="host_config.js?v=95"></script>
-    <script src="host_prog_config.js?v=95"></script>
-    <script src="host_studio.js?v=95"></script>
-    <script src="player.js?v=95"></script>
-    <script src="viewer.js?v=95"></script>
+    <script src="text_config.js?v=230"></script>
+    <script src="host_core.js?v=230"></script>
+    <script src="host_design.js?v=230"></script>
+    <script src="host_production_design.js?v=230"></script>
+    <script src="host_creator.js?v=230"></script>
+    <script src="host_config.js?v=230"></script>
+    <script src="host_prog_config.js?v=230"></script>
+    <script src="host_studio.js?v=230"></script>
+    <script src="player.js?v=230"></script>
+    <script src="viewer.js?v=230"></script>
 
 
     <!-- Edit Menu Modal -->

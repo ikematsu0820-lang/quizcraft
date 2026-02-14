@@ -152,9 +152,10 @@ window.App.bindEvents = function () {
     document.getElementById('dash-sound-btn')?.addEventListener('click', () => {
         window.App.Ui.showToast("サウンド設定は準備中です");
     });
-    // ★ スタジオ起動
+    // ★ スタジオ起動 (一時的に無効化)
     document.getElementById('dash-studio-btn')?.addEventListener('click', () => {
-        if (window.App.Studio && window.App.Studio.startRoom) window.App.Studio.startRoom();
+        // if (window.App.Studio && window.App.Studio.startRoom) window.App.Studio.startRoom();
+        window.App.Ui.showToast("スタジオ機能は現在改装中です（実装待ち）");
     });
     document.getElementById('dash-viewer-btn')?.addEventListener('click', () => U.showView(V.viewerLogin));
 
@@ -213,6 +214,7 @@ window.App.Dashboard = {
         if (!listEl) return;
 
         listEl.innerHTML = '<p style="text-align:center;">Loading...</p>';
+        this.itemCache = {}; // Initialize cache
         let showId = window.App.State.currentShowId;
         if (showId) showId = showId.trim();
 
@@ -258,10 +260,11 @@ window.App.Dashboard = {
                     </div>
                     <div class="item-actions">
                         <button class="btn-mini btn-info" onclick="window.App.Dashboard.quick('${k}')">▶ Start</button>
-                        <button class="btn-mini btn-dark" onclick="window.App.Dashboard.openEditMenu('${k}', ${JSON.stringify(d).replace(/"/g, '&quot;')})">Edit</button>
+                        <button class="btn-mini btn-dark" onclick="window.App.Dashboard.openEditMenu('${k}')">Edit</button>
                         <button class="btn-mini btn-dark" title="Copy" onclick="window.App.Dashboard.copySet('${k}')">📋</button>
                         <button class="delete-btn btn-mini" onclick="window.App.Dashboard.del('saved_sets', '${k}')">Del</button>
                     </div>`;
+                this.itemCache[k] = d; // Cache the data
                 listEl.appendChild(div);
             });
 
@@ -278,10 +281,11 @@ window.App.Dashboard = {
                     </div>
                     <div class="item-actions">
                         <button class="btn-mini btn-info" onclick="window.App.Dashboard.quickProg('${k}')">▶ Start</button>
-                        <button class="btn-mini btn-dark" onclick="window.App.ProgConfig.loadProgramForDashboard(${JSON.stringify(d).replace(/"/g, '&quot;')})">Edit</button>
+                        <button class="btn-mini btn-dark" onclick="window.App.ProgConfig.loadProgramForDashboard(window.App.Dashboard.itemCache['${k}'])">Edit</button>
                         <button class="btn-mini btn-dark" title="Copy" onclick="window.App.Dashboard.copyProg('${k}')">📋</button>
                         <button class="delete-btn btn-mini" onclick="window.App.Dashboard.del('saved_programs', '${k}')">Del</button>
                     </div>`;
+                this.itemCache[k] = d; // Cache the data
                 listEl.appendChild(div);
             });
 
@@ -290,23 +294,48 @@ window.App.Dashboard = {
     },
 
     // Quick Start: セットを直接スタジオに送る
+    // Quick Start: セットを直接スタジオに送る
     quick: function (key) {
+        // window.App.Ui.showToast("クイックスタート機能は現在再設計中です（実装待ち）");
+
         window.db.ref(`saved_sets/${window.App.State.currentShowId}/${key}`).once('value', snap => {
             const data = snap.val();
             if (data && confirm(`「${data.title}」をすぐに開始しますか？`)) {
                 window.App.Studio.quickStart(data);
             }
         });
+
     },
+
+    quickProg: function (key) {
+        window.App.Ui.showToast("番組クイックスタート機能は現在再設計中です（実装待ち）");
+    },
+
 
     // Quick Start: プログラムを直接スタジオに送る
     quickProg: function (key) {
-        window.db.ref(`saved_programs/${window.App.State.currentShowId}/${key}`).once('value', snap => {
-            const data = snap.val();
-            if (data && confirm(`番組構成「${data.title}」をすぐに開始しますか？`)) {
-                window.App.Studio.quickStartProg(data);
+        try {
+            if (this.itemCache && this.itemCache[key]) {
+                const data = this.itemCache[key];
+                if (confirm(`番組構成「${data.title}」をすぐに開始しますか？`)) {
+                    if (window.App.Studio && window.App.Studio.quickStartProg) {
+                        window.App.Studio.quickStartProg(data);
+                    } else {
+                        alert("エラー: スタジオ機能が読み込まれていません。");
+                    }
+                }
+                return;
             }
-        });
+            window.db.ref(`saved_programs/${window.App.State.currentShowId}/${key}`).once('value', snap => {
+                const data = snap.val();
+                if (data && confirm(`番組構成「${data.title}」をすぐに開始しますか？`)) {
+                    window.App.Studio.quickStartProg(data);
+                }
+            });
+        } catch (e) {
+            alert("起動エラー: " + e.message);
+            console.error(e);
+        }
     },
 
     copySet: function (key) {
@@ -355,10 +384,23 @@ window.App.Dashboard = {
         });
     },
 
-    openEditMenu: function (key, data) {
+    openEditMenu: function (key) {
         this.currentEditKey = key;
-        this.currentEditData = data;
+        this.currentEditData = this.itemCache ? this.itemCache[key] : null;
 
+        if (!this.currentEditData) {
+            // Fallback fetch if not in cache (shouldn't happen in normal flow)
+            window.db.ref(`saved_sets/${window.App.State.currentShowId}/${key}`).once('value', snap => {
+                this.currentEditData = snap.val();
+                this._showEditModal();
+            });
+            return;
+        }
+        this._showEditModal();
+    },
+
+    _showEditModal: function () {
+        const data = this.currentEditData;
         const modal = document.getElementById('edit-menu-modal');
         const titleEl = document.getElementById('edit-menu-set-title');
         if (modal) {
