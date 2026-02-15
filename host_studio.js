@@ -1895,10 +1895,16 @@ App.Studio = {
 
             // TURN MODE LOGIC
             if (config.mode === 'turn') {
-                const isMultiOrDobon = (q.mode === 'dobon' || q.mode === 'multi' || (q.type && q.type.startsWith('multi')));
+                const isDobon = (q.mode === 'dobon');
+                const isMulti = (q.mode === 'multi' || (q.type && q.type.startsWith('multi')));
 
-                if (isCorrect && isMultiOrDobon) {
-                    // Dobon/Multi: move to next player within the same question ONLY if CORRECT
+                // Advance turn if:
+                // 1. It is Multi mode (always advance, correct or wrong, to keep the flow)
+                // 2. It is Dobon mode AND Correct (Safe) - (If Wrong/Bomb, we stop/wait)
+                const shouldAdvanceInQuestion = (isMulti || (isDobon && isCorrect));
+
+                if (shouldAdvanceInQuestion) {
+                    // Dobon/Multi: move to next player within the same question
                     this.turnIndex = (this.turnIndex + 1) % this.turnOrder.length;
                     const nextPlayerId = this.turnOrder[this.turnIndex];
                     const nextPlayerName = (App.Data.players && App.Data.players[nextPlayerId])
@@ -1909,7 +1915,8 @@ App.Studio = {
                         currentAnswererName: nextPlayerName
                     });
 
-                    App.Ui.showToast(`正解！次は ${nextPlayerName} さんの番です`);
+                    const msg = isCorrect ? "正解！" : "不正解...";
+                    App.Ui.showToast(`${msg} 次は ${nextPlayerName} さんの番です`);
 
                     // Update sub-info UI
                     const info = document.getElementById('studio-sub-info');
@@ -1922,8 +1929,8 @@ App.Studio = {
                         snap.ref.update({ lastAnswer: null, lastResult: null });
                     }, 1500);
 
-                } else if (!this.turnAdvancedThisQ) {
-                    // Normal question, or multi-answer wrong: mark as finished for this person
+                } else if (!this.turnAdvancedThisQ && !isDobon && !isMulti) {
+                    // Normal question: mark as finished for this person
                     // (The turn will pass to the next person for the NEXT question)
                     this.turnIndex = (this.turnIndex + 1) % this.turnOrder.length;
                     this.turnAdvancedThisQ = true;
@@ -2250,15 +2257,19 @@ App.Studio = {
                 btnMain.style.opacity = '0.4';
                 btnMain.style.pointerEvents = 'none';
                 btnMain.classList.remove('action-ready');
+                btnMain.classList.remove('action-next');
             } else {
-                // Ensure enabled if confirmed
+                // Ensure enabled if confirmed - BLUE (action-next)
+                btnMain.textContent = `第${(App.State.currentQIndex || 0) + 1}問 開始`;
                 btnMain.disabled = false;
                 btnMain.style.opacity = '1';
                 btnMain.style.pointerEvents = 'auto';
                 btnMain.style.cursor = 'pointer';
-                btnMain.classList.add('action-ready');
+                btnMain.classList.remove('action-ready');
+                btnMain.classList.add('action-next');
                 btnMain.style.filter = 'none';
             }
+            this.syncMainButton();
         }
 
         // Restore standard button text (e.g., "第1問 開始")
@@ -2454,6 +2465,7 @@ App.Studio = {
                     btnMain.classList.add('action-next');
                 }
             }
+            this.syncMainButton();
 
             // Sync to Firebase
             this.turnIndex = 0;

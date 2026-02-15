@@ -1061,6 +1061,48 @@ function renderPlayerQuestion(q, roomId, playerId) {
     }
 
     else if (q.type.startsWith('multi')) {
+        // ★ For multi-written, place Input & Submit at the TOP (below Question)
+        if (q.type === 'multi_written') {
+            const wrapper = document.createElement('div');
+            wrapper.style.display = 'flex';
+            wrapper.style.gap = '10px';
+            wrapper.style.marginBottom = '20px'; // Space before grid
+
+            const inp = document.createElement('input');
+            inp.type = 'text';
+            inp.placeholder = '回答を入力...';
+            inp.className = 'modern-input';
+            inp.style.margin = '0'; // Flex handles gap
+            inp.style.flex = '1';
+
+            const sub = document.createElement('button');
+            sub.className = 'btn-primary';
+            sub.textContent = '送信';
+            sub.style.width = '100px';
+
+            const sendAction = () => {
+                if (inp.value.trim() === "") return;
+                submitAnswer(roomId, playerId, inp.value.trim());
+                inp.value = ""; // Clear for next answer
+                inp.focus(); // Keep focus for rapid entry
+            };
+
+            sub.onclick = sendAction;
+            // Allow Enter key
+            inp.onkeydown = (e) => {
+                if (e.key === 'Enter') sendAction();
+            }
+
+            wrapper.appendChild(inp);
+            wrapper.appendChild(sub);
+            inputCont.appendChild(wrapper);
+        } else {
+            // multi_oral
+            document.getElementById('player-oral-done-area').classList.remove('hidden');
+            document.getElementById('player-oral-done-btn').onclick = () => { submitAnswer(roomId, playerId, "[Done]"); };
+        }
+
+        // Then Render Grid (Below Input)
         const grid = document.createElement('div');
         grid.className = 'player-multi-grid';
         q.c.forEach((choice, i) => {
@@ -1081,24 +1123,6 @@ function renderPlayerQuestion(q, roomId, playerId) {
             grid.appendChild(item);
         });
         inputCont.appendChild(grid);
-
-        if (q.type === 'multi_written') {
-            const inp = document.createElement('input');
-            inp.type = 'text'; inp.placeholder = '回答を入力...'; inp.className = 'modern-input'; inp.style.marginTop = '15px';
-            const sub = document.createElement('button');
-            sub.className = 'btn-primary btn-block'; sub.textContent = '送信'; sub.style.marginTop = '10px';
-            sub.onclick = () => {
-                if (inp.value.trim() === "") return;
-                submitAnswer(roomId, playerId, inp.value.trim());
-                inp.value = ""; // Clear for next answer in multi-written
-            };
-            inputCont.appendChild(inp);
-            inputCont.appendChild(sub);
-        } else {
-            // multi_oral or legacy multi
-            document.getElementById('player-oral-done-area').classList.remove('hidden');
-            document.getElementById('player-oral-done-btn').onclick = () => { submitAnswer(roomId, playerId, "[Done]"); };
-        }
     }
     else if (q.type === 'free_oral') {
         document.getElementById('player-oral-done-area').classList.remove('hidden');

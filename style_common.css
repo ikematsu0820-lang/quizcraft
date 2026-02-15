@@ -252,11 +252,13 @@ textarea:focus,
 
 /* --- Landing Specifics --- */
 .landing-view {
-    /* Full screen centering */
+    /* Full screen centering -> Top Alignment */
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
+    padding-top: 15vh !important;
+    /* Move content up */
     border: none;
     background: transparent;
 }
@@ -267,7 +269,8 @@ textarea:focus,
     text-align: center;
     position: relative;
     z-index: 1;
-    margin: auto 0;
+    margin: 0;
+    /* Remove auto centering */
 }
 
 .landing-logo-emoji {

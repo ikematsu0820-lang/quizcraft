@@ -377,22 +377,12 @@ App.Config = {
         } else if (mode === 'turn') {
             html += `
                 <div class="mode-settings-box mode-box-turn">
-                    <div class="grid-2-col">
-                        <div>
-                            <label class="config-label">${APP_TEXT.Config.LabelTurnOrder}</label>
-                            <select id="config-turn-order" class="btn-block config-select">
-                                <option value="fixed" ${conf.turnOrder === 'fixed' ? 'selected' : ''}>${APP_TEXT.Config.TurnOrderFixed}</option>
-                                <option value="random" ${conf.turnOrder === 'random' ? 'selected' : ''}>${APP_TEXT.Config.TurnOrderRandom}</option>
-                                <option value="rank" ${conf.turnOrder === 'rank' ? 'selected' : ''}>${APP_TEXT.Config.TurnOrderRank}</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="config-label">${APP_TEXT.Config.LabelTurnPass}</label>
-                            <select id="config-turn-pass" class="btn-block config-select">
-                                <option value="ok" ${conf.turnPass === 'ok' ? 'selected' : ''}>${APP_TEXT.Config.TurnPassOk}</option>
-                                <option value="ng" ${conf.turnPass === 'ng' ? 'selected' : ''}>${APP_TEXT.Config.TurnPassNg}</option>
-                            </select>
-                        </div>
+                    <div>
+                        <label class="config-label">${APP_TEXT.Config.LabelTurnPass}</label>
+                        <select id="config-turn-pass" class="btn-block config-select">
+                            <option value="ok" ${conf.turnPass === 'ok' ? 'selected' : ''}>${APP_TEXT.Config.TurnPassOk}</option>
+                            <option value="ng" ${conf.turnPass === 'ng' ? 'selected' : ''}>${APP_TEXT.Config.TurnPassNg}</option>
+                        </select>
                     </div>
                 </div>`;
         } else if (mode === 'solo') {

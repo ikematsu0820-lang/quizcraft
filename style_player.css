@@ -24,6 +24,12 @@
     margin-top: auto;
     /* Push to bottom */
     margin-bottom: 20px;
+
+    /* Ensure flex child (grid) can scroll */
+    display: flex;
+    flex-direction: column;
+    /* max-height: 60vh; Optional safety cap */
+    min-height: 0;
 }
 
 /* ヘッダーバー */
@@ -607,9 +613,23 @@
     display: grid;
     grid-template-columns: 1fr;
     gap: 10px;
-    margin-bottom: 20px;
+    margin-bottom: 0;
+
+    /* Scrollable Area Settings: Flexible */
+    flex: 1;
+    min-height: 0;
+    /* Critical for flex scrolling */
+    overflow-y: auto;
+
+    padding-right: 5px;
+    padding-bottom: 20px;
+    padding-top: 10px;
+
+    /* Animation */
     animation: fadeInUp 0.4s ease-out;
 }
+
+
 
 .player-multi-item {
     background: rgba(255, 255, 255, 0.05);
@@ -681,6 +701,7 @@
         opacity: 1;
     }
 }
+
 /* --- New Sortable List Design --- */
 .player-sort-help {
     text-align: center;
@@ -749,5 +770,5 @@
 .sortable-drag {
     background: rgba(255, 255, 255, 0.15);
     transform: scale(1.02);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
