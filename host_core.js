@@ -218,7 +218,7 @@ window.App.Dashboard = {
         const listEl = document.getElementById('dash-set-list');
         if (!listEl) return;
 
-        listEl.innerHTML = '<p style="text-align:center;">Loading...</p>';
+        listEl.innerHTML = '';
         this.itemCache = {}; // Initialize cache
         let showId = window.App.State.currentShowId;
         if (showId) showId = showId.trim();
@@ -245,62 +245,295 @@ window.App.Dashboard = {
             const sortedProgs = Object.keys(progs).map(k => ({ ...progs[k], key: k }))
                 .sort((a, b) => getTs(b) - getTs(a));
 
-            // セット一覧
-            sortedSets.forEach(item => {
-                const k = item.key;
-                const d = item;
-                const div = document.createElement('div');
-                div.className = 'dash-list-item item-type-set';
-                const qCount = Array.isArray(d.questions) ? d.questions.length : (d.questions ? Object.keys(d.questions).length : 0);
+            // Store data for filtering
+            this.setsData = sortedSets;
+            this.progsData = sortedProgs; // Programs usually shown in "All"
 
-                // 日付の表示を安全に
-                const dateStr = (typeof d.createdAt === 'number')
-                    ? new Date(d.createdAt).toLocaleDateString()
-                    : "New!";
+            // Initialize filter states
+            if (!this.filterState) {
+                this.filterState = { mode: 'all', type: 'all' };
+            }
 
-                // モード表示
-                const modeMap = { 'normal': '一斉', 'buzz': '早押し', 'turn': '順番', 'solo': 'ソロ' };
-                const modeKey = (d.config && d.config.mode) ? d.config.mode : 'normal';
-                const modeStr = modeMap[modeKey] || '一斉';
-
-                div.innerHTML = `
-                    <div class="item-main">
-                        <div class="item-title"><span class="badge-set">SET</span> ${d.title || "Untitled"}</div>
-                        <div class="item-meta">${dateStr} / ${qCount}Q <span style="margin-left:8px; color:#ccc; background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px; font-size:0.85em;">${modeStr}</span></div>
+            // Inject Filter UI if not present
+            if (!document.getElementById('dash-filter-container')) {
+                const filterHtml = `
+                    <div id="dash-filter-container" style="margin-bottom:15px;">
+                        <!-- Row 1: Game Mode -->
+                        <div id="dash-filter-mode" style="display:flex; gap:8px; overflow-x:auto; padding-bottom:8px; margin-bottom:5px;">
+                            <button class="filter-btn active" onclick="window.App.Dashboard.applyFilter('mode', 'all', this)">すべて</button>
+                            <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('mode', 'normal', this)">一斉</button>
+                            <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('mode', 'buzz', this)">早押し</button>
+                            <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('mode', 'turn', this)">順番</button>
+                        </div>
+                        <!-- Row 2: Question Type -->
+                        <div id="dash-filter-type" style="display:flex; gap:8px; overflow-x:auto; padding-bottom:5px;">
+                            <button class="filter-btn active" onclick="window.App.Dashboard.applyFilter('type', 'all', this)">すべて</button>
+                            <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('type', 'free', this)">一問一答</button>
+                            <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('type', 'choice', this)">選択式</button>
+                            <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('type', 'sort', this)">並び替え</button>
+                            <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('type', 'multi', this)">多答問題</button>
+                        </div>
                     </div>
-                    <div class="item-actions">
-                        <button class="btn-mini btn-info" onclick="window.App.Dashboard.quick('${k}')">▶ Start</button>
-                        <button class="btn-mini btn-dark" onclick="window.App.Dashboard.openEditMenu('${k}')">Edit</button>
-                        <button class="btn-mini btn-dark" title="Copy" onclick="window.App.Dashboard.copySet('${k}')">📋</button>
-                        <button class="delete-btn btn-mini" onclick="window.App.Dashboard.del('saved_sets', '${k}')">Del</button>
-                    </div>`;
-                this.itemCache[k] = d; // Cache the data
-                listEl.appendChild(div);
-            });
+                    <style>
+                        .filter-btn {
+                            background: rgba(255,255,255,0.05);
+                            border: 1px solid rgba(255,255,255,0.1);
+                            color: #aaa;
+                            padding: 5px 10px;
+                            border-radius: 12px;
+                            font-size: 0.8em;
+                            cursor: pointer;
+                            white-space: nowrap;
+                            transition: all 0.2s;
+                            flex-shrink: 0;
+                        }
+                        .filter-btn.active {
+                            background: rgba(0, 229, 255, 0.15);
+                            color: #00e5ff;
+                            border-color: #00e5ff;
+                            font-weight: bold;
+                        }
+                    </style>
+                `;
+                listEl.insertAdjacentHTML('beforebegin', filterHtml);
+            }
 
-            // プログラム一覧
-            sortedProgs.forEach(item => {
+            // Initial Render
+            this.runFilter();
+        });
+    },
+
+    applyFilter: function (category, value, btnEl) {
+        // Update state
+        if (!this.filterState) this.filterState = { mode: 'all', type: 'all' };
+        this.filterState[category] = value;
+
+        // Update UI
+        const container = category === 'mode' ? 'dash-filter-mode' : 'dash-filter-type';
+        const btns = document.querySelectorAll(`#${container} .filter-btn`);
+        btns.forEach(b => b.classList.remove('active'));
+        if (btnEl) btnEl.classList.add('active');
+
+        this.runFilter();
+    },
+
+    runFilter: function () {
+        const mode = this.filterState.mode;
+        const type = this.filterState.type;
+        const listEl = document.getElementById('dash-set-list');
+        listEl.innerHTML = '';
+        this.itemCache = {}; // Reset cache
+
+        // Helper to categorize question type
+        const getQCategory = (item) => {
+            if (!item.questions || item.questions.length === 0) return 'unknown';
+            const t = item.questions[0].type;
+            if (['free_oral', 'free_written'].includes(t)) return 'free';
+            if (['choice', 'letter_select'].includes(t)) return 'choice';
+            if (t === 'sort') return 'sort';
+            if (['multi', 'multi_written', 'multi_oral'].includes(t)) return 'multi';
+            return 'unknown';
+        };
+
+        // Render Sets
+        let hasData = false;
+        this.setsData.forEach(item => {
+            const itemMode = (item.config && item.config.mode) ? item.config.mode : 'normal';
+            const itemTypeCat = getQCategory(item);
+
+            // Filter Logic
+            if (mode !== 'all' && itemMode !== mode) return;
+            if (type !== 'all' && itemTypeCat !== type) return;
+
+            hasData = true;
+            const k = item.key;
+            const d = item;
+            this.itemCache[k] = d;
+
+            const dateStr = (typeof d.createdAt === 'number')
+                ? new Date(d.createdAt).toLocaleDateString()
+                : "New!";
+            const qCount = Array.isArray(d.questions) ? d.questions.length : (d.questions ? Object.keys(d.questions).length : 0);
+
+            const modeMap = { 'normal': '一斉', 'buzz': '早押し', 'turn': '順番', 'solo': 'ソロ' };
+            const modeStr = modeMap[itemMode] || '一斉';
+
+            const div = document.createElement('div');
+            div.className = 'dash-list-item item-type-set';
+            div.setAttribute('onclick', `window.App.Dashboard.openItemMenu('${k}', 'set')`);
+            div.style.cursor = 'pointer';
+
+            div.innerHTML = `
+                <div class="item-main">
+                    <div class="item-title"><span class="badge-set">SET</span> ${d.title || "Untitled"}</div>
+                    <div class="item-meta">${dateStr} / ${qCount}Q <span style="margin-left:8px; color:#ccc; background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px; font-size:0.85em;">${modeStr}</span></div>
+                </div>
+                <div class="item-actions">
+                        <button class="btn-context-menu">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                </div>`;
+            listEl.appendChild(div);
+        });
+
+        // Programs - Show only if filters are effectively "All" to avoid confusion, 
+        // OR standard behavior: Programs don't have these properties so hide them if filter is active.
+        if (mode === 'all' && type === 'all') {
+            this.progsData.forEach(item => {
+                hasData = true;
                 const k = item.key;
-                const d = item;
+                this.itemCache[k] = item;
                 const div = document.createElement('div');
                 div.className = 'dash-list-item item-type-prog';
+                div.setAttribute('onclick', `window.App.Dashboard.openItemMenu('${k}', 'prog')`);
+                div.style.cursor = 'pointer';
+
                 div.innerHTML = `
                     <div class="item-main">
-                        <div class="item-title"><span class="badge-prog">番組</span> ${d.title}</div>
-                        <div class="item-meta">${new Date(d.createdAt || 0).toLocaleDateString()} / ${d.playlist ? d.playlist.length : 0} セット収録</div>
+                        <div class="item-title"><span class="badge-prog">番組</span> ${item.title}</div>
+                        <div class="item-meta">${new Date(item.createdAt || 0).toLocaleDateString()} / ${item.playlist ? item.playlist.length : 0} セット収録</div>
                     </div>
                     <div class="item-actions">
-                        <button class="btn-mini btn-info" onclick="window.App.Dashboard.quickProg('${k}')">▶ Start</button>
-                        <button class="btn-mini btn-dark" onclick="window.App.ProgConfig.loadProgramForDashboard(window.App.Dashboard.itemCache['${k}'])">Edit</button>
-                        <button class="btn-mini btn-dark" title="Copy" onclick="window.App.Dashboard.copyProg('${k}')">📋</button>
-                        <button class="delete-btn btn-mini" onclick="window.App.Dashboard.del('saved_programs', '${k}')">Del</button>
+                        <button class="btn-context-menu">
+                            <i class="fas fa-minus"></i>
+                        </button>
                     </div>`;
-                this.itemCache[k] = d; // Cache the data
                 listEl.appendChild(div);
             });
+        }
 
-            if (listEl.innerHTML === '') listEl.innerHTML = '<p style="text-align:center;">データがありません</p>';
-        });
+        if (!hasData) {
+            listEl.innerHTML = '<p style="text-align:center; padding:20px; color:#666;">該当するデータがありません</p>';
+        }
+    },
+
+    renameItem: function (key, type) {
+        const path = (type === 'set') ? 'saved_sets' : 'saved_programs';
+        const data = this.itemCache[key];
+        const oldTitle = data.title || "";
+        const newTitle = prompt("新しい名前を入力してください:", oldTitle);
+
+        if (newTitle && newTitle !== oldTitle) {
+            window.db.ref(`${path}/${window.App.State.currentShowId}/${key}/title`).set(newTitle).then(() => {
+                window.App.Ui.showToast("名前を変更しました");
+                this.loadItems();
+                const modal = document.getElementById('item-menu-modal');
+                if (modal) modal.remove();
+            });
+        }
+    },
+
+    startInlineRename: function (el, key, type) {
+        const data = this.itemCache[key];
+        const oldTitle = data ? (data.title || "") : "";
+
+        // Prevent recursive input
+        if (el.querySelector('input')) return;
+
+        // Save original click handler to restore it later
+        const originalOnclick = el.onclick;
+        el.onclick = null; // Disable click while editing to prevent re-triggering
+
+        el.innerHTML = `<input type="text" id="inline-title-input" value="${oldTitle}" style="width:100%; box-sizing:border-box; padding:6px; border-radius:4px; border:1px solid #00bfff; background:#222; color:#fff; font-size:1em; outline:none;">`;
+        const input = document.getElementById('inline-title-input');
+
+        // Prevent click bubble bubbling up to overlay close
+        input.onclick = (e) => e.stopPropagation();
+
+        input.focus();
+
+        const save = () => {
+            const newTitle = input.value.trim();
+            if (newTitle && newTitle !== oldTitle) {
+                const path = (type === 'set') ? 'saved_sets' : 'saved_programs';
+                window.db.ref(`${path}/${window.App.State.currentShowId}/${key}/title`).set(newTitle).then(() => {
+                    window.App.Ui.showToast("名前を変更しました");
+                    this.loadItems(); // Refresh background list
+
+                    // Restore header with new title
+                    el.innerHTML = `${newTitle} <i class="fas fa-pen" style="font-size:0.7em; margin-left:8px; opacity:0.7;"></i>`;
+                    el.onclick = () => this.startInlineRename(el, key, type); // Restore handler with new context/closure if needed, or simply reuse the pattern
+                });
+            } else {
+                // Revert
+                el.innerHTML = `${oldTitle} <i class="fas fa-pen" style="font-size:0.7em; margin-left:8px; opacity:0.7;"></i>`;
+                el.onclick = () => this.startInlineRename(el, key, type);
+            }
+        };
+
+        input.onblur = save;
+        input.onkeydown = (e) => {
+            if (e.key === 'Enter') {
+                input.blur();
+            }
+        };
+    },
+
+    openItemMenu: function (key, type) {
+        // Close existing if open
+        const existing = document.getElementById('item-menu-modal');
+        if (existing) existing.remove();
+
+        const data = this.itemCache[key];
+        if (!data) return;
+
+        const isSet = (type === 'set');
+        const title = data.title || (isSet ? 'Untitled Set' : 'Untitled Program');
+
+        // Actions
+        // Start
+        const startAction = isSet
+            ? `window.App.Dashboard.quick('${key}')`
+            : `window.App.Dashboard.quickProg('${key}')`;
+
+        // Edit 
+        const editAction = isSet
+            ? `window.App.Dashboard.openEditMenu('${key}')`
+            : `window.App.ProgConfig.loadProgramForDashboard(window.App.Dashboard.itemCache['${key}'])`;
+
+        // Copy
+        const copyAction = isSet
+            ? `window.App.Dashboard.copySet('${key}')`
+            : `window.App.Dashboard.copyProg('${key}')`;
+
+        // Delete
+        const delPath = isSet ? 'saved_sets' : 'saved_programs';
+        const delAction = `window.App.Dashboard.del('${delPath}', '${key}')`;
+
+        const html = `
+            <div id="item-menu-modal" class="bottom-sheet-overlay" onclick="if(event.target===this)this.remove()">
+                <div class="bottom-sheet-content">
+                    <div class="bottom-sheet-header">
+                        <div class="bottom-sheet-title" onclick="window.App.Dashboard.startInlineRename(this, '${key}', '${type}')" style="cursor: pointer;">
+                            ${title} <i class="fas fa-pen" style="font-size:0.7em; margin-left:8px; opacity:0.7;"></i>
+                        </div>
+                        <button class="bottom-sheet-close" onclick="document.getElementById('item-menu-modal').remove()">×</button>
+                    </div>
+                    <div class="bottom-sheet-body">
+                        <button class="sheet-btn" onclick="${startAction}; document.getElementById('item-menu-modal').remove()">
+                            <i class="fas fa-play" style="color:#00e5ff;"></i> スタート
+                        </button>
+                        <button class="sheet-btn" onclick="${editAction}; document.getElementById('item-menu-modal').remove()">
+                            <i class="fas fa-edit"></i> 編集
+                        </button>
+                        <button class="sheet-btn" onclick="${copyAction}; document.getElementById('item-menu-modal').remove()">
+                            <i class="fas fa-copy"></i> 複製
+                        </button>
+                        <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin: 5px 0;">
+                        <button class="sheet-btn text-danger" onclick="${delAction}; document.getElementById('item-menu-modal').remove()">
+                            <i class="fas fa-trash"></i> 削除
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', html);
+
+        // Animation
+        setTimeout(() => {
+            const content = document.querySelector('#item-menu-modal .bottom-sheet-content');
+            if (content) content.classList.add('show');
+        }, 10);
     },
 
     // Quick Start: セットを直接スタジオに送る

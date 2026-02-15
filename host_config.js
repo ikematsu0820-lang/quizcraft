@@ -80,25 +80,34 @@ App.Config = {
         let typeDisplay = "不明";
         let isOral = false;
         let qType = 'choice';
+        const isDobon = questions.some(q => q.mode === 'dobon' || (q.type === 'choice' && q.mode === 'multi'));
 
         if (questions.length > 0) {
-            qType = questions[0].type;
-            if (qType === 'choice') typeDisplay = APP_TEXT.Creator.TypeChoice;
-            else if (qType === 'letter_select') typeDisplay = APP_TEXT.Creator.TypeLetterSelect;
-            else if (qType === 'sort') typeDisplay = APP_TEXT.Creator.TypeSort;
-            else if (qType === 'free_oral') { typeDisplay = APP_TEXT.Creator.TypeFreeOral; isOral = true; }
-            else if (qType === 'free_written') typeDisplay = APP_TEXT.Creator.TypeFreeWritten;
-            else if (qType === 'multi_written') typeDisplay = APP_TEXT.Creator.TypeMultiWritten;
-            else if (qType === 'multi_oral') { typeDisplay = APP_TEXT.Creator.TypeMultiOral; isOral = true; }
-            else if (qType === 'multi') typeDisplay = APP_TEXT.Creator.TypeMulti;
+            const type = questions[0].type;
+            const mode = questions[0].mode;
+
+            if (type === 'choice') {
+                if (mode === 'dobon' || mode === 'multi') typeDisplay = "2-2) ドボン問題";
+                else typeDisplay = "2-1) 単一解答";
+            }
+            else if (type === 'letter_select') typeDisplay = APP_TEXT.Creator.TypeLetterSelect;
+            else if (type === 'sort') typeDisplay = APP_TEXT.Creator.TypeSort;
+            else if (type === 'free_oral') { typeDisplay = APP_TEXT.Creator.TypeFreeOral; isOral = true; }
+            else if (type === 'free_written') typeDisplay = APP_TEXT.Creator.TypeFreeWritten;
+            else if (type === 'multi_written') typeDisplay = APP_TEXT.Creator.TypeMultiWritten;
+            else if (type === 'multi_oral') { typeDisplay = APP_TEXT.Creator.TypeMultiOral; isOral = true; }
+            else if (type === 'multi') typeDisplay = APP_TEXT.Creator.TypeMulti;
+            else typeDisplay = "不明";
         }
 
         const normalOption = isOral
-            ? `<option value="normal" disabled style="color:#555;">✖ 一斉回答 (口頭形式では選択不可)</option>`
-            : `<option value="normal">一斉回答 (Normal)</option>`;
+            ? `<option value="normal" disabled style="color:#555;">✖ 一斉解答 (口頭形式では選択不可)</option>`
+            : `<option value="normal">一斉解答 (Normal)</option>`;
+
+        const borderLeftColor = (typeDisplay.includes('選択式') || typeDisplay.includes('ドボン') || typeDisplay.includes('単一解答')) ? '#000000' : '#aaa';
 
         let html = `
-            <div style="background:#252525; padding:12px; border-radius:6px; border:1px solid #444; border-left:4px solid #aaa; margin-bottom:20px; display:flex; align-items:center;">
+            <div style="background:#252525; padding:12px; border-radius:6px; border:1px solid #444; border-left:4px solid ${borderLeftColor}; margin-bottom:20px; display:flex; align-items:center;">
                 <div style="color:#aaa; font-size:0.9em; font-weight:bold; margin-right:10px;">収録形式:</div>
                 <div style="color:#fff; font-weight:bold; font-size:1.1em;">${typeDisplay}</div>
                 <div style="color:#666; font-size:0.8em; margin-left:auto; font-family:monospace;">全${questions.length}問</div>
@@ -111,11 +120,11 @@ App.Config = {
                 <div class="mb-15">
                 <label class="config-label">1. ${APP_TEXT.Config.LabelMode}</label>
                 <div class="mode-segmented-control">
-                    <button type="button" class="mode-segmented-btn ${isOral || qType.startsWith('multi') ? 'disabled' : ''}" data-mode="normal" ${isOral || qType.startsWith('multi') ? 'disabled' : ''}>
+                    <button type="button" class="mode-segmented-btn ${isOral || qType.startsWith('multi') || isDobon ? 'disabled' : ''}" data-mode="normal" ${(isOral || qType.startsWith('multi') || isDobon) ? 'disabled' : ''}>
                         <span class="icon">⚡</span>
                         <span class="label">一斉</span>
                     </button>
-                    <button type="button" class="mode-segmented-btn" data-mode="buzz">
+                    <button type="button" class="mode-segmented-btn ${isDobon ? 'disabled' : ''}" data-mode="buzz" ${isDobon ? 'disabled' : ''}>
                         <span class="icon">🚨</span>
                         <span class="label">早押し</span>
                     </button>
@@ -124,18 +133,22 @@ App.Config = {
                         <span class="icon">🔄</span>
                         <span class="label">順番</span>
                     </button>
-                    <button type="button" class="mode-segmented-btn disabled" data-mode="solo" disabled style="opacity:0.5; cursor:not-allowed;">
+                    <button type="button" class="mode-segmented-btn" data-mode="solo">
                         <span class="icon">🏆</span>
                         <span class="label">ソロ</span>
                     </button>
                 </div>
+                <!-- Validation Message for Dobon -->
+                ${isDobon ? '<p style="color:#e74c3c; font-size:0.85em; margin-top:5px; text-align:center;">※ドボン形式が含まれるため、一斉解答・早押しは選択できません</p>' : ''}
+                
                 <select id="config-mode-select" class="hidden">
                     <option value="normal">Normal</option>
                     <option value="buzz">Buzz</option>
                     <option value="turn">Turn</option>
                     <option value="solo">Solo</option>
                 </select>
-                ${qType.startsWith('multi') ? '<p style="font-size:0.8em; color:#ffd700; margin-top:5px;">※多答形式は一斉回答を利用できません</p>' : ''}
+                ${qType.startsWith('multi') ? '<p style="font-size:0.8em; color:#ffd700; margin-top:5px;">※多答形式は一斉解答を利用できません</p>' : ''}
+                ${isDobon ? '<p style="font-size:0.8em; color:#ff5555; margin-top:5px;">※ドボン問題は「順番解答」のみ利用可能です</p>' : ''}
                 <div id="mode-detail-area"></div>
                 </div>
 
@@ -212,24 +225,43 @@ App.Config = {
 
         this.setupBulkButtons();
 
-        if (conf.mode) {
-            if ((isOral || qType.startsWith('multi')) && conf.mode === 'normal') modeSel.value = 'buzz';
-            else modeSel.value = conf.mode;
-        } else {
-            modeSel.value = (isOral || qType.startsWith('multi')) ? 'buzz' : 'normal';
+        // Default Mode Logic with Checks
+        let targetMode = conf.mode || 'normal';
+
+        // Apply restrictions
+        // 1. Dobon -> Turn only (or Solo)
+        if (isDobon) {
+            // Default to Turn if logic forces it, or keep existing if it is turn/solo
+            if (targetMode !== 'turn' && targetMode !== 'solo') {
+                targetMode = 'turn';
+            }
         }
+        // 2. Multi -> Default Turn
+        else if (qType.startsWith('multi')) {
+            if (!conf.mode || conf.mode === 'normal') {
+                targetMode = 'turn';
+            }
+        }
+        // 3. Oral -> Default Buzz (if normal/default)
+        else if (isOral && targetMode === 'normal') {
+            targetMode = 'buzz';
+        }
+
+        // Apply to select
+        modeSel.value = targetMode;
 
         if (conf.gameType) typeSel.value = conf.gameType;
 
+        // Initial detail render
         updateDetails();
         this.renderQList();
         this.toggleScoreSections(typeSel.value !== 'panel');
 
         // Setup mode button click handlers
         document.querySelectorAll('.mode-segmented-btn').forEach(card => {
-            if (card.classList.contains('disabled')) return;
-
             card.onclick = () => {
+                if (card.classList.contains('disabled')) return;
+
                 const selectedMode = card.dataset.mode;
 
                 // Update visual state
@@ -245,9 +277,8 @@ App.Config = {
         });
 
         // Set initial active button
-        const initialMode = modeSel.value;
         document.querySelectorAll('.mode-segmented-btn').forEach(card => {
-            if (card.dataset.mode === initialMode) {
+            if (card.dataset.mode === targetMode) {
                 card.classList.add('active');
             }
         });
@@ -303,7 +334,7 @@ App.Config = {
                 html += `
                 <div class="mode-settings-box mode-box-normal">
                     <div style="margin-bottom:8px;">
-                        <label class="config-label" style="margin:0;">回答権</label>
+                        <label class="config-label" style="margin:0;">解答権</label>
                     </div>
                     <div style="display:flex; gap:6px;">
                         <button type="button" class="mode-segmented-btn ans-attempt-btn ${(conf.answerAttempts || 'single') === 'single' ? 'active' : ''}" data-val="single" style="flex:1; padding:8px 4px;">
@@ -312,19 +343,19 @@ App.Config = {
                         </button>
                         <button type="button" class="mode-segmented-btn ans-attempt-btn ${conf.answerAttempts === 'multiple' ? 'active' : ''}" data-val="multiple" style="flex:1; padding:8px 4px;">
                             <span class="icon">🔄</span>
-                            <span class="label">複数回答可</span>
+                            <span class="label">複数解答可</span>
                         </button>
                     </div>
                     <input type="hidden" id="config-answer-attempts" value="${conf.answerAttempts || 'single'}">
                     <p style="color:#888; font-size:0.75em; margin-top:6px; line-height:1.4;" id="ans-attempt-desc">
-                        ${(conf.answerAttempts || 'single') === 'single' ? '正解表示ボタンを押した時に全員に結果が一斉に届きます' : '採点の都度結果が届き、不正解でも再回答できます'}
+                        ${(conf.answerAttempts || 'single') === 'single' ? '正解表示ボタンを押した時に全員に結果が一斉に届きます' : '採点の都度結果が届き、不正解でも再解答できます'}
                     </p>
                 </div>`;
             } else {
                 html += `
                 <div class="mode-settings-box mode-box-normal">
                     <p style="color:#aaa; font-size:0.9em; text-align:center;">
-                        一斉回答モード
+                        一斉解答モード
                     </p>
                 </div>`;
             }
@@ -350,8 +381,8 @@ App.Config = {
                             <select id="config-buzz-penalty" class="config-select" style="flex:1;">
                                 ${buzzAction === 'next' ? `
                                     <option value="none" ${buzzPenalty === 'none' ? 'selected' : ''}>なし</option>
-                                    <option value="reset_all" ${buzzPenalty === 'reset_all' ? 'selected' : ''}>全員回答受付前に戻す</option>
-                                    <option value="time_ban" ${buzzPenalty === 'time_ban' ? 'selected' : ''}>一定時間回答を無効にする</option>
+                                    <option value="reset_all" ${buzzPenalty === 'reset_all' ? 'selected' : ''}>全員解答受付前に戻す</option>
+                                    <option value="time_ban" ${buzzPenalty === 'time_ban' ? 'selected' : ''}>一定時間解答を無効にする</option>
                                 ` : `
                                     <option value="none" ${buzzPenalty === 'none' ? 'selected' : ''}>なし</option>
                                     <option value="rest" ${buzzPenalty === 'rest' ? 'selected' : ''}>休み</option>
@@ -421,7 +452,7 @@ App.Config = {
                 if (desc) {
                     desc.textContent = btn.dataset.val === 'single'
                         ? '正解表示ボタンを押した時に全員に結果が一斉に届きます'
-                        : '採点の都度結果が届き、不正解でも再回答できます';
+                        : '採点の都度結果が届き、不正解でも再解答できます';
                 }
             };
         });
@@ -437,8 +468,8 @@ App.Config = {
                 if (action === 'next') {
                     buzzPenaltySel.innerHTML = `
                         <option value="none">なし</option>
-                        <option value="reset_all">全員回答受付前に戻す</option>
-                        <option value="time_ban">一定時間回答を無効にする</option>
+                        <option value="reset_all">全員解答受付前に戻す</option>
+                        <option value="time_ban">一定時間解答を無効にする</option>
                     `;
                 } else {
                     buzzPenaltySel.innerHTML = `

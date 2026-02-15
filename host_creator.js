@@ -83,7 +83,7 @@ window.App.Creator = {
                 ];
             } else if (mainVal === 'choice') {
                 subItems = [
-                    { v: 'choice_single', t: "2-1) 単一回答" },
+                    { v: 'choice_single', t: "2-1) 単一解答" },
                     { v: 'choice_multi', t: "2-2) ドボン問題" }
                 ];
             }
@@ -154,7 +154,7 @@ window.App.Creator = {
                         ];
                     } else if (mainVal === 'choice') {
                         subItems = [
-                            { v: 'choice_single', t: "2-1) 単一回答" },
+                            { v: 'choice_single', t: "2-1) 単一解答" },
                             { v: 'choice_multi', t: "2-2) ドボン問題" }
                         ];
                     }
@@ -186,7 +186,7 @@ window.App.Creator = {
                         ];
                     } else if (mainVal === 'choice') {
                         subItems = [
-                            { v: 'choice_single', t: "2-1) 単一回答" },
+                            { v: 'choice_single', t: "2-1) 単一解答" },
                             { v: 'choice_multi', t: "2-2) ドボン問題" }
                         ];
                     }
@@ -218,7 +218,7 @@ window.App.Creator = {
                         ];
                     } else if (mainVal === 'choice') {
                         subItems = [
-                            { v: 'choice_single', t: "2-1) 単一回答" },
+                            { v: 'choice_single', t: "2-1) 単一解答" },
                             { v: 'choice_multi', t: "2-2) ドボン問題" }
                         ];
                     }

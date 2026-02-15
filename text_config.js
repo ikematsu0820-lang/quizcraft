@@ -23,14 +23,14 @@ const APP_TEXT = {
         TypeChoice: "②選択式",
         TypeLetterSelect: "1-3) 文字パネル（自由入力・自動判定）",
         TypeSort: "③ 並べ替え",
-        TypeFreeOral: "1-2) 口頭回答（口頭・司会判定）",
+        TypeFreeOral: "1-2) 口頭解答（口頭・司会判定）",
         TypeFreeWritten: "1-1) 記述式（自由入力・司会判定）",
         TypeMulti: "④ 多答クイズ",
         TypeMultiWritten: "4-1) 記述式（自由入力・司会判定）",
-        TypeMultiOral: "4-2) 口頭回答（口頭・司会判定）",
+        TypeMultiOral: "4-2) 口頭解答（口頭・司会判定）",
 
         PlaceholderQ: "問題文を入力", BtnAdd: "リストに追加", BtnUpdateQ: "更新する", BtnCancel: "キャンセル", ListHeading: "作成中のリスト", BtnSave: "クラウドに保存して完了", BtnUpdate: "更新して完了", OptMulti: "正解を選択",
-        LabelTextFormat: "回答形式", TextFormatWritten: "記述式", TextFormatOral: "口頭 (正解入力任意)", LabelSortInitial: "初期配置", SortInitialRandom: "ランダム (推奨)", SortInitialFixed: "固定 (作成順)",
+        LabelTextFormat: "解答形式", TextFormatWritten: "記述式", TextFormatOral: "口頭 (正解入力任意)", LabelSortInitial: "初期配置", SortInitialRandom: "ランダム (推奨)", SortInitialFixed: "固定 (作成順)",
         DescSort: "※各項目の横に正しい順序を入力してください（1, 2, ...）", DescText: "※正解キーワード（カンマ区切り）", DescMulti: "※全ての項目が正解になります",
         BtnAddChoice: "＋ 選択肢を追加", BtnAddSort: "＋ 項目を追加", BtnAddMulti: "＋ 正解を追加",
 
@@ -45,10 +45,10 @@ const APP_TEXT = {
         Title: "ルール設定",
         BackBtn: "ダッシュボード", HeadingAdd: "ピリオドを構成に追加", LabelSet: "セットを選択", SelectDefault: "-- セットを選択 --", SelectLoading: "読み込み中...", SelectEmpty: "セットがありません",
 
-        LabelMode: "回答権",
-        ModeNormal: "一斉回答 (Simultaneous)",
+        LabelMode: "解答権",
+        ModeNormal: "一斉解答 (Simultaneous)",
         ModeBuzz: "早押し (Buzz-in)",
-        ModeTurn: "順番回答 (Turn-based)",
+        ModeTurn: "順番解答 (Turn-based)",
         ModeSolo: "一人挑戦 (Solo Challenge)", // ★変更
 
         LabelGameType: "ゲームルール (成果報酬)",
@@ -56,7 +56,7 @@ const APP_TEXT = {
         GameTypeTerritory: "陣取り (Panel 25)",
 
         LabelWinCond: "終了・勝利条件",
-        LabelNormalLimit: "▼ 回答回数制限", NormalLimitOne: "1回のみ (修正不可)", NormalLimitUnlimited: "何度でも修正可",
+        LabelNormalLimit: "▼ 解答回数制限", NormalLimitOne: "1回のみ (修正不可)", NormalLimitUnlimited: "何度でも修正可",
 
         LabelShuffleQ: "出題順シャッフル",
         ShuffleQOn: "する (ランダム出題)",
@@ -64,7 +64,7 @@ const APP_TEXT = {
 
         // Buzz Settings
         LabelBuzzWrongAction: "▼ 誤答時の処理", BuzzWrongNext: "次の人に権限移動", BuzzWrongReset: "全員リセット (再早押し)", BuzzWrongEnd: "その問題終了",
-        LabelBuzzTime: "▼ 回答権取得後の制限時間", BuzzTimeNone: "無制限", BuzzTime3: "3秒", BuzzTime5: "5秒", BuzzTime10: "10秒",
+        LabelBuzzTime: "▼ 解答権取得後の制限時間", BuzzTimeNone: "無制限", BuzzTime3: "3秒", BuzzTime5: "5秒", BuzzTime10: "10秒",
 
         // Turn Settings
         LabelTurnOrder: "▼ 順番ルール", TurnOrderFixed: "固定 (参加順)", TurnOrderRandom: "ランダム", TurnOrderRank: "成績順 (点数高い順)",
@@ -105,7 +105,7 @@ const APP_TEXT = {
     },
 
     Player: {
-        TitleEntry: "エントリー", PlaceholderCode: "部屋コード (6桁)", PlaceholderName: "名前を入力", BtnJoin: "参加する", LabelNameDefault: "名無し", BadgeAlive: "STAND UP", BadgeDead: "DEAD", MsgLobbyHead: "Ready?", MsgLobbyBody: "画面を注視してください", MsgAnswered: "正解までしばらくお待ちください", MsgCorrect: "正解！", MsgWrong: "不正解...", MsgWait: "集計中...", MsgDead: "GAME OVER", MsgDeadBody: "脱落...", RankTitle: "RANKING", RankYou: "あなたは...", RankUnit: "位", ScoreUnit: "点", RankBoardTitle: "上位リーダーボード", BtnBuzz: "PUSH!", MsgBuzzLocked: "LOCKED", MsgBuzzWin: "回答権獲得！<br>口頭で回答してください", MsgTurnYou: "あなたの番です！<br>回答してください", MsgTurnWait: "さんの番です...", BtnAnswered: "回答しました",
+        TitleEntry: "エントリー", PlaceholderCode: "部屋コード (6桁)", PlaceholderName: "名前を入力", BtnJoin: "参加する", LabelNameDefault: "名無し", BadgeAlive: "STAND UP", BadgeDead: "DEAD", MsgLobbyHead: "Ready?", MsgLobbyBody: "画面を注視してください", MsgAnswered: "正解までしばらくお待ちください", MsgCorrect: "正解！", MsgWrong: "不正解...", MsgWait: "集計中...", MsgDead: "GAME OVER", MsgDeadBody: "脱落...", RankTitle: "RANKING", RankYou: "あなたは...", RankUnit: "位", ScoreUnit: "点", RankBoardTitle: "上位リーダーボード", BtnBuzz: "PUSH!", MsgBuzzLocked: "LOCKED", MsgBuzzWin: "解答権獲得！<br>口頭で解答してください", MsgTurnYou: "あなたの番です！<br>解答してください", MsgTurnWait: "さんの番です...", BtnAnswered: "解答しました",
         MsgSoloWait: "挑戦者のプレイ中...", MsgSoloYou: "あなたの挑戦です！" // ★変更
     },
 

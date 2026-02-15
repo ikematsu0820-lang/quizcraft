@@ -538,7 +538,7 @@ window.App.Viewer = {
                         const isHidden = isMulti && !isRevealed;
 
                         html += `<div class="choice-item" style="${colorStyle} ${bgStyle} ${bStyle} ${transformStyle} transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-                            <span class="choice-prefix" style="color:${isRevealed ? '#fff' : borderColor}">${String.fromCharCode(65 + i)}</span> 
+                            <span class="choice-prefix" style="color:${isRevealed ? '#fff' : borderColor}; ${isMulti ? 'display:none;' : ''}">${String.fromCharCode(65 + i)}</span> 
                             <span style="${isHidden ? 'visibility:hidden;' : ''}">${c}</span>
                         </div>`;
                     });
@@ -578,7 +578,7 @@ window.App.Viewer = {
                         const isHidden = isMulti && !isRevealed;
 
                         html += `<div class="choice-item" style="${colorStyle} ${bgStyle} ${bStyle} ${transformStyle} transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-                            <span class="choice-prefix" style="color:${isRevealed ? '#fff' : borderColor}">${String.fromCharCode(65 + i)}</span> 
+                            <span class="choice-prefix" style="color:${isRevealed ? '#fff' : borderColor}; ${isMulti ? 'display:none;' : ''}">${String.fromCharCode(65 + i)}</span> 
                             <span style="${isHidden ? 'visibility:hidden;' : ''}">${c}</span>
                         </div>`;
                     });

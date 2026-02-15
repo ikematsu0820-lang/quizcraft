@@ -37,19 +37,32 @@ App.Studio = {
         App.State.currentPeriodIndex = 0;
         this.panelState = Array(25).fill(0);
 
-        const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+        let code;
+        let keepPlayers = false;
+
+        if (App.State.reuseRoomId) {
+            code = App.State.reuseRoomId;
+            keepPlayers = true;
+            App.State.reuseRoomId = null; // Consume flag
+            App.Ui.showToast(`既存のルーム(${code})で開始します (プレイヤー維持)`);
+        } else {
+            code = Math.random().toString(36).substring(2, 8).toUpperCase();
+        }
+
         App.State.currentRoomId = code;
 
-        // ★ モニター画面を別タブで自動起動
+        // ★ モニター画面を別タブで自動起動 (新規時のみ、または常にConfirm?)
+        // 常に開いておくと安全（閉じてしまった場合のため）
         const viewerUrl = window.location.origin + window.location.pathname + `?vcode=${code}`;
-        window.open(viewerUrl, '_blank');
+        if (!keepPlayers) window.open(viewerUrl, '_blank');
 
-        window.db.ref(`rooms/${code}`).set({
+        const roomData = {
             questions: [],
             status: { step: 'standby', qIndex: 0, panels: this.panelState },
-            config: { mode: 'normal' },
-            players: {}
-        }).then(() => {
+            config: { mode: 'normal' }
+        };
+
+        const onRoomReady = () => {
             const box = document.getElementById('big-room-id-box');
             if (box) {
                 box.classList.add('new-room');
@@ -58,14 +71,23 @@ App.Studio = {
             App.Ui.showView(App.Ui.views.hostControl);
             this.enterHostMode();
 
-            // If Quick Start (playlist already populated), start immediately
-            if (isQuick && App.Data.periodPlaylist && App.Data.periodPlaylist.length > 0) {
+            // Check Quick Start trigger
+            if (this.isQuick && App.Data.periodPlaylist && App.Data.periodPlaylist.length > 0) {
                 console.log("Quick Start: Auto-loading set...");
                 this.setupPeriod(0);
             } else {
                 this.loadProgramList();
             }
-        });
+        };
+
+        if (keepPlayers) {
+            // Update existing room, preserve players
+            window.db.ref(`rooms/${code}`).update(roomData).then(onRoomReady);
+        } else {
+            // New room, reset players
+            roomData.players = {};
+            window.db.ref(`rooms/${code}`).set(roomData).then(onRoomReady);
+        }
     },
 
     enterHostMode: function (isQuick) {
@@ -163,7 +185,7 @@ App.Studio = {
                 if (this.selectedPlayerId) {
                     this.updatePlayerScore(this.selectedPlayerId, true);
                 } else {
-                    App.Ui.showToast("回答者を選択してください");
+                    App.Ui.showToast("解答者を選択してください");
                 }
             };
         }
@@ -172,7 +194,7 @@ App.Studio = {
                 if (this.selectedPlayerId) {
                     this.updatePlayerScore(this.selectedPlayerId, false);
                 } else {
-                    App.Ui.showToast("回答者を選択してください");
+                    App.Ui.showToast("解答者を選択してください");
                 }
             };
         }
@@ -347,25 +369,25 @@ App.Studio = {
         /*
         const key = select.value;
         if (!key || !this.localProgramsCache[key]) return;
-
+    
         const prog = this.localProgramsCache[key];
         App.Data.periodPlaylist = prog.playlist || [];
-
+    
         if (App.Data.periodPlaylist.length === 0) {
             alert("⚠️ このプログラムにはセットが登録されていません。");
             return;
         }
-
+    
         document.getElementById('studio-loader-ui').classList.add('hidden');
         document.getElementById('studio-program-info').textContent = "番組読込完了: " + prog.title;
-
+    
         this.renderTimeline();
-
+    
         const btnMain = document.getElementById('btn-phase-main');
         btnMain.textContent = "番組を開始";
         btnMain.classList.remove('hidden');
         btnMain.className = 'btn-block btn-large-action action-ready';
-
+    
         btnMain.onclick = null;
         btnMain.onclick = () => {
             try {
@@ -523,7 +545,7 @@ App.Studio = {
             setTimeout(() => btnMain.classList.remove('anim-beat'), 300);
         }
 
-        const stepsJA = ['待機', '出題', '回答受付', '締め切り', '回答表示', '正解発表', '判定', '結果'];
+        const stepsJA = ['待機', '出題', '解答受付', '締め切り', '解答表示', '正解発表', '判定', '結果'];
         const stepEl = document.getElementById('studio-step-display');
         if (stepEl) stepEl.textContent = stepsJA[stepId] || "UNKNOWN";
 
@@ -602,8 +624,8 @@ App.Studio = {
                     programTitle: pTitle
                 });
 
-                // ★ Turn Mode: Show order setup UI on Q1
-                if (App.Data.currentConfig.mode === 'turn' && App.State.currentQIndex === 0) {
+                // ★ Turn/Solo Mode: Show order/challenger setup UI on Q1
+                if ((App.Data.currentConfig.mode === 'turn' || App.Data.currentConfig.mode === 'solo') && App.State.currentQIndex === 0) {
                     this.renderTurnOrderSetup(btnMain);
                 }
                 break;
@@ -653,6 +675,7 @@ App.Studio = {
 
                 const isBuzz = (App.Data.currentConfig.mode === 'buzz');
                 const isTurn = (App.Data.currentConfig.mode === 'turn');
+                const isSolo = (App.Data.currentConfig.mode === 'solo');
 
                 if (isBuzz) {
                     // Buzz Mode: Start IMMEDIATELY
@@ -672,8 +695,11 @@ App.Studio = {
                         isBuzzActive: true // Active immediately
                     });
 
-                } else if (isTurn) {
-                    // Turn Mode: Only the current turn player can answer
+                } else if (isTurn || isSolo) {
+                    // Turn/Solo Mode: Only the current turn player can answer
+                    // Ensure turnIndex is valid
+                    if (this.turnIndex >= this.turnOrder.length) this.turnIndex = 0;
+
                     const turnPlayerId = this.turnOrder[this.turnIndex];
                     const turnPlayerName = (App.Data.players && App.Data.players[turnPlayerId])
                         ? App.Data.players[turnPlayerId].name : '---';
@@ -683,14 +709,23 @@ App.Studio = {
                     btnMain.classList.add('action-next');
                     btnMain.onclick = () => this.setStep(5);
 
-                    syncBadge.textContent = `回答者: ${turnPlayerName}`;
-                    syncBadge.style.background = "rgba(155, 89, 182, 0.3)";
+                    if (isSolo) {
+                        syncBadge.textContent = `チャレンジャー: ${turnPlayerName}`;
+                        syncBadge.style.background = "#9b59b6"; // Solid purple
+                    } else {
+                        syncBadge.textContent = `解答者: ${turnPlayerName}`;
+                        syncBadge.style.background = "rgba(155, 89, 182, 0.3)";
+                    }
 
                     // Show turn info on sub-info area
                     const info = document.getElementById('studio-sub-info');
                     if (info) {
                         info.classList.remove('hidden');
-                        info.innerHTML = `<span style="color:#9b59b6; font-weight:bold;">順番: ${turnPlayerName}（${this.turnIndex + 1}/${this.turnOrder.length}）</span>`;
+                        if (isSolo) {
+                            info.innerHTML = `<span style="color:#9b59b6; font-weight:bold;"><i class="fas fa-crown"></i> ソロチャレンジ中: ${turnPlayerName}</span>`;
+                        } else {
+                            info.innerHTML = `<span style="color:#9b59b6; font-weight:bold;">順番: ${turnPlayerName}（${this.turnIndex + 1}/${this.turnOrder.length}）</span>`;
+                        }
                     }
 
                     window.db.ref(`rooms/${roomId}/status`).update({
@@ -724,9 +759,9 @@ App.Studio = {
                 this.updateNextPreview(); // Ensure next is previewed (Answer slide)
                 break;
 
-            case 4: // 回答オープン (Multi-Answer Reveal Step)
+            case 4: // 解答オープン (Multi-Answer Reveal Step)
                 if (document.getElementById('studio-step-display')) {
-                    document.getElementById('studio-step-display').textContent = "Q." + (App.State.currentQIndex + 1) + " 回答オープン";
+                    document.getElementById('studio-step-display').textContent = "Q." + (App.State.currentQIndex + 1) + " 解答オープン";
                 }
 
                 btnMain.textContent = "正解を表示";
@@ -919,10 +954,31 @@ App.Studio = {
     showFinalRankingOption: function () {
         // Send final ranking to viewer
         window.db.ref(`rooms/${App.State.currentRoomId}/status`).update({ step: 'final_ranking' });
-        App.Ui.showToast("全プログラム終了！ダッシュボードに戻ります");
+
+        // Wait a moment for the ranking to be seen, then ask
         setTimeout(() => {
-            App.Dashboard.enter();
-        }, 800);
+            const currentCode = App.State.currentRoomId;
+            const reuse = confirm(`全プログラムが終了しました。\n\n現在の部屋コード [${currentCode}] を維持したまま、\n次のクイズ（別のセットやプログラム）を行いますか？\n\n[OK] 維持してクイズ選択画面へ\n[キャンセル] 終了してダッシュボードへ`);
+
+            if (reuse) {
+                // Reuse Room: Store ID and go to selection
+                App.State.reuseRoomId = currentCode;
+                App.Ui.showToast(`部屋 [${currentCode}] を維持します。次のクイズを選択してください。`);
+
+                // Navigate to Saved Items (Quiz Selection)
+                // Ensure App.Dashboard is available. It usually is.
+                if (App.Dashboard && App.Dashboard.openSavedItems) {
+                    App.Dashboard.openSavedItems();
+                } else {
+                    console.error("Dashboard entry point not found");
+                    App.Ui.showView('view-dashboard'); // Fallback
+                }
+            } else {
+                // Finish completely
+                App.Ui.showToast("全プログラム終了！ダッシュボードに戻ります");
+                App.Dashboard.enter();
+            }
+        }, 1200);
     },
 
     showNextSetWait: function (nextIdx) {
@@ -940,10 +996,22 @@ App.Studio = {
         const roomId = App.State.currentRoomId;
         this.revealedMultiIndices = {}; // Reset multi-answer reveal state
         this.turnAdvancedThisQ = false; // Reset turn flag for current question
+
+        // Reset local state to prevent "stuck" buzzer winners from previous questions
+        this.buzzWinner = null;
+        this.selectedPlayerId = null;
+
         if (document.getElementById('console-multi-controls')) {
             document.getElementById('console-multi-controls').innerHTML = '';
             document.getElementById('console-multi-controls').classList.add('hidden');
         }
+
+        // Reset global status for new question
+        window.db.ref(`rooms/${roomId}/status`).update({
+            currentAnswerer: null,
+            currentAnswererName: null,
+            isBuzzActive: false // Will be re-enabled by setStep if needed
+        });
 
         window.db.ref(`rooms/${roomId}/players`).once('value', snap => {
             snap.forEach(p => {
@@ -1280,7 +1348,7 @@ App.Studio = {
                 });
 
                 if (action === 'end') {
-                    // その問題終了: 全員の回答権を無しにして正解発表へ
+                    // その問題終了: 全員の解答権を無しにして正解発表へ
                     this.buzzWinner = null;
                     document.getElementById('studio-sub-info').classList.add('hidden');
                     window.db.ref(`rooms/${roomId}/status`).update({
@@ -1294,7 +1362,7 @@ App.Studio = {
                     this.buzzWinner = null;
                     document.getElementById('studio-sub-info').classList.add('hidden');
                     window.db.ref(`rooms/${roomId}/status`).update({ currentAnswerer: null, isBuzzActive: true });
-                    App.Ui.showToast("誤答 → 他のプレイヤーに回答権が移ります");
+                    App.Ui.showToast("誤答 → 他のプレイヤーに解答権が移ります");
                 }
             }
         });
@@ -1620,7 +1688,7 @@ App.Studio = {
             let ansText = p.lastAnswer;
             if (ansText === null || ansText === undefined) {
                 if (p.buzzTime) ansText = "BUZZED!";
-                else if (q && q.type.includes('oral')) ansText = "(口頭回答待ち)";
+                else if (q && q.type.includes('oral')) ansText = "(口頭解答待ち)";
                 else ansText = "WAITING...";
             }
 
@@ -1699,13 +1767,13 @@ App.Studio = {
                         cardBtns.appendChild(btnX);
                     }
                 } else {
-                    // まだ回答していない場合
+                    // まだ解答していない場合
                     const statusDiv = document.createElement('div');
                     statusDiv.style.width = '100%';
                     statusDiv.style.padding = '15px';
                     statusDiv.style.textAlign = 'center';
                     statusDiv.style.color = '#888';
-                    statusDiv.textContent = "回答待ち";
+                    statusDiv.textContent = "解答待ち";
                     if (cardBtns) {
                         cardBtns.innerHTML = '';
                         cardBtns.appendChild(statusDiv);
@@ -1722,7 +1790,7 @@ App.Studio = {
                 if (p.lastAnswer) {
                     statusDiv.textContent = "自動判定中...";
                 } else {
-                    statusDiv.textContent = "回答待ち";
+                    statusDiv.textContent = "解答待ち";
                 }
                 if (cardBtns) cardBtns.appendChild(statusDiv);
             }
@@ -1845,7 +1913,7 @@ App.Studio = {
                     this.buzzWinner = null;
 
                     if (buzzPenalty === 'reset_all') {
-                        // 全員回答受付前に戻す
+                        // 全員解答受付前に戻す
                         window.db.ref(`rooms/${roomId}/status`).update({
                             currentAnswerer: null,
                             currentAnswererName: null,
@@ -1856,10 +1924,10 @@ App.Studio = {
                                 child.ref.update({ buzzTime: null, lastResult: null });
                             });
                         });
-                        App.Ui.showToast("不正解。全員の回答権をリセット！");
+                        App.Ui.showToast("不正解。全員の解答権をリセット！");
 
                     } else if (buzzPenalty === 'time_ban') {
-                        // 一定時間回答無効
+                        // 一定時間解答無効
                         const banTime = App.Data.currentConfig.buzzPenaltyTime || 3;
                         snap.ref.update({ buzzBannedUntil: Date.now() + (banTime * 1000) });
 
@@ -1874,7 +1942,7 @@ App.Studio = {
                                 child.ref.update({ buzzTime: null });
                             });
                         });
-                        App.Ui.showToast(`不正解。${banTime}秒間回答無効！早押し再開`);
+                        App.Ui.showToast(`不正解。${banTime}秒間解答無効！早押し再開`);
 
                     } else {
                         // なし: 通常通り再開
@@ -1961,7 +2029,7 @@ App.Studio = {
     },
 
     translateMode: function (mode) {
-        const map = { 'normal': '一斉回答', 'buzz': '早押し', 'time_attack': 'タイムアタック', 'solo': 'ソロ' };
+        const map = { 'normal': '一斉解答', 'buzz': '早押し', 'time_attack': 'タイムアタック', 'solo': 'ソロ' };
         return map[mode] || mode.toUpperCase();
     },
 
@@ -2225,6 +2293,9 @@ App.Studio = {
     renderTurnOrderSetup: function (btnMain) {
         if (this.turnSetupDismissed) return; // Don't show if already dismissed
 
+        const mode = App.Data.currentConfig ? App.Data.currentConfig.mode : 'turn';
+        const isSolo = (mode === 'solo');
+
         const players = App.Data.players || {};
         const playerIds = Object.keys(players);
 
@@ -2240,7 +2311,7 @@ App.Studio = {
         // Title
         const title = document.createElement('div');
         title.style.cssText = 'color:#9b59b6; font-weight:bold; font-size:1.1em; margin-bottom:12px; text-align:center; letter-spacing:1px;';
-        title.innerHTML = '<i class="fas fa-sort-numeric-down"></i> 回答順番を設定';
+        title.innerHTML = isSolo ? '<i class="fas fa-user-check"></i> チャレンジャーを設定' : '<i class="fas fa-sort-numeric-down"></i> 解答順番を設定';
         container.appendChild(title);
 
         // State check: Confirmed?
@@ -2294,9 +2365,20 @@ App.Studio = {
 
         // Initialize turnOrder with current players if empty or stale
         // Only add new players; keep existing order for those still present
-        const validOrder = this.turnOrder.filter(id => playerIds.includes(id));
-        const newPlayers = playerIds.filter(id => !validOrder.includes(id));
-        this.turnOrder = [...validOrder, ...newPlayers];
+        if (!isSolo) {
+            const validOrder = this.turnOrder.filter(id => playerIds.includes(id));
+            const newPlayers = playerIds.filter(id => !validOrder.includes(id));
+            this.turnOrder = [...validOrder, ...newPlayers];
+        } else {
+            // Solo Mode: Single selection
+            let currentSelection = (this.turnOrder && this.turnOrder.length > 0) ? this.turnOrder[0] : null;
+            if (!currentSelection || !players[currentSelection]) {
+                currentSelection = playerIds[0]; // Default to first player
+                this.turnOrder = [currentSelection];
+            } else {
+                this.turnOrder = [currentSelection];
+            }
+        }
 
         // Ensure local variable reflects persistent state
         let isConfirmed = isAlreadyConfirmed;
@@ -2308,71 +2390,99 @@ App.Studio = {
 
         const renderList = () => {
             listEl.innerHTML = '';
-            this.turnOrder.forEach((pid, idx) => {
+
+            // Source list depends on mode
+            const listSource = isSolo ? playerIds : this.turnOrder;
+
+            listSource.forEach((pid, idx) => {
                 const pName = players[pid] ? players[pid].name : '(退出済み)';
                 const row = document.createElement('div');
-                row.style.cssText = 'display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px 12px; transition:all 0.2s;';
+
+                // Styling
+                if (isSolo) {
+                    const isSelected = (this.turnOrder[0] === pid);
+                    const bg = isSelected ? 'rgba(155,89,182,0.3)' : 'rgba(255,255,255,0.05)';
+                    const border = isSelected ? '1px solid #9b59b6' : '1px solid rgba(255,255,255,0.1)';
+                    row.style.cssText = `display:flex; align-items:center; gap:10px; background:${bg}; border:${border}; border-radius:8px; padding:10px 12px; transition:all 0.2s; cursor:${isConfirmed ? 'default' : 'pointer'};`;
+
+                    if (!isConfirmed) {
+                        row.onclick = () => {
+                            this.turnOrder = [pid];
+                            renderList();
+                        };
+                    }
+                } else {
+                    row.style.cssText = 'display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px 12px; transition:all 0.2s;';
+                }
 
                 if (!players[pid]) row.style.opacity = '0.5';
 
-                // Number badge
+                // Badge
                 const numBadge = document.createElement('div');
-                numBadge.style.cssText = 'width:28px; height:28px; border-radius:50%; background:#9b59b6; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:0.9em; flex-shrink:0; box-shadow:0 2px 4px rgba(0,0,0,0.3);';
-                numBadge.textContent = idx + 1;
+                if (isSolo) {
+                    const isSelected = (this.turnOrder[0] === pid);
+                    numBadge.style.cssText = `width:24px; height:24px; border-radius:50%; border:2px solid ${isSelected ? '#9b59b6' : '#666'}; background:${isSelected ? '#9b59b6' : 'transparent'}; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all 0.2s;`;
+                    if (isSelected) numBadge.innerHTML = '<i class="fas fa-check" style="font-size:0.7em; color:#fff;"></i>';
+                } else {
+                    numBadge.style.cssText = 'width:28px; height:28px; border-radius:50%; background:#9b59b6; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:0.9em; flex-shrink:0; box-shadow:0 2px 4px rgba(0,0,0,0.3);';
+                    numBadge.textContent = idx + 1;
+                }
 
                 // Name
                 const nameEl = document.createElement('div');
                 nameEl.style.cssText = 'flex:1; color:#fff; font-size:0.95em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;';
                 nameEl.textContent = pName;
 
-                // Buttons container
-                const btnContainer = document.createElement('div');
-                btnContainer.style.display = 'flex';
-                btnContainer.style.gap = '4px';
-
-                // Up button
-                const btnUp = document.createElement('button');
-                btnUp.style.cssText = 'width:32px; height:32px; border:none; border-radius:6px; background:rgba(255,255,255,0.1); color:#fff; cursor:pointer; font-size:0.8em; display:flex; align-items:center; justify-content:center; transition:background 0.2s;';
-                btnUp.textContent = '▲';
-                btnUp.disabled = (idx === 0) || isConfirmed;
-                if (btnUp.disabled) {
-                    btnUp.style.opacity = '0.2';
-                    btnUp.style.cursor = 'default';
-                } else {
-                    btnUp.onmouseover = () => btnUp.style.background = 'rgba(255,255,255,0.2)';
-                    btnUp.onmouseout = () => btnUp.style.background = 'rgba(255,255,255,0.1)';
-                }
-                btnUp.onclick = () => {
-                    if (idx > 0 && !isConfirmed) {
-                        [this.turnOrder[idx], this.turnOrder[idx - 1]] = [this.turnOrder[idx - 1], this.turnOrder[idx]];
-                        renderList();
-                    }
-                };
-
-                // Down button
-                const btnDown = document.createElement('button');
-                btnDown.style.cssText = 'width:32px; height:32px; border:none; border-radius:6px; background:rgba(255,255,255,0.1); color:#fff; cursor:pointer; font-size:0.8em; display:flex; align-items:center; justify-content:center; transition:background 0.2s;';
-                btnDown.textContent = '▼';
-                btnDown.disabled = (idx === this.turnOrder.length - 1) || isConfirmed;
-                if (btnDown.disabled) {
-                    btnDown.style.opacity = '0.2';
-                    btnDown.style.cursor = 'default';
-                } else {
-                    btnDown.onmouseover = () => btnDown.style.background = 'rgba(255,255,255,0.2)';
-                    btnDown.onmouseout = () => btnDown.style.background = 'rgba(255,255,255,0.1)';
-                }
-                btnDown.onclick = () => {
-                    if (idx < this.turnOrder.length - 1 && !isConfirmed) {
-                        [this.turnOrder[idx], this.turnOrder[idx + 1]] = [this.turnOrder[idx + 1], this.turnOrder[idx]];
-                        renderList();
-                    }
-                };
-
-                btnContainer.appendChild(btnUp);
-                btnContainer.appendChild(btnDown);
                 row.appendChild(numBadge);
                 row.appendChild(nameEl);
-                row.appendChild(btnContainer);
+
+                // Turn Mode Buttons
+                if (!isSolo) {
+                    const btnContainer = document.createElement('div');
+                    btnContainer.style.display = 'flex';
+                    btnContainer.style.gap = '4px';
+
+                    // Up button
+                    const btnUp = document.createElement('button');
+                    btnUp.style.cssText = 'width:32px; height:32px; border:none; border-radius:6px; background:rgba(255,255,255,0.1); color:#fff; cursor:pointer; font-size:0.8em; display:flex; align-items:center; justify-content:center; transition:background 0.2s;';
+                    btnUp.textContent = '▲';
+                    btnUp.disabled = (idx === 0) || isConfirmed;
+                    if (btnUp.disabled) {
+                        btnUp.style.opacity = '0.2';
+                        btnUp.style.cursor = 'default';
+                    } else {
+                        btnUp.onclick = (e) => {
+                            e.stopPropagation();
+                            if (idx > 0 && !isConfirmed) {
+                                [this.turnOrder[idx], this.turnOrder[idx - 1]] = [this.turnOrder[idx - 1], this.turnOrder[idx]];
+                                renderList();
+                            }
+                        };
+                    }
+
+                    // Down button
+                    const btnDown = document.createElement('button');
+                    btnDown.style.cssText = 'width:32px; height:32px; border:none; border-radius:6px; background:rgba(255,255,255,0.1); color:#fff; cursor:pointer; font-size:0.8em; display:flex; align-items:center; justify-content:center; transition:background 0.2s;';
+                    btnDown.textContent = '▼';
+                    btnDown.disabled = (idx === this.turnOrder.length - 1) || isConfirmed;
+                    if (btnDown.disabled) {
+                        btnDown.style.opacity = '0.2';
+                        btnDown.style.cursor = 'default';
+                    } else {
+                        btnDown.onclick = (e) => {
+                            e.stopPropagation();
+                            if (idx < this.turnOrder.length - 1 && !isConfirmed) {
+                                [this.turnOrder[idx], this.turnOrder[idx + 1]] = [this.turnOrder[idx + 1], this.turnOrder[idx]];
+                                renderList();
+                            }
+                        };
+                    }
+
+                    btnContainer.appendChild(btnUp);
+                    btnContainer.appendChild(btnDown);
+                    row.appendChild(btnContainer);
+                }
+
                 listEl.appendChild(row);
             });
         };
@@ -2384,30 +2494,33 @@ App.Studio = {
         const funcBtnContainer = document.createElement('div');
         funcBtnContainer.style.cssText = 'display:flex; gap:10px; margin-top:15px; margin-bottom:5px;';
 
-        // Shuffle button
-        const shuffleBtn = document.createElement('button');
-        shuffleBtn.style.cssText = 'flex:1; padding:10px; border:1px solid rgba(155,89,182,0.4); border-radius:8px; background:rgba(155,89,182,0.15); color:#9b59b6; cursor:pointer; font-size:0.9em; font-weight:bold; transition:all 0.2s;';
-        shuffleBtn.innerHTML = '<i class="fas fa-random"></i> ランダム';
-        shuffleBtn.disabled = isConfirmed;
-        if (isConfirmed) {
-            shuffleBtn.style.opacity = '0.3';
-            shuffleBtn.style.cursor = 'default';
-        } else {
-            shuffleBtn.onmouseover = () => shuffleBtn.style.background = 'rgba(155,89,182,0.25)';
-            shuffleBtn.onmouseout = () => shuffleBtn.style.background = 'rgba(155,89,182,0.15)';
-        }
-        shuffleBtn.onclick = () => {
-            if (isConfirmed) return;
-            // Fisher-Yates
-            for (let i = this.turnOrder.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [this.turnOrder[i], this.turnOrder[j]] = [this.turnOrder[j], this.turnOrder[i]];
+        // Shuffle button (Turn Mode Only)
+        let shuffleBtn = null;
+        if (!isSolo) {
+            shuffleBtn = document.createElement('button');
+            shuffleBtn.style.cssText = 'flex:1; padding:10px; border:1px solid rgba(155,89,182,0.4); border-radius:8px; background:rgba(155,89,182,0.15); color:#9b59b6; cursor:pointer; font-size:0.9em; font-weight:bold; transition:all 0.2s;';
+            shuffleBtn.innerHTML = '<i class="fas fa-random"></i> ランダム';
+            shuffleBtn.disabled = isConfirmed;
+            if (isConfirmed) {
+                shuffleBtn.style.opacity = '0.3';
+                shuffleBtn.style.cursor = 'default';
+            } else {
+                shuffleBtn.onmouseover = () => shuffleBtn.style.background = 'rgba(155,89,182,0.25)';
+                shuffleBtn.onmouseout = () => shuffleBtn.style.background = 'rgba(155,89,182,0.15)';
             }
-            renderList();
-        };
-        funcBtnContainer.appendChild(shuffleBtn);
+            shuffleBtn.onclick = () => {
+                if (isConfirmed) return;
+                // Fisher-Yates
+                for (let i = this.turnOrder.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [this.turnOrder[i], this.turnOrder[j]] = [this.turnOrder[j], this.turnOrder[i]];
+                }
+                renderList();
+            };
+            funcBtnContainer.appendChild(shuffleBtn);
+        }
 
-        // Confirm Button (NEW)
+        // Confirm Button
         const confirmBtn = document.createElement('button');
         confirmBtn.style.cssText = 'flex:2; padding:12px; border:none; border-radius:8px; background:linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); color:#fff; cursor:pointer; font-size:1.0em; font-weight:bold; box-shadow:0 4px 12px rgba(155,89,182,0.4); transition:all 0.2s;';
 
@@ -2419,7 +2532,7 @@ App.Studio = {
             confirmBtn.style.color = '#aaa';
             confirmBtn.style.cursor = 'default';
         } else {
-            confirmBtn.innerHTML = '順番を確定する';
+            confirmBtn.innerHTML = isSolo ? 'チャレンジャーを確定' : '順番を確定する';
             confirmBtn.onmouseover = () => confirmBtn.style.filter = 'brightness(1.1)';
             confirmBtn.onmouseout = () => confirmBtn.style.filter = 'brightness(1.0)';
         }
@@ -2436,9 +2549,11 @@ App.Studio = {
             confirmBtn.style.color = '#aaa';
             confirmBtn.style.cursor = 'default';
 
-            shuffleBtn.disabled = true;
-            shuffleBtn.style.opacity = '0.3';
-            shuffleBtn.style.cursor = 'default';
+            if (shuffleBtn) {
+                shuffleBtn.disabled = true;
+                shuffleBtn.style.opacity = '0.3';
+                shuffleBtn.style.cursor = 'default';
+            }
 
             // Re-render list to disable up/down buttons
             renderList();
@@ -2481,7 +2596,7 @@ App.Studio = {
                 turnIndex: 0,
                 isTurnMode: true
             });
-            App.Ui.showToast("回答順を確定しました");
+            App.Ui.showToast(isSolo ? "チャレンジャーを確定しました" : "解答順番を確定しました");
         };
         funcBtnContainer.appendChild(confirmBtn);
 

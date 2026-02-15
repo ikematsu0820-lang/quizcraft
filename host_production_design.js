@@ -44,7 +44,7 @@ App.ProductionDesign = {
         timeUpSize: "70px",
         timeUpAnimation: "pop",
 
-        // All Answers (全員の回答)
+        // All Answers (全員の解答)
         answersBgColor: "#0a0a0a",
         answersTextColor: "#ffffff",
         answersFont: "sans-serif",

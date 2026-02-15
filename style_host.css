@@ -129,6 +129,134 @@ select option {
 }
 
 /* ---------------------------------------------------
+   1.5 BOTTOM SHEET MODAL
+   --------------------------------------------------- */
+.bottom-sheet-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.3s;
+    display: flex;
+    align-items: flex-end;
+    /* Align to bottom */
+    justify-content: center;
+    /* Center horizontally */
+}
+
+.bottom-sheet-overlay:has(.bottom-sheet-content.show) {
+    opacity: 1;
+    /* Fade in overlay when content shows */
+}
+
+.bottom-sheet-content {
+    width: 75%;
+    /* Reduced width */
+    max-width: 1000px;
+    background: rgba(30, 30, 30, 0.85);
+    /* Translucent dark gray */
+    backdrop-filter: blur(15px);
+    /* Strong blur for frosted glass */
+    -webkit-backdrop-filter: blur(15px);
+    border-top-left-radius: 24px;
+    /* Larger radius */
+    border-top-right-radius: 24px;
+    padding: 20px;
+    padding-bottom: 40px;
+    /* Safe area */
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6);
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.bottom-sheet-content.show {
+    transform: translateY(0);
+}
+
+.bottom-sheet-header {
+    background: rgba(255, 255, 255, 0.1);
+    /* Lighter card background */
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: none;
+    /* Remove separator */
+}
+
+.bottom-sheet-title {
+    font-size: 1.1em;
+    font-weight: 700;
+    color: #fff;
+    text-align: left;
+    /* Align left per image */
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-right: 10px;
+}
+
+.bottom-sheet-close {
+    background: rgba(100, 100, 100, 0.5);
+    /* Grey styling */
+    border: none;
+    color: #ddd;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: static;
+    /* Flow in flex */
+    cursor: pointer;
+}
+
+.sheet-btn {
+    width: 100%;
+    padding: 15px;
+    text-align: left;
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 1.1em;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    transition: background 0.2s;
+}
+
+.sheet-btn:active {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.sheet-btn i {
+    width: 24px;
+    text-align: center;
+    font-size: 1.1em;
+    color: #ccc;
+}
+
+.sheet-btn.text-danger {
+    color: #ff5555;
+}
+
+.sheet-btn.text-danger i {
+    color: #ff5555;
+}
+
+
+/* ---------------------------------------------------
    2. DASHBOARD
    --------------------------------------------------- */
 /* Dashboard Flow Area */
@@ -278,15 +406,19 @@ select option {
 }
 
 .dash-list-item {
-    background: rgba(30, 30, 30, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #252525;
+    /* Slightly lighter than pure black */
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    /* Subtle border */
     border-radius: 16px;
     padding: 15px 20px;
     margin-bottom: 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    /* Soft shadow for depth */
     box-sizing: border-box;
     position: relative;
 }
@@ -375,6 +507,8 @@ select option {
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
         margin-bottom: 25px;
         transform: translateZ(0);
+        position: relative;
+        /* For absolute button */
     }
 
     .dash-list-item:hover {
@@ -382,21 +516,41 @@ select option {
     }
 
     .item-actions {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
-        padding-top: 15px;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        display: block;
+        padding-top: 0;
+        border-top: none;
+        position: absolute;
+        top: 50%;
+        right: 10px;
+        transform: translateY(-50%);
+        z-index: 10;
     }
 
-    .item-actions .btn-mini {
-        width: 100%;
-        height: 44px;
-        font-size: 0.95em;
+    .btn-context-menu {
+        background: transparent;
+        color: rgba(255, 255, 255, 0.4);
+        border: none;
+        font-size: 1.8em;
+        /* Larger icon */
+        width: 60px;
+        /* Much larger tap target */
+        height: 60px;
         display: flex;
         justify-content: center;
         align-items: center;
-        border-radius: 12px;
+        border-radius: 50%;
+        transition: background 0.2s;
+        cursor: pointer;
+    }
+
+    .btn-context-menu:active {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+    }
+
+    .item-main {
+        padding-right: 40px;
+        /* Space for the button */
     }
 
     .item-title {

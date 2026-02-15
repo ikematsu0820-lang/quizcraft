@@ -791,7 +791,7 @@ App.Design = {
                 </div>
             `).join('');
         } else if (qType === 'free_written' || qType === 'free_oral') {
-            ansHtml = `<div style="text-align:center; color:#888; border:1px dashed #444; padding:20px; border-radius:10px;">自由回答入力エリア</div>`;
+            ansHtml = `<div style="text-align:center; color:#888; border:1px dashed #444; padding:20px; border-radius:10px;">自由解答入力エリア</div>`;
         }
 
         playerContent.innerHTML = `

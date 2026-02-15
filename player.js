@@ -302,7 +302,7 @@ function updateUI() {
                 waitMsg.style.color = "#e74c3c";
                 waitMsg.style.border = "1px solid #e74c3c";
                 waitMsg.style.padding = "20px";
-                waitMsg.innerHTML = `<div class="status-badge" style="background:#e74c3c;">WRONG</div><p style="margin-top:10px; font-weight:bold; font-size:1.2em;">不正解...</p><p style="margin-top:5px; font-size:0.9em; color:#aaa;">もう一度回答できます</p>`;
+                waitMsg.innerHTML = `<div class="status-badge" style="background:#e74c3c;">WRONG</div><p style="margin-top:10px; font-weight:bold; font-size:1.2em;">不正解...</p><p style="margin-top:5px; font-size:0.9em; color:#aaa;">もう一度解答できます</p>`;
             } else {
                 toggleInputEnabled(false);
                 const changeArea = document.getElementById('change-btn-area');
@@ -323,7 +323,7 @@ function updateUI() {
     else if (st.step === 'answering') {
         quizArea.classList.remove('hidden');
         if (roomConfig.mode === 'buzz') {
-            // 早押しモード: 勝者以外は回答画面操作不可
+            // 早押しモード: 勝者以外は解答画面操作不可
             if (p.lastResult === 'lose') {
                 showLoserMessage(lobby, buzzArea);
                 toggleInputEnabled(false);
@@ -345,7 +345,7 @@ function updateUI() {
             else if (st.isBuzzActive) {
                 // 早押しボタン受付中
                 buzzArea.classList.remove('hidden');
-                toggleInputEnabled(false); // クイズ回答エリアはまだ無効
+                toggleInputEnabled(false); // クイズ解答エリアはまだ無効
                 const btn = document.getElementById('player-buzz-btn');
 
                 if (p.buzzRest && p.buzzRest > 0) {
@@ -354,10 +354,10 @@ function updateUI() {
                     btn.textContent = `${p.buzzRest}問休み`;
                     btn.style.background = "#333";
                 } else if (p.buzzBannedUntil && p.buzzBannedUntil > Date.now()) {
-                    // おてつき: 一定時間回答無効
+                    // おてつき: 一定時間解答無効
                     btn.disabled = true;
                     const remaining = Math.ceil((p.buzzBannedUntil - Date.now()) / 1000);
-                    btn.textContent = `回答無効 ${remaining}s`;
+                    btn.textContent = `解答無効 ${remaining}s`;
                     btn.style.background = "#333";
                     // Auto re-enable after ban expires
                     setTimeout(() => {
@@ -369,7 +369,7 @@ function updateUI() {
                     }, (p.buzzBannedUntil - Date.now()) + 100);
                 } else if (p.buzzTime) {
                     btn.disabled = true;
-                    btn.textContent = "回答権確認中...";
+                    btn.textContent = "解答権確認中...";
                     btn.style.background = "#555";
                 } else {
                     btn.disabled = false;
@@ -378,7 +378,7 @@ function updateUI() {
                 }
             }
             else if (st.currentAnswerer === myPlayerId) {
-                // 自分が早押し勝者 -> 回答権獲得
+                // 自分が早押し勝者 -> 解答権獲得
                 buzzArea.classList.add('hidden');
                 toggleInputEnabled(true);
                 handleNormalResponseUI(p, quizArea, waitMsg);
@@ -389,17 +389,17 @@ function updateUI() {
                 }, 100);
             }
             else if (st.currentAnswerer) {
-                // 誰か他の人が回答権獲得中 -> 自分は操作不可
+                // 誰か他の人が解答権獲得中 -> 自分は操作不可
                 buzzArea.classList.add('hidden');
                 toggleInputEnabled(false);
                 waitMsg.classList.remove('hidden');
                 const winnerName = st.currentAnswererName || "他のプレイヤー";
-                waitMsg.innerHTML = `🔒 <b>LOCKED</b><br>${winnerName} が回答中です...`;
+                waitMsg.innerHTML = `🔒 <b>LOCKED</b><br>${winnerName} が解答中です...`;
 
                 // ★追加: 誤答などでリセットされるまでロックされ続ける仕様
             }
             else {
-                // 誰も回答権がない状態 (例: 誤答後リセット待ち、または開始前)
+                // 誰も解答権がない状態 (例: 誤答後リセット待ち、または開始前)
                 // 基本的には isBuzzActive が true になるはずだが、念のためロック
                 buzzArea.classList.add('hidden');
                 toggleInputEnabled(false);
@@ -407,7 +407,7 @@ function updateUI() {
                 waitMsg.innerHTML = "待機中...";
             }
         } else {
-            // 通常一斉回答 (Normal Mode)
+            // 通常一斉解答 (Normal Mode)
             const isMultipleAttempts = (roomConfig.mode === 'normal' && roomConfig.answerAttempts === 'multiple');
 
             if (p.lastResult === 'win') {
@@ -432,7 +432,7 @@ function updateUI() {
                     waitMsg.style.color = "#e74c3c";
                     waitMsg.style.border = "1px solid #e74c3c";
                     waitMsg.style.padding = "20px";
-                    waitMsg.innerHTML = `<div class="status-badge" style="background:#e74c3c;">WRONG</div><p style="margin-top:10px; font-weight:bold; font-size:1.2em;">不正解...</p><p style="margin-top:5px; font-size:0.9em; color:#aaa;">もう一度回答できます</p>`;
+                    waitMsg.innerHTML = `<div class="status-badge" style="background:#e74c3c;">WRONG</div><p style="margin-top:10px; font-weight:bold; font-size:1.2em;">不正解...</p><p style="margin-top:5px; font-size:0.9em; color:#aaa;">もう一度解答できます</p>`;
                 } else {
                     toggleInputEnabled(false);
                     const changeArea = document.getElementById('change-btn-area');
@@ -478,7 +478,7 @@ function updateUI() {
             waitMsg.style.padding = "20px";
             waitMsg.innerHTML = `<div class="status-badge" style="background:#e74c3c;">WRONG</div><p style="margin-top:10px; font-weight:bold; font-size:1.5em;">不正解...</p>`;
         } else {
-            waitMsg.innerHTML = `<div class="status-badge" style="background:#9b59b6;">REVEAL</div><p style="margin-top:10px;">全員の回答を表示しています</p>`;
+            waitMsg.innerHTML = `<div class="status-badge" style="background:#9b59b6;">REVEAL</div><p style="margin-top:10px;">全員の解答を表示しています</p>`;
         }
     }
     else if (st.step === 'reveal_correct') {
@@ -508,13 +508,13 @@ function toggleInputEnabled(enabled) {
 
 function showLoserMessage(lobby, buzzArea) {
     lobby.classList.remove('hidden');
-    lobby.innerHTML = `<div style="text-align:center; color:#e94560; font-weight:bold; font-size:1.5em; margin-top:30px;">❌ 不正解</div><p style="text-align:center; color:#aaa;">この問題の回答権はありません</p>`;
+    lobby.innerHTML = `<div style="text-align:center; color:#e94560; font-weight:bold; font-size:1.5em; margin-top:30px;">❌ 不正解</div><p style="text-align:center; color:#aaa;">この問題の解答権はありません</p>`;
     buzzArea.classList.add('hidden');
     // クイズエリアは隠さない（見学できるように）
 }
 
 function handleNormalResponseUI(p, quizArea, waitMsg) {
-    // 既に回答済みなら待機表示
+    // 既に解答済みなら待機表示
     if (p.lastAnswer != null) {
         if (roomConfig.normalLimit === 'unlimited') {
             if (isReanswering) {
@@ -526,7 +526,7 @@ function handleNormalResponseUI(p, quizArea, waitMsg) {
                 renderChangeButton();
             }
         } else {
-            // 回答済み＆修正不可
+            // 解答済み＆修正不可
             const isMulti = currentQuestion && currentQuestion.type === 'multi';
             if (!isMulti) quizArea.classList.add('hidden');
 
@@ -548,7 +548,7 @@ function handleNormalResponseUI(p, quizArea, waitMsg) {
         const area = document.getElementById('change-btn-area');
         if (area) area.innerHTML = '';
 
-        // 多答の場合、回答ボタンを出す
+        // 多答の場合、解答ボタンを出す
         const oralArea = document.getElementById('player-oral-done-area');
         if (currentQuestion && currentQuestion.type === 'multi') {
             if (oralArea) oralArea.classList.remove('hidden');
@@ -593,7 +593,7 @@ function renderResultScreen(p) {
         correctText = currentQuestion.correct;
     }
 
-    let myAnsText = p.lastAnswer || "(未回答)";
+    let myAnsText = p.lastAnswer || "(未解答)";
     if (p.lastAnswer !== null) {
         if (currentQuestion.type === 'choice') {
             const idx = parseInt(p.lastAnswer);
@@ -737,6 +737,16 @@ function renderPlayerQuestion(q, roomId, playerId) {
     setTimeout(() => qText.classList.remove('new-q'), 600);
 
     inputCont.innerHTML = '';
+
+    const gameView = document.getElementById('player-game-view');
+    if (q.type && q.type.startsWith('multi')) {
+        gameView.classList.add('multi-layout-active');
+        inputCont.classList.add('multi-mode-container');
+    } else {
+        gameView.classList.remove('multi-layout-active');
+        inputCont.classList.remove('multi-mode-container');
+    }
+    // Also remove any sortable specific classes if added later
 
     if (q.type === 'choice') {
         let choices = q.c.map((text, i) => ({ text: text, originalIndex: i }));
@@ -1061,6 +1071,7 @@ function renderPlayerQuestion(q, roomId, playerId) {
     }
 
     else if (q.type.startsWith('multi')) {
+        inputCont.classList.add('multi-mode-container');
         // ★ For multi-written, place Input & Submit at the TOP (below Question)
         if (q.type === 'multi_written') {
             const wrapper = document.createElement('div');
@@ -1070,7 +1081,7 @@ function renderPlayerQuestion(q, roomId, playerId) {
 
             const inp = document.createElement('input');
             inp.type = 'text';
-            inp.placeholder = '回答を入力...';
+            inp.placeholder = '解答を入力...';
             inp.className = 'modern-input';
             inp.style.margin = '0'; // Flex handles gap
             inp.style.flex = '1';
@@ -1131,7 +1142,7 @@ function renderPlayerQuestion(q, roomId, playerId) {
     else {
         // デフォルト: 記述式
         const inp = document.createElement('input');
-        inp.type = 'text'; inp.placeholder = '回答を入力...'; inp.className = 'modern-input'; inp.style.marginBottom = '15px';
+        inp.type = 'text'; inp.placeholder = '解答を入力...'; inp.className = 'modern-input'; inp.style.marginBottom = '15px';
         const sub = document.createElement('button');
         sub.className = 'btn-primary btn-block'; sub.textContent = '送信';
         sub.onclick = () => {
