@@ -228,7 +228,7 @@ window.App.Viewer = {
             const ansStr = st.correct || this.getAnswerString(q);
             const fontSize = ansStr.length > 20 ? '4vh' : ansStr.length > 10 ? '6vh' : '8vh';
 
-            const isDobon = (q.mode === 'dobon');
+            const isDobon = (q.mode === 'dobon' || q.mode === 'multi' || q.multi);
             const labelText = isDobon ? "TRAP ANSWERS (不正解)" : "CORRECT ANSWER";
             const labelColor = isDobon ? "#ff5555" : accent;
 
@@ -506,9 +506,6 @@ window.App.Viewer = {
             html += `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align}; font-size:6vh; width:80%;">
                 ${q.q}
             </div>`;
-
-            let typeLabel = (q.type === 'free_oral') ? "フリー回答（口頭決済）" : "フリー回答（記述式）";
-            html += `<div style="color:${d.cTextColor || '#aaa'}; font-size:3vh; margin-top:2vh;">[ ${typeLabel} ]</div>`;
 
         } else {
             // Standard / Split (Includes Multi-Answer now)

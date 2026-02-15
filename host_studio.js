@@ -10,6 +10,9 @@ App.Studio = {
     panelState: Array(25).fill(0),
     selectedPanelColor: 1,
     selectedPlayerId: null,
+    turnOrder: [],    // Array of player IDs in set order for turn mode
+    turnIndex: 0,     // Current turn index
+    turnAdvancedThisQ: false, // Flag to prevent double-advancing turn in normal mode
 
     onMainAction: function () {
         // This is a fallback/dispatcher. Typically btnMain.onclick is overwritten by setStep.
@@ -110,6 +113,12 @@ App.Studio = {
             const count = Object.keys(players).length;
             document.getElementById('studio-player-count-display').textContent = count;
             this.updatePlayerList(players);
+
+            // ★ Turn Mode: Update UI on player join/leave in Step 0
+            if (App.Data.currentConfig?.mode === 'turn' && this.currentStepId === 0) {
+                const btnMain = document.getElementById('btn-phase-main');
+                if (btnMain) this.renderTurnOrderSetup(btnMain);
+            }
 
             if (this.currentStepId === 2 || this.currentStepId === 3 || this.currentStepId === 4 || this.currentStepId === 5) {
                 this.renderRealtimeAnswers(players);
@@ -353,7 +362,7 @@ App.Studio = {
         this.renderTimeline();
 
         const btnMain = document.getElementById('btn-phase-main');
-        btnMain.textContent = "番組を開始 (START PROGRAM)";
+        btnMain.textContent = "番組を開始";
         btnMain.classList.remove('hidden');
         btnMain.className = 'btn-block btn-large-action action-ready';
 
@@ -446,20 +455,36 @@ App.Studio = {
         }
 
         this.revealedMultiIndices = {};
+        this.isTurnOrderConfirmed = false;
+        this.turnSetupDismissed = false;
         this.setStep(0);
     },
 
     setStep: function (stepId) {
         this.currentStepId = stepId;
+        document.getElementById('turn-order-setup')?.remove(); // Cleanup turn setup UI
         this.updateStudioStatus(stepId); // Sync Status Indicators
         this.updateNextPreview(); // Update preview when step changes
 
         const btnMain = document.getElementById('btn-phase-main');
         const subControls = document.getElementById('studio-sub-controls');
 
-        btnMain.className = 'btn-block btn-large-action';
+        // Reset main button state (crucial if switching from Turn Mode where it might be disabled)
+        if (btnMain) {
+            btnMain.className = 'btn-block btn-large-action';
+            btnMain.classList.remove('hidden');
+            btnMain.disabled = false;
+            btnMain.style.opacity = '1';
+            btnMain.style.pointerEvents = 'auto';
+            btnMain.style.cursor = 'pointer';
+            btnMain.style.filter = 'none';
+        }
+
         if (subControls) subControls.classList.add('hidden');
-        btnMain.classList.remove('hidden');
+
+        // Hide title banner on any step change (it's only shown in Step 0)
+        const existingBanner = document.getElementById('studio-title-banner');
+        if (existingBanner && stepId !== 0) existingBanner.classList.add('hidden');
 
         // Sync Console Button
         const mobBtnMain = document.getElementById('console-btn-phase-main');
@@ -469,6 +494,18 @@ App.Studio = {
 
         const isStandby = (stepId === 0 || stepId === 1);
         this.toggleUIForStandby(isStandby);
+
+        // Hide console card during title display (Step 0) for a clean look
+        const consoleCard = document.querySelector('.console-card-wrapper');
+        if (consoleCard) consoleCard.style.display = (stepId === 0) ? 'none' : '';
+
+        // Hide Q number header + status indicators during Step 0
+        const statusWrapper = document.getElementById('studio-status-wrapper');
+        if (statusWrapper) statusWrapper.style.display = (stepId === 0) ? 'none' : '';
+
+        // Hide sub-controls label row during Step 0
+        const subStepRow = document.getElementById('studio-sub-controls');
+        if (subStepRow) subStepRow.classList.toggle('hidden', stepId === 0);
 
         const ansArea = document.getElementById('studio-player-answers');
         const statsArea = document.getElementById('studio-answer-stats');
@@ -508,7 +545,7 @@ App.Studio = {
         const syncBadge = document.getElementById('studio-player-sync-status');
 
         switch (stepId) {
-            case 0: // 待機 / タイトル
+            case 0: // タイトル表示
                 const currentSet = App.Data.periodPlaylist[App.State.currentPeriodIndex];
                 const pTitle = currentSet.title;
                 const firstQ = App.Data.studioQuestions[0] || {};
@@ -517,27 +554,41 @@ App.Studio = {
                 const stepDisplay = document.getElementById('studio-step-display');
                 if (stepDisplay) stepDisplay.textContent = "WAITING / " + pTitle;
 
-                // If it's the very beginning of the set, check if Title should be shown
+                // Show Title Banner above Main Button
+                let titleBanner = document.getElementById('studio-title-banner');
+                if (!titleBanner) {
+                    titleBanner = document.createElement('div');
+                    titleBanner.id = 'studio-title-banner';
+                    titleBanner.style.cssText = 'background:#ff9800; color:#000; font-weight:900; font-size:1.1em; padding:12px 20px; border-radius:8px; text-align:center; margin-bottom:10px; border:2px solid #f57c00;';
+                    btnMain.parentNode.insertBefore(titleBanner, btnMain);
+                }
+                titleBanner.textContent = `タイトル表示中`;
+                titleBanner.classList.remove('hidden');
+
+                // If it's Q1 with title, check if Title should be shown
                 if (App.State.currentQIndex === 0) {
                     if (firstQ.isTitleHidden) {
-                        this.setStep(2); // Skip Title & QNum, go to Question
+                        titleBanner.classList.add('hidden');
+                        this.setStep(1); // Skip Title, go to Q Number
                         return;
                     }
                     if (firstQ.prodDesign) {
                         this.renderProductionMonitor('title', firstQ);
-                        btnMain.textContent = `クイズ開始 (第1問へ)`;
                     } else {
                         this.renderMonitorMessage("", pTitle);
-                        btnMain.textContent = `第${App.State.currentQIndex + 1}問 開始`;
                     }
                 } else {
                     this.renderMonitorMessage("", pTitle);
-                    btnMain.textContent = `第${App.State.currentQIndex + 1}問 開始`;
                 }
 
-                // btnMain.onclick = () => this.setStep(1); // Old: Go to Q Number Step
-                btnMain.onclick = () => this.setStep(2); // New: Go directly to Question (Step 2) for Q1
-                btnMain.classList.add('action-ready'); // Add class to trigger blue color
+                btnMain.textContent = `第${App.State.currentQIndex + 1}問 開始`;
+                btnMain.onclick = () => {
+                    // Hide title banner when moving to Q Number step
+                    const banner = document.getElementById('studio-title-banner');
+                    if (banner) banner.classList.add('hidden');
+                    this.setStep(1); // Go to Q Number Step (not Step 2!)
+                };
+                btnMain.classList.add('action-ready');
                 syncBadge.textContent = "WAITING";
                 syncBadge.style.background = "#333";
 
@@ -550,6 +601,11 @@ App.Studio = {
                     qIndex: App.State.currentQIndex,
                     programTitle: pTitle
                 });
+
+                // ★ Turn Mode: Show order setup UI on Q1
+                if (App.Data.currentConfig.mode === 'turn' && App.State.currentQIndex === 0) {
+                    this.renderTurnOrderSetup(btnMain);
+                }
                 break;
 
             case 1: // 出題準備 (Question Number Slide)
@@ -560,13 +616,13 @@ App.Studio = {
 
                 // Update Simple UI Status
                 if (document.getElementById('studio-step-display')) {
-                    document.getElementById('studio-step-display').textContent = "PREPARING Q." + (App.State.currentQIndex + 1);
+                    document.getElementById('studio-step-display').textContent = "Q." + (App.State.currentQIndex + 1) + " 準備中";
                 }
 
-                btnMain.textContent = "問題を表示する (REVEAL)";
+                btnMain.textContent = "問題を表示する";
                 btnMain.classList.add('action-ready');
                 btnMain.onclick = () => this.setStep(2);
-                syncBadge.textContent = "PREPARING";
+                syncBadge.textContent = "準備中";
                 syncBadge.style.background = "rgba(255, 215, 0, 0.2)";
 
                 if (q.prodDesign) {
@@ -585,7 +641,7 @@ App.Studio = {
             case 2: // 出題中 (Question Display)
                 // Update Simple UI Status
                 if (document.getElementById('studio-step-display')) {
-                    document.getElementById('studio-step-display').textContent = "Q." + (App.State.currentQIndex + 1) + " (THINKING)";
+                    document.getElementById('studio-step-display').textContent = "Q." + (App.State.currentQIndex + 1) + " 解答中";
                 }
 
                 const currentQ = App.Data.studioQuestions[App.State.currentQIndex];
@@ -596,10 +652,11 @@ App.Studio = {
                 }
 
                 const isBuzz = (App.Data.currentConfig.mode === 'buzz');
+                const isTurn = (App.Data.currentConfig.mode === 'turn');
 
                 if (isBuzz) {
                     // Buzz Mode: Start IMMEDIATELY
-                    btnMain.textContent = "正解を表示 (ANSWER)";
+                    btnMain.textContent = "正解を表示";
                     btnMain.classList.remove('action-ready');
                     btnMain.classList.add('action-next');
                     btnMain.onclick = () => this.setStep(5); // Go to Answer
@@ -615,11 +672,41 @@ App.Studio = {
                         isBuzzActive: true // Active immediately
                     });
 
+                } else if (isTurn) {
+                    // Turn Mode: Only the current turn player can answer
+                    const turnPlayerId = this.turnOrder[this.turnIndex];
+                    const turnPlayerName = (App.Data.players && App.Data.players[turnPlayerId])
+                        ? App.Data.players[turnPlayerId].name : '---';
+
+                    btnMain.textContent = "正解を表示";
+                    btnMain.classList.remove('action-ready');
+                    btnMain.classList.add('action-next');
+                    btnMain.onclick = () => this.setStep(5);
+
+                    syncBadge.textContent = `回答者: ${turnPlayerName}`;
+                    syncBadge.style.background = "rgba(155, 89, 182, 0.3)";
+
+                    // Show turn info on sub-info area
+                    const info = document.getElementById('studio-sub-info');
+                    if (info) {
+                        info.classList.remove('hidden');
+                        info.innerHTML = `<span style="color:#9b59b6; font-weight:bold;">順番: ${turnPlayerName}（${this.turnIndex + 1}/${this.turnOrder.length}）</span>`;
+                    }
+
+                    window.db.ref(`rooms/${roomId}/status`).update({
+                        step: 'reveal_q',
+                        qIndex: App.State.currentQIndex,
+                        qText: currentQ.q,
+                        currentAnswerer: turnPlayerId,
+                        currentAnswererName: turnPlayerName,
+                        isTurnMode: true
+                    });
+
                 } else {
                     // Normal Mode (Unified Flow: Question -> Answer)
                     // For multi-answer questions, the host can reveal answers individually during this phase (Step 2)
                     // so we don't need a separate "Reveal Answers" (Step 4) phase.
-                    btnMain.textContent = "正解を表示 (ANSWER)";
+                    btnMain.textContent = "正解を表示";
                     btnMain.onclick = () => this.setStep(5);
 
                     btnMain.classList.remove('action-ready');
@@ -639,10 +726,10 @@ App.Studio = {
 
             case 4: // 回答オープン (Multi-Answer Reveal Step)
                 if (document.getElementById('studio-step-display')) {
-                    document.getElementById('studio-step-display').textContent = "Q." + (App.State.currentQIndex + 1) + " (REVEAL)";
+                    document.getElementById('studio-step-display').textContent = "Q." + (App.State.currentQIndex + 1) + " 回答オープン";
                 }
 
-                btnMain.textContent = "正解を表示 (ANSWER)";
+                btnMain.textContent = "正解を表示";
                 btnMain.classList.remove('action-ready');
                 btnMain.classList.add('action-next');
                 btnMain.onclick = () => this.setStep(5);
@@ -659,7 +746,7 @@ App.Studio = {
             case 5: // 正解表示 (Answer)
                 // Update Simple UI Status
                 if (document.getElementById('studio-step-display')) {
-                    document.getElementById('studio-step-display').textContent = "Q." + (App.State.currentQIndex + 1) + " (ANSWER)";
+                    document.getElementById('studio-step-display').textContent = "Q." + (App.State.currentQIndex + 1) + " 正解表示";
                 }
 
                 // q is already defined at the top of setStep
@@ -675,7 +762,7 @@ App.Studio = {
                     document.getElementById('studio-commentary-text').textContent = q.commentary || "";
                 }
 
-                btnMain.textContent = "次の問題へ (NEXT Q)";
+                btnMain.textContent = "次の問題へ";
                 btnMain.classList.remove('action-next');
                 btnMain.classList.add('action-ready'); // Ready for next
                 btnMain.onclick = () => this.goNext();
@@ -693,6 +780,12 @@ App.Studio = {
                 // Automatic Judging for Choice / Sort / Letter Select (Skip for Buzz or Written)
                 if (App.Data.currentConfig.mode !== 'buzz' && ['choice', 'sort', 'letter_select'].includes(q.type)) {
                     this.judgeSimultaneous();
+                }
+
+                // ★ Flush pending results for single-attempt free_written
+                if (App.Data.currentConfig.mode === 'normal' && q.type === 'free_written' &&
+                    (App.Data.currentConfig.answerAttempts || 'single') === 'single') {
+                    this.flushPendingResults();
                 }
                 break;
 
@@ -720,6 +813,14 @@ App.Studio = {
                 console.log("Found next Q at:", nextIdx);
                 App.State.currentQIndex = nextIdx;
                 this.resetPlayerStatus();
+
+                // ★ Turn Mode: advance turnIndex
+                if (App.Data.currentConfig.mode === 'turn' && this.turnOrder.length > 0) {
+                    if (!this.turnAdvancedThisQ) {
+                        this.turnIndex = (this.turnIndex + 1) % this.turnOrder.length;
+                    }
+                    this.turnAdvancedThisQ = false; // Reset for next Q
+                }
 
                 // Reset Multi-Answer State
                 this.revealedMultiIndices = {};
@@ -749,19 +850,23 @@ App.Studio = {
         const currentSet = App.Data.periodPlaylist[App.State.currentPeriodIndex];
         const progSettings = currentSet.progSettings || {};
 
-        // 1. Check Ranking
-        if (progSettings.showRankingAfter) {
-            this.setStep(8);
+        // Check if there's a next set
+        let nextPeriodIdx = App.State.currentPeriodIndex + 1;
+        const hasNextSet = nextPeriodIdx < App.Data.periodPlaylist.length;
+
+        // If ranking is requested after this set AND it's the last set (or explicit ranking pause)
+        if (progSettings.showRankingAfter && !hasNextSet) {
+            this.showFinalRankingOption();
             return;
         }
 
-        // 2. Check Loop or Next Set
-        let nextPeriodIdx = App.State.currentPeriodIndex + 1;
-        if (nextPeriodIdx < App.Data.periodPlaylist.length) {
-            App.Ui.showToast("次のセットに進みます");
+        // Advance to next set
+        if (hasNextSet) {
+            const nextTitle = App.Data.periodPlaylist[nextPeriodIdx].title || "次のセット";
+            App.Ui.showToast(`セット完了！→ ${nextTitle}`);
             this.setupPeriod(nextPeriodIdx);
         } else {
-            // End of program
+            // End of program (no more sets)
             if (progSettings.loopProgram) {
                 this.setupPeriod(0);
             } else {
@@ -812,14 +917,12 @@ App.Studio = {
     },
 
     showFinalRankingOption: function () {
-        if (confirm("全プログラム終了です。最終結果を表示しますか？")) {
-            window.db.ref(`rooms/${App.State.currentRoomId}/status`).update({ step: 'final_ranking' });
-            document.getElementById('studio-execution-grid').classList.add('hidden');
-            document.getElementById('studio-standby-panel').classList.remove('hidden');
-            document.getElementById('btn-phase-main').classList.add('hidden');
-            document.getElementById('studio-program-info').innerHTML = "<h2 style='color:#ffd700'>全プログラム終了 (COMPLETED)</h2><p>モニターに結果を表示中...</p>";
-            this.syncMainButton();
-        }
+        // Send final ranking to viewer
+        window.db.ref(`rooms/${App.State.currentRoomId}/status`).update({ step: 'final_ranking' });
+        App.Ui.showToast("全プログラム終了！ダッシュボードに戻ります");
+        setTimeout(() => {
+            App.Dashboard.enter();
+        }, 800);
     },
 
     showNextSetWait: function (nextIdx) {
@@ -836,6 +939,7 @@ App.Studio = {
     resetPlayerStatus: function () {
         const roomId = App.State.currentRoomId;
         this.revealedMultiIndices = {}; // Reset multi-answer reveal state
+        this.turnAdvancedThisQ = false; // Reset turn flag for current question
         if (document.getElementById('console-multi-controls')) {
             document.getElementById('console-multi-controls').innerHTML = '';
             document.getElementById('console-multi-controls').classList.add('hidden');
@@ -843,12 +947,21 @@ App.Studio = {
 
         window.db.ref(`rooms/${roomId}/players`).once('value', snap => {
             snap.forEach(p => {
-                p.ref.update({
+                const pVal = p.val();
+                const updates = {
                     lastAnswer: null,
                     lastResult: null,
+                    pendingResult: null,
+                    pendingScore: null,
                     buzzTime: null,
-                    answerTime: null
-                });
+                    answerTime: null,
+                    buzzBannedUntil: null
+                };
+                // Decrement buzzRest if player is serving rest penalty
+                if (pVal && pVal.buzzRest && pVal.buzzRest > 0) {
+                    updates.buzzRest = pVal.buzzRest - 1;
+                }
+                p.ref.update(updates);
             });
         });
     },
@@ -995,13 +1108,13 @@ App.Studio = {
             ansDiv.style.marginTop = '20px';
             ansDiv.style.padding = '10px';
             ansDiv.style.background = '#222';
-            ansDiv.style.borderLeft = '4px solid ' + ((q.mode === 'dobon') ? '#ff5555' : '#2ecc71');
+            ansDiv.style.borderLeft = '4px solid ' + ((q.mode === 'dobon' || q.mode === 'multi' || q.multi) ? '#ff5555' : '#2ecc71');
 
             const ansLabel = document.createElement('div');
             ansLabel.className = 'label';
             ansLabel.style.fontSize = '0.8em';
             ansLabel.style.color = '#888';
-            ansLabel.textContent = (q.mode === 'dobon') ? "TRAP ANSWERS (不正解)" : "CORRECT ANSWER";
+            ansLabel.textContent = (q.mode === 'dobon' || q.mode === 'multi' || q.multi) ? "トラップ (不正解)" : "正解";
 
             const ansText = document.createElement('div');
             ansText.id = 'studio-correct-text';
@@ -1116,7 +1229,11 @@ App.Studio = {
 
     checkBuzz: function (players) {
         if (this.currentStepId !== 2 || this.buzzWinner) return;
-        const candidates = Object.entries(players).filter(([_, p]) => p.buzzTime && !p.lastResult).sort((a, b) => a[1].buzzTime - b[1].buzzTime);
+        const candidates = Object.entries(players).filter(([_, p]) =>
+            p.buzzTime && !p.lastResult &&
+            !(p.buzzRest && p.buzzRest > 0) &&
+            !(p.buzzBannedUntil && p.buzzBannedUntil > Date.now())
+        ).sort((a, b) => a[1].buzzTime - b[1].buzzTime);
         if (candidates.length > 0) {
             this.buzzWinner = candidates[0][0];
             const name = candidates[0][1].name;
@@ -1154,29 +1271,30 @@ App.Studio = {
                 this.buzzWinner = null;
             } else {
                 // 不正解時
-                snap.ref.update({ lastResult: 'lose', buzzTime: null });
+                const loss = App.Data.studioQuestions[App.State.currentQIndex].loss || 0;
+                snap.ref.update({
+                    lastResult: 'lose',
+                    buzzTime: null,
+                    periodScore: (p.periodScore || 0) - loss,
+                    totalScore: (p.totalScore || 0) - loss
+                });
 
-                // ★修正: リセット設定なら、全員のbuzzTimeを消して再開
-                if (action === 'reset') {
-                    // 全員の buzzTime を null に更新
-                    window.db.ref(`rooms/${roomId}/players`).once('value', pSnap => {
-                        pSnap.forEach(pp => {
-                            pp.ref.update({ buzzTime: null, lastResult: null }); // lastResultも消して復活させる
-                        });
-                        this.buzzWinner = null;
-                        document.getElementById('studio-sub-info').classList.add('hidden');
-                        window.db.ref(`rooms/${roomId}/status`).update({ currentAnswerer: null, isBuzzActive: true });
-                        App.Ui.showToast("誤答によりリセットしました");
-                    });
-                } else if (action === 'end') {
+                if (action === 'end') {
+                    // その問題終了: 全員の回答権を無しにして正解発表へ
                     this.buzzWinner = null;
                     document.getElementById('studio-sub-info').classList.add('hidden');
-                    this.setStep(4);
+                    window.db.ref(`rooms/${roomId}/status`).update({
+                        currentAnswerer: null,
+                        isBuzzActive: false
+                    });
+                    App.Ui.showToast("誤答 → この問題を終了します");
+                    this.setStep(4); // Go to reveal
                 } else {
-                    // next (デフォルト: 間違えた人はそのまま、他が押せるように)
+                    // 問題継続 (next): 誤答者はそのまま除外、他のプレイヤーは引き続きBuzz可能
                     this.buzzWinner = null;
                     document.getElementById('studio-sub-info').classList.add('hidden');
                     window.db.ref(`rooms/${roomId}/status`).update({ currentAnswerer: null, isBuzzActive: true });
+                    App.Ui.showToast("誤答 → 他のプレイヤーに回答権が移ります");
                 }
             }
         });
@@ -1201,7 +1319,8 @@ App.Studio = {
                 if (p.lastAnswer === null || p.lastAnswer === undefined || p.lastResult) return;
 
                 if (q.type === 'choice') {
-                    if (q.mode === 'dobon') {
+                    // Check both Q-specific mode and Global Config mode
+                    if (q.mode === 'dobon' || q.mode === 'multi' || q.multi || App.Data.currentConfig.mode === 'dobon') {
                         const ansIdx = parseInt(p.lastAnswer);
                         // Dobon: q.correct stores traps. If match -> Lose. Else -> Win.
                         if (Array.isArray(q.correct) && q.correct.includes(ansIdx)) {
@@ -1332,14 +1451,31 @@ App.Studio = {
             }
 
             const checkHtml = isAnswered ? '<span class="answered-badge">✅</span>' : '<span class="waiting-dot">●</span>';
+
+            // Pending result indicator (single-attempt mode)
+            let pendingBadge = '';
+            let showJudgeBtns = isAnswered;
+            if (p.buzzRest && p.buzzRest > 0) {
+                pendingBadge = `<span style="color:#ff9800; font-weight:bold; font-size:0.8em; margin-left:5px;">🚫 ${p.buzzRest}問休み</span>`;
+                showJudgeBtns = false;
+            } else if (p.pendingResult === 'win') {
+                pendingBadge = '<span style="color:#2ecc71; font-weight:bold; font-size:0.8em; margin-left:5px;">〇 済</span>';
+                showJudgeBtns = false;
+            } else if (p.pendingResult === 'lose') {
+                pendingBadge = '<span style="color:#e74c3c; font-weight:bold; font-size:0.8em; margin-left:5px;">✖ 済</span>';
+                showJudgeBtns = false;
+            }
+            // Also hide buttons if already judged (lastResult set)
+            if (p.lastResult) showJudgeBtns = false;
+
             card.innerHTML = `
                 <div style="display:flex; flex-direction:column; gap:5px; width:100%;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span class="player-ans-name" style="flex:1;">${p.name}</span>
+                        <span class="player-ans-name" style="flex:1;">${p.name}${pendingBadge}</span>
                         ${checkHtml}
                     </div>
                     <div class="player-ans-value ${!isAnswered ? 'waiting' : ''}" style="margin-top:2px;">${ansText}</div>
-                    <div class="judge-btns-mini ${isAnswered ? '' : 'hidden'}" style="display:flex; gap:5px; margin-top:8px;">
+                    <div class="judge-btns-mini ${showJudgeBtns ? '' : 'hidden'}" style="display:flex; gap:5px; margin-top:8px;">
                         <button class="btn-mini btn-success" style="flex:1; padding:4px 0;" onclick="App.Studio.updatePlayerScore('${id}', true)">〇</button>
                         <button class="btn-mini btn-danger" style="flex:1; padding:4px 0;" onclick="App.Studio.updatePlayerScore('${id}', false)">✖</button>
                     </div>
@@ -1441,17 +1577,32 @@ App.Studio = {
                 return timeA - timeB;
             });
 
-        // If no one selected yet, select the fastest or first
+        // If no one selected yet, select the fastest answered/buzzed player
         if (!this.selectedPlayerId && sortedPlayers.length > 0) {
-            this.selectedPlayerId = sortedPlayers[0].id;
+            const firstAnswered = sortedPlayers.find(p => p.lastAnswer !== null && p.lastAnswer !== undefined || p.buzzTime);
+            if (firstAnswered) this.selectedPlayerId = firstAnswered.id;
+        }
+        // If selected player hasn't answered yet, deselect
+        if (this.selectedPlayerId && players[this.selectedPlayerId]) {
+            const sel = players[this.selectedPlayerId];
+            const hasResponded = (sel.lastAnswer !== null && sel.lastAnswer !== undefined) || sel.buzzTime;
+            if (!hasResponded) this.selectedPlayerId = null;
         }
 
         horizontalList.innerHTML = '';
         sortedPlayers.forEach(p => {
+            const hasAnswered = (p.lastAnswer !== null && p.lastAnswer !== undefined) || p.buzzTime;
             const chip = document.createElement('div');
             chip.className = `console-player-chip ${this.selectedPlayerId === p.id ? 'active' : ''}`;
+            if (!hasAnswered) {
+                chip.classList.add('disabled');
+                chip.style.opacity = '0.35';
+                chip.style.pointerEvents = 'none';
+                chip.style.filter = 'grayscale(1)';
+            }
             chip.textContent = p.name;
             chip.onclick = () => {
+                if (!hasAnswered) return;
                 this.selectedPlayerId = p.id;
                 this.renderUnifiedConsole(players);
             };
@@ -1500,13 +1651,13 @@ App.Studio = {
                     statusDiv.className = 'btn-success';
                     statusDiv.style.padding = '15px';
                     statusDiv.style.borderRadius = '0';
-                    statusDiv.innerHTML = '判定済: 正解 (CORRECT)';
+                    statusDiv.innerHTML = '判定済: 正解';
                     statusDiv.style.opacity = '0.7';
                 } else if (p.lastResult === 'lose') {
                     statusDiv.className = 'btn-danger';
                     statusDiv.style.padding = '15px';
                     statusDiv.style.borderRadius = '0';
-                    statusDiv.innerHTML = '判定済: 不正解 (WRONG)';
+                    statusDiv.innerHTML = '判定済: 不正解';
                     statusDiv.style.opacity = '0.7';
                 }
                 if (cardBtns) cardBtns.appendChild(statusDiv);
@@ -1520,7 +1671,7 @@ App.Studio = {
                 btnO.style.borderRadius = '0';
                 btnO.style.padding = '15px';
                 btnO.style.fontSize = '1.2em';
-                btnO.textContent = "正解 (O)";
+                btnO.textContent = "正解 〇";
                 btnO.onclick = (e) => {
                     e.stopPropagation(); // Stop propagation just in case
                     console.log("Btn O Clicked for", this.selectedPlayerId);
@@ -1534,7 +1685,7 @@ App.Studio = {
                 btnX.style.borderRadius = '0';
                 btnX.style.padding = '15px';
                 btnX.style.fontSize = '1.2em';
-                btnX.textContent = "不正解 (X)";
+                btnX.textContent = "不正解 ✖";
                 btnX.onclick = (e) => {
                     e.stopPropagation();
                     console.log("Btn X Clicked for", this.selectedPlayerId);
@@ -1554,7 +1705,7 @@ App.Studio = {
                     statusDiv.style.padding = '15px';
                     statusDiv.style.textAlign = 'center';
                     statusDiv.style.color = '#888';
-                    statusDiv.textContent = "回答待ち (WAITING)";
+                    statusDiv.textContent = "回答待ち";
                     if (cardBtns) {
                         cardBtns.innerHTML = '';
                         cardBtns.appendChild(statusDiv);
@@ -1571,13 +1722,13 @@ App.Studio = {
                 if (p.lastAnswer) {
                     statusDiv.textContent = "自動判定中...";
                 } else {
-                    statusDiv.textContent = "回答待ち (WAITING)";
+                    statusDiv.textContent = "回答待ち";
                 }
                 if (cardBtns) cardBtns.appendChild(statusDiv);
             }
         } else {
             if (cardPName) cardPName.textContent = "---";
-            if (cardPAns) cardPAns.textContent = "SELECT PLAYER";
+            if (cardPAns) cardPAns.textContent = "プレイヤーを選択";
         }
     },
 
@@ -1595,30 +1746,62 @@ App.Studio = {
         const roomId = App.State.currentRoomId;
         const q = App.Data.studioQuestions[App.State.currentQIndex];
         if (!q) return;
+
+        const config = App.Data.currentConfig || {};
+        const isNormalFreeWritten = (config.mode === 'normal' && q.type === 'free_written');
+        const answerAttempts = config.answerAttempts || 'single';
+
         window.db.ref(`rooms/${roomId}/players/${playerId}`).once('value', snap => {
             const p = snap.val();
             if (!p) return;
             const pts = isCorrect ? (q.points || 1) : -(q.loss || 0);
             const result = isCorrect ? 'win' : 'lose';
-            snap.ref.update({
-                periodScore: (p.periodScore || 0) + pts,
-                totalScore: (p.totalScore || 0) + pts,
-                lastResult: result
-            });
-            App.Ui.showToast(`${p.name} さんを ${isCorrect ? '正解' : '不正解'} に判定しました`);
+
+            if (isNormalFreeWritten && answerAttempts === 'single') {
+                // ★ Single attempt mode: store as pending, don't reveal to player yet
+                snap.ref.update({
+                    pendingScore: pts,
+                    pendingResult: result
+                });
+                App.Ui.showToast(`${p.name} → ${isCorrect ? '〇' : '✖'} (正解表示時に反映)`);
+
+            } else if (isNormalFreeWritten && answerAttempts === 'multiple') {
+                // ★ Multiple attempts mode: apply immediately
+                snap.ref.update({
+                    periodScore: (p.periodScore || 0) + pts,
+                    totalScore: (p.totalScore || 0) + pts,
+                    lastResult: result
+                });
+                App.Ui.showToast(`${p.name} さんを ${isCorrect ? '正解' : '不正解'} に判定しました`);
+
+                // If wrong, reset after a short delay so player can try again
+                if (!isCorrect) {
+                    setTimeout(() => {
+                        snap.ref.update({
+                            lastAnswer: null,
+                            lastResult: null
+                        });
+                    }, 2000);
+                }
+
+            } else {
+                // Default behavior for all other modes
+                snap.ref.update({
+                    periodScore: (p.periodScore || 0) + pts,
+                    totalScore: (p.totalScore || 0) + pts,
+                    lastResult: result
+                });
+                App.Ui.showToast(`${p.name} さんを ${isCorrect ? '正解' : '不正解'} に判定しました`);
+            }
 
             // ★ Multi-Answer Auto-Reveal Logic
             if (isCorrect && q.type && q.type.startsWith('multi')) {
                 let matchedIndex = -1;
-                // Try to find match in correct answers or choices
                 if (q.c) {
-                    // 1. Check if p.lastAnswer is an index (0, 1, 2...)
                     const ansIdx = parseInt(p.lastAnswer);
                     if (!isNaN(ansIdx) && q.c[ansIdx]) {
                         matchedIndex = ansIdx;
-                    }
-                    // 2. Check if p.lastAnswer matches label (e.g. "Chiyoda-ku")
-                    else {
+                    } else {
                         matchedIndex = q.c.findIndex(c => c === p.lastAnswer);
                     }
                 }
@@ -1630,7 +1813,6 @@ App.Studio = {
                         window.db.ref(`rooms/${roomId}/status`).update({
                             revealedMulti: this.revealedMultiIndices
                         });
-                        // Re-render controls to reflect change on host
                         this.renderMultiAnswerControls(q);
                     }
                 }
@@ -1638,30 +1820,136 @@ App.Studio = {
 
             // BUZZ MODE LOGIC
             if (App.Data.currentConfig.mode === 'buzz') {
+                const buzzAction = App.Data.currentConfig.buzzWrongAction || 'next';
+                const buzzPenalty = App.Data.currentConfig.buzzPenalty || 'none';
+
                 if (isCorrect) {
-                    // Winner! Disable buzz.
                     window.db.ref(`rooms/${roomId}/status`).update({ isBuzzActive: false });
                     this.buzzWinner = null;
                     App.Ui.showToast("正解！早押し終了");
-                } else {
-                    // Wrong! Resume.
+                } else if (buzzAction === 'end') {
+                    // 問題終了: end the question
+                    window.db.ref(`rooms/${roomId}/status`).update({ isBuzzActive: false });
                     this.buzzWinner = null;
-                    window.db.ref(`rooms/${roomId}/status`).update({
-                        currentAnswerer: null,
-                        currentAnswererName: null,
-                        isBuzzActive: true
-                    });
 
-                    // Clear buzzTime for others (Fresh Start)
-                    window.db.ref(`rooms/${roomId}/players`).once('value', allSnap => {
-                        allSnap.forEach(child => {
-                            // Don't clear lost status (already handled by update above?)
-                            child.ref.update({ buzzTime: null });
+                    // おてつき: 休み
+                    if (buzzPenalty === 'rest') {
+                        const restCount = App.Data.currentConfig.buzzRestCount || 1;
+                        snap.ref.update({ buzzRest: restCount });
+                        App.Ui.showToast(`不正解。問題終了（${restCount}問休み）`);
+                    } else {
+                        App.Ui.showToast("不正解。問題終了");
+                    }
+                } else {
+                    // 問題継続
+                    this.buzzWinner = null;
+
+                    if (buzzPenalty === 'reset_all') {
+                        // 全員回答受付前に戻す
+                        window.db.ref(`rooms/${roomId}/status`).update({
+                            currentAnswerer: null,
+                            currentAnswererName: null,
+                            isBuzzActive: true
                         });
-                    });
-                    App.Ui.showToast("不正解。早押し再開！");
+                        window.db.ref(`rooms/${roomId}/players`).once('value', allSnap => {
+                            allSnap.forEach(child => {
+                                child.ref.update({ buzzTime: null, lastResult: null });
+                            });
+                        });
+                        App.Ui.showToast("不正解。全員の回答権をリセット！");
+
+                    } else if (buzzPenalty === 'time_ban') {
+                        // 一定時間回答無効
+                        const banTime = App.Data.currentConfig.buzzPenaltyTime || 3;
+                        snap.ref.update({ buzzBannedUntil: Date.now() + (banTime * 1000) });
+
+                        window.db.ref(`rooms/${roomId}/status`).update({
+                            currentAnswerer: null,
+                            currentAnswererName: null,
+                            isBuzzActive: true
+                        });
+                        // Clear buzzTime for others
+                        window.db.ref(`rooms/${roomId}/players`).once('value', allSnap => {
+                            allSnap.forEach(child => {
+                                child.ref.update({ buzzTime: null });
+                            });
+                        });
+                        App.Ui.showToast(`不正解。${banTime}秒間回答無効！早押し再開`);
+
+                    } else {
+                        // なし: 通常通り再開
+                        window.db.ref(`rooms/${roomId}/status`).update({
+                            currentAnswerer: null,
+                            currentAnswererName: null,
+                            isBuzzActive: true
+                        });
+                        window.db.ref(`rooms/${roomId}/players`).once('value', allSnap => {
+                            allSnap.forEach(child => {
+                                child.ref.update({ buzzTime: null });
+                            });
+                        });
+                        App.Ui.showToast("不正解。早押し再開！");
+                    }
                 }
             }
+
+            // TURN MODE LOGIC
+            if (config.mode === 'turn') {
+                const isMultiOrDobon = (q.mode === 'dobon' || q.mode === 'multi' || (q.type && q.type.startsWith('multi')));
+
+                if (isCorrect && isMultiOrDobon) {
+                    // Dobon/Multi: move to next player within the same question ONLY if CORRECT
+                    this.turnIndex = (this.turnIndex + 1) % this.turnOrder.length;
+                    const nextPlayerId = this.turnOrder[this.turnIndex];
+                    const nextPlayerName = (App.Data.players && App.Data.players[nextPlayerId])
+                        ? App.Data.players[nextPlayerId].name : '---';
+
+                    window.db.ref(`rooms/${roomId}/status`).update({
+                        currentAnswerer: nextPlayerId,
+                        currentAnswererName: nextPlayerName
+                    });
+
+                    App.Ui.showToast(`正解！次は ${nextPlayerName} さんの番です`);
+
+                    // Update sub-info UI
+                    const info = document.getElementById('studio-sub-info');
+                    if (info) {
+                        info.innerHTML = `<span style="color:#9b59b6; font-weight:bold;">順番: ${nextPlayerName}（${this.turnIndex + 1}/${this.turnOrder.length}）</span>`;
+                    }
+
+                    // Reset current player's lastResult/lastAnswer so the UI/Console card clears for the next turn
+                    setTimeout(() => {
+                        snap.ref.update({ lastAnswer: null, lastResult: null });
+                    }, 1500);
+
+                } else if (!this.turnAdvancedThisQ) {
+                    // Normal question, or multi-answer wrong: mark as finished for this person
+                    // (The turn will pass to the next person for the NEXT question)
+                    this.turnIndex = (this.turnIndex + 1) % this.turnOrder.length;
+                    this.turnAdvancedThisQ = true;
+                }
+            }
+        });
+    },
+
+    // ★ Flush pending results (for single-attempt mode)
+    // Called when host clicks "正解表示" for free_written + normal + single attempt
+    flushPendingResults: function () {
+        const roomId = App.State.currentRoomId;
+        window.db.ref(`rooms/${roomId}/players`).once('value', snap => {
+            snap.forEach(pSnap => {
+                const p = pSnap.val();
+                if (p.pendingResult) {
+                    const pts = p.pendingScore || 0;
+                    pSnap.ref.update({
+                        periodScore: (p.periodScore || 0) + pts,
+                        totalScore: (p.totalScore || 0) + pts,
+                        lastResult: p.pendingResult,
+                        pendingResult: null,
+                        pendingScore: null
+                    });
+                }
+            });
         });
     },
 
@@ -1682,8 +1970,19 @@ App.Studio = {
             return newQ;
         });
 
+        // Determine smart default mode based on question types
+        let smartMode = 'normal';
+        if (!setData.config || !setData.config.mode) {
+            // No explicit config — default to buzz for free/multi types
+            const hasFreeOrMulti = questions.some(q =>
+                q.type === 'free_oral' || q.type === 'free_written' ||
+                q.type === 'multi_oral' || q.type === 'multi_written'
+            );
+            if (hasFreeOrMulti) smartMode = 'buzz';
+        }
+
         // Merge saved config with defaults
-        const defaultConfig = { mode: 'normal', gameType: 'score', theme: 'dark' };
+        const defaultConfig = { mode: smartMode, gameType: 'score', theme: 'dark' };
         const setConfig = Object.assign({}, defaultConfig, setData.config || {});
 
         const defaultProg = { showRankingAfter: false, eliminationMode: 'none', eliminationCount: 0 };
@@ -1913,6 +2212,314 @@ App.Studio = {
     updateMonitorScaling: function () {
         // Disabled: User requested simple text display instead of scaled frame.
         // This function is kept empty to prevent errors if called.
+    },
+
+    // ★ Turn Mode: Render order setup UI
+    renderTurnOrderSetup: function (btnMain) {
+        if (this.turnSetupDismissed) return; // Don't show if already dismissed
+
+        const players = App.Data.players || {};
+        const playerIds = Object.keys(players);
+
+        // Remove existing turn setup UI if present
+        let existingSetup = document.getElementById('turn-order-setup');
+        if (existingSetup) existingSetup.remove();
+
+        // Create container
+        const container = document.createElement('div');
+        container.id = 'turn-order-setup';
+        container.style.cssText = 'width:100%; max-width:500px; margin:20px auto; background:rgba(155,89,182,0.1); border:1px solid rgba(155,89,182,0.3); border-radius:12px; padding:15px; box-sizing:border-box;';
+
+        // Title
+        const title = document.createElement('div');
+        title.style.cssText = 'color:#9b59b6; font-weight:bold; font-size:1.1em; margin-bottom:12px; text-align:center; letter-spacing:1px;';
+        title.innerHTML = '<i class="fas fa-sort-numeric-down"></i> 回答順番を設定';
+        container.appendChild(title);
+
+        // State check: Confirmed?
+        const isAlreadyConfirmed = !!this.isTurnOrderConfirmed;
+
+        // Force Get Button Element if passed argument is stale/null
+        if (!btnMain) btnMain = document.getElementById('btn-phase-main');
+
+        // Button State Logic - IMMEDIATE APPLICATION
+        if (btnMain) {
+            if (!isAlreadyConfirmed) {
+                // Initially DISABLE the main start button until confirmed
+                btnMain.disabled = true;
+                btnMain.style.opacity = '0.4';
+                btnMain.style.pointerEvents = 'none';
+                btnMain.classList.remove('action-ready');
+            } else {
+                // Ensure enabled if confirmed
+                btnMain.disabled = false;
+                btnMain.style.opacity = '1';
+                btnMain.style.pointerEvents = 'auto';
+                btnMain.style.cursor = 'pointer';
+                btnMain.classList.add('action-ready');
+                btnMain.style.filter = 'none';
+            }
+        }
+
+        // Restore standard button text (e.g., "第1問 開始")
+        btnMain.textContent = `第${App.State.currentQIndex + 1}問 開始`;
+
+        // If no players
+        if (playerIds.length === 0) {
+            const emptyMsg = document.createElement('div');
+            emptyMsg.style.cssText = 'color:#aaa; text-align:center; padding:20px; font-size:0.9em; background:rgba(0,0,0,0.3); border-radius:8px;';
+            emptyMsg.textContent = '現在、参加者がいません。参加者が入室するとリストが表示されます。';
+            container.appendChild(emptyMsg);
+
+            // Insert before participant section
+            const participantSection = document.querySelector('.simple-player-section');
+            if (participantSection) {
+                participantSection.parentNode.insertBefore(container, participantSection);
+            } else {
+                btnMain.parentNode.insertBefore(container, btnMain.nextSibling);
+            }
+            return;
+        }
+
+        // Initialize turnOrder with current players if empty or stale
+        // Only add new players; keep existing order for those still present
+        const validOrder = this.turnOrder.filter(id => playerIds.includes(id));
+        const newPlayers = playerIds.filter(id => !validOrder.includes(id));
+        this.turnOrder = [...validOrder, ...newPlayers];
+
+        // Ensure local variable reflects persistent state
+        let isConfirmed = isAlreadyConfirmed;
+
+        // Create the sortable list
+        const listEl = document.createElement('div');
+        listEl.id = 'turn-order-list';
+        listEl.style.cssText = 'display:flex; flex-direction:column; gap:6px; max-height:300px; overflow-y:auto; padding-right:5px;';
+
+        const renderList = () => {
+            listEl.innerHTML = '';
+            this.turnOrder.forEach((pid, idx) => {
+                const pName = players[pid] ? players[pid].name : '(退出済み)';
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px 12px; transition:all 0.2s;';
+
+                if (!players[pid]) row.style.opacity = '0.5';
+
+                // Number badge
+                const numBadge = document.createElement('div');
+                numBadge.style.cssText = 'width:28px; height:28px; border-radius:50%; background:#9b59b6; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:0.9em; flex-shrink:0; box-shadow:0 2px 4px rgba(0,0,0,0.3);';
+                numBadge.textContent = idx + 1;
+
+                // Name
+                const nameEl = document.createElement('div');
+                nameEl.style.cssText = 'flex:1; color:#fff; font-size:0.95em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;';
+                nameEl.textContent = pName;
+
+                // Buttons container
+                const btnContainer = document.createElement('div');
+                btnContainer.style.display = 'flex';
+                btnContainer.style.gap = '4px';
+
+                // Up button
+                const btnUp = document.createElement('button');
+                btnUp.style.cssText = 'width:32px; height:32px; border:none; border-radius:6px; background:rgba(255,255,255,0.1); color:#fff; cursor:pointer; font-size:0.8em; display:flex; align-items:center; justify-content:center; transition:background 0.2s;';
+                btnUp.textContent = '▲';
+                btnUp.disabled = (idx === 0) || isConfirmed;
+                if (btnUp.disabled) {
+                    btnUp.style.opacity = '0.2';
+                    btnUp.style.cursor = 'default';
+                } else {
+                    btnUp.onmouseover = () => btnUp.style.background = 'rgba(255,255,255,0.2)';
+                    btnUp.onmouseout = () => btnUp.style.background = 'rgba(255,255,255,0.1)';
+                }
+                btnUp.onclick = () => {
+                    if (idx > 0 && !isConfirmed) {
+                        [this.turnOrder[idx], this.turnOrder[idx - 1]] = [this.turnOrder[idx - 1], this.turnOrder[idx]];
+                        renderList();
+                    }
+                };
+
+                // Down button
+                const btnDown = document.createElement('button');
+                btnDown.style.cssText = 'width:32px; height:32px; border:none; border-radius:6px; background:rgba(255,255,255,0.1); color:#fff; cursor:pointer; font-size:0.8em; display:flex; align-items:center; justify-content:center; transition:background 0.2s;';
+                btnDown.textContent = '▼';
+                btnDown.disabled = (idx === this.turnOrder.length - 1) || isConfirmed;
+                if (btnDown.disabled) {
+                    btnDown.style.opacity = '0.2';
+                    btnDown.style.cursor = 'default';
+                } else {
+                    btnDown.onmouseover = () => btnDown.style.background = 'rgba(255,255,255,0.2)';
+                    btnDown.onmouseout = () => btnDown.style.background = 'rgba(255,255,255,0.1)';
+                }
+                btnDown.onclick = () => {
+                    if (idx < this.turnOrder.length - 1 && !isConfirmed) {
+                        [this.turnOrder[idx], this.turnOrder[idx + 1]] = [this.turnOrder[idx + 1], this.turnOrder[idx]];
+                        renderList();
+                    }
+                };
+
+                btnContainer.appendChild(btnUp);
+                btnContainer.appendChild(btnDown);
+                row.appendChild(numBadge);
+                row.appendChild(nameEl);
+                row.appendChild(btnContainer);
+                listEl.appendChild(row);
+            });
+        };
+
+        renderList();
+        container.appendChild(listEl);
+
+        // Function Buttons Container
+        const funcBtnContainer = document.createElement('div');
+        funcBtnContainer.style.cssText = 'display:flex; gap:10px; margin-top:15px; margin-bottom:5px;';
+
+        // Shuffle button
+        const shuffleBtn = document.createElement('button');
+        shuffleBtn.style.cssText = 'flex:1; padding:10px; border:1px solid rgba(155,89,182,0.4); border-radius:8px; background:rgba(155,89,182,0.15); color:#9b59b6; cursor:pointer; font-size:0.9em; font-weight:bold; transition:all 0.2s;';
+        shuffleBtn.innerHTML = '<i class="fas fa-random"></i> ランダム';
+        shuffleBtn.disabled = isConfirmed;
+        if (isConfirmed) {
+            shuffleBtn.style.opacity = '0.3';
+            shuffleBtn.style.cursor = 'default';
+        } else {
+            shuffleBtn.onmouseover = () => shuffleBtn.style.background = 'rgba(155,89,182,0.25)';
+            shuffleBtn.onmouseout = () => shuffleBtn.style.background = 'rgba(155,89,182,0.15)';
+        }
+        shuffleBtn.onclick = () => {
+            if (isConfirmed) return;
+            // Fisher-Yates
+            for (let i = this.turnOrder.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [this.turnOrder[i], this.turnOrder[j]] = [this.turnOrder[j], this.turnOrder[i]];
+            }
+            renderList();
+        };
+        funcBtnContainer.appendChild(shuffleBtn);
+
+        // Confirm Button (NEW)
+        const confirmBtn = document.createElement('button');
+        confirmBtn.style.cssText = 'flex:2; padding:12px; border:none; border-radius:8px; background:linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); color:#fff; cursor:pointer; font-size:1.0em; font-weight:bold; box-shadow:0 4px 12px rgba(155,89,182,0.4); transition:all 0.2s;';
+
+        if (isConfirmed) {
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = '<i class="fas fa-check"></i> 確定済み';
+            confirmBtn.style.background = '#444';
+            confirmBtn.style.boxShadow = 'none';
+            confirmBtn.style.color = '#aaa';
+            confirmBtn.style.cursor = 'default';
+        } else {
+            confirmBtn.innerHTML = '順番を確定する';
+            confirmBtn.onmouseover = () => confirmBtn.style.filter = 'brightness(1.1)';
+            confirmBtn.onmouseout = () => confirmBtn.style.filter = 'brightness(1.0)';
+        }
+
+        confirmBtn.onclick = () => {
+            isConfirmed = true;
+            this.isTurnOrderConfirmed = true; // State persistence
+
+            // UI Updates: Lock inputs
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = '<i class="fas fa-check"></i> 確定済み';
+            confirmBtn.style.background = '#444';
+            confirmBtn.style.boxShadow = 'none';
+            confirmBtn.style.color = '#aaa';
+            confirmBtn.style.cursor = 'default';
+
+            shuffleBtn.disabled = true;
+            shuffleBtn.style.opacity = '0.3';
+            shuffleBtn.style.cursor = 'default';
+
+            // Re-render list to disable up/down buttons
+            renderList();
+            container.style.opacity = '0.8';
+
+            // --- FORCE DOM UPDATE FOR MAIN BUTTON ---
+            const exactBtn = document.getElementById('btn-phase-main');
+            if (exactBtn) {
+                exactBtn.disabled = false;
+                exactBtn.style.opacity = '1';
+                exactBtn.style.pointerEvents = 'auto';
+                exactBtn.style.cursor = 'pointer';
+                exactBtn.style.filter = 'none';
+                exactBtn.style.background = ''; // Clear inline that might override class
+                exactBtn.classList.add('anim-pop-in');
+
+                // Use .action-next for BLUE color (as requested)
+                exactBtn.classList.remove('action-ready');
+                exactBtn.classList.add('action-next');
+
+                if (btnMain && btnMain !== exactBtn) {
+                    btnMain.disabled = false;
+                    btnMain.classList.remove('action-ready');
+                    btnMain.classList.add('action-next');
+                }
+            }
+
+            // Sync to Firebase
+            this.turnIndex = 0;
+            this.turnAdvancedThisQ = false;
+            const roomId = App.State.currentRoomId;
+            const turnOrderNames = this.turnOrder.map(id => {
+                const p = players[id];
+                return p ? p.name : '---';
+            });
+            window.db.ref(`rooms/${roomId}/status`).update({
+                turnOrder: this.turnOrder,
+                turnOrderNames: turnOrderNames,
+                turnIndex: 0,
+                isTurnMode: true
+            });
+            App.Ui.showToast("回答順を確定しました");
+        };
+        funcBtnContainer.appendChild(confirmBtn);
+
+        container.appendChild(funcBtnContainer);
+
+        // Override main button to just clean up
+        // Check if already wrapped to avoid double-wrapping on re-renders
+        if (!btnMain.onclick || !btnMain.onclick.isTurnSetupWrapper) {
+            const originalOnClick = btnMain.onclick;
+
+            const newHandler = (e) => {
+                // If NOT confirmed, block everything
+                if (!this.isTurnOrderConfirmed) {
+                    if (e) {
+                        e.preventDefault();
+                        if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+                        else e.stopPropagation();
+                    }
+                    return;
+                }
+
+                // If CONFIRMED, proceed but clean up first
+                console.log("Main Button Clicked: Dismissing Setup");
+
+                // Track dismissal so it doesn't reappear on player update
+                this.turnSetupDismissed = true;
+
+                // Remove setup UI
+                const setupEl = document.getElementById('turn-order-setup');
+                if (setupEl) setupEl.remove();
+
+                // Restore original handler so the NEXT click proceeds as normal
+                btnMain.onclick = originalOnClick;
+
+                // IMPORTANT: Do NOT stop propagation here. 
+                // Let the event bubble to the standard listener (App.Studio.onMainAction).
+                // If originalOnClick exists, call it manually just in case
+                if (originalOnClick) originalOnClick(e);
+            };
+            newHandler.isTurnSetupWrapper = true;
+            btnMain.onclick = newHandler;
+        }
+
+        // Insert above participant section
+        const participantSection = document.querySelector('.simple-player-section');
+        if (participantSection) {
+            participantSection.parentNode.insertBefore(container, participantSection);
+        } else {
+            btnMain.parentNode.insertBefore(container, btnMain.nextSibling);
+        }
     },
 };
 

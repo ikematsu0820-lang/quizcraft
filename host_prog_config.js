@@ -106,7 +106,7 @@ window.App.ProgConfig = {
         playlist.forEach((item, i) => {
             const qCount = item.questions?.length || 0;
             const mode = item.config?.mode || 'normal';
-            const settings = item.progSettings || { showRankingAfter: true, eliminationMode: 'none', eliminationCount: 0 };
+            const settings = item.progSettings || { showRankingAfter: false, eliminationMode: 'none', eliminationCount: 0 };
 
             let updateBadge = "";
             if (item.sourceKey && this.localItemsCache[item.sourceKey]) {
@@ -128,42 +128,34 @@ window.App.ProgConfig = {
                 modeLabel = window.App.Studio.translateMode(mode);
             }
 
-            html += `
-                <div class="timeline-card">
-                    <div class="prog-set-header-teal">
-                        ${item.title || 'Untitled'} ${updateBadge}
-                    </div>
-                    
-                    <div class="prog-item-settings-tray">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                            <label style="font-size:0.8em; color:rgba(255,255,255,0.7);">🏁 終了後に順位発表</label>
-                            <input type="checkbox" onchange="window.App.ProgConfig.updateToggle(${i}, 'showRankingAfter', this.checked)" ${settings.showRankingAfter ? 'checked' : ''} style="width:16px; height:16px;">
-                        </div>
+            const dateStr = (typeof item.createdAt === 'number')
+                ? new Date(item.createdAt).toLocaleDateString()
+                : "";
 
-                        <div style="display:flex; gap:8px; align-items:flex-end;">
-                             <div style="flex:1;">
-                                <label style="font-size:0.65em; color:#666; display:block; margin-bottom:2px;">脱落・通過設定</label>
-                                <select onchange="window.App.ProgConfig.updateToggle(${i}, 'eliminationMode', this.value)" style="width:100%; padding:4px; background:#1a1a1a; border:1px solid #333; color:#fff; font-size:0.8em; border-radius:4px;">
+            html += `
+                <div class="timeline-card prog-card-compact">
+                    <div class="prog-card-row">
+                        <div class="prog-card-info">
+                            <div class="prog-card-title"><span class="badge-set" style="font-size:0.7em; padding:1px 6px; margin-right:5px;">SET</span>${item.title || 'Untitled'} ${updateBadge}</div>
+                            <div class="prog-card-meta">${dateStr}${dateStr ? ' / ' : ''}${qCount}Q / ${modeLabel}</div>
+                        </div>
+                        <div class="prog-card-settings">
+                            <div class="prog-setting-row">
+                                <label style="font-size:0.7em; color:#666;">脱落・通過設定</label>
+                                <select onchange="window.App.ProgConfig.updateToggle(${i}, 'eliminationMode', this.value)" style="width:100%; padding:3px 4px; background:#1a1a1a; border:1px solid #333; color:#fff; font-size:0.75em; border-radius:4px;">
                                     <option value="none" ${settings.eliminationMode === 'none' ? 'selected' : ''}>なし (全員生存)</option>
                                     <option value="dropout" ${settings.eliminationMode === 'dropout' ? 'selected' : ''}>下位脱落</option>
                                     <option value="survive" ${settings.eliminationMode === 'survive' ? 'selected' : ''}>上位通過</option>
                                 </select>
-                             </div>
-                             <div style="display:${settings.eliminationMode === 'none' ? 'none' : 'block'}; width:65px;">
-                                <label style="font-size:0.65em; color:#666; display:block; margin-bottom:2px;">人数</label>
-                                <div style="display:flex; align-items:center; gap:3px;">
-                                    <input type="number" value="${settings.eliminationCount || 0}" onchange="window.App.ProgConfig.updateToggle(${i}, 'eliminationCount', parseInt(this.value))" style="width:100%; padding:4px; background:#000; border:1px solid #115c7a; color:#fff; text-align:center; font-size:0.8em; border-radius:4px;">
-                                    <span style="font-size:0.7em; color:#444;">名</span>
-                                </div>
-                             </div>
-                        </div>
-
-                        <div class="prog-config-tool-row">
-                            <span style="margin-right:auto; font-size:0.7em; color:#555; font-family:monospace;">STAGE ${i + 1} / ${qCount}Q / ${modeLabel}</span>
-                            <div style="display:flex; gap:5px;">
-                                <button class="btn-mini btn-info" onclick="window.App.ProgConfig.move(${i}, -1)" style="padding:2px 8px; font-size:0.7em;">▲</button>
-                                <button class="btn-mini btn-info" onclick="window.App.ProgConfig.move(${i}, 1)" style="padding:2px 8px; font-size:0.7em;">▼</button>
-                                <button class="btn-mini btn-danger" onclick="window.App.ProgConfig.remove(${i})" style="padding:2px 8px; font-size:0.7em;">✕</button>
+                            </div>
+                            <div class="prog-setting-row" style="flex-direction:row; justify-content:space-between; align-items:center;">
+                                <label style="font-size:0.7em; color:rgba(255,255,255,0.6);">🏁 終了後に順位発表</label>
+                                <input type="checkbox" onchange="window.App.ProgConfig.updateToggle(${i}, 'showRankingAfter', this.checked)" ${settings.showRankingAfter ? 'checked' : ''} style="width:14px; height:14px;">
+                            </div>
+                            <div style="display:flex; gap:4px; justify-content:flex-end; margin-top:2px;">
+                                <button class="btn-mini btn-info" onclick="window.App.ProgConfig.move(${i}, -1)" style="padding:2px 7px; font-size:0.65em;">▲</button>
+                                <button class="btn-mini btn-info" onclick="window.App.ProgConfig.move(${i}, 1)" style="padding:2px 7px; font-size:0.65em;">▼</button>
+                                <button class="btn-mini btn-danger" onclick="window.App.ProgConfig.remove(${i})" style="padding:2px 7px; font-size:0.65em;">✕</button>
                             </div>
                         </div>
                     </div>

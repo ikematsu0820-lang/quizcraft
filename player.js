@@ -264,7 +264,22 @@ function updateUI() {
         // 出題中 (Simplified Flow: Allow answering immediately)
         quizArea.classList.remove('hidden');
 
-        if (p.lastResult === 'win') {
+        const isMultipleAttempts = (roomConfig.mode === 'normal' && roomConfig.answerAttempts === 'multiple');
+
+        // ★ Turn Mode: Only currentAnswerer can answer
+        if (st.isTurnMode && st.currentAnswerer && st.currentAnswerer !== myPlayerId) {
+            buzzArea.classList.add('hidden');
+            toggleInputEnabled(false);
+            const changeArea = document.getElementById('change-btn-area');
+            if (changeArea) changeArea.innerHTML = '';
+            waitMsg.classList.remove('hidden');
+            waitMsg.style.background = 'rgba(155, 89, 182, 0.15)';
+            waitMsg.style.color = '#9b59b6';
+            waitMsg.style.border = '1px solid rgba(155, 89, 182, 0.3)';
+            waitMsg.style.padding = '20px';
+            const answererName = st.currentAnswererName || '他のプレイヤー';
+            waitMsg.innerHTML = `<div style="font-size:2em; margin-bottom:8px;">🔒</div><p style="font-weight:bold; font-size:1.1em; margin:0;">${answererName} の番です</p><p style="font-size:0.85em; color:#888; margin-top:6px;">あなたの番が来るまでお待ちください</p>`;
+        } else if (p.lastResult === 'win') {
             toggleInputEnabled(false);
             const changeArea = document.getElementById('change-btn-area');
             if (changeArea) changeArea.innerHTML = '';
@@ -276,16 +291,30 @@ function updateUI() {
             waitMsg.style.padding = "20px";
             waitMsg.innerHTML = `<div class="status-badge" style="background:#2ecc71;">CORRECT</div><p style="margin-top:10px; font-weight:bold; font-size:1.5em;">正解です！</p>`;
         } else if (p.lastResult === 'lose') {
-            toggleInputEnabled(false);
-            const changeArea = document.getElementById('change-btn-area');
-            if (changeArea) changeArea.innerHTML = '';
+            if (isMultipleAttempts) {
+                // Multiple attempts: show "wrong" briefly, player will be allowed to retry
+                toggleInputEnabled(false);
+                const changeArea = document.getElementById('change-btn-area');
+                if (changeArea) changeArea.innerHTML = '';
 
-            waitMsg.classList.remove('hidden');
-            waitMsg.style.background = "rgba(231, 76, 60, 0.2)";
-            waitMsg.style.color = "#e74c3c";
-            waitMsg.style.border = "1px solid #e74c3c";
-            waitMsg.style.padding = "20px";
-            waitMsg.innerHTML = `<div class="status-badge" style="background:#e74c3c;">WRONG</div><p style="margin-top:10px; font-weight:bold; font-size:1.5em;">不正解...</p>`;
+                waitMsg.classList.remove('hidden');
+                waitMsg.style.background = "rgba(231, 76, 60, 0.2)";
+                waitMsg.style.color = "#e74c3c";
+                waitMsg.style.border = "1px solid #e74c3c";
+                waitMsg.style.padding = "20px";
+                waitMsg.innerHTML = `<div class="status-badge" style="background:#e74c3c;">WRONG</div><p style="margin-top:10px; font-weight:bold; font-size:1.2em;">不正解...</p><p style="margin-top:5px; font-size:0.9em; color:#aaa;">もう一度回答できます</p>`;
+            } else {
+                toggleInputEnabled(false);
+                const changeArea = document.getElementById('change-btn-area');
+                if (changeArea) changeArea.innerHTML = '';
+
+                waitMsg.classList.remove('hidden');
+                waitMsg.style.background = "rgba(231, 76, 60, 0.2)";
+                waitMsg.style.color = "#e74c3c";
+                waitMsg.style.border = "1px solid #e74c3c";
+                waitMsg.style.padding = "20px";
+                waitMsg.innerHTML = `<div class="status-badge" style="background:#e74c3c;">WRONG</div><p style="margin-top:10px; font-weight:bold; font-size:1.5em;">不正解...</p>`;
+            }
         } else {
             handleNormalResponseUI(p, quizArea, waitMsg);
             toggleInputEnabled(true);
@@ -318,7 +347,27 @@ function updateUI() {
                 buzzArea.classList.remove('hidden');
                 toggleInputEnabled(false); // クイズ回答エリアはまだ無効
                 const btn = document.getElementById('player-buzz-btn');
-                if (p.buzzTime) {
+
+                if (p.buzzRest && p.buzzRest > 0) {
+                    // おてつき: 休み中
+                    btn.disabled = true;
+                    btn.textContent = `${p.buzzRest}問休み`;
+                    btn.style.background = "#333";
+                } else if (p.buzzBannedUntil && p.buzzBannedUntil > Date.now()) {
+                    // おてつき: 一定時間回答無効
+                    btn.disabled = true;
+                    const remaining = Math.ceil((p.buzzBannedUntil - Date.now()) / 1000);
+                    btn.textContent = `回答無効 ${remaining}s`;
+                    btn.style.background = "#333";
+                    // Auto re-enable after ban expires
+                    setTimeout(() => {
+                        if (p.buzzBannedUntil && p.buzzBannedUntil <= Date.now()) {
+                            btn.disabled = false;
+                            btn.textContent = "PUSH!";
+                            btn.style.background = "radial-gradient(circle at 30% 30%, #ff6b6b, #c0392b)";
+                        }
+                    }, (p.buzzBannedUntil - Date.now()) + 100);
+                } else if (p.buzzTime) {
                     btn.disabled = true;
                     btn.textContent = "回答権確認中...";
                     btn.style.background = "#555";
@@ -359,6 +408,8 @@ function updateUI() {
             }
         } else {
             // 通常一斉回答 (Normal Mode)
+            const isMultipleAttempts = (roomConfig.mode === 'normal' && roomConfig.answerAttempts === 'multiple');
+
             if (p.lastResult === 'win') {
                 toggleInputEnabled(false);
                 const changeArea = document.getElementById('change-btn-area');
@@ -371,16 +422,29 @@ function updateUI() {
                 waitMsg.style.padding = "20px";
                 waitMsg.innerHTML = `<div class="status-badge" style="background:#2ecc71;">CORRECT</div><p style="margin-top:10px; font-weight:bold; font-size:1.5em;">正解です！</p>`;
             } else if (p.lastResult === 'lose') {
-                toggleInputEnabled(false);
-                const changeArea = document.getElementById('change-btn-area');
-                if (changeArea) changeArea.innerHTML = '';
+                if (isMultipleAttempts) {
+                    toggleInputEnabled(false);
+                    const changeArea = document.getElementById('change-btn-area');
+                    if (changeArea) changeArea.innerHTML = '';
 
-                waitMsg.classList.remove('hidden');
-                waitMsg.style.background = "rgba(231, 76, 60, 0.2)";
-                waitMsg.style.color = "#e74c3c";
-                waitMsg.style.border = "1px solid #e74c3c";
-                waitMsg.style.padding = "20px";
-                waitMsg.innerHTML = `<div class="status-badge" style="background:#e74c3c;">WRONG</div><p style="margin-top:10px; font-weight:bold; font-size:1.5em;">不正解...</p>`;
+                    waitMsg.classList.remove('hidden');
+                    waitMsg.style.background = "rgba(231, 76, 60, 0.2)";
+                    waitMsg.style.color = "#e74c3c";
+                    waitMsg.style.border = "1px solid #e74c3c";
+                    waitMsg.style.padding = "20px";
+                    waitMsg.innerHTML = `<div class="status-badge" style="background:#e74c3c;">WRONG</div><p style="margin-top:10px; font-weight:bold; font-size:1.2em;">不正解...</p><p style="margin-top:5px; font-size:0.9em; color:#aaa;">もう一度回答できます</p>`;
+                } else {
+                    toggleInputEnabled(false);
+                    const changeArea = document.getElementById('change-btn-area');
+                    if (changeArea) changeArea.innerHTML = '';
+
+                    waitMsg.classList.remove('hidden');
+                    waitMsg.style.background = "rgba(231, 76, 60, 0.2)";
+                    waitMsg.style.color = "#e74c3c";
+                    waitMsg.style.border = "1px solid #e74c3c";
+                    waitMsg.style.padding = "20px";
+                    waitMsg.innerHTML = `<div class="status-badge" style="background:#e74c3c;">WRONG</div><p style="margin-top:10px; font-weight:bold; font-size:1.5em;">不正解...</p>`;
+                }
             } else {
                 handleNormalResponseUI(p, quizArea, waitMsg);
                 toggleInputEnabled(true);
@@ -561,7 +625,9 @@ function renderResultScreen(p) {
             ${judgeHtml}
         </div>
         <div style="background:#fff; color:#000; padding:20px; border-radius:12px; font-weight:900; text-align:center; margin-top:20px; box-shadow:0 0 20px rgba(255, 255, 255, 0.3);">
-            <div style="font-size:0.8em; letter-spacing:1px; margin-bottom:8px; opacity:0.6; color:#000;">CORRECT ANSWER</div>
+            <div style="font-size:0.8em; letter-spacing:1px; margin-bottom:8px; opacity:0.6; color:#000;">
+                ${(currentQuestion.mode === 'dobon' || currentQuestion.mode === 'multi' || currentQuestion.multi || roomConfig.mode === 'dobon') ? "NG ANSWER (選んではいけません)" : "CORRECT ANSWER"}
+            </div>
             <div style="font-size:1.8em; line-height:1.4;">${correctText}</div>
         </div>
         <div style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#fff; padding:12px; border-radius:12px; font-weight:bold; text-align:center; margin-top:12px;">

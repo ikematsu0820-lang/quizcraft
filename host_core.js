@@ -48,7 +48,8 @@ window.App.Ui = {
             respondent: document.getElementById('respondent-view'),
             playerGame: document.getElementById('player-game-view'),
             viewerLogin: document.getElementById('viewer-login-view'),
-            viewerMain: document.getElementById('viewer-main-view')
+            viewerMain: document.getElementById('viewer-main-view'),
+            savedItems: document.getElementById('saved-items-view')
         };
     },
 
@@ -182,8 +183,12 @@ window.App.Dashboard = {
         window.App.Ui.showView(window.App.Ui.views.dashboard);
         const idEl = document.getElementById('dashboard-show-id');
         if (idEl) idEl.textContent = window.App.State.currentShowId;
-        this.loadItems();
         this.updateFlowProgress();
+    },
+
+    openSavedItems: function () {
+        window.App.Ui.showView(window.App.Ui.views.savedItems);
+        this.loadItems();
     },
 
     updateFlowProgress: function () {
@@ -253,10 +258,15 @@ window.App.Dashboard = {
                     ? new Date(d.createdAt).toLocaleDateString()
                     : "New!";
 
+                // モード表示
+                const modeMap = { 'normal': '一斉', 'buzz': '早押し', 'turn': '順番', 'solo': 'ソロ' };
+                const modeKey = (d.config && d.config.mode) ? d.config.mode : 'normal';
+                const modeStr = modeMap[modeKey] || '一斉';
+
                 div.innerHTML = `
                     <div class="item-main">
                         <div class="item-title"><span class="badge-set">SET</span> ${d.title || "Untitled"}</div>
-                        <div class="item-meta">${dateStr} / ${qCount}Q</div>
+                        <div class="item-meta">${dateStr} / ${qCount}Q <span style="margin-left:8px; color:#ccc; background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px; font-size:0.85em;">${modeStr}</span></div>
                     </div>
                     <div class="item-actions">
                         <button class="btn-mini btn-info" onclick="window.App.Dashboard.quick('${k}')">▶ Start</button>

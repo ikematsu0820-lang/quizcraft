@@ -120,7 +120,7 @@ App.Config = {
                         <span class="label">早押し</span>
                     </button>
                     <!-- Disabled Turn/Solo as per request -->
-                    <button type="button" class="mode-segmented-btn disabled" data-mode="turn" disabled style="opacity:0.5; cursor:not-allowed;">
+                    <button type="button" class="mode-segmented-btn" data-mode="turn">
                         <span class="icon">🔄</span>
                         <span class="label">順番</span>
                     </button>
@@ -298,33 +298,79 @@ App.Config = {
         let html = '';
 
         if (mode === 'normal') {
-            html += `
+            const isFreeWritten = (qType === 'free_written');
+            if (isFreeWritten) {
+                html += `
                 <div class="mode-settings-box mode-box-normal">
-                    <p style="color:#aaa; font-size:0.9em; text-align:center;">
-                        一斉回答モードの設定はありません。<br>
-                        (修正:無制限 / オープン:自動)
+                    <div style="margin-bottom:8px;">
+                        <label class="config-label" style="margin:0;">回答権</label>
+                    </div>
+                    <div style="display:flex; gap:6px;">
+                        <button type="button" class="mode-segmented-btn ans-attempt-btn ${(conf.answerAttempts || 'single') === 'single' ? 'active' : ''}" data-val="single" style="flex:1; padding:8px 4px;">
+                            <span class="icon">1️⃣</span>
+                            <span class="label">1回のみ</span>
+                        </button>
+                        <button type="button" class="mode-segmented-btn ans-attempt-btn ${conf.answerAttempts === 'multiple' ? 'active' : ''}" data-val="multiple" style="flex:1; padding:8px 4px;">
+                            <span class="icon">🔄</span>
+                            <span class="label">複数回答可</span>
+                        </button>
+                    </div>
+                    <input type="hidden" id="config-answer-attempts" value="${conf.answerAttempts || 'single'}">
+                    <p style="color:#888; font-size:0.75em; margin-top:6px; line-height:1.4;" id="ans-attempt-desc">
+                        ${(conf.answerAttempts || 'single') === 'single' ? '正解表示ボタンを押した時に全員に結果が一斉に届きます' : '採点の都度結果が届き、不正解でも再回答できます'}
                     </p>
                 </div>`;
+            } else {
+                html += `
+                <div class="mode-settings-box mode-box-normal">
+                    <p style="color:#aaa; font-size:0.9em; text-align:center;">
+                        一斉回答モード
+                    </p>
+                </div>`;
+            }
         } else if (mode === 'buzz') {
-            // ★修正: 選択肢の文言をわかりやすく変更
+            const buzzAction = conf.buzzWrongAction || 'next';
+            const buzzPenalty = conf.buzzPenalty || 'none';
+            const buzzPenaltyTime = conf.buzzPenaltyTime || 3;
+            const buzzRestCount = conf.buzzRestCount || 1;
+
             html += `
-                <div class="mode-settings-box mode-box-buzz" style="text-align:center;">
-                    <div class="grid-2-col">
-                        <div>
-                            <label class="config-label">誤答時の処理</label>
-                            <select id="config-buzz-wrong-action" class="btn-block config-select">
-                                <option value="next" ${conf.buzzWrongAction === 'next' ? 'selected' : ''}>誤答者以外で早押し再開</option>
-                                <option value="reset" ${conf.buzzWrongAction === 'reset' ? 'selected' : ''}>全員リセット (全員復活)</option>
-                                <option value="end" ${conf.buzzWrongAction === 'end' ? 'selected' : ''}>その問題終了 (打ち切り)</option>
+                <div class="mode-settings-box mode-box-buzz">
+                    <div style="display:flex; align-items:center; gap:15px; margin-bottom:10px;">
+                        <label class="config-label" style="margin:0; white-space:nowrap; min-width:auto;">誤答時の処理</label>
+                        <select id="config-buzz-wrong-action" class="config-select" style="flex:1;">
+                            <option value="next" ${buzzAction === 'next' ? 'selected' : ''}>問題継続</option>
+                            <option value="end" ${buzzAction === 'end' ? 'selected' : ''}>問題終了</option>
+                        </select>
+                    </div>
+
+                    <div id="buzz-penalty-area">
+                        <div style="display:flex; align-items:center; gap:15px;">
+                            <label class="config-label" style="margin:0; white-space:nowrap; min-width:auto;">おてつき</label>
+                            <select id="config-buzz-penalty" class="config-select" style="flex:1;">
+                                ${buzzAction === 'next' ? `
+                                    <option value="none" ${buzzPenalty === 'none' ? 'selected' : ''}>なし</option>
+                                    <option value="reset_all" ${buzzPenalty === 'reset_all' ? 'selected' : ''}>全員回答受付前に戻す</option>
+                                    <option value="time_ban" ${buzzPenalty === 'time_ban' ? 'selected' : ''}>一定時間回答を無効にする</option>
+                                ` : `
+                                    <option value="none" ${buzzPenalty === 'none' ? 'selected' : ''}>なし</option>
+                                    <option value="rest" ${buzzPenalty === 'rest' ? 'selected' : ''}>休み</option>
+                                `}
                             </select>
                         </div>
-                        <div>
-                            <label class="config-label">${APP_TEXT.Config.LabelBuzzTime}</label>
-                            <select id="config-buzz-timer" class="btn-block config-select">
-                                <option value="0">${APP_TEXT.Config.BuzzTimeNone}</option>
-                                <option value="5" ${conf.buzzTime === 5 ? 'selected' : ''}>${APP_TEXT.Config.BuzzTime5}</option>
-                                <option value="10" ${conf.buzzTime === 10 ? 'selected' : ''}>${APP_TEXT.Config.BuzzTime10}</option>
-                            </select>
+                        <div id="buzz-penalty-detail" style="margin-top:8px;">
+                            ${buzzPenalty === 'time_ban' ? `
+                                <div style="display:flex; align-items:center; gap:8px; margin-left:auto; max-width:180px;">
+                                    <input type="number" id="config-buzz-penalty-time" class="config-select" style="width:60px; text-align:center;" value="${buzzPenaltyTime}" min="1" max="60">
+                                    <span style="color:#aaa; font-size:0.85em;">秒</span>
+                                </div>
+                            ` : ''}
+                            ${buzzPenalty === 'rest' ? `
+                                <div style="display:flex; align-items:center; gap:8px; margin-left:auto; max-width:180px;">
+                                    <input type="number" id="config-buzz-rest-count" class="config-select" style="width:60px; text-align:center;" value="${buzzRestCount}" min="1" max="10">
+                                    <span style="color:#aaa; font-size:0.85em;">問休み</span>
+                                </div>
+                            ` : ''}
                         </div>
                     </div>
                 </div>`;
@@ -373,6 +419,68 @@ App.Config = {
                 </div>`;
         }
         area.innerHTML = html;
+
+        // Setup answer attempt button handlers
+        area.querySelectorAll('.ans-attempt-btn').forEach(btn => {
+            btn.onclick = () => {
+                area.querySelectorAll('.ans-attempt-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const hidden = document.getElementById('config-answer-attempts');
+                if (hidden) hidden.value = btn.dataset.val;
+                const desc = document.getElementById('ans-attempt-desc');
+                if (desc) {
+                    desc.textContent = btn.dataset.val === 'single'
+                        ? '正解表示ボタンを押した時に全員に結果が一斉に届きます'
+                        : '採点の都度結果が届き、不正解でも再回答できます';
+                }
+            };
+        });
+
+        // Setup buzz penalty handlers
+        const buzzActionSel = document.getElementById('config-buzz-wrong-action');
+        const buzzPenaltySel = document.getElementById('config-buzz-penalty');
+        const buzzPenaltyDetail = document.getElementById('buzz-penalty-detail');
+
+        if (buzzActionSel && buzzPenaltySel) {
+            buzzActionSel.onchange = () => {
+                const action = buzzActionSel.value;
+                if (action === 'next') {
+                    buzzPenaltySel.innerHTML = `
+                        <option value="none">なし</option>
+                        <option value="reset_all">全員回答受付前に戻す</option>
+                        <option value="time_ban">一定時間回答を無効にする</option>
+                    `;
+                } else {
+                    buzzPenaltySel.innerHTML = `
+                        <option value="none">なし</option>
+                        <option value="rest">休み</option>
+                    `;
+                }
+                if (buzzPenaltyDetail) buzzPenaltyDetail.innerHTML = '';
+            };
+
+            buzzPenaltySel.onchange = () => {
+                if (!buzzPenaltyDetail) return;
+                const penalty = buzzPenaltySel.value;
+                if (penalty === 'time_ban') {
+                    buzzPenaltyDetail.innerHTML = `
+                        <div style="display:flex; align-items:center; gap:8px; margin-left:auto; max-width:180px;">
+                            <input type="number" id="config-buzz-penalty-time" class="config-select" style="width:60px; text-align:center;" value="${conf.buzzPenaltyTime || 3}" min="1" max="60">
+                            <span style="color:#aaa; font-size:0.85em;">秒</span>
+                        </div>
+                    `;
+                } else if (penalty === 'rest') {
+                    buzzPenaltyDetail.innerHTML = `
+                        <div style="display:flex; align-items:center; gap:8px; margin-left:auto; max-width:180px;">
+                            <input type="number" id="config-buzz-rest-count" class="config-select" style="width:60px; text-align:center;" value="${conf.buzzRestCount || 1}" min="1" max="10">
+                            <span style="color:#aaa; font-size:0.85em;">問休み</span>
+                        </div>
+                    `;
+                } else {
+                    buzzPenaltyDetail.innerHTML = '';
+                }
+            };
+        }
     },
 
     renderGameTypeDetail: function (gameType, conf = {}) {
@@ -538,7 +646,11 @@ App.Config = {
         const newConfig = {
             mode: mode,
             gameType: gameType,
+            answerAttempts: document.getElementById('config-answer-attempts')?.value || 'single',
             buzzWrongAction: document.getElementById('config-buzz-wrong-action')?.value || 'next',
+            buzzPenalty: document.getElementById('config-buzz-penalty')?.value || 'none',
+            buzzPenaltyTime: parseInt(document.getElementById('config-buzz-penalty-time')?.value || "3") || 3,
+            buzzRestCount: parseInt(document.getElementById('config-buzz-rest-count')?.value || "1") || 1,
             buzzTime: parseInt(document.getElementById('config-buzz-timer')?.value || "0") || 0,
             normalLimit: document.getElementById('config-normal-limit')?.value || 'unlimited',
             manualFlip: document.getElementById('config-manual-flip')?.value === 'true',

@@ -720,7 +720,6 @@ App.Design = {
             layoutHtml = `
                 <div style="padding:60px; box-sizing:border-box; display:flex; flex-direction:column; height:100%; justify-content:center; align-items:center;">
                     <div class="preview-q-block ${this.activeQuickEdit === 'q' ? 'is-editing' : ''}" onclick="event.stopPropagation(); App.Design.openQuickEdit('q', event)" style="${qStyle} width:80%; height:50%; font-size:60px;">${qText}</div>
-                    <div style="color:#aaa; margin-top:40px; font-size:30px;">[ ${qType === 'free_oral' ? '口頭回答' : '記述式'} ]</div>
                 </div>
             `;
         } else {
@@ -1050,6 +1049,7 @@ App.Design = {
                     this.renderPreview();
                 };
             }
+            modal.classList.remove('hidden');
             return;
         }
 
@@ -1085,6 +1085,7 @@ App.Design = {
                     this.renderPreview();
                 };
             }
+            modal.classList.remove('hidden');
             return;
         }
 
@@ -1100,7 +1101,12 @@ App.Design = {
                         <span class="inspector-label-mini">文字</span>
                         <div class="color-swatch-wrapper">
                             <input type="color" id="quick-text-color" class="color-picker-hidden" value="${document.getElementById(`design-${prefix}-text`).value}">
-                            <div class="color-swatch" id="swatch-text-color" style="background:${document.getElementById(`design-${prefix}-text`).value}"></div>
+                            <div class="color-swatch" id="swatch-text-color" style="background:${document.getElementById(`design-${prefix}-text-transparent`).checked ? 'transparent' : document.getElementById(`design-${prefix}-text`).value}"></div>
+                        </div>
+                        <div style="margin-top:5px; text-align:center;">
+                            <label style="font-size:0.8em; cursor:pointer;">
+                                <input type="checkbox" id="quick-text-transparent-toggle" ${document.getElementById(`design-${prefix}-text-transparent`).checked ? 'checked' : ''}> 透明
+                            </label>
                         </div>
                     </div>
                     <div class="inspector-control-group">
@@ -1128,14 +1134,19 @@ App.Design = {
                         <span class="inspector-label-mini">枠線</span>
                         <div class="color-swatch-wrapper">
                             <input type="color" id="quick-border-color" class="color-picker-hidden" value="${document.getElementById(`design-${prefix}-border`).value}">
-                            <div class="color-swatch" id="swatch-border-color" style="background:${document.getElementById(`design-${prefix}-border`).value}"></div>
+                            <div class="color-swatch" id="swatch-border-color" style="background:${document.getElementById(`design-${prefix}-border-transparent`).checked ? 'transparent' : document.getElementById(`design-${prefix}-border`).value}"></div>
+                        </div>
+                        <div style="margin-top:5px; text-align:center;">
+                            <label style="font-size:0.8em; cursor:pointer;">
+                                <input type="checkbox" id="quick-border-transparent-toggle" ${document.getElementById(`design-${prefix}-border-transparent`).checked ? 'checked' : ''}> 透明
+                            </label>
                         </div>
                     </div>
                     <div class="inspector-control-group">
                         <span class="inspector-label-mini">背景</span>
                         <div class="color-swatch-wrapper">
                             <input type="color" id="quick-bg-color" class="color-picker-hidden" value="${document.getElementById(`design-${prefix}-bg`).value}">
-                            <div class="color-swatch" id="swatch-bg-color" style="background:${document.getElementById(`design-${prefix}-bg`).value}"></div>
+                            <div class="color-swatch" id="swatch-bg-color" style="background:${document.getElementById(`design-${prefix}-bg-transparent`).checked ? 'transparent' : document.getElementById(`design-${prefix}-bg`).value}"></div>
                         </div>
                         <div style="margin-top:5px; text-align:center;">
                             <label style="font-size:0.8em; cursor:pointer;">
@@ -1150,52 +1161,60 @@ App.Design = {
         modal.classList.remove('hidden');
 
         // Bind events
-        const sync = (id, targetId, swatchId) => {
+        const sync = (id, targetId, swatchId, transToggleId) => {
             const el = document.getElementById(id);
             const targetEl = document.getElementById(targetId);
             const swatch = document.getElementById(swatchId);
             if (el && targetEl) {
                 el.oninput = () => {
                     targetEl.value = el.value;
-                    if (swatch) swatch.style.background = el.value;
+                    if (swatch) {
+                        swatch.style.background = el.value;
+                        swatch.style.backgroundImage = 'none';
+                    }
                     // Uncheck transparent if color picked
-                    const transChk = document.getElementById('quick-bg-transparent-toggle');
-                    if (transChk && id === 'quick-bg-color') {
-                        transChk.checked = false;
-                        document.getElementById(targetId + '-transparent').checked = false;
+                    if (transToggleId) {
+                        const transChk = document.getElementById(transToggleId);
+                        if (transChk) {
+                            transChk.checked = false;
+                            document.getElementById(targetId + '-transparent').checked = false;
+                        }
                     }
                     this.renderPreview();
                 };
             }
         };
 
-        sync('quick-text-color', `design-${prefix}-text`, 'swatch-text-color');
-        sync('quick-border-color', `design-${prefix}-border`, 'swatch-border-color');
-        sync('quick-bg-color', `design-${prefix}-bg`, 'swatch-bg-color');
+        sync('quick-text-color', `design-${prefix}-text`, 'swatch-text-color', 'quick-text-transparent-toggle');
+        sync('quick-border-color', `design-${prefix}-border`, 'swatch-border-color', 'quick-border-transparent-toggle');
+        sync('quick-bg-color', `design-${prefix}-bg`, 'swatch-bg-color', 'quick-bg-transparent-toggle');
 
-        // Transparent Toggle Logic
-        const transToggle = document.getElementById('quick-bg-transparent-toggle');
-        if (transToggle) {
-            transToggle.onchange = () => {
-                const isChecked = transToggle.checked;
-                document.getElementById(`design-${prefix}-bg-transparent`).checked = isChecked;
-                const swatch = document.getElementById('swatch-bg-color');
+        // Transparent Toggle Logic (generalized for all 3)
+        const bindTransToggle = (toggleId, targetTransId, swatchId, colorInputId) => {
+            const toggle = document.getElementById(toggleId);
+            if (!toggle) return;
+            const updateVisual = () => {
+                const isChecked = toggle.checked;
+                document.getElementById(targetTransId).checked = isChecked;
+                const swatch = document.getElementById(swatchId);
                 if (isChecked) {
                     swatch.style.background = "transparent";
                     swatch.style.backgroundImage = "linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)";
                     swatch.style.backgroundSize = "10px 10px";
                     swatch.style.backgroundPosition = "0 0, 0 5px, 5px -5px, -5px 0px";
                 } else {
-                    swatch.style.background = document.getElementById(`design-${prefix}-bg`).value;
+                    swatch.style.background = document.getElementById(colorInputId)?.value || '#000';
                     swatch.style.backgroundImage = "none";
                 }
                 this.renderPreview();
             };
-            // Initial state visual update
-            if (transToggle.checked) {
-                transToggle.dispatchEvent(new Event('change'));
-            }
-        }
+            toggle.onchange = updateVisual;
+            if (toggle.checked) updateVisual();
+        };
+
+        bindTransToggle('quick-text-transparent-toggle', `design-${prefix}-text-transparent`, 'swatch-text-color', `design-${prefix}-text`);
+        bindTransToggle('quick-border-transparent-toggle', `design-${prefix}-border-transparent`, 'swatch-border-color', `design-${prefix}-border`);
+        bindTransToggle('quick-bg-transparent-toggle', `design-${prefix}-bg-transparent`, 'swatch-bg-color', `design-${prefix}-bg`);
 
         bindStepper('quick-font-size', `design-${prefix}-size`);
 

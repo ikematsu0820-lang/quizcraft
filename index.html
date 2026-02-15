@@ -75,8 +75,19 @@
         <div class="dashboard-footer-area">
             <button id="dash-viewer-btn" class="dash-btn dash-btn-footer" data-text="Dashboard.BtnViewer">モニター</button>
         </div>
-        <div class="dashboard-list-area">
-            <h4 class="section-title" data-text="Dashboard.SetListTitle">Saved Sets</h4>
+        <div class="dashboard-footer-area" style="margin-top:15px;">
+            <button id="dash-saved-items-btn" class="dash-btn dash-btn-footer"
+                onclick="App.Dashboard.openSavedItems()">📂 保存済みのセット・プログラムを見る</button>
+        </div>
+    </div>
+
+    <!-- Saved Items View (separate from dashboard) -->
+    <div id="saved-items-view" class="view hidden">
+        <div class="view-header">
+            <h3>保存済みデータ</h3>
+            <button class="header-back-btn" onclick="App.Dashboard.enter()">← ダッシュボード</button>
+        </div>
+        <div class="dashboard-list-area" style="padding:15px;">
             <div id="dash-set-list" class="scroll-list"></div>
         </div>
     </div>
@@ -565,14 +576,14 @@
 
                 <!-- 1. Question Text -->
                 <div style="background:#333; padding:10px 15px; border-bottom:1px solid #444;">
-                    <div style="font-size:10px; color:#888; margin-bottom:4px;">QUESTION</div>
+                    <div style="font-size:10px; color:#888; margin-bottom:4px;">問題</div>
                     <div id="console-card-question" style="color:#fff; font-size:14px; line-height:1.4;">---</div>
                 </div>
 
                 <!-- 2. Correct Answer -->
                 <div
                     style="background:#2a2a2a; padding:8px 15px; border-bottom:1px solid #444; display:flex; justify-content:space-between; align-items:center;">
-                    <div style="font-size:10px; color:#888;">CORRECT ANSWER</div>
+                    <div style="font-size:10px; color:#888;">正解</div>
                     <div id="console-card-correct" style="color:#2ecc71; font-weight:bold; font-size:14px;">---</div>
                 </div>
 
@@ -580,10 +591,10 @@
                 <div style="background:#444; padding:30px 20px; text-align:center; position:relative;">
                     <div id="console-card-player-name"
                         style="position:absolute; top:10px; left:10px; font-size:10px; color:#aaa; background:#222; padding:2px 8px; border-radius:4px;">
-                        PLAYER</div>
+                        プレイヤー</div>
                     <div id="console-card-player-answer-content"
                         style="color:#fff; font-size:28px; font-weight:bold; min-height:1.2em; word-break:break-all;">
-                        (Select Player)</div>
+                        (プレイヤーを選択)</div>
                 </div>
 
                 <!-- 4. Judge Buttons -->
@@ -596,7 +607,7 @@
             <div class="simple-player-section" style="width:100%; max-width:600px; margin-top:30px;">
                 <div
                     style="color:#666; font-size:12px; margin-bottom:10px; border-bottom:1px solid #333; padding-bottom:5px;">
-                    PARTICIPANTS</div>
+                    参加者</div>
                 <div id="console-player-horizontal-list" class="console-horizontal-scroll"
                     style="display:flex; gap:10px; overflow-x:auto; padding-bottom:10px;">
                     <!-- Players injected here -->
@@ -859,113 +870,121 @@
 </body>
 
 </html>
-<div id="modal-prod-title" class="design-modal-overlay hidden">
-    <div class="design-modal-content">
-        <h3 class="modal-title">タイトル画面設定</h3>
-        <div class="design-modal-body">
-            <div class="config-group">
-                <label class="config-label">表示するタイトル名</label>
-                <input type="text" id="design-title-text-value" class="btn-block" placeholder="例: プレビュー用タイトル">
-                <p class="text-xs text-gray mt-5">※デザイン確認用の入力です（保存はされません）</p>
+<div id="modal-prod-title" class="design-modal-overlay hidden"
+    onclick="if(event.target===this)this.classList.add('hidden')">
+    <div class="design-modal-content" style="max-width:360px; padding:15px;">
+        <h3 class="modal-title" style="font-size:14px; margin-bottom:10px;">タイトル画面設定</h3>
+        <div class="design-modal-body" style="font-size:12px;">
+            <div class="config-group" style="margin-bottom:8px;">
+                <label class="config-label" style="font-size:11px; margin-bottom:3px;">表示するタイトル名</label>
+                <input type="text" id="design-title-text-value" class="btn-block"
+                    style="padding:6px 8px; font-size:12px;" placeholder="例: プレビュー用タイトル">
             </div>
-            <div class="color-row">
-                <label>背景色</label>
+            <div class="color-row" style="padding:6px 0;">
+                <label style="font-size:12px;">背景色</label>
                 <div class="color-picker-wrapper">
                     <input type="color" id="prod-title-bg-color" class="color-picker-full" value="#000000">
-                    <label class="text-xs ml-5" style="display:inline-flex; align-items:center;"><input type="checkbox"
-                            id="prod-title-bg-color-transparent" style="margin-right:3px;"> 色なし</label>
+                    <label class="text-xs ml-5" style="display:inline-flex; align-items:center; font-size:11px;"><input
+                            type="checkbox" id="prod-title-bg-color-transparent" style="margin-right:3px;"> 色なし</label>
                 </div>
             </div>
-            <div class="color-row">
-                <label>文字色</label>
+            <div class="color-row" style="padding:6px 0;">
+                <label style="font-size:12px;">文字色</label>
                 <div class="color-picker-wrapper">
                     <input type="color" id="prod-title-text-color" class="color-picker-full" value="#ffd700">
-                    <label class="text-xs ml-5" style="display:inline-flex; align-items:center;"><input type="checkbox"
-                            id="prod-title-text-color-transparent" style="margin-right:3px;"> 色なし</label>
+                    <label class="text-xs ml-5" style="display:inline-flex; align-items:center; font-size:11px;"><input
+                            type="checkbox" id="prod-title-text-color-transparent" style="margin-right:3px;">
+                        色なし</label>
                 </div>
             </div>
-            <div class="config-group">
-                <label class="config-label">フォント</label>
-                <select id="prod-title-font" class="btn-block">
+            <div class="config-group" style="margin-bottom:8px;">
+                <label class="config-label" style="font-size:11px; margin-bottom:3px;">フォント</label>
+                <select id="prod-title-font" class="btn-block" style="padding:6px 8px; font-size:12px;">
                     <option value="sans-serif">Sans-serif (標準)</option>
                     <option value="serif">Serif (明朝)</option>
                     <option value="monospace">Monospace (等幅)</option>
                 </select>
             </div>
-            <div class="config-group">
-                <label class="config-label">文字サイズ</label>
-                <input type="text" id="prod-title-size" class="btn-block" value="" placeholder="120px">
+            <div class="config-group" style="margin-bottom:8px;">
+                <label class="config-label" style="font-size:11px; margin-bottom:3px;">文字サイズ</label>
+                <input type="text" id="prod-title-size" class="btn-block" style="padding:6px 8px; font-size:12px;"
+                    value="" placeholder="120px">
             </div>
-            <div class="config-group">
-                <label class="config-label">アニメーション</label>
-                <select id="prod-title-animation" class="btn-block">
+            <div class="config-group" style="margin-bottom:8px;">
+                <label class="config-label" style="font-size:11px; margin-bottom:3px;">アニメーション</label>
+                <select id="prod-title-animation" class="btn-block" style="padding:6px 8px; font-size:12px;">
                     <option value="fade">フェード</option>
                     <option value="slide">スライド</option>
                     <option value="pop">ポップ</option>
                 </select>
             </div>
         </div>
-        <div class="modal-close-action">
-            <button class="btn-block btn-dark modal-close-btn">閉じる</button>
+        <div class="modal-close-action" style="margin-top:10px;">
+            <button class="btn-block btn-dark modal-close-btn" style="padding:8px; font-size:13px;"
+                onclick="document.getElementById('modal-prod-title').classList.add('hidden')">閉じる</button>
         </div>
     </div>
 </div>
 
-<div id="modal-prod-qnum" class="design-modal-overlay hidden">
-    <div class="design-modal-content">
-        <h3 class="modal-title">問題番号設定</h3>
-        <div class="design-modal-body">
-            <div class="config-group">
-                <label class="config-label">表示するテキスト</label>
-                <input type="text" id="design-qnum-text-value" class="btn-block" placeholder="例: 第1問">
+<div id="modal-prod-qnum" class="design-modal-overlay hidden"
+    onclick="if(event.target===this)this.classList.add('hidden')">
+    <div class="design-modal-content" style="max-width:360px; padding:15px;">
+        <h3 class="modal-title" style="font-size:14px; margin-bottom:10px;">問題番号設定</h3>
+        <div class="design-modal-body" style="font-size:12px;">
+            <div class="config-group" style="margin-bottom:8px;">
+                <label class="config-label" style="font-size:11px; margin-bottom:3px;">表示するテキスト</label>
+                <input type="text" id="design-qnum-text-value" class="btn-block"
+                    style="padding:6px 8px; font-size:12px;" placeholder="例: 第1問">
             </div>
-            <div class="color-row">
-                <label>背景色</label>
+            <div class="color-row" style="padding:6px 0;">
+                <label style="font-size:12px;">背景色</label>
                 <div class="color-picker-wrapper">
                     <input type="color" id="prod-qnum-bg-color" class="color-picker-full" value="#000000">
-                    <label class="text-xs ml-5" style="display:inline-flex; align-items:center;"><input type="checkbox"
-                            id="prod-qnum-bg-color-transparent" style="margin-right:3px;"> 色なし</label>
+                    <label class="text-xs ml-5" style="display:inline-flex; align-items:center; font-size:11px;"><input
+                            type="checkbox" id="prod-qnum-bg-color-transparent" style="margin-right:3px;"> 色なし</label>
                 </div>
             </div>
-            <div class="color-row">
-                <label>文字色</label>
+            <div class="color-row" style="padding:6px 0;">
+                <label style="font-size:12px;">文字色</label>
                 <div class="color-picker-wrapper">
                     <input type="color" id="prod-qnum-text-color" class="color-picker-full" value="#ffffff">
-                    <label class="text-xs ml-5" style="display:inline-flex; align-items:center;"><input type="checkbox"
-                            id="prod-qnum-text-color-transparent" style="margin-right:3px;"> 色なし</label>
+                    <label class="text-xs ml-5" style="display:inline-flex; align-items:center; font-size:11px;"><input
+                            type="checkbox" id="prod-qnum-text-color-transparent" style="margin-right:3px;"> 色なし</label>
                 </div>
             </div>
-            <div class="config-group">
-                <label class="config-label">フォント</label>
-                <select id="prod-qnum-font" class="btn-block">
+            <div class="config-group" style="margin-bottom:8px;">
+                <label class="config-label" style="font-size:11px; margin-bottom:3px;">フォント</label>
+                <select id="prod-qnum-font" class="btn-block" style="padding:6px 8px; font-size:12px;">
                     <option value="sans-serif">Sans-serif (標準)</option>
                     <option value="serif">Serif (明朝)</option>
                     <option value="monospace">Monospace (等幅)</option>
                 </select>
             </div>
-            <div class="config-group">
-                <label class="config-label">文字サイズ</label>
-                <input type="text" id="prod-qnum-size" class="btn-block" placeholder="10vh">
+            <div class="config-group" style="margin-bottom:8px;">
+                <label class="config-label" style="font-size:11px; margin-bottom:3px;">文字サイズ</label>
+                <input type="text" id="prod-qnum-size" class="btn-block" style="padding:6px 8px; font-size:12px;"
+                    placeholder="10vh">
             </div>
-            <div class="config-group">
-                <label class="config-label">表示位置</label>
-                <select id="prod-qnum-position" class="btn-block">
+            <div class="config-group" style="margin-bottom:8px;">
+                <label class="config-label" style="font-size:11px; margin-bottom:3px;">表示位置</label>
+                <select id="prod-qnum-position" class="btn-block" style="padding:6px 8px; font-size:12px;">
                     <option value="center">中央</option>
                     <option value="top">上部</option>
                     <option value="bottom">下部</option>
                 </select>
             </div>
-            <div class="config-group">
-                <label class="config-label">アニメーション</label>
-                <select id="prod-qnum-animation" class="btn-block">
+            <div class="config-group" style="margin-bottom:8px;">
+                <label class="config-label" style="font-size:11px; margin-bottom:3px;">アニメーション</label>
+                <select id="prod-qnum-animation" class="btn-block" style="padding:6px 8px; font-size:12px;">
                     <option value="fade">フェード</option>
                     <option value="slide">スライド</option>
                     <option value="pop">ポップ</option>
                 </select>
             </div>
         </div>
-        <div class="modal-close-action">
-            <button class="btn-block btn-dark modal-close-btn">閉じる</button>
+        <div class="modal-close-action" style="margin-top:10px;">
+            <button class="btn-block btn-dark modal-close-btn" style="padding:8px; font-size:13px;"
+                onclick="document.getElementById('modal-prod-qnum').classList.add('hidden')">閉じる</button>
         </div>
     </div>
 </div>
