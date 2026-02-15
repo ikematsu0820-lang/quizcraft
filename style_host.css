@@ -1153,13 +1153,19 @@ select.bold-select {
 
 .prog-card-info {
     flex: 1;
-    background: #115c7a;
+    background: #000;
     padding: 10px 12px;
     border-radius: 8px 0 0 8px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     min-width: 0;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.prog-card-info:hover {
+    background: #222;
 }
 
 .prog-card-title {
