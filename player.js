@@ -756,32 +756,44 @@ function renderPlayerQuestion(q, roomId, playerId) {
                 [choices[i], choices[j]] = [choices[j], choices[i]];
             }
         }
-        const isMulti = q.multi || false;
+        // Forced Single Selection for Dobon/Turn mode even if q.multi is true
+        const isDobonMode = (q.mode === 'dobon' || q.mode === 'multi');
+        const isMulti = isDobonMode ? false : (q.multi || false);
+
         const selected = new Set();
         const btns = [];
 
+        // Retrieve taken choices for Dobon/Turn
+        const takenChoices = (localStatus && localStatus.takenChoices) ? localStatus.takenChoices : [];
+
         choices.forEach((item, i) => {
             const btn = document.createElement('button');
+
+            // Check if taken
+            if (isDobonMode && takenChoices.includes(item.originalIndex)) {
+                return; // Skip rendering this choice entirely (Disappear)
+            }
+
             btn.className = 'answer-btn';
             btn.style.border = '4px solid transparent'; // Prepare for highlight
             btn.style.transition = 'all 0.1s';
 
             // Add visual indicator (Radio or Check)
             const icon = isMulti ? (selected.has(item.originalIndex) ? '☑ ' : '☐ ') : (selected.has(item.originalIndex) ? '◉ ' : '○ ');
-            // Actually, icon update needs to happen on click.
-            // Let's just use text for now or simple visual highlight.
-            // Keeping text clean is better. We depend on Border.
 
             btn.innerHTML = `<span style="font-weight:900; margin-right:10px; opacity:0.8; font-family:monospace;">${String.fromCharCode(65 + item.originalIndex)}</span> ${item.text}`;
             btn.dataset.ans = item.originalIndex;
 
-            if (i === 0) btn.classList.add('btn-blue');
-            else if (i === 1) btn.classList.add('btn-red');
-            else if (i === 2) btn.classList.add('btn-green');
-            else btn.classList.add('btn-yellow');
+            // Color logic:
+            if (isDobonMode) {
+                btn.classList.add('btn-neutral');
+            } else {
+                if (i === 0) btn.classList.add('btn-blue');
+                else if (i === 1) btn.classList.add('btn-red');
+                else if (i === 2) btn.classList.add('btn-green');
+                else btn.classList.add('btn-yellow');
+            }
 
-            // If single mode, maybe dim unselected ones?
-            // Let's use opacity logic similar to Sort-Multi.
             btn.style.opacity = '0.8';
 
             btn.onclick = () => {

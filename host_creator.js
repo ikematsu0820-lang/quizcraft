@@ -561,7 +561,8 @@ window.App.Creator = {
 
     // --- 以下、既存ロジック ---
     addChoiceInput: function (parent, index, text = "", checked = false) {
-        if (parent.children.length >= 20) { alert(APP_TEXT.Creator.AlertMaxChoice); return; }
+        const limit = (this.choiceSubtype === 'multi') ? 36 : 20;
+        if (parent.children.length >= limit) { alert(`選択肢の上限は${limit}個までです`); return; }
         const row = document.createElement('div');
         row.className = 'choice-row flex-center gap-5 p-5';
 
@@ -626,6 +627,7 @@ window.App.Creator = {
     },
 
     addSortInput: function (parent, index, text = "", rank = "") {
+        if (parent.children.length >= 20) { alert("並べ替え問題の上限は20個までです"); return; }
         const row = document.createElement('div');
         row.className = 'sort-row';
 
@@ -936,7 +938,11 @@ window.App.Creator = {
         const ref = setId ? baseRef.child(setId) : baseRef.push();
 
         if (!setId) {
-            data.config = { mode: 'normal', gameType: 'score', theme: 'light' };
+            // Check if any question is Dobon/Multi -> Default to 'turn'
+            const hasDobon = window.App.Data.createdQuestions.some(q => q.mode === 'dobon' || q.mode === 'multi');
+            const defaultMode = hasDobon ? 'turn' : 'normal';
+
+            data.config = { mode: defaultMode, gameType: 'score', theme: 'light' };
             data.createdAt = firebase.database.ServerValue.TIMESTAMP;
         }
 

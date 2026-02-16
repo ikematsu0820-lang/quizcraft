@@ -28,6 +28,7 @@ window.App.ProgConfig = {
         const showId = window.App.State.currentShowId;
         window.db.ref(`saved_sets/${showId}`).once('value', snap => {
             select.innerHTML = '<option value="">-- 追加するセットを選択 --</option>';
+            // Removed __NEW_CONTAINER__ option as we use the menu now
             const data = snap.val();
             this.localItemsCache = {};
 
@@ -48,7 +49,7 @@ window.App.ProgConfig = {
     setupEventListeners: function () {
         // Reset and bind to avoid duplicates
         const map = {
-            'prog-add-set-btn': () => this.openAddMenu(),
+            'prog-add-set-btn': () => this.openAddMenu(), // Reverted to menu
             'prog-save-program-btn': () => this.saveProgram(),
             'prog-go-studio-btn': () => this.goToStudio(),
             'prog-open-load-modal-btn': () => this.openLoadModal(),
@@ -77,7 +78,7 @@ window.App.ProgConfig = {
                     <h3 style="margin:0 0 15px 0; font-size:1.1em; color:#fff; text-align:center;">構成要素を追加</h3>
                     
                     <button class="btn-block btn-primary" onclick="window.App.ProgConfig.addSetToPlaylist(); document.getElementById('prog-add-menu-modal').remove()" style="margin-bottom:10px; padding:15px; font-weight:bold; font-size:1.1em; text-align:left;">
-                        <span style="font-size:1.4em; margin-right:10px;">📋</span> シングル（1セット）
+                        <span style="font-size:1.4em; margin-right:10px;">📋</span> シングル（選択中のセット）
                         <div style="font-size:0.7em; opacity:0.7; font-weight:normal; margin-left:36px;">通常のクイズセットを1つ追加します</div>
                     </button>
 
@@ -113,6 +114,9 @@ window.App.ProgConfig = {
             alert("セットを選択してください");
             return;
         }
+
+        // Removed __NEW_CONTAINER__ check
+
         if (!this.localItemsCache[key]) return;
 
         const setItem = this.localItemsCache[key];
@@ -162,7 +166,8 @@ window.App.ProgConfig = {
         }
 
         let html = '';
-        html += `<div style="text-align:right; margin-bottom:10px;"><button class="btn-primary" onclick="window.App.ProgConfig.openAddMenu()" style="width:100%; padding:10px;">＋ 追加</button></div>`;
+        // Removed top button
+
 
         playlist.forEach((item, i) => {
             if (item.type === 'container') {
@@ -195,7 +200,7 @@ window.App.ProgConfig = {
                 html += `
                 <div class="timeline-card prog-card-compact" style="border:1px solid #444; background:#111; padding:10px;">
                     <div class="flex-between mb-5">
-                        <div style="font-weight:bold; color:#aaa;">📦 Selection Container</div>
+                        <div style="font-weight:bold; color:#aaa;">📦 選択コンテナ</div>
                         <div class="prog-card-settings" style="display:flex; gap:5px;">
                              <button class="btn-mini btn-info" onclick="window.App.ProgConfig.move(${i}, -1)">▲</button>
                              <button class="btn-mini btn-info" onclick="window.App.ProgConfig.move(${i}, 1)">▼</button>
@@ -330,6 +335,21 @@ window.App.ProgConfig = {
             // No full render needed for settings, maybe? But safer to render.
             // this.renderPlaylist(); 
         }
+    },
+
+    // --- Top Level Move Helpers ---
+    move: function (index, dir) {
+        const arr = window.App.Data.periodPlaylist;
+        const target = index + dir;
+        if (target < 0 || target >= arr.length) return;
+        [arr[index], arr[target]] = [arr[target], arr[index]];
+        this.renderPlaylist();
+    },
+
+    remove: function (index) {
+        if (!confirm("この項目を削除しますか？")) return;
+        window.App.Data.periodPlaylist.splice(index, 1);
+        this.renderPlaylist();
     },
 
     // --- Container Move Helpers ---

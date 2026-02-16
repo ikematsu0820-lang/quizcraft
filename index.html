@@ -79,7 +79,7 @@
             </div>
             <div class="dashboard-footer-area" style="margin-top:15px;">
                 <button id="dash-saved-items-btn" class="dash-btn dash-btn-footer"
-                    onclick="App.Dashboard.openSavedItems()">📂 保存済みのセット・プログラムを見る</button>
+                    onclick="App.Dashboard.openSavedItems()">保存済みのセット・プログラムを見る</button>
             </div>
         </div>
     </div>
@@ -88,7 +88,7 @@
     <div id="saved-items-view" class="view hidden">
         <div class="view-header">
             <h3>保存済みデータ</h3>
-            <button class="header-back-btn" onclick="App.Dashboard.enter()">← ダッシュボード</button>
+            <button class="header-back-btn" onclick="App.Dashboard.enter()">ダッシュボード</button>
         </div>
         <div class="dashboard-list-area" style="padding:15px;">
             <div id="dash-set-list" class="scroll-list"></div>
@@ -479,24 +479,21 @@
             <button id="prog-config-back-btn" class="header-back-btn">ダッシュボード</button>
         </div>
 
-        <div class="panel-section section-purple mb-20">
-            <h3 class="panel-title-center">番組の構成 (セットの再生順)</h3>
-            <p class="text-sm text-gray mb-15">保存済みのセット（ルール適用済み）を選択して追加してください。</p>
-            <div class="flex-row gap-10">
-                <select id="prog-set-select" class="btn-block config-select flex-1"></select>
-                <button id="prog-add-set-btn" class="btn-primary" style="width:100px;">追加</button>
-            </div>
-        </div>
-
-        <div class="config-playlist-area">
-            <h4 class="section-title">番組セットリスト</h4>
-            <div id="prog-playlist-preview" class="scroll-list-dark">
+        <div class="config-playlist-area" style="flex:1; overflow-y:auto; padding-bottom:120px;">
+            <h4 class="section-title" style="color:#00bfff;">番組セットリスト</h4>
+            <div id="prog-playlist-preview" class="scroll-list-dark" style="min-height:200px;">
                 <p class="empty-msg">まだ追加されていません</p>
             </div>
-
-            <button id="prog-open-load-modal-btn" class="btn-dark btn-block mt-10">📂 保存済み番組を読み込む</button>
         </div>
 
+        <div class="fixed-bottom-action-area" style="padding:20px; background:#111; border-top:1px solid #333;">
+            <button id="prog-add-set-btn" class="btn-primary btn-block mb-10"
+                style="padding:15px; font-size:1.1em; font-weight:bold;">+ 追加</button>
+            <select id="prog-set-select" class="btn-block config-select mb-20"></select>
+
+            <button id="prog-open-load-modal-btn" class="btn-dark btn-block" style="opacity:0.7;">📂
+                保存済み番組を読み込む</button>
+        </div>
 
         <!-- Load Modal -->
         <div id="prog-load-modal" class="modal-overlay hidden">

@@ -188,6 +188,12 @@
     color: #000;
 }
 
+.btn-neutral {
+    background: rgba(40, 40, 40, 0.8);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
 .answer-btn.btn-dimmed {
     opacity: 0.3;
     filter: grayscale(100%);
@@ -782,27 +788,38 @@
     transform: scale(1.02);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
+
 /* --- Multi-Answer Fixed Layout --- */
 .multi-layout-active {
-    height: 100dvh; /* Force viewport height */
-    overflow: hidden; /* Disable body/view scroll */
+    height: 100dvh;
+    /* Force viewport height */
+    overflow: hidden;
+    /* Disable body/view scroll */
 }
 
 .multi-layout-active #player-quiz-area {
-    overflow: hidden; /* Ensure internal scrolling only */
-    justify-content: flex-start; /* Align top, overrides other alignments */
+    overflow: hidden;
+    /* Ensure internal scrolling only */
+    justify-content: flex-start;
+    /* Align top, overrides other alignments */
 }
 
 .multi-layout-active #question-text-disp {
-    flex-shrink: 0; /* Text doesn't shrink */
-    max-height: 20vh; /* Optional: Cap text height if needed */
-    overflow-y: auto; /* Scroll text if too long */
+    flex-shrink: 0;
+    /* Text doesn't shrink */
+    max-height: 20vh;
+    /* Optional: Cap text height if needed */
+    overflow-y: auto;
+    /* Scroll text if too long */
 }
 
 .multi-layout-active #player-input-container {
-    margin-top: 10px; /* Remove auto margin behavior */
-    flex: 1; /* Take remaining height */
-    overflow: hidden; /* Flex container for grid */
+    margin-top: 10px;
+    /* Remove auto margin behavior */
+    flex: 1;
+    /* Take remaining height */
+    overflow: hidden;
+    /* Flex container for grid */
     display: flex;
     flex-direction: column;
 }
@@ -811,6 +828,8 @@
 .multi-layout-active .player-multi-grid {
     overflow-y: auto;
     flex: 1;
-    -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
-    padding-bottom: 20px; /* Space at bottom */
+    -webkit-overflow-scrolling: touch;
+    /* Smooth scroll on iOS */
+    padding-bottom: 20px;
+    /* Space at bottom */
 }

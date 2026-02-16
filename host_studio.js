@@ -149,21 +149,34 @@ App.Studio = {
                 this.renderUnifiedConsole(players); // Still might want to see who joined
             }
 
-            if (App.Data.currentConfig?.mode === 'buzz' && this.currentStepId === 2) {
-                this.checkBuzz(players);
+            const isBuzz = (App.Data.currentConfig?.mode === 'buzz');
+            const isTurn = (App.Data.currentConfig?.mode === 'turn');
 
-                // Auto Judge for Buzz Mode (Choice/Sort/Letter)
-                if (this.buzzWinner && players[this.buzzWinner]) {
-                    const winner = players[this.buzzWinner];
-                    const q = App.Data.studioQuestions[App.State.currentQIndex];
-                    // Only auto-judge if they have answered AND not yet judged
-                    if (winner.lastAnswer !== null && winner.lastAnswer !== undefined && !winner.lastResult) {
-                        if (q && ['choice', 'sort', 'letter_select'].includes(q.type)) {
-                            // Introduce a small delay to ensure UI updates? Or immediate?
-                            // Immediate is fine for UX, but maybe add 500ms for dramatic effect?
-                            // Let's do immediate for responsiveness.
-                            this.judgeBuzzAuto(winner, q);
+            if (this.currentStepId === 2) {
+                if (isBuzz) {
+                    this.checkBuzz(players);
+
+                    // Auto Judge for Buzz Mode (Choice/Sort/Letter)
+                    if (this.buzzWinner && players[this.buzzWinner]) {
+                        const winner = players[this.buzzWinner];
+                        const q = App.Data.studioQuestions[App.State.currentQIndex];
+                        // Only auto-judge if they have answered AND not yet judged
+                        if (winner.lastAnswer !== null && winner.lastAnswer !== undefined && !winner.lastResult) {
+                            if (q && ['choice', 'sort', 'letter_select'].includes(q.type)) {
+                                this.judgeBuzzAuto(this.buzzWinner, winner, q);
+                            }
                         }
+                    }
+                } else if (isTurn || (App.Data.currentConfig?.mode === 'solo')) {
+                    // Auto Judge for Turn/Solo Mode (Iterate all to find pending answer)
+                    const q = App.Data.studioQuestions[App.State.currentQIndex];
+                    if (q && ['choice', 'sort', 'letter_select'].includes(q.type)) {
+                        Object.entries(players).forEach(([pid, p]) => {
+                            if (p.lastAnswer !== null && p.lastAnswer !== undefined && !p.lastResult) {
+                                // Found a player with pending answer - pass ID and Player Object
+                                this.judgeBuzzAuto(pid, p, q);
+                            }
+                        });
                     }
                 }
             }
@@ -1010,7 +1023,8 @@ App.Studio = {
         window.db.ref(`rooms/${roomId}/status`).update({
             currentAnswerer: null,
             currentAnswererName: null,
-            isBuzzActive: false // Will be re-enabled by setStep if needed
+            isBuzzActive: false, // Will be re-enabled by setStep if needed
+            takenChoices: null   // Reset taken choices for next question
         });
 
         window.db.ref(`rooms/${roomId}/players`).once('value', snap => {
@@ -1441,26 +1455,57 @@ App.Studio = {
         });
     },
 
-    judgeBuzzAuto: function (player, q) {
+    judgeBuzzAuto: function (playerId, player, q) {
         if (!player || !q) return;
         let isCor = false;
+        const ans = player.lastAnswer;
+        const roomId = App.State.currentRoomId;
 
-        if (q.type === 'choice') {
-            if (Array.isArray(q.correct)) {
-                if (q.correct.some(c => c == player.lastAnswer)) isCor = true;
+        // Special Dobon Logic
+        const isDobon = (q.type === 'choice' && (q.mode === 'dobon' || q.mode === 'multi' || q.multi));
+
+        if (isDobon) {
+            const ansIdx = parseInt(ans);
+            if (Array.isArray(q.correct) && q.correct.includes(ansIdx)) {
+                isCor = false; // Hit the trap
             } else {
-                if (player.lastAnswer == q.correct) isCor = true;
+                isCor = true; // Safe
+            }
+
+            // Add to taken choices (fire and forget update for speed + consistency via queue order)
+            if (roomId) {
+                const statusRef = window.db.ref(`rooms/${roomId}/status/takenChoices`);
+                statusRef.transaction((current) => {
+                    const list = current || [];
+                    if (!list.includes(ansIdx)) list.push(ansIdx);
+                    return list;
+                });
+            }
+        } else if (q.type === 'choice') {
+            if (Array.isArray(q.correct)) {
+                if (q.correct.some(c => c == ans)) isCor = true;
+            } else {
+                if (ans == q.correct) isCor = true;
             }
         } else if (q.type === 'sort') {
             let correctStr = Array.isArray(q.correct) ? q.correct.map(idx => String.fromCharCode(65 + idx)).join('') : q.correct;
-            if (player.lastAnswer === correctStr) isCor = true;
+            if (ans === correctStr) isCor = true;
         } else if (q.type === 'letter_select') {
             let correctStr = q.steps ? q.steps.map(s => s.correct).join('') : q.correct;
-            if (player.lastAnswer === correctStr) isCor = true;
+            if (ans === correctStr) isCor = true;
+        } else {
+            // Default
+            if (ans == q.correct) isCor = true;
         }
 
         // Apply judgement
-        this.judgeBuzz(isCor);
+        if (App.Data.currentConfig.mode === 'buzz') {
+            this.buzzWinner = playerId;
+            this.judgeBuzz(isCor);
+        } else {
+            // Force update for Turn/Solo mode
+            this.updatePlayerScore(playerId, isCor);
+        }
     },
 
     getAnswerString: function (q) {
@@ -1717,7 +1762,14 @@ App.Studio = {
             if (cardPAns) cardPAns.innerHTML = ansText;
 
             // Judge Buttons Logic
-            const isAutoJudged = (q && ['choice', 'sort', 'letter_select'].includes(q.type) && q.mode !== 'dobon' && q.mode !== 'multi');
+            // Judge Buttons Logic
+            // Dobon is now Auto-Judged as per request. Multi might still be manual?
+            // Actually, if it's auto-judgable, let's auto judge.
+            // But let's keep 'multi' as manual if it's open-ended? No, 'choice' type is auto.
+            // Let's remove both exclusions if they are 'choice' type.
+            // However, previous request was to ENABLE manual. Now Disable manual.
+            // User says: "Dobon... auto judge... doesn't need host buttons".
+            const isAutoJudged = (q && ['choice', 'sort', 'letter_select'].includes(q.type));
 
             // Check if already judged (has result)
             if (p.lastResult) {
@@ -2019,13 +2071,17 @@ App.Studio = {
             }
 
             // TURN MODE LOGIC
+            // TURN MODE LOGIC
             if (config.mode === 'turn') {
-                const isDobon = (q.mode === 'dobon');
+                // Consistent Dobon definition with judgeBuzzAuto
+                const isDobon = (q.mode === 'dobon' || q.mode === 'multi' || (q.type === 'choice' && q.multi));
                 const isMulti = (q.mode === 'multi' || (q.type && q.type.startsWith('multi')));
 
                 // Advance turn if:
-                // 1. It is Multi mode (always advance, correct or wrong, to keep the flow)
+                // 1. It is Multi mode (always advance, correct or wrong, to keep the flow? Or maybe just correct?)
+                //    Usually Multi-Turn means everyone answers.
                 // 2. It is Dobon mode AND Correct (Safe) - (If Wrong/Bomb, we stop/wait)
+                //    User Request: "Don't end on correct, pass to next"
                 const shouldAdvanceInQuestion = (isMulti || (isDobon && isCorrect));
 
                 if (shouldAdvanceInQuestion) {
@@ -2050,15 +2106,18 @@ App.Studio = {
                     }
 
                     // Reset current player's lastResult/lastAnswer so the UI/Console card clears for the next turn
+                    // This allows the player to answer again if the turn loops back to them
                     setTimeout(() => {
                         snap.ref.update({ lastAnswer: null, lastResult: null });
                     }, 1500);
 
-                } else if (!this.turnAdvancedThisQ && !isDobon && !isMulti) {
-                    // Normal question: mark as finished for this person
+                } else if (!this.turnAdvancedThisQ && !isDobon && !shouldAdvanceInQuestion) {
+                    // Normal question (Single Turn): mark as finished for this person
                     // (The turn will pass to the next person for the NEXT question)
                     this.turnIndex = (this.turnIndex + 1) % this.turnOrder.length;
                     this.turnAdvancedThisQ = true;
+                    // Note: We don't advance currentAnswerer here automatically for the *current* Q, 
+                    // because the Q is done. The next Q will pick up the new turnIndex.
                 }
             }
         });
