@@ -1080,13 +1080,15 @@ App.Studio = {
 
         let text = "";
         if (type === 'title') {
-            text = `[TITLE] ${(q.prodDesign && q.prodDesign.titleText) || App.Data.currentConfig.periodTitle}`;
+            // Show only the title text as defined in design, or fallback to period title
+            text = (q.prodDesign && q.prodDesign.titleText) || App.Data.currentConfig.periodTitle;
         } else if (type === 'qnumber') {
-            text = `[Q#] ${(q.prodDesign && q.prodDesign.qNumberText) || `Q${App.State.currentQIndex + 1}`}`;
+            // Show only the Q# text as defined in design, or fallback to simple Q index
+            text = (q.prodDesign && q.prodDesign.qNumberText) || `Q${App.State.currentQIndex + 1}`;
         }
 
-        qEl.innerHTML = `<div style="padding:20px; font-size:1.5em; text-align:center; color:#ccc;">${text}</div>`;
-        document.getElementById('studio-choices-container').innerHTML = '';
+        qEl.innerHTML = `<div style="padding:20px; font-size:1.5em; text-align:center; color:#fff; font-weight:bold;">${text}</div>`;
+        if (document.getElementById('studio-choices-container')) document.getElementById('studio-choices-container').innerHTML = '';
 
         // Remove styling
         const panel = document.getElementById('studio-question-panel');
@@ -1094,28 +1096,6 @@ App.Studio = {
             panel.style.background = 'transparent';
             panel.removeAttribute('style');
         }
-        try {
-            // Simplified for Host View: Just text summary
-            const qEl = document.getElementById('studio-q-text');
-            if (!qEl) return;
-
-            let text = "";
-            if (type === 'title') {
-                text = `[TITLE] ${(q.prodDesign && q.prodDesign.titleText) || App.Data.currentConfig.periodTitle}`;
-            } else if (type === 'qnumber') {
-                text = `[Q#] ${(q.prodDesign && q.prodDesign.qNumberText) || `Q${App.State.currentQIndex + 1}`}`;
-            }
-
-            qEl.innerHTML = `<div style="padding:20px; font-size:1.5em; text-align:center; color:#ccc;">${text}</div>`;
-            document.getElementById('studio-choices-container').innerHTML = '';
-
-            // Remove styling
-            const panel = document.getElementById('studio-question-panel');
-            if (panel) {
-                panel.style.background = 'transparent';
-                panel.removeAttribute('style');
-            }
-        } catch (e) { console.error("Render Production Monitor Error:", e); }
     },
 
     renderQuestionMonitor: function (q) {
