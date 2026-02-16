@@ -262,13 +262,28 @@ select option {
 /* Dashboard Flow Area */
 
 
-.dashboard-hero-area {
+
+/* --- Dashboard Menu Alignment (User Request) --- */
+.dashboard-menu-container {
     padding: 0 20px;
+    width: 100%;
+    box-sizing: border-box;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.dashboard-hero-area {
+    padding: 0;
+    /* Padding moved to container */
     margin-bottom: 20px;
     display: flex;
     justify-content: center;
     width: 100%;
-    box-sizing: border-box;
+}
+
+/* Force hero button to be 100% */
+.dashboard-hero-area .dash-btn {
+    width: 100%;
 }
 
 .dashboard-hero-grid {
@@ -301,12 +316,24 @@ select option {
     grid-template-columns: repeat(2, 1fr);
     gap: 15px;
     margin-bottom: 20px;
-    padding: 0 20px;
+    padding: 0;
+    /* Padding moved to container */
+}
+
+/* Buttons in grid naturally fill implementation */
+.dashboard-grid-secondary .dash-btn {
+    width: 100%;
 }
 
 .dashboard-footer-area {
-    padding: 0 20px;
+    padding: 0;
+    /* Padding moved to container */
     margin-bottom: 30px;
+    width: 100%;
+}
+
+.dashboard-footer-area .dash-btn {
+    width: 100%;
 }
 
 .dash-btn {

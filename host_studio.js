@@ -1706,7 +1706,7 @@ App.Studio = {
             if (cardPAns) cardPAns.innerHTML = ansText;
 
             // Judge Buttons Logic
-            const isAutoJudged = (q && ['choice', 'sort', 'letter_select'].includes(q.type));
+            const isAutoJudged = (q && ['choice', 'sort', 'letter_select'].includes(q.type) && q.mode !== 'dobon' && q.mode !== 'multi');
 
             // Check if already judged (has result)
             if (p.lastResult) {
@@ -1780,19 +1780,65 @@ App.Studio = {
                     }
                 }
             } else {
-                // Auto-judged but waiting?
-                const statusDiv = document.createElement('div');
-                statusDiv.style.width = '100%';
-                statusDiv.style.padding = '10px';
-                statusDiv.style.textAlign = 'center';
-                statusDiv.style.color = '#888';
+                // Not auto-judged -> Manual Judge Buttons
+                if (!isAutoJudged) {
+                    // Logic for manual buttons
+                    const btnO = document.createElement('button');
+                    btnO.className = 'btn-success';
+                    btnO.style.flex = '1';
+                    btnO.style.margin = '0 5px 0 0';
+                    btnO.style.borderRadius = '0';
+                    btnO.style.padding = '15px';
+                    btnO.style.fontSize = '1.2em';
+                    btnO.textContent = "正解 〇";
+                    btnO.onclick = (e) => {
+                        e.stopPropagation();
+                        App.Studio.updatePlayerScore(this.selectedPlayerId, true);
+                    };
 
-                if (p.lastAnswer) {
-                    statusDiv.textContent = "自動判定中...";
+                    const btnX = document.createElement('button');
+                    btnX.className = 'btn-danger';
+                    btnX.style.flex = '1';
+                    btnX.style.margin = '0';
+                    btnX.style.borderRadius = '0';
+                    btnX.style.padding = '15px';
+                    btnX.style.fontSize = '1.2em';
+                    btnX.textContent = "不正解 ✖";
+                    btnX.onclick = (e) => {
+                        e.stopPropagation();
+                        App.Studio.updatePlayerScore(this.selectedPlayerId, false);
+                    };
+
+                    if (p.lastAnswer !== null && p.lastAnswer !== undefined) {
+                        if (cardBtns) {
+                            cardBtns.innerHTML = '';
+                            cardBtns.appendChild(btnO);
+                            cardBtns.appendChild(btnX);
+                        }
+                    } else {
+                        // Waiting
+                        const statusDiv = document.createElement('div');
+                        statusDiv.style.width = '100%';
+                        statusDiv.style.textAlign = 'center';
+                        statusDiv.style.color = '#888';
+                        statusDiv.textContent = "解答待ち";
+                        if (cardBtns) cardBtns.appendChild(statusDiv);
+                    }
                 } else {
-                    statusDiv.textContent = "解答待ち";
+                    // Auto-judged but waiting?
+                    const statusDiv = document.createElement('div');
+                    statusDiv.style.width = '100%';
+                    statusDiv.style.padding = '10px';
+                    statusDiv.style.textAlign = 'center';
+                    statusDiv.style.color = '#888';
+
+                    if (p.lastAnswer) {
+                        statusDiv.textContent = "自動判定中...";
+                    } else {
+                        statusDiv.textContent = "解答待ち";
+                    }
+                    if (cardBtns) cardBtns.appendChild(statusDiv);
                 }
-                if (cardBtns) cardBtns.appendChild(statusDiv);
             }
         } else {
             if (cardPName) cardPName.textContent = "---";
@@ -2350,7 +2396,7 @@ App.Studio = {
         if (playerIds.length === 0) {
             const emptyMsg = document.createElement('div');
             emptyMsg.style.cssText = 'color:#aaa; text-align:center; padding:20px; font-size:0.9em; background:rgba(0,0,0,0.3); border-radius:8px;';
-            emptyMsg.textContent = '現在、参加者がいません。参加者が入室するとリストが表示されます。';
+            emptyMsg.innerHTML = '現在、参加者がいません。<br>参加者が入室するとリストが表示されます。';
             container.appendChild(emptyMsg);
 
             // Insert before participant section
