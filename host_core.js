@@ -264,6 +264,7 @@ window.App.Dashboard = {
                             <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('mode', 'normal', this)">一斉</button>
                             <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('mode', 'buzz', this)">早押し</button>
                             <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('mode', 'turn', this)">順番</button>
+                            <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('mode', 'solo', this)">ソロ</button>
                         </div>
                         <!-- Row 2: Question Type -->
                         <div id="dash-filter-type" style="display:flex; gap:8px; overflow-x:auto; padding-bottom:5px;">

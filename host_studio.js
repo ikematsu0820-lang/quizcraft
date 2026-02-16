@@ -1663,14 +1663,25 @@ App.Studio = {
             const chip = document.createElement('div');
             chip.className = `console-player-chip ${this.selectedPlayerId === p.id ? 'active' : ''}`;
             if (!hasAnswered) {
-                chip.classList.add('disabled');
-                chip.style.opacity = '0.35';
-                chip.style.pointerEvents = 'none';
-                chip.style.filter = 'grayscale(1)';
+                // Special case: For Dobon/Turn, we might want to select them even before answer?
+                // But generally wait for answer.
+                // However, user report says "Turn + Dobon -> No reaction". 
+                // Maybe because they are waiting for turn but system doesn't know.
+                // Let's allow selecting ANY player in Dobon mode to force judgment if needed.
+                const isDobonOrMulti = (q && (q.mode === 'dobon' || q.mode === 'multi'));
+
+                if (!isDobonOrMulti) {
+                    chip.classList.add('disabled');
+                    chip.style.opacity = '0.35';
+                    chip.style.pointerEvents = 'none';
+                    chip.style.filter = 'grayscale(1)';
+                }
             }
             chip.textContent = p.name;
             chip.onclick = () => {
-                if (!hasAnswered) return;
+                const isDobonOrMulti = (q && (q.mode === 'dobon' || q.mode === 'multi'));
+                if (!hasAnswered && !isDobonOrMulti) return;
+
                 this.selectedPlayerId = p.id;
                 this.renderUnifiedConsole(players);
             };
