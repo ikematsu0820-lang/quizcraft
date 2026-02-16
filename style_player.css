@@ -3,14 +3,95 @@
  * =======================================================*/
 
 /* ベースデザイン */
+/* Main View - Add padding bottom for fixed button */
 #player-game-view {
     color: #fff;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
     padding: 15px;
+    padding-bottom: 120px;
+    /* Space for Fixed Button */
     box-sizing: border-box;
     background: transparent;
+}
+
+/* ... (Rest of #player-quiz-area etc. untouched, assume match) ... */
+
+/* ... (Skip to .buzz-btn) ... */
+
+.buzz-btn {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 500px;
+    /* Wide, like a footer bar */
+    height: 70px;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #ff6b6b 0%, #c0392b 100%);
+    border: none;
+    border-bottom: 6px solid #a93226;
+    /* 3D depth */
+    color: #fff;
+    font-size: 2em;
+    font-weight: 900;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 2px 5px rgba(255, 255, 255, 0.3);
+    cursor: pointer;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1000;
+    letter-spacing: 2px;
+}
+
+.buzz-btn::after {
+    content: "✦";
+    margin-left: 15px;
+    font-size: 1.2em;
+    color: #fff;
+    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.8));
+    animation: pulseStar 1.5s infinite ease-in-out;
+}
+
+@keyframes pulseStar {
+    0% {
+        transform: scale(1);
+        opacity: 0.8;
+    }
+
+    50% {
+        transform: scale(1.3);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 0.8;
+    }
+}
+
+.buzz-btn:active {
+    transform: translateX(-50%) translateY(4px);
+    border-bottom-width: 2px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+
+.buzz-btn:disabled {
+    filter: grayscale(1);
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+    background: #555;
+    /* Fallback for disabled */
+    box-shadow: none;
+    border-bottom: none;
+    transform: translateX(-50%) translateY(4px);
+    /* Look pressed/inactive */
 }
 
 #player-quiz-area {
@@ -350,35 +431,7 @@
 }
 
 /* その他の要素 */
-.buzz-btn {
-    width: 220px;
-    height: 220px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 30% 30%, #ff6b6b, #c0392b);
-    border: 6px solid #a93226;
-    color: #fff;
-    font-size: 2.2em;
-    font-weight: 900;
-    box-shadow: 0 20px 50px rgba(231, 76, 60, 0.5), inset 0 5px 20px rgba(255, 255, 255, 0.4);
-    cursor: pointer;
-    margin: 30px auto;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-    transition: all 0.1s;
-}
-
-.buzz-btn:active {
-    transform: scale(0.95);
-    box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
-}
-
-.buzz-btn:disabled {
-    filter: grayscale(1);
-    opacity: 0.5;
-    cursor: not-allowed;
-}
+/* Old buzz-btn styles removed */
 
 .letter-panel-btn {
     background: rgba(255, 255, 255, 0.05);
