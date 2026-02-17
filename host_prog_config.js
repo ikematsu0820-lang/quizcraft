@@ -414,9 +414,9 @@ window.App.ProgConfig = {
         }
 
         const modalHtml = `
-                        < div id = "prog-settings-modal" style = "position:fixed; top:0; left:0; right:0; bottom:0; z-index:9999; display:flex; flex-direction:column; justify-content:flex-end;" >
+            <div id="prog-settings-modal" style="position:fixed; top:0; left:0; right:0; bottom:0; z-index:9999; display:flex; flex-direction:column; justify-content:center; align-items:center;">
                 <div class="modal-bg" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6);" onclick="document.getElementById('prog-settings-modal').remove()"></div>
-                <div class="modal-content" style="position:relative; background:#1a1a1a; padding:20px; border-radius:16px 16px 0 0; box-shadow:0 -5px 20px rgba(0,0,0,0.5); animation:slideUp 0.3s ease-out;">
+                <div class="modal-content" style="position:relative; width:90%; max-width:500px; background:#1a1a1a; padding:20px; border-radius:16px; box-shadow:0 5px 25px rgba(0,0,0,0.5); animation:popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #333; padding-bottom:10px;">
                         <h3 style="margin:0; font-size:1.1em; color:#fff;">${title || 'Untitled'}</h3>
                         <button onclick="document.getElementById('prog-settings-modal').remove()" style="background:none; border:none; color:#aaa; font-size:1.5em; cursor:pointer;">×</button>
@@ -440,7 +440,7 @@ window.App.ProgConfig = {
 
                     <button onclick="document.getElementById('prog-settings-modal').remove()" class="btn-primary btn-block" style="padding:12px; font-weight:bold;">完了</button>
                 </div>
-            </div >
+            </div>
                         `;
 
         document.body.insertAdjacentHTML('beforeend', modalHtml);
