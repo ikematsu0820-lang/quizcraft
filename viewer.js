@@ -215,6 +215,8 @@ window.App.Viewer = {
             const q = this.questions[st.qIndex] || {};
             this.renderQuestionLayout(viewContainer, mainText, q, st, st.revealedMulti);
 
+            if (q.type === 'multi') return;
+
             const accent = q.design?.qBorderColor || '#00bfff';
             const answerBox = document.createElement('div');
             Object.assign(answerBox.style, {
@@ -529,16 +531,27 @@ window.App.Viewer = {
                     html += `<div class="c-area" style="${gridStyle}">`;
                     q.c.forEach((c, i) => {
                         const isRevealed = revealedMulti[i];
-                        const bgStyle = isRevealed ? 'background:#2ecc71;' : (d.cBgColor ? `background:${d.cBgColor};` : '');
-                        const bStyle = isRevealed ? 'border:3px solid #fff;' : (d.cBorderColor ? `border:1px solid ${d.cBorderColor};` : '');
-                        const colorStyle = isRevealed ? 'color:#fff;' : `color:${d.cTextColor || '#ddd'};`;
-                        const transformStyle = isRevealed ? 'transform: scale(1.05); z-index:10;' : '';
+                        const isMultiType = q.type === 'multi';
+                        const isAnswerPhase = (st.step === 'reveal_correct' || st.step === 'answer');
+                        const isMissed = isMultiType && isAnswerPhase && !isRevealed;
 
-                        const isMulti = q.type && q.type.startsWith('multi');
-                        const isHidden = isMulti && !isRevealed;
+                        let bgStyle = isRevealed ? 'background:#2ecc71;' : (d.cBgColor ? `background:${d.cBgColor};` : '');
+                        if (isMissed) bgStyle = 'background:#ff5555;';
+
+                        let bStyle = isRevealed ? 'border:3px solid #fff;' : (d.cBorderColor ? `border:1px solid ${d.cBorderColor};` : '');
+                        if (isMissed) bStyle = 'border:3px solid #fff;';
+
+                        let colorStyle = isRevealed ? 'color:#fff;' : `color:${d.cTextColor || '#ddd'};`;
+                        if (isMissed) colorStyle = 'color:#fff;';
+
+                        let transformStyle = isRevealed ? 'transform: scale(1.05); z-index:10;' : '';
+                        if (isMissed) transformStyle = 'transform: scale(1.0); z-index:5; opacity:0.9;';
+
+                        const isMultiAny = q.type && q.type.startsWith('multi');
+                        const isHidden = isMultiAny && !isRevealed && !isMissed;
 
                         html += `<div class="choice-item" style="${colorStyle} ${bgStyle} ${bStyle} ${transformStyle} transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-                            <span class="choice-prefix" style="color:${isRevealed ? '#fff' : borderColor}; ${isMulti ? 'display:none;' : ''}">${String.fromCharCode(65 + i)}</span> 
+                            <span class="choice-prefix" style="color:${isRevealed || isMissed ? '#fff' : borderColor}; ${isMultiAny ? 'display:none;' : ''}">${String.fromCharCode(65 + i)}</span> 
                             <span style="${isHidden ? 'visibility:hidden;' : ''}">${c}</span>
                         </div>`;
                     });
@@ -569,16 +582,27 @@ window.App.Viewer = {
                 if (q.c) {
                     q.c.forEach((c, i) => {
                         const isRevealed = revealedMulti[i];
-                        const bgStyle = isRevealed ? 'background:#2ecc71;' : (d.cBgColor ? `background:${d.cBgColor};` : '');
-                        const bStyle = isRevealed ? 'border:3px solid #fff;' : (d.cBorderColor ? `border:1px solid ${d.cBorderColor};` : '');
-                        const colorStyle = isRevealed ? 'color:#fff;' : `color:${d.cTextColor || '#ddd'};`;
-                        const transformStyle = isRevealed ? 'transform: scale(1.05); z-index:10;' : '';
+                        const isMultiType = q.type === 'multi';
+                        const isAnswerPhase = (st.step === 'reveal_correct' || st.step === 'answer');
+                        const isMissed = isMultiType && isAnswerPhase && !isRevealed;
 
-                        const isMulti = q.type && q.type.startsWith('multi');
-                        const isHidden = isMulti && !isRevealed;
+                        let bgStyle = isRevealed ? 'background:#2ecc71;' : (d.cBgColor ? `background:${d.cBgColor};` : '');
+                        if (isMissed) bgStyle = 'background:#ff5555;';
+
+                        let bStyle = isRevealed ? 'border:3px solid #fff;' : (d.cBorderColor ? `border:1px solid ${d.cBorderColor};` : '');
+                        if (isMissed) bStyle = 'border:3px solid #fff;';
+
+                        let colorStyle = isRevealed ? 'color:#fff;' : `color:${d.cTextColor || '#ddd'};`;
+                        if (isMissed) colorStyle = 'color:#fff;';
+
+                        let transformStyle = isRevealed ? 'transform: scale(1.05); z-index:10;' : '';
+                        if (isMissed) transformStyle = 'transform: scale(1.0); z-index:5; opacity:0.9;';
+
+                        const isMultiAny = q.type && q.type.startsWith('multi');
+                        const isHidden = isMultiAny && !isRevealed && !isMissed;
 
                         html += `<div class="choice-item" style="${colorStyle} ${bgStyle} ${bStyle} ${transformStyle} transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-                            <span class="choice-prefix" style="color:${isRevealed ? '#fff' : borderColor}; ${isMulti ? 'display:none;' : ''}">${String.fromCharCode(65 + i)}</span> 
+                            <span class="choice-prefix" style="color:${isRevealed || isMissed ? '#fff' : borderColor}; ${isMultiAny ? 'display:none;' : ''}">${String.fromCharCode(65 + i)}</span> 
                             <span style="${isHidden ? 'visibility:hidden;' : ''}">${c}</span>
                         </div>`;
                     });

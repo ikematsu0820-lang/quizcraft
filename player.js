@@ -9,6 +9,7 @@ let roomConfig = { mode: 'normal', normalLimit: 'one' };
 let currentQuestion = null;
 
 let isReanswering = false;
+let localOptimisticResult = null;
 
 let localStatus = { step: 'standby' };
 let localPlayerData = { isAlive: true, lastResult: null };
@@ -116,6 +117,15 @@ function startPlayerListener(roomId, playerId) {
     myRef.on('value', snap => {
         const val = snap.val();
         if (!val) return;
+
+        if (localOptimisticResult && !val.lastResult) {
+            // Anti-flicker: Keep optimistic result if answer is preserved
+            if (val.lastAnswer) val.lastResult = localOptimisticResult;
+            else localOptimisticResult = null; // Reset occurred
+        } else if (val.lastResult) {
+            localOptimisticResult = null; // Server confirmed
+        }
+
         localPlayerData = val;
         updateUI();
     });
@@ -769,14 +779,17 @@ function renderPlayerQuestion(q, roomId, playerId) {
         choices.forEach((item, i) => {
             const btn = document.createElement('button');
 
-            // Check if taken
-            if (isDobonMode && takenChoices.includes(item.originalIndex)) {
-                return; // Skip rendering this choice entirely (Disappear)
-            }
-
             btn.className = 'answer-btn';
             btn.style.border = '4px solid transparent'; // Prepare for highlight
             btn.style.transition = 'all 0.1s';
+
+            // Check if taken
+            if (isDobonMode && takenChoices.includes(item.originalIndex)) {
+                btn.classList.add('btn-disabled-choice'); // Add CSS class for styling
+                btn.disabled = true; // Disable interaction
+                btn.style.opacity = '0.4'; // Visual feedback
+                btn.style.textDecoration = 'line-through'; // Cross out text
+            }
 
             // Add visual indicator (Radio or Check)
             const icon = isMulti ? (selected.has(item.originalIndex) ? '☑ ' : '☐ ') : (selected.has(item.originalIndex) ? '◉ ' : '○ ');
@@ -1193,9 +1206,40 @@ function updateMultiAnswers() {
 function submitAnswer(roomId, playerId, answer) {
     if (!['answering', 'question', 'reveal_q'].includes(localStatus.step)) {
         console.warn("Answer rejected: Not in answering phase (" + localStatus.step + ")");
-        // Optional: show toast "受付時間外です"
         return;
     }
+
+    // ★ Immediate Feedback Logic for Dobon/Turn Mode
+    // Client-side judgment to show Red/Green immediately
+    const q = currentQuestion;
+    if (q && q.type === 'choice') {
+        const isDobon = (q.mode === 'dobon' || q.mode === 'multi' || q.multi || roomConfig.mode === 'dobon');
+
+        // Only apply immediate feedback for Dobon context (Turn mode + Dobon Q)
+        // User requested "In Sequence Dobon".
+        if (isDobon) {
+            let pAns = [];
+            if (Array.isArray(answer)) pAns = answer.map(Number);
+            else pAns = [Number(answer)];
+
+            let correctIndices = [];
+            if (Array.isArray(q.correct)) correctIndices = q.correct;
+            else if (typeof q.correct === 'number') correctIndices = [q.correct];
+
+            // In Dobon: 'correct' holds the OUT (NG) indices
+            const hitNG = pAns.some(idx => correctIndices.includes(idx));
+
+            // Hit NG -> Lose (Out), No Hit -> Win (Safe/Correct)
+            const result = hitNG ? 'lose' : 'win';
+
+            // Apply locally immediately
+            localOptimisticResult = result;
+            localPlayerData.lastResult = result;
+            localPlayerData.lastAnswer = answer;
+            updateUI();
+        }
+    }
+
     isReanswering = false;
     window.db.ref(`rooms/${roomId}/players/${playerId}`).update({
         lastAnswer: answer,

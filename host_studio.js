@@ -2061,7 +2061,22 @@ App.Studio = {
                 // 1. It is Multi mode (always advance, correct or wrong, to keep the flow? Or maybe just correct?)
                 //    Usually Multi-Turn means everyone answers.
                 // 2. It is Dobon mode AND Correct (Safe) - (If Wrong/Bomb, we stop/wait)
-                //    User Request: "Don't end on correct, pass to next"
+
+                // ★ User Request: "End quiz (question) when someone gets it wrong in Sequence Dobon"
+                if (isDobon && !isCorrect) {
+                    App.Ui.showToast("不正解... ドボン！(終了)");
+
+                    // Stop the current answerer
+                    window.db.ref(`rooms/${roomId}/status`).update({
+                        currentAnswerer: null,
+                        currentAnswererName: null
+                    });
+
+                    // Move to Answer Reveal/Result immediately
+                    this.setStep(5);
+                    return;
+                }
+
                 const shouldAdvanceInQuestion = (isMulti || (isDobon && isCorrect));
 
                 if (shouldAdvanceInQuestion) {

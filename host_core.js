@@ -368,11 +368,6 @@ window.App.Dashboard = {
                 <div class="item-main">
                     <div class="item-title"><span class="badge-set">SET</span> ${d.title || "Untitled"}</div>
                     <div class="item-meta">${dateStr} / ${qCount}Q <span style="margin-left:8px; color:#ccc; background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px; font-size:0.85em;">${modeStr}</span></div>
-                </div>
-                <div class="item-actions">
-                        <button class="btn-context-menu">
-                        <i class="fas fa-minus"></i>
-                    </button>
                 </div>`;
             listEl.appendChild(div);
         });
@@ -393,11 +388,6 @@ window.App.Dashboard = {
                     <div class="item-main">
                         <div class="item-title"><span class="badge-prog">番組</span> ${item.title}</div>
                         <div class="item-meta">${new Date(item.createdAt || 0).toLocaleDateString()} / ${item.playlist ? item.playlist.length : 0} セット収録</div>
-                    </div>
-                    <div class="item-actions">
-                        <button class="btn-context-menu">
-                            <i class="fas fa-minus"></i>
-                        </button>
                     </div>`;
                 listEl.appendChild(div);
             });

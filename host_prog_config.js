@@ -10,6 +10,14 @@ window.App.ProgConfig = {
         console.log("ProgConfig: Init starting...");
         window.App.Ui.showView(window.App.Ui.views.progConfig);
 
+        // Hide fixed add button permanently
+        const fixedBtn = document.getElementById('prog-add-set-btn');
+        if (fixedBtn) fixedBtn.style.display = 'none';
+
+        // Hide the set select dropdown as per request (replaced by modal)
+        const setSelect = document.getElementById('prog-set-select');
+        if (setSelect) setSelect.parentElement.style.display = 'none'; // Hide parent to catch the box styling
+
         // Ensure playlist array exists
         if (!window.App.Data.periodPlaylist) {
             window.App.Data.periodPlaylist = [];
@@ -22,13 +30,10 @@ window.App.ProgConfig = {
 
     loadAppliedSetList: function () {
         const select = document.getElementById('prog-set-select');
-        if (!select) return;
-        select.innerHTML = '<option value="">読み込み中...</option>';
-
+        // Even if hidden, we populate cache
         const showId = window.App.State.currentShowId;
         window.db.ref(`saved_sets/${showId}`).once('value', snap => {
-            select.innerHTML = '<option value="">-- 追加するセットを選択 --</option>';
-            // Removed __NEW_CONTAINER__ option as we use the menu now
+            if (select) select.innerHTML = '<option value="">-- 追加するセットを選択 --</option>';
             const data = snap.val();
             this.localItemsCache = {};
 
@@ -36,10 +41,12 @@ window.App.ProgConfig = {
                 Object.keys(data).forEach(k => {
                     const item = { ...data[k], key: k };
                     this.localItemsCache[k] = item;
-                    const opt = document.createElement('option');
-                    opt.value = k;
-                    opt.textContent = `${item.title} (${item.questions?.length || 0}Q)`;
-                    select.appendChild(opt);
+                    if (select) {
+                        const opt = document.createElement('option');
+                        opt.value = k;
+                        opt.textContent = `${item.title} (${item.questions?.length || 0}Q)`;
+                        select.appendChild(opt);
+                    }
                 });
             }
             this.renderPlaylist();
@@ -61,6 +68,68 @@ window.App.ProgConfig = {
             const el = document.getElementById(id);
             if (el) el.onclick = map[id];
         });
+
+        // Drag and Drop delegation
+        const list = document.getElementById('prog-playlist-preview');
+        if (list) {
+            list.addEventListener('dragstart', this.handleDragStart.bind(this));
+            list.addEventListener('dragover', this.handleDragOver.bind(this));
+            list.addEventListener('drop', this.handleDrop.bind(this));
+            list.addEventListener('dragenter', this.handleDragEnter.bind(this));
+            list.addEventListener('dragleave', this.handleDragLeave.bind(this));
+        }
+    },
+
+    // --- Drag and Drop Handlers ---
+    handleDragStart: function (e) {
+        const card = e.target.closest('.timeline-card');
+        if (!card || typeof card.dataset.index === 'undefined') return;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', card.dataset.index);
+        card.classList.add('dragging');
+    },
+
+    handleDragOver: function (e) {
+        if (e.preventDefault) e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        return false;
+    },
+
+    handleDragEnter: function (e) {
+        const card = e.target.closest('.timeline-card');
+        if (card) card.classList.add('drag-over');
+    },
+
+    handleDragLeave: function (e) {
+        const card = e.target.closest('.timeline-card');
+        if (card) card.classList.remove('drag-over');
+    },
+
+    handleDrop: function (e) {
+        if (e.stopPropagation) e.stopPropagation();
+
+        const sourceIndex = parseInt(e.dataTransfer.getData('text/plain'));
+        const targetCard = e.target.closest('.timeline-card');
+
+        if (targetCard && typeof targetCard.dataset.index !== 'undefined') {
+            const targetIndex = parseInt(targetCard.dataset.index);
+            if (sourceIndex !== targetIndex) {
+                this.move(sourceIndex, targetIndex - sourceIndex); // move uses relative offset? No, move uses direction.
+                // Wait, move(index, direction) swaps with adjacent. We need generic move.
+                this.reorderPlaylist(sourceIndex, targetIndex);
+            }
+            targetCard.classList.remove('drag-over');
+        }
+        return false;
+    },
+
+    reorderPlaylist: function (fromIndex, toIndex) {
+        const list = window.App.Data.periodPlaylist;
+        if (fromIndex < 0 || fromIndex >= list.length || toIndex < 0 || toIndex >= list.length) return;
+
+        const item = list.splice(fromIndex, 1)[0];
+        list.splice(toIndex, 0, item);
+        this.renderPlaylist();
     },
 
     // --- Container / Playlist Logic ---
@@ -77,9 +146,9 @@ window.App.ProgConfig = {
                 <div class="modal-content" style="position:relative; background:#1a1a1a; padding:20px; border-radius:16px 16px 0 0; box-shadow:0 -5px 20px rgba(0,0,0,0.5); animation:slideUp 0.3s ease-out;">
                     <h3 style="margin:0 0 15px 0; font-size:1.1em; color:#fff; text-align:center;">構成要素を追加</h3>
                     
-                    <button class="btn-block btn-primary" onclick="window.App.ProgConfig.addSetToPlaylist(); document.getElementById('prog-add-menu-modal').remove()" style="margin-bottom:10px; padding:15px; font-weight:bold; font-size:1.1em; text-align:left;">
-                        <span style="font-size:1.4em; margin-right:10px;">📋</span> シングル（選択中のセット）
-                        <div style="font-size:0.7em; opacity:0.7; font-weight:normal; margin-left:36px;">通常のクイズセットを1つ追加します</div>
+                    <button class="btn-block btn-primary" onclick="window.App.ProgConfig.openSetSelector(); document.getElementById('prog-add-menu-modal').remove()" style="margin-bottom:10px; padding:15px; font-weight:bold; font-size:1.1em; text-align:left;">
+                        <span style="font-size:1.4em; margin-right:10px;">📋</span> シングル（セットを選択）
+                        <div style="font-size:0.7em; opacity:0.7; font-weight:normal; margin-left:36px;">保存済みセット一覧から選んで追加します</div>
                     </button>
 
                     <button class="btn-block btn-info" onclick="window.App.ProgConfig.addContainer(); document.getElementById('prog-add-menu-modal').remove()" style="margin-bottom:20px; padding:15px; font-weight:bold; font-size:1.1em; text-align:left;">
@@ -115,8 +184,10 @@ window.App.ProgConfig = {
             return;
         }
 
-        // Removed __NEW_CONTAINER__ check
+        this.addSetToPlaylistByKey(key, containerIndex);
+    },
 
+    addSetToPlaylistByKey: function (key, containerIndex = null) {
         if (!this.localItemsCache[key]) return;
 
         const setItem = this.localItemsCache[key];
@@ -147,6 +218,45 @@ window.App.ProgConfig = {
         }
 
         this.renderPlaylist();
+    },
+
+    openSetSelector: function (containerIndex = null) {
+        if (document.getElementById('prog-set-selector-modal')) document.getElementById('prog-set-selector-modal').remove();
+
+        const sets = Object.values(this.localItemsCache || {}).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+        const cIdxArg = (containerIndex === null) ? 'null' : containerIndex;
+
+        let listHtml = '';
+        sets.forEach(set => {
+            const dateStr = set.createdAt ? new Date(set.createdAt).toLocaleDateString() : '';
+            const mode = set.config ? set.config.mode : 'normal';
+            listHtml += `
+                <div onclick="window.App.ProgConfig.addSetToPlaylistByKey('${set.key}', ${cIdxArg}); document.getElementById('prog-set-selector-modal').remove()" style="padding:15px; border-bottom:1px solid #333; cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <div style="font-weight:bold; color:#fff; font-size:1em; margin-bottom:4px;">${set.title}</div>
+                        <div style="font-size:0.8em; color:#aaa;">${dateStr} / ${set.questions ? set.questions.length : 0}問 (${mode})</div>
+                    </div>
+                    <div style="color:#00e5ff; font-weight:bold; border:1px solid #00e5ff; padding:5px 12px; border-radius:20px; font-size:0.8em;">追加</div>
+                </div>
+            `;
+        });
+
+        const modalHtml = `
+            <div id="prog-set-selector-modal" style="position:fixed; top:0; left:0; right:0; bottom:0; z-index:10005; display:flex; flex-direction:column; justify-content:flex-end;">
+                 <div class="modal-bg" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8);" onclick="document.getElementById('prog-set-selector-modal').remove()"></div>
+                 <div class="modal-content" style="position:relative; background:#1a1a1a; padding:20px 20px 40px 20px; border-radius:16px 16px 0 0; box-shadow:0 -5px 20px rgba(0,0,0,0.5); height:70%; display:flex; flex-direction:column; animation:slideUp 0.3s ease-out;">
+                    <div style="flex-shrink:0; display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #333; padding-bottom:10px;">
+                        <h3 style="margin:0; color:#fff; font-size:1.2em;">セットを選択</h3>
+                        <button onclick="document.getElementById('prog-set-selector-modal').remove()" style="background:none; border:none; color:#aaa; font-size:2em; line-height:1;">×</button>
+                    </div>
+                    <div style="overflow-y:auto; flex:1;">
+                        ${listHtml}
+                    </div>
+                 </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
     },
 
     renderPlaylist: function () {
@@ -180,7 +290,7 @@ window.App.ProgConfig = {
                         const childMode = child.config?.mode || 'normal';
                         const childQ = child.questions?.length || 0;
                         childrenHtml += `
-                            <div class="timeline-card prog-card-compact" style="margin-left:20px; border-left:4px solid #444; margin-bottom:5px;">
+                            <div class="timeline-card prog-card-compact" style="margin-left:20px; border-left:4px solid #444; margin-bottom:5px; cursor:default;" onclick="event.stopPropagation()">
                                 <div class="prog-card-row">
                                     <div class="prog-card-info" style="background:#222;" onclick="event.stopPropagation(); window.App.ProgConfig.openSettings(${i}, ${ci})">
                                         <div class="prog-card-title" style="font-size:0.9em;">${child.title}</div>
@@ -198,21 +308,22 @@ window.App.ProgConfig = {
                 }
 
                 html += `
-                <div class="timeline-card prog-card-compact" style="border:1px solid #444; background:#111; padding:10px;">
+                <div class="timeline-card prog-card-compact" draggable="true" data-index="${i}" style="border:1px solid #444; background:#111; padding:10px; cursor:pointer;" onclick="window.App.ProgConfig.openSetSelector(${i})">
                     <div class="flex-between mb-5">
-                        <div style="font-weight:bold; color:#aaa;">📦 選択コンテナ</div>
-                        <div class="prog-card-settings" style="display:flex; gap:5px;">
+                        <div style="display:flex; align-items:center;">
+                            <div class="drag-handle" style="cursor:grab; margin-right:8px; color:#555; font-size:1.2em;">☰</div>
+                            <div style="font-weight:bold; color:#aaa;">📦 選択コンテナ (タップしてセット追加)</div>
+                        </div>
+                        <div class="prog-card-settings" style="display:flex; gap:5px;" onclick="event.stopPropagation()">
                              <button class="btn-mini btn-info" onclick="window.App.ProgConfig.move(${i}, -1)">▲</button>
                              <button class="btn-mini btn-info" onclick="window.App.ProgConfig.move(${i}, 1)">▼</button>
                              <button class="btn-mini btn-danger" onclick="window.App.ProgConfig.remove(${i})">✕</button>
                         </div>
                     </div>
-                    
+                     
                     <div style="margin-bottom:10px;">
                        ${childrenHtml}
                     </div>
-
-                    <button class="btn-mini btn-dark dashed" onclick="window.App.ProgConfig.addSetToPlaylist(${i})" style="width:100%; border:1px dashed #666; padding:8px; color:#aaa;">+ コンテナにセットを追加</button>
                 </div>
                 `;
 
@@ -244,8 +355,9 @@ window.App.ProgConfig = {
                     : "";
 
                 html += `
-                    <div class="timeline-card prog-card-compact">
+                    <div class="timeline-card prog-card-compact" draggable="true" data-index="${i}">
                         <div class="prog-card-row">
+                            <div class="drag-handle" style="display:flex; align-items:center; padding-right:10px; color:#555; cursor:grab; font-size:1.2em;">☰</div>
                             <div class="prog-card-info" onclick="window.App.ProgConfig.openSettings(${i})">
                                 <div class="prog-card-title"><span class="badge-set" style="font-size:0.7em; padding:1px 6px; margin-right:5px;">SET</span>${item.title || 'Untitled'} ${updateBadge}</div>
                                 <div class="prog-card-meta">${dateStr}${dateStr ? ' / ' : ''}${qCount}Q / ${modeLabel}</div>
@@ -265,6 +377,14 @@ window.App.ProgConfig = {
         });
 
         preview.innerHTML = html;
+
+        // Ensure background is tappable for adding
+        preview.style.minHeight = "60vh";
+        preview.onclick = (e) => {
+            if (e.target === preview) {
+                window.App.ProgConfig.openAddMenu();
+            }
+        };
     },
 
     openSettings: function (index, childIndex = null) {
@@ -284,8 +404,8 @@ window.App.ProgConfig = {
 
         // Helper to update
         const updateFnStr = (childIndex !== null)
-            ? `window.App.ProgConfig.updateToggleInContainer(${index}, ${childIndex},`
-            : `window.App.ProgConfig.updateToggle(${index},`;
+            ? `window.App.ProgConfig.updateToggleInContainer(${index}, ${childIndex}, `
+            : `window.App.ProgConfig.updateToggle(${index}, `;
 
 
         // Remove existing modal if any
@@ -294,7 +414,7 @@ window.App.ProgConfig = {
         }
 
         const modalHtml = `
-            <div id="prog-settings-modal" style="position:fixed; top:0; left:0; right:0; bottom:0; z-index:9999; display:flex; flex-direction:column; justify-content:flex-end;">
+                        < div id = "prog-settings-modal" style = "position:fixed; top:0; left:0; right:0; bottom:0; z-index:9999; display:flex; flex-direction:column; justify-content:flex-end;" >
                 <div class="modal-bg" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6);" onclick="document.getElementById('prog-settings-modal').remove()"></div>
                 <div class="modal-content" style="position:relative; background:#1a1a1a; padding:20px; border-radius:16px 16px 0 0; box-shadow:0 -5px 20px rgba(0,0,0,0.5); animation:slideUp 0.3s ease-out;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #333; padding-bottom:10px;">
@@ -320,8 +440,8 @@ window.App.ProgConfig = {
 
                     <button onclick="document.getElementById('prog-settings-modal').remove()" class="btn-primary btn-block" style="padding:12px; font-weight:bold;">完了</button>
                 </div>
-            </div>
-        `;
+            </div >
+                        `;
 
         document.body.insertAdjacentHTML('beforeend', modalHtml);
     },
@@ -408,7 +528,7 @@ window.App.ProgConfig = {
             createdAt: firebase.database.ServerValue.TIMESTAMP
         };
         const showId = window.App.State.currentShowId;
-        return window.db.ref(`saved_programs/${showId}`).push(data).then(() => {
+        return window.db.ref(`saved_programs / ${showId}`).push(data).then(() => {
             if (!silent) window.App.Ui.showToast("番組を保存しました");
             // ダッシュボードに戻る
             if (window.App.Dashboard && window.App.Dashboard.enter) {
@@ -423,7 +543,7 @@ window.App.ProgConfig = {
         if (!modal || !select) return;
         modal.classList.remove('hidden');
         select.innerHTML = '<option value="">読み込み中...</option>';
-        window.db.ref(`saved_programs/${window.App.State.currentShowId}`).once('value', snap => {
+        window.db.ref(`saved_programs / ${window.App.State.currentShowId}`).once('value', snap => {
             select.innerHTML = '<option value="">-- プログラムを選択 --</option>';
             const data = snap.val();
             if (data) {

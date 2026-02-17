@@ -576,8 +576,7 @@ select option {
     }
 
     .item-main {
-        padding-right: 40px;
-        /* Space for the button */
+        padding-right: 0;
     }
 
     .item-title {
@@ -4132,4 +4131,20 @@ input:checked+.pro-slider:before {
 .multi-ans-item.revealed .multi-ans-check {
     opacity: 1;
     transform: scale(1);
+}
+
+/* Drag and Drop Styles */
+.timeline-card.dragging {
+    opacity: 0.5;
+    border: 2px dashed #666 !important;
+}
+
+.timeline-card.drag-over {
+    border-top: 4px solid #00e5ff !important;
+    transform: translateY(2px);
+}
+
+.drag-handle:active {
+    cursor: grabbing !important;
+    color: #00e5ff !important;
 }
