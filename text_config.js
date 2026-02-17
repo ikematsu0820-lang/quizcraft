@@ -105,8 +105,9 @@ const APP_TEXT = {
     },
 
     Player: {
-        TitleEntry: "エントリー", PlaceholderCode: "部屋コード (6桁)", PlaceholderName: "名前を入力", BtnJoin: "参加する", LabelNameDefault: "名無し", BadgeAlive: "STAND UP", BadgeDead: "DEAD", MsgLobbyHead: "Ready?", MsgLobbyBody: "画面を注視してください", MsgAnswered: "正解までしばらくお待ちください", MsgCorrect: "正解！", MsgWrong: "不正解...", MsgWait: "集計中...", MsgDead: "GAME OVER", MsgDeadBody: "脱落...", RankTitle: "RANKING", RankYou: "あなたは...", RankUnit: "位", ScoreUnit: "点", RankBoardTitle: "上位リーダーボード", BtnBuzz: "PUSH!", MsgBuzzLocked: "LOCKED", MsgBuzzWin: "解答権獲得！<br>口頭で解答してください", MsgTurnYou: "あなたの番です！<br>解答してください", MsgTurnWait: "さんの番です...", BtnAnswered: "解答しました",
-        MsgSoloWait: "挑戦者のプレイ中...", MsgSoloYou: "あなたの挑戦です！" // ★変更
+        TitleEntry: "エントリー", PlaceholderCode: "部屋コード (6桁)", PlaceholderName: "名前を入力", BtnJoin: "参加する", LabelNameDefault: "名無し", BadgeAlive: "STAND UP", BadgeDead: "DEAD", MsgLobbyHead: "Ready?", MsgLobbyBody: "画面を注視してください", MsgAnswered: "正解までしばらくお待ちください", MsgCorrect: "正解！", MsgWrong: "不正解...", MsgWait: "集計中...", MsgDead: "GAME OVER", MsgDeadBody: "脱落...", RankTitle: "RANKING", RankYou: "あなたは...", RankUnit: "位", ScoreUnit: "点", RankBoardTitle: "上位リーダーボード", BtnBuzz: "PUSH!", MsgBuzzLocked: "LOCKED", MsgBuzzWin: "解答権獲得！<br>口頭で解答してください", MsgTurnYou: "あなたの番です！<br>解答してください", MsgTurnWait: "さんの番です...",
+        MsgSoloWait: "挑戦者のプレイ中...", MsgSoloYou: "あなたの挑戦です！", // ★変更
+        BtnAnswered: "口頭で回答してください"
     },
 
     Viewer: { Title: "モニター接続", BtnConnect: "接続する", Waiting: "WAITING...", AnswerCheck: "ANSWER CHECK" }
