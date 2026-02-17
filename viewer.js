@@ -546,7 +546,7 @@ window.App.Viewer = {
                         if (isMissed) colorStyle = 'color:#fff;';
 
                         let transformStyle = isRevealed ? 'transform: scale(1.05); z-index:10;' : '';
-                        if (isMissed) transformStyle = 'transform: scale(1.0); z-index:5; opacity:0.9;';
+                        if (isMissed) transformStyle = 'transform: scale(1.0); z-index:5; opacity:1;';
 
                         const isHidden = isMultiType && !isRevealed && !isMissed;
 
@@ -596,7 +596,7 @@ window.App.Viewer = {
                         if (isMissed) colorStyle = 'color:#fff;';
 
                         let transformStyle = isRevealed ? 'transform: scale(1.05); z-index:10;' : '';
-                        if (isMissed) transformStyle = 'transform: scale(1.0); z-index:5; opacity:0.9;';
+                        if (isMissed) transformStyle = 'transform: scale(1.0); z-index:5; opacity:1;';
 
                         const isHidden = isMultiType && !isRevealed && !isMissed;
 
