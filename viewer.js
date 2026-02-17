@@ -215,7 +215,8 @@ window.App.Viewer = {
             const q = this.questions[st.qIndex] || {};
             this.renderQuestionLayout(viewContainer, mainText, q, st, st.revealedMulti);
 
-            if (q.type === 'multi') return;
+            // Suppress popup for ANY multi type that has a grid layout (q.c)
+            if (q.type && q.type.startsWith('multi') && Array.isArray(q.c) && q.c.length > 0) return;
 
             const accent = q.design?.qBorderColor || '#00bfff';
             const answerBox = document.createElement('div');
@@ -531,7 +532,7 @@ window.App.Viewer = {
                     html += `<div class="c-area" style="${gridStyle}">`;
                     q.c.forEach((c, i) => {
                         const isRevealed = revealedMulti[i];
-                        const isMultiType = q.type === 'multi';
+                        const isMultiType = (q.type && q.type.startsWith('multi'));
                         const isAnswerPhase = (st.step === 'reveal_correct' || st.step === 'answer');
                         const isMissed = isMultiType && isAnswerPhase && !isRevealed;
 
@@ -547,11 +548,10 @@ window.App.Viewer = {
                         let transformStyle = isRevealed ? 'transform: scale(1.05); z-index:10;' : '';
                         if (isMissed) transformStyle = 'transform: scale(1.0); z-index:5; opacity:0.9;';
 
-                        const isMultiAny = q.type && q.type.startsWith('multi');
-                        const isHidden = isMultiAny && !isRevealed && !isMissed;
+                        const isHidden = isMultiType && !isRevealed && !isMissed;
 
                         html += `<div class="choice-item" style="${colorStyle} ${bgStyle} ${bStyle} ${transformStyle} transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-                            <span class="choice-prefix" style="color:${isRevealed || isMissed ? '#fff' : borderColor}; ${isMultiAny ? 'display:none;' : ''}">${String.fromCharCode(65 + i)}</span> 
+                            <span class="choice-prefix" style="color:${isRevealed || isMissed ? '#fff' : borderColor}; ${isMultiType ? 'display:none;' : ''}">${String.fromCharCode(65 + i)}</span> 
                             <span style="${isHidden ? 'visibility:hidden;' : ''}">${c}</span>
                         </div>`;
                     });
@@ -582,7 +582,7 @@ window.App.Viewer = {
                 if (q.c) {
                     q.c.forEach((c, i) => {
                         const isRevealed = revealedMulti[i];
-                        const isMultiType = q.type === 'multi';
+                        const isMultiType = (q.type && q.type.startsWith('multi'));
                         const isAnswerPhase = (st.step === 'reveal_correct' || st.step === 'answer');
                         const isMissed = isMultiType && isAnswerPhase && !isRevealed;
 
@@ -598,11 +598,10 @@ window.App.Viewer = {
                         let transformStyle = isRevealed ? 'transform: scale(1.05); z-index:10;' : '';
                         if (isMissed) transformStyle = 'transform: scale(1.0); z-index:5; opacity:0.9;';
 
-                        const isMultiAny = q.type && q.type.startsWith('multi');
-                        const isHidden = isMultiAny && !isRevealed && !isMissed;
+                        const isHidden = isMultiType && !isRevealed && !isMissed;
 
                         html += `<div class="choice-item" style="${colorStyle} ${bgStyle} ${bStyle} ${transformStyle} transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-                            <span class="choice-prefix" style="color:${isRevealed || isMissed ? '#fff' : borderColor}; ${isMultiAny ? 'display:none;' : ''}">${String.fromCharCode(65 + i)}</span> 
+                            <span class="choice-prefix" style="color:${isRevealed || isMissed ? '#fff' : borderColor}; ${isMultiType ? 'display:none;' : ''}">${String.fromCharCode(65 + i)}</span> 
                             <span style="${isHidden ? 'visibility:hidden;' : ''}">${c}</span>
                         </div>`;
                     });
