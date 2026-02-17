@@ -3999,7 +3999,11 @@ input:checked+.pro-slider:before {
     flex: 1;
     background: #444;
     color: #888;
-    padding: 10px 5px;
+    height: 40px;
+    padding: 0 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-size: 13px;
     font-weight: bold;
     border-radius: 6px;
