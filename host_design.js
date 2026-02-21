@@ -426,6 +426,7 @@ App.Design = {
             },
             layout: document.getElementById('creator-set-layout-inline')?.value || document.getElementById('creator-set-layout').value,
             align: document.getElementById('creator-set-align').value,
+            cAlign: document.getElementById('creator-set-c-align')?.value || 'left',
             prodDesign: this.collectProdSettings()
         };
     },
@@ -475,7 +476,7 @@ App.Design = {
         setVal('design-qnum-text-value', p.qNumberText || "");
     },
 
-    applyToUI: function (design, layout, align, prod) {
+    applyToUI: function (design, layout, align, prod, cAlign) {
         if (!design) design = this.defaults;
         if (prod) this.applyProdToUI(prod);
 
@@ -527,6 +528,10 @@ App.Design = {
             document.querySelectorAll('.btn-align').forEach(b => {
                 b.classList.toggle('active', b.dataset.align === align);
             });
+        }
+        if (cAlign) {
+            const el = document.getElementById('creator-set-c-align');
+            if (el) el.value = cAlign;
         }
     },
 
@@ -690,6 +695,7 @@ App.Design = {
             `;
         }
 
+        const cAlign = s.cAlign || 'left';
         const cStyle = `
             color:${d.cTextColor}; 
             background: ${d.cBgColor || 'linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0%, transparent 100%)'};
@@ -699,6 +705,8 @@ App.Design = {
             font-size:${fontSizeVal(d.cFontSize, '32px')};
             display:flex; 
             align-items:center;
+            justify-content:${cAlign === 'center' ? 'center' : (cAlign === 'right' ? 'flex-end' : 'flex-start')};
+            text-align:${cAlign};
             gap: 25px;
             pointer-events: none; /* Let parent catch click */
         `;
@@ -745,9 +753,19 @@ App.Design = {
                     <div class="preview-c-block ${this.activeQuickEdit === 'c' ? 'is-editing' : ''}" onclick="event.stopPropagation(); App.Design.openQuickEdit('c', event)" style="${cBlockStyle}">
                         ${choices.map((c, i) => {
                 const isMulti = qType && qType.startsWith('multi');
+                const info = (this.currentTarget && this.currentTarget.data) ? this.getStepInfo(this.previewQIndex, this.getQuestionsFromTarget() || []) : null;
+                const isAnswerPhase = info && info.type === 'answer';
+
+                const isRevealed = isAnswerPhase && isMulti && (i % 3 === 0);
+                const isMissed = isAnswerPhase && isMulti && !isRevealed;
+
+                let finalCStyle = cStyle;
+                if (isRevealed) finalCStyle += `background:#2ecc71 !important; border:3px solid #fff !important; color:#fff !important; transform:scale(1.05);`;
+                else if (isMissed) finalCStyle += `background:#ff5555 !important; border:3px solid #fff !important; color:#fff !important;`;
+
                 const labelHtml = isMulti ? '' : `<span style="${labelStyle}">${String.fromCharCode(65 + i)}</span> `;
                 return `
-                                <div style="${cStyle}">
+                                <div style="${finalCStyle}">
                                     ${labelHtml}<span>${c}</span>
                                 </div>
                             `;
@@ -777,22 +795,28 @@ App.Design = {
                 const qData = qIdx >= 0 ? questions[qIdx] : null;
                 if (qData) {
                     if (info.type === 'answer') {
-                        let ansStr = Array.isArray(qData.correct) ? qData.correct.join(' / ') : (qData.correct !== undefined ? qData.correct : "正解内容");
-                        if (qType === 'choice' && qData.c) {
-                            if (Array.isArray(qData.correct)) ansStr = qData.correct.map(idx => qData.c[idx]).join(' / ');
-                            else ansStr = qData.c[qData.correct] || qData.c[qData.correctIndex] || ansStr;
-                        } else if (qType === 'sort' && qData.c) {
-                            if (Array.isArray(qData.correct)) ansStr = qData.correct.map(idx => qData.c[idx]).join(' → ');
-                            else if (typeof qData.correct === 'string') ansStr = qData.correct.split('').map(char => qData.c[char.charCodeAt(0) - 65]).join(' → ');
-                        }
-                        const accent = d.qBorderColor || '#00bfff';
-                        extraHtml = `
+                        const isMulti = qType && qType.startsWith('multi');
+                        if (isMulti) {
+                            // Suppress popup for multi-answer grid reveal
+                            extraHtml = '';
+                        } else {
+                            let ansStr = Array.isArray(qData.correct) ? qData.correct.join(' / ') : (qData.correct !== undefined ? qData.correct : "正解内容");
+                            if (qType === 'choice' && qData.c) {
+                                if (Array.isArray(qData.correct)) ansStr = qData.correct.map(idx => qData.c[idx]).join(' / ');
+                                else ansStr = qData.c[qData.correct] || qData.c[qData.correctIndex] || ansStr;
+                            } else if (qType === 'sort' && qData.c) {
+                                if (Array.isArray(qData.correct)) ansStr = qData.correct.map(idx => qData.c[idx]).join(' → ');
+                                else if (typeof qData.correct === 'string') ansStr = qData.correct.split('').map(char => qData.c[char.charCodeAt(0) - 65]).join(' → ');
+                            }
+                            const accent = d.qBorderColor || '#00bfff';
+                            extraHtml = `
                         <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); z-index:300; background:rgba(0,0,0,0.95); border:6px solid ${accent}; border-radius:20px; padding:40px 60px; color:#fff; box-shadow:0 0 80px rgba(0,0,0,0.9); text-align:center; min-width:60vw; font-family:sans-serif;">
                             <div style="font-size:3vh; color:${accent}; font-weight:800; margin-bottom:15px; letter-spacing:2px;">CORRECT ANSWER</div>
                             <div style="font-size:8vh; font-weight:900; line-height:1.2; word-break:break-all; max-width:80vw;">${ansStr}</div>
                             <div style="font-size:2.5vh; color:#aaa; font-weight:normal; margin-top:20px; border-top:1px solid #333; padding-top:20px;">${qData.commentary || ""}</div>
-                        </div>
-                        `;
+                            </div>
+                            `;
+                        }
                     } else if (info.type === 'result') {
                         extraHtml = `
                         <div style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:400; font-family:sans-serif;">
@@ -1203,7 +1227,13 @@ App.Design = {
                         <button type="button" class="btn-align-q ${document.getElementById('creator-set-align').value === 'center' ? 'active' : ''}" data-align="center">中</button>
                         <button type="button" class="btn-align-q ${document.getElementById('creator-set-align').value === 'right' ? 'active' : ''}" data-align="right">右</button>
                     </div>
-                    ` : ''}
+                    ` : `
+                    <div class="align-btn-group-toolbar">
+                        <button type="button" class="btn-align-c ${document.getElementById('creator-set-c-align').value === 'left' ? 'active' : ''}" data-align="left">左</button>
+                        <button type="button" class="btn-align-c ${document.getElementById('creator-set-c-align').value === 'center' ? 'active' : ''}" data-align="center">中</button>
+                        <button type="button" class="btn-align-c ${document.getElementById('creator-set-c-align').value === 'right' ? 'active' : ''}" data-align="right">右</button>
+                    </div>
+                    `}
                 </div>
             </div>
 
@@ -1308,6 +1338,18 @@ App.Design = {
                     document.querySelectorAll('.btn-align').forEach(b => {
                         b.classList.toggle('active', b.dataset.align === btn.dataset.align);
                     });
+                    this.renderPreview();
+                }
+            };
+        });
+
+        body.querySelectorAll('.btn-align-c').forEach(btn => {
+            btn.onclick = () => {
+                body.querySelectorAll('.btn-align-c').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const realCAlign = document.getElementById('creator-set-c-align');
+                if (realCAlign) {
+                    realCAlign.value = btn.dataset.align;
                     this.renderPreview();
                 }
             };
