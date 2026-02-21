@@ -795,6 +795,13 @@
     transform: scale(1.02);
 }
 
+.player-multi-item.is-missed {
+    background: rgba(255, 107, 107, 0.1);
+    border: 2px solid #ff7675;
+    box-shadow: 0 0 15px rgba(255, 118, 117, 0.2);
+    opacity: 0.9;
+}
+
 .multi-index {
     background: rgba(0, 0, 0, 0.05);
     width: 26px;

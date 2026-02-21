@@ -583,6 +583,24 @@ function renderResultScreen(p) {
     } else if (currentQuestion.type === 'sort') {
         const correctStr = Array.isArray(currentQuestion.correct) ? currentQuestion.correct.map(idx => String.fromCharCode(65 + idx)).join('') : currentQuestion.correct;
         correctText = correctStr.split('').map(char => currentQuestion.c[char.charCodeAt(0) - 65]).join(' → ');
+    } else if (currentQuestion.type && currentQuestion.type.startsWith('multi')) {
+        const revealed = localStatus.revealedMulti || {};
+        const choices = currentQuestion.c || [];
+
+        let gridHtml = '<div class="player-multi-grid" style="animation:none; margin-top:10px; max-height:none; overflow:visible; display:grid; grid-template-columns:1fr; gap:8px; width:100%;">';
+        choices.forEach((choice, i) => {
+            const isRevealed = revealed[i];
+            const itemClass = isRevealed ? 'player-multi-item is-revealed' : 'player-multi-item is-missed';
+
+            gridHtml += `
+                <div class="${itemClass}" style="min-height:44px; padding:10px 15px;">
+                    <div class="multi-index">${i + 1}</div>
+                    <div class="multi-text-revealed" style="font-size:1em;">${choice}</div>
+                </div>
+            `;
+        });
+        gridHtml += '</div>';
+        correctText = gridHtml;
     } else {
         correctText = currentQuestion.correct;
     }
@@ -614,6 +632,7 @@ function renderResultScreen(p) {
         // Removed flash effect
     }
 
+    const isMultiResult = currentQuestion.type && currentQuestion.type.startsWith('multi');
     ansBox.innerHTML = `
         <div style="display:flex; flex-direction:column; align-items:center; margin-bottom:20px;">
             ${judgeHtml}
@@ -622,7 +641,7 @@ function renderResultScreen(p) {
             <div style="font-size:0.8em; letter-spacing:1px; margin-bottom:8px; color:var(--color-text-sub);">
                 ${(currentQuestion.mode === 'dobon' || currentQuestion.mode === 'multi' || currentQuestion.multi || roomConfig.mode === 'dobon') ? "NG ANSWER (選んではいけません)" : "CORRECT ANSWER"}
             </div>
-            <div style="font-size:1.8em; line-height:1.4;">${correctText}</div>
+            <div style="font-size:${isMultiResult ? '1.0em' : '1.8em'}; line-height:1.4;">${correctText}</div>
         </div>
         <div style="background:rgba(0,0,0,0.05); color:var(--color-text); padding:12px; border-radius:12px; font-weight:bold; text-align:center; margin-top:12px;">
             <div style="font-size:0.7em; color:var(--color-text-sub); margin-bottom:4px; letter-spacing:1px;">YOUR ANSWER</div>
