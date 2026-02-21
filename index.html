@@ -3,7 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Quiz Studio</title>
     <link rel="stylesheet" href="style_common.css?v=95">
     <link rel="stylesheet" href="style_host.css?v=95">
@@ -530,8 +531,7 @@
                             style="color:#fff; font-size:24px; font-weight:bold;">0</span>
                     </div>
                 </div>
-                <button id="host-close-studio-btn-simple" class="btn-dark"
-                    style="padding:5px 15px; font-size:12px;">EXIT</button>
+                <button id="host-close-studio-btn-simple" class="header-back-btn">ダッシュボード</button>
             </div>
 
             <!-- Fixed Top Controls Area -->
@@ -543,9 +543,10 @@
                         style="background:#e0e0e0; color:#111; font-size:14px; font-weight:800; display:flex; align-items:center; justify-content:center; margin-bottom:8px; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,0.3); border-bottom:2px solid #bbb; text-align:center;">
                         ---</div>
                     <div id="studio-monitor-status-row" style="display:flex; justify-content:space-between; gap:8px;">
-                        <div class="studio-status-indicator" id="status-ind-qnum">問題番号表示</div>
+                        <div class="studio-status-indicator" id="status-ind-qnum">番号表示</div>
                         <div class="studio-status-indicator" id="status-ind-question">問題表示</div>
                         <div class="studio-status-indicator" id="status-ind-answer">正解表示</div>
+                        <div class="studio-status-indicator" id="status-ind-result">結果表示</div>
                     </div>
                 </div>
 

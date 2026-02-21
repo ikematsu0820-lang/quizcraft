@@ -32,6 +32,19 @@
     --font-main: "Inter", "Helvetica Neue", Arial, sans-serif;
 }
 
+/* --- Global Box-Sizing Reset (prevent overflow from padding/border) --- */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
+    -webkit-overflow-scrolling: touch;
+}
+
 body {
     font-family: var(--font-main);
     margin: 0;
@@ -43,6 +56,9 @@ body {
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
     overflow-y: auto;
+    overscroll-behavior-x: none;
+    width: 100%;
+    max-width: 100%;
 }
 
 /* --- Premium Scrollbar --- */
@@ -79,6 +95,7 @@ body {
     border-right: var(--border-glass);
     background: transparent;
     /* Rely on body gradient */
+    overflow-x: hidden;
 }
 
 .hidden {

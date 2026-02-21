@@ -98,7 +98,9 @@ window.App.Viewer = {
             statusDiv.textContent = "WAITING";
 
             const firstQ = this.questions[0] || {};
-            if (firstQ.prodDesign && (firstQ.prodDesign.titleText || firstQ.prodDesign.titleBgColor || firstQ.isTitleHidden === false)) {
+            if (firstQ.isTitleHidden) {
+                mainText.innerHTML = '';
+            } else if (firstQ.prodDesign && (firstQ.prodDesign.titleText || firstQ.prodDesign.titleBgColor || firstQ.isTitleHidden === false)) {
                 this.renderProduction(viewContainer, mainText, 'title', firstQ, st);
             } else {
                 this.applyDefaultDesign(viewContainer, null);
@@ -121,7 +123,9 @@ window.App.Viewer = {
             statusDiv.textContent = "NEXT Q";
             const q = this.questions[st.qIndex] || {};
 
-            if (q.prodDesign) {
+            if (q.isQNumHidden) {
+                mainText.innerHTML = '';
+            } else if (q.prodDesign) {
                 this.renderProduction(viewContainer, mainText, 'qnumber', q, st);
             } else {
                 this.applyDefaultDesign(viewContainer, null);
@@ -188,7 +192,7 @@ window.App.Viewer = {
             const q = this.questions[st.qIndex] || {};
             this.applyDefaultDesign(viewContainer, q.design);
 
-            if (q.isResHidden) {
+            if (q.isResHidden || q.isHidden) {
                 mainText.innerHTML = '';
                 return;
             }

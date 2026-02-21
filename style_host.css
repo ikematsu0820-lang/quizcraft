@@ -898,28 +898,28 @@ select.bold-select {
 .align-btn-group {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    background: rgba(0, 0, 0, 0.3);
-    padding: 5px;
-    border-radius: 14px;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 3px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .btn-align {
     background: transparent;
     border: none;
-    color: #888;
+    color: rgba(255, 255, 255, 0.4);
     padding: 10px;
-    border-radius: 10px;
+    border-radius: 5px;
     font-weight: 700;
     font-size: 0.85em;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btn-align.active {
-    background: #444;
-    color: #fff;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--color-primary);
+    box-shadow: 0 4px 15px rgba(0, 229, 255, 0.15);
 }
 
 .sub-title {
@@ -1022,7 +1022,7 @@ select.bold-select {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100vw;
+    width: 100%;
     /* Full viewport width */
     height: 100vh;
     /* Full viewport height */
@@ -1486,7 +1486,8 @@ select.bold-select {
     max-width: 100%;
     scrollbar-width: none;
     min-height: 40px;
-    /* Slimmer */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
 }
 
 .design-pager-area::-webkit-scrollbar {
@@ -1577,39 +1578,32 @@ select.bold-select {
 }
 
 .pager-status-text {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 800;
-    color: var(--color-primary);
+    color: rgba(255, 255, 255, 0.85);
     min-width: 140px;
-    text-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
     text-align: center;
-    letter-spacing: 1px;
-    background: rgba(0, 0, 0, 0.3);
-    padding: 8px 15px;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    letter-spacing: 0.5px;
 }
 
 .segmented-btn {
     flex: 1;
     background: transparent;
     border: none;
-    color: #888;
-    padding: 8px;
-    border-radius: 7px;
+    color: rgba(255, 255, 255, 0.4);
+    padding: 10px 14px;
+    border-radius: 6px;
     font-weight: 700;
     font-size: 0.85em;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     pointer-events: auto !important;
-    position: relative;
-    z-index: 500;
 }
 
 .segmented-btn.active {
-    background: var(--color-primary);
-    color: #000;
-    box-shadow: 0 4px 10px rgba(0, 229, 255, 0.2);
+    background: rgba(255, 255, 255, 0.1);
+    color: #00e5ff;
+    box-shadow: 0 4px 15px rgba(0, 229, 255, 0.1);
 }
 
 .design-compact-menu {
@@ -1889,6 +1883,8 @@ select.bold-select {
     overflow-x: auto;
     max-width: 100%;
     padding-bottom: 2px;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
 }
 
 @media (max-width: 480px) {
@@ -3173,56 +3169,53 @@ input:checked+.pro-slider:before {
 }
 
 .quick-inspector-content {
-    background: rgba(25, 25, 30, 0.98) !important;
-    border: 1px solid rgba(255, 255, 255, 0.22) !important;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5) !important;
-    width: 280px !important;
-    padding: 16px !important;
-    /* User requested 16px */
-    border-radius: 12px !important;
-    /* Slightly more rigid for toolbar feel */
+    background: rgba(20, 20, 25, 0.95) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6) !important;
+    width: 300px !important;
+    padding: 20px !important;
+    border-radius: 16px !important;
     pointer-events: auto;
-    backdrop-filter: blur(20px);
+    backdrop-filter: blur(25px);
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .quick-modal-header {
-    margin-bottom: 12px;
+    margin-bottom: 15px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .quick-modal-header .modal-title {
-    font-size: 15px !important;
-    /* User requested 15-16px */
+    font-size: 14px !important;
     font-weight: 800;
     margin: 0;
-    color: #fff;
-    letter-spacing: 0.5px;
+    color: rgba(255, 255, 255, 0.9);
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
 }
 
 /* Toolbar Rows */
 .inspector-row {
     display: flex;
     align-items: center;
-    height: 46px;
-    /* User requested 44-48px */
     gap: 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.inspector-row:last-child {
-    border-bottom: none;
+    height: 48px;
+    margin-bottom: 4px;
 }
 
 .inspector-icon-box {
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 34px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 6px;
     font-size: 14px;
-    color: #aaa;
+    color: #00e5ff;
     flex-shrink: 0;
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .inspector-controls {
@@ -3234,15 +3227,18 @@ input:checked+.pro-slider:before {
 
 .inspector-control-group {
     display: flex;
-    align-items: center;
-    gap: 6px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    flex: 1;
 }
 
 .inspector-label-mini {
-    font-size: 11px;
-    color: #888;
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.4);
     text-transform: uppercase;
-    font-weight: 700;
+    font-weight: 800;
+    letter-spacing: 0.5px;
 }
 
 /* Slim Color Swatch */
@@ -3277,25 +3273,41 @@ input:checked+.pro-slider:before {
 .align-btn-group-toolbar {
     display: flex;
     background: rgba(0, 0, 0, 0.4);
-    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
     padding: 2px;
+    gap: 2px;
 }
 
-.btn-align-q {
+.btn-align-q,
+.btn-align-c {
     background: transparent;
     border: none;
-    color: #888;
-    padding: 4px 8px;
+    color: rgba(255, 255, 255, 0.4);
+    padding: 4px 10px;
     font-size: 11px;
+    font-weight: 700;
     cursor: pointer;
-    border-radius: 4px;
-    height: 28px;
-    transition: all 0.2s;
+    border-radius: 6px;
+    height: 30px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
 }
 
-.btn-align-q.active {
-    background: #444;
+.btn-align-q:hover,
+.btn-align-c:hover {
     color: #fff;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.btn-align-q.active,
+.btn-align-c.active {
+    background: rgba(255, 255, 255, 0.15);
+    color: var(--color-primary);
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
 }
 
 .toolbar-done-btn {
@@ -3601,6 +3613,8 @@ input:checked+.pro-slider:before {
     gap: 12px;
     overflow-x: auto;
     padding: 5px 0 15px 0;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
 }
 
 .console-player-chip {

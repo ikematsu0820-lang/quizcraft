@@ -246,26 +246,34 @@ App.Studio = {
     updateStudioStatus: function (stepId) {
         // Update Q Number Display (Use 'Q1', 'Q2' etc.)
         const qNumEl = document.getElementById('studio-q-number-large');
+        const qIdx = App.State.currentQIndex;
         if (qNumEl) {
-            const idx = (App.State.currentQIndex !== undefined) ? App.State.currentQIndex + 1 : '-';
-            qNumEl.textContent = `Q ${idx}`;
+            const displayIdx = (qIdx !== undefined) ? qIdx + 1 : '-';
+            qNumEl.textContent = `Q ${displayIdx}`;
         }
+
+        const q = App.Data.studioQuestions[qIdx] || {};
 
         // Update Status Indicators
         // Map steps to indicators: 
         // 0=Start/Title, 1=QNum -> QNum Indicator
         // 2=RevealQ/Answering, 3=Closed -> Question Indicator
-        // 4=RevealP, 5=RevealC, 6=Judge, 7=Result -> Answer Indicator
+        // 4=RevealP, 5=RevealC, 6=Judge -> Answer Indicator
+        // 7=Result -> Result Indicator
         const map = {
-            'status-ind-qnum': [0, 1], // Title / Q Num
-            'status-ind-question': [2, 3], // Answering, Lockdown
-            'status-ind-answer': [4, 5, 6, 7] // Reveal Phases
+            'status-ind-qnum': { steps: [0, 1], hide: q.isQNumHidden || (stepId === 0 && q.isTitleHidden) },
+            'status-ind-question': { steps: [2, 3], hide: q.isHidden },
+            'status-ind-answer': { steps: [4, 5, 6], hide: q.isAnsHidden },
+            'status-ind-result': { steps: [7], hide: q.isResHidden || q.isHidden }
         };
 
-        for (const [id, steps] of Object.entries(map)) {
+        for (const [id, cfg] of Object.entries(map)) {
             const el = document.getElementById(id);
             if (el) {
-                if (steps.includes(stepId)) {
+                // If the phase is hidden in design, hide the indicator entirely
+                el.style.display = cfg.hide ? 'none' : 'flex';
+
+                if (cfg.steps.includes(stepId)) {
                     el.classList.add('active');
                 } else {
                     el.classList.remove('active');

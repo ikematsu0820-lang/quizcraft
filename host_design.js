@@ -596,7 +596,12 @@ App.Design = {
                 this.currentStepIsHidden = isHidden; // Store for final overlay application
 
                 const hideBtn = document.getElementById('design-pager-hide-toggle');
-                if (hideBtn) hideBtn.classList.toggle('is-hidden', isHidden);
+                if (hideBtn) {
+                    hideBtn.classList.toggle('is-hidden', isHidden);
+                    // Only show visibility toggle for specific types: title, qnumber, result (Ranking)
+                    const showToggle = ['title', 'qnumber', 'result'].includes(stepType);
+                    hideBtn.style.display = showToggle ? 'flex' : 'none';
+                }
 
                 // Update Pager UI
                 const pager = document.getElementById('design-pager-container');
@@ -610,7 +615,9 @@ App.Design = {
                 if (stepType === 'qnumber') statusText = `第${qIdx + 1}問 (番号)`;
                 if (stepType === 'question') statusText = `第${qIdx + 1}問 (内容)`;
                 if (stepType === 'answer') statusText = `第${qIdx + 1}問 (正解)`;
-                if (stepType === 'result') statusText = `第${qIdx + 1}問 (結果)`;
+                if (stepType === 'result') statusText = `第${qIdx + 1}問 (ランキング)`;
+
+                if (isHidden) statusText += " (非表示)";
                 if (status) status.textContent = statusText;
 
                 if (prev) prev.disabled = (this.previewQIndex === 0);
@@ -969,23 +976,33 @@ App.Design = {
     openQuickEdit: function (type, event) {
         this.activeQuickEdit = type;
         const modal = document.getElementById('modal-design-quick');
-        const content = modal.querySelector('.quick-inspector-content');
-        const body = document.getElementById('quick-modal-body');
-        const title = document.getElementById('quick-modal-title');
-        if (!modal || !body || !content) return;
+        const content = modal.querySelector('.design-modal-content') || modal.querySelector('.quick-inspector-content');
+        const title = modal.querySelector('.modal-title');
+        const body = modal.querySelector('.design-modal-body');
+        if (!modal || !body || !content || !title) return;
+
+        // Reset highlight
+        document.querySelectorAll('.preview-q-block, .preview-c-block, .preview-bg-block').forEach(el => el.classList.remove('is-editing'));
+
+        let targetSelector = '.preview-q-block';
+        if (type === 'c') targetSelector = '.preview-c-block';
+        if (type === 'bg' || type === 'title' || type === 'qnumber') targetSelector = '.preview-bg-block';
+
+        const target = document.querySelector(targetSelector);
+        if (target) target.classList.add('is-editing');
 
         // Positioning logic
         if (event && window.innerWidth > 768) {
+            event.stopPropagation();
             const x = event.clientX;
             const y = event.clientY;
-            const panelWidth = 280; // Compact
-            const panelHeight = 220; // Slimmer
+            const panelWidth = 280;
+            const panelHeight = 320;
             const offset = 20;
 
             let left = x + offset;
             let top = y - (panelHeight / 2);
 
-            // Bounds check (Flip to left if no space on right)
             if (left + panelWidth > window.innerWidth - 10) left = x - panelWidth - offset;
             if (top < 10) top = 10;
             if (top + panelHeight > window.innerHeight) top = window.innerHeight - panelHeight - 10;
@@ -993,11 +1010,13 @@ App.Design = {
             content.style.position = 'absolute';
             content.style.left = left + 'px';
             content.style.top = top + 'px';
+            content.style.bottom = 'auto';
             content.style.transform = 'none';
         } else {
             content.style.position = '';
             content.style.left = '';
             content.style.top = '';
+            content.style.bottom = '0';
             content.style.transform = '';
         }
 
@@ -1034,278 +1053,13 @@ App.Design = {
             };
         };
 
-        // Reset highlight
-        document.querySelectorAll('.preview-q-block, .preview-c-block, .preview-bg-block').forEach(el => el.classList.remove('is-editing'));
-
-        let targetSelector = '.preview-q-block';
-        if (type === 'c') targetSelector = '.preview-c-block';
-        if (type === 'bg' || type === 'title' || type === 'qnumber') targetSelector = '.preview-bg-block';
-
-        const target = document.querySelector(targetSelector);
-        if (target) target.classList.add('is-editing');
-
-        if (type === 'title' || type === 'qnumber') {
-            const isTitle = (type === 'title');
-            title.textContent = isTitle ? "タイトル画面設定" : "問題番号設定";
-            const IDs = isTitle ?
-                { bg: 'prod-title-bg-color', text: 'prod-title-text-color', size: 'prod-title-size' } :
-                { bg: 'prod-qnum-bg-color', text: 'prod-qnum-text-color', size: 'prod-qnum-size' };
-
-            body.innerHTML = `
-                <div class="inspector-row">
-                    <div class="inspector-icon-box" title="内容">✍️</div>
-                    <div class="inspector-controls">
-                        <input type="text" id="quick-content-override" class="inspector-input-mini" style="flex:1;" placeholder="${isTitle ? '表示タイトル...' : '例: 第1問'}" value="${document.getElementById(isTitle ? 'design-title-text-value' : 'design-qnum-text-value')?.value || ''}">
-                    </div>
-                </div>
-                <div class="inspector-row">
-                    <div class="inspector-icon-box" title="テキスト設定">T</div>
-                    <div class="inspector-controls">
-                        <div class="inspector-control-group">
-                            <span class="inspector-label-mini">色</span>
-                            <div class="color-swatch-wrapper">
-                                <input type="color" id="quick-text-color" class="color-picker-hidden" value="${document.getElementById(IDs.text).value}">
-                                <div class="color-swatch" id="swatch-text-color" style="background:${document.getElementById(IDs.text).value}"></div>
-                            </div>
-                            <div style="margin-top:5px; text-align:center;">
-                                <label style="font-size:0.8em; cursor:pointer;">
-                                    <input type="checkbox" id="quick-text-transparent-toggle" ${document.getElementById(IDs.text + '-transparent').checked ? 'checked' : ''}> 透明
-                                </label>
-                            </div>
-                        </div>
-                        <div class="inspector-control-group">
-                            <span class="inspector-label-mini">大きさ</span>
-                            <div class="stepper-input">
-                                <button class="stepper-btn" id="stepper-down">▼</button>
-                                <input type="text" id="quick-font-size" class="inspector-input-mini" value="${document.getElementById(IDs.size).value}">
-                                <button class="stepper-btn" id="stepper-up">▲</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="inspector-row">
-                    <div class="inspector-icon-box" title="カラー設定">🎨</div>
-                    <div class="inspector-controls">
-                        <div class="inspector-control-group">
-                            <span class="inspector-label-mini">背景色</span>
-                            <div class="color-swatch-wrapper">
-                                <input type="color" id="quick-bg-color" class="color-picker-hidden" value="${document.getElementById(IDs.bg).value}">
-                                <div class="color-swatch" id="swatch-bg-color" style="background:${document.getElementById(IDs.bg).value}"></div>
-                            </div>
-                            <div style="margin-top:5px; text-align:center;">
-                                <label style="font-size:0.8em; cursor:pointer;">
-                                    <input type="checkbox" id="quick-bg-transparent-toggle" ${document.getElementById(IDs.bg + '-transparent').checked ? 'checked' : ''}> 透明
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="inspector-row" style="height:auto; padding:10px 0;">
-                    <button class="btn-dark btn-block btn-mini" onclick="document.getElementById('${isTitle ? 'modal-prod-title' : 'modal-prod-qnum'}').classList.remove('hidden'); document.getElementById('modal-design-quick').classList.add('hidden');">
-                        ⚙️ 詳細設定を開く
-                    </button>
-                </div>
-            `;
-
-
-            syncHelper('quick-text-color', IDs.text, 'swatch-text-color');
-            syncHelper('quick-bg-color', IDs.bg, 'swatch-bg-color');
-            bindStepper('quick-font-size', IDs.size);
-
-            const bindTrans = (toggleId, targetId, swatchId, pickerId) => {
-                const toggle = document.getElementById(toggleId);
-                const swatch = document.getElementById(swatchId);
-                const picker = document.getElementById(pickerId);
-                if (toggle) {
-                    const updateVisual = () => {
-                        const isChecked = toggle.checked;
-                        document.getElementById(targetId + '-transparent').checked = isChecked;
-                        if (isChecked) {
-                            swatch.style.background = "transparent";
-                            swatch.style.backgroundImage = "linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)";
-                            swatch.style.backgroundSize = "10px 10px";
-                        } else {
-                            swatch.style.background = picker.value;
-                            swatch.style.backgroundImage = "none";
-                        }
-                        this.renderPreview();
-                    };
-                    toggle.onchange = updateVisual;
-                    // Initial update
-                    if (toggle.checked) updateVisual();
-                    // Picker unchecks transparent
-                    picker.addEventListener('input', () => {
-                        toggle.checked = false;
-                        document.getElementById(targetId + '-transparent').checked = false;
-                        swatch.style.backgroundImage = "none";
-                        // renderPreview called by syncHelper
-                    });
-                }
-            };
-
-            bindTrans('quick-text-transparent-toggle', IDs.text, 'swatch-text-color', 'quick-text-color');
-            bindTrans('quick-bg-transparent-toggle', IDs.bg, 'swatch-bg-color', 'quick-bg-color');
-
-            const contentInp = document.getElementById('quick-content-override');
-            if (contentInp) {
-                contentInp.oninput = () => {
-                    document.getElementById(isTitle ? 'design-title-text-value' : 'design-qnum-text-value').value = contentInp.value;
-                    this.renderPreview();
-                };
-            }
-            modal.classList.remove('hidden');
-            return;
-        }
-
-        if (type === 'bg') {
-            title.textContent = "背景デザイン";
-            body.innerHTML = `
-                <div class="inspector-row">
-                    <div class="inspector-icon-box" title="背景色">🎨</div>
-                    <div class="inspector-controls">
-                        <div class="inspector-control-group">
-                            <span class="inspector-label-mini">背景色</span>
-                            <div class="color-swatch-wrapper">
-                                <input type="color" id="quick-bg-color" class="color-picker-hidden" value="${document.getElementById('design-main-bg-color').value}">
-                                <div class="color-swatch" id="swatch-bg-color" style="background:${document.getElementById('design-main-bg-color').value}"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="inspector-row" style="height:auto; padding:10px 0;">
-                    <button class="btn-dark btn-block btn-mini" onclick="document.getElementById('modal-design-bg').classList.remove('hidden'); document.getElementById('modal-design-quick').classList.add('hidden');">
-                        🖼 背景画像の詳細設定を開く
-                    </button>
-                </div>
-            `;
-
-            const bgInp = document.getElementById('quick-bg-color');
-            const bgSwatch = document.getElementById('swatch-bg-color');
-            if (bgInp) {
-                bgInp.oninput = (e) => {
-                    const val = e.target.value;
-                    bgSwatch.style.background = val;
-                    document.getElementById('design-main-bg-color').value = val;
-                    this.renderPreview();
-                };
-            }
-            modal.classList.remove('hidden');
-            return;
-        }
-
-        title.textContent = (type === 'q') ? "問題エリア" : "選択肢エリア";
-
-        const prefix = (type === 'q') ? 'q' : 'c';
-
-        body.innerHTML = `
-            <div class="inspector-row">
-                <div class="inspector-icon-box" title="テキスト設定">T</div>
-                <div class="inspector-controls">
-                    <div class="inspector-control-group">
-                        <span class="inspector-label-mini">文字</span>
-                        <div class="color-swatch-wrapper">
-                            <input type="color" id="quick-text-color" class="color-picker-hidden" value="${document.getElementById(`design-${prefix}-text`).value}">
-                            <div class="color-swatch" id="swatch-text-color" style="background:${document.getElementById(`design-${prefix}-text-transparent`).checked ? 'transparent' : document.getElementById(`design-${prefix}-text`).value}"></div>
-                        </div>
-                        <div style="margin-top:5px; text-align:center;">
-                            <label style="font-size:0.8em; cursor:pointer;">
-                                <input type="checkbox" id="quick-text-transparent-toggle" ${document.getElementById(`design-${prefix}-text-transparent`).checked ? 'checked' : ''}> 透明
-                            </label>
-                        </div>
-                    </div>
-                    <div class="inspector-control-group">
-                        <span class="inspector-label-mini">大きさ</span>
-                        <div class="stepper-input">
-                            <button class="stepper-btn" id="stepper-down">▼</button>
-                            <input type="text" id="quick-font-size" class="inspector-input-mini" value="${document.getElementById(`design-${prefix}-size`).value}">
-                            <button class="stepper-btn" id="stepper-up">▲</button>
-                        </div>
-                    </div>
-                    ${type === 'q' ? `
-                    <div class="align-btn-group-toolbar">
-                        <button type="button" class="btn-align-q ${document.getElementById('creator-set-align').value === 'left' ? 'active' : ''}" data-align="left">左</button>
-                        <button type="button" class="btn-align-q ${document.getElementById('creator-set-align').value === 'center' ? 'active' : ''}" data-align="center">中</button>
-                        <button type="button" class="btn-align-q ${document.getElementById('creator-set-align').value === 'right' ? 'active' : ''}" data-align="right">右</button>
-                    </div>
-                    ` : `
-                    <div class="align-btn-group-toolbar">
-                        <button type="button" class="btn-align-c ${document.getElementById('creator-set-c-align').value === 'left' ? 'active' : ''}" data-align="left">左</button>
-                        <button type="button" class="btn-align-c ${document.getElementById('creator-set-c-align').value === 'center' ? 'active' : ''}" data-align="center">中</button>
-                        <button type="button" class="btn-align-c ${document.getElementById('creator-set-c-align').value === 'right' ? 'active' : ''}" data-align="right">右</button>
-                    </div>
-                    `}
-                </div>
-            </div>
-
-            <div class="inspector-row">
-                <div class="inspector-icon-box" title="ボックス設定">□</div>
-                <div class="inspector-controls">
-                    <div class="inspector-control-group">
-                        <span class="inspector-label-mini">枠線</span>
-                        <div class="color-swatch-wrapper">
-                            <input type="color" id="quick-border-color" class="color-picker-hidden" value="${document.getElementById(`design-${prefix}-border`).value}">
-                            <div class="color-swatch" id="swatch-border-color" style="background:${document.getElementById(`design-${prefix}-border-transparent`).checked ? 'transparent' : document.getElementById(`design-${prefix}-border`).value}"></div>
-                        </div>
-                        <div style="margin-top:5px; text-align:center;">
-                            <label style="font-size:0.8em; cursor:pointer;">
-                                <input type="checkbox" id="quick-border-transparent-toggle" ${document.getElementById(`design-${prefix}-border-transparent`).checked ? 'checked' : ''}> 透明
-                            </label>
-                        </div>
-                    </div>
-                    <div class="inspector-control-group">
-                        <span class="inspector-label-mini">背景</span>
-                        <div class="color-swatch-wrapper">
-                            <input type="color" id="quick-bg-color" class="color-picker-hidden" value="${document.getElementById(`design-${prefix}-bg`).value}">
-                            <div class="color-swatch" id="swatch-bg-color" style="background:${document.getElementById(`design-${prefix}-bg-transparent`).checked ? 'transparent' : document.getElementById(`design-${prefix}-bg`).value}"></div>
-                        </div>
-                        <div style="margin-top:5px; text-align:center;">
-                            <label style="font-size:0.8em; cursor:pointer;">
-                                <input type="checkbox" id="quick-bg-transparent-toggle" ${document.getElementById(`design-${prefix}-bg-transparent`).checked ? 'checked' : ''}> 透明
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        modal.classList.remove('hidden');
-
-        // Bind events
-        const sync = (id, targetId, swatchId, transToggleId) => {
-            const el = document.getElementById(id);
-            const targetEl = document.getElementById(targetId);
-            const swatch = document.getElementById(swatchId);
-            if (el && targetEl) {
-                el.oninput = () => {
-                    targetEl.value = el.value;
-                    if (swatch) {
-                        swatch.style.background = el.value;
-                        swatch.style.backgroundImage = 'none';
-                    }
-                    // Uncheck transparent if color picked
-                    if (transToggleId) {
-                        const transChk = document.getElementById(transToggleId);
-                        if (transChk) {
-                            transChk.checked = false;
-                            document.getElementById(targetId + '-transparent').checked = false;
-                        }
-                    }
-                    this.renderPreview();
-                };
-            }
-        };
-
-        sync('quick-text-color', `design-${prefix}-text`, 'swatch-text-color', 'quick-text-transparent-toggle');
-        sync('quick-border-color', `design-${prefix}-border`, 'swatch-border-color', 'quick-border-transparent-toggle');
-        sync('quick-bg-color', `design-${prefix}-bg`, 'swatch-bg-color', 'quick-bg-transparent-toggle');
-
-        // Transparent Toggle Logic (generalized for all 3)
         const bindTransToggle = (toggleId, targetTransId, swatchId, colorInputId) => {
             const toggle = document.getElementById(toggleId);
             if (!toggle) return;
             const updateVisual = () => {
                 const isChecked = toggle.checked;
-                document.getElementById(targetTransId).checked = isChecked;
+                const targetTrans = document.getElementById(targetTransId);
+                if (targetTrans) targetTrans.checked = isChecked;
                 const swatch = document.getElementById(swatchId);
                 if (isChecked) {
                     swatch.style.background = "transparent";
@@ -1320,11 +1074,225 @@ App.Design = {
             };
             toggle.onchange = updateVisual;
             if (toggle.checked) updateVisual();
+
+            const picker = document.getElementById(colorInputId);
+            if (picker) {
+                picker.addEventListener('input', () => {
+                    toggle.checked = false;
+                    const targetTrans = document.getElementById(targetTransId);
+                    if (targetTrans) targetTrans.checked = false;
+                    const swatch = document.getElementById(swatchId);
+                    if (swatch) swatch.style.backgroundImage = "none";
+                });
+            }
         };
 
-        bindTransToggle('quick-text-transparent-toggle', `design-${prefix}-text-transparent`, 'swatch-text-color', `design-${prefix}-text`);
-        bindTransToggle('quick-border-transparent-toggle', `design-${prefix}-border-transparent`, 'swatch-border-color', `design-${prefix}-border`);
-        bindTransToggle('quick-bg-transparent-toggle', `design-${prefix}-bg-transparent`, 'swatch-bg-color', `design-${prefix}-bg`);
+        const doneBtn = `<div class="inspector-row" style="height:auto; padding:15px 0 5px;">
+            <button class="btn-block btn-dark btn-mini" onclick="document.getElementById('modal-design-quick').classList.add('hidden')">完了</button>
+        </div>`;
+
+        if (type === 'title' || type === 'qnumber') {
+            const isTitle = (type === 'title');
+            title.textContent = isTitle ? "タイトル画面" : "問題番号";
+            const IDs = isTitle ?
+                { bg: 'prod-title-bg-color', text: 'prod-title-text-color', size: 'prod-title-size' } :
+                { bg: 'prod-qnum-bg-color', text: 'prod-qnum-text-color', size: 'prod-qnum-size' };
+
+            body.innerHTML = `
+                <div class="inspector-row">
+                    <div class="inspector-icon-box" title="内容">✍️</div>
+                    <div class="inspector-controls">
+                        <input type="text" id="quick-content-override" class="inspector-input-mini" style="flex:1;" placeholder="${isTitle ? '表示タイトル...' : '例: 第1問'}" value="${document.getElementById(isTitle ? 'design-title-text-value' : 'design-qnum-text-value')?.value || ''}">
+                    </div>
+                </div>
+                <div class="inspector-row">
+                    <div class="inspector-icon-box" title="テキスト">T</div>
+                    <div class="inspector-controls">
+                        <div class="inspector-control-group">
+                            <span class="inspector-label-mini">色</span>
+                            <div class="flex-center" style="gap:8px;">
+                                <div class="color-swatch-wrapper">
+                                    <input type="color" id="quick-text-color" class="color-picker-hidden" value="${document.getElementById(IDs.text).value}">
+                                    <div class="color-swatch" id="swatch-text-color" style="background:${document.getElementById(IDs.text).value}"></div>
+                                </div>
+                                <label style="font-size:10px; cursor:pointer; color:#888; display:flex; align-items:center; gap:3px;">
+                                    <input type="checkbox" id="quick-text-transparent-toggle" ${document.getElementById(IDs.text + '-transparent').checked ? 'checked' : ''}> 透明
+                                </label>
+                            </div>
+                        </div>
+                        <div class="inspector-control-group">
+                            <span class="inspector-label-mini">サイズ</span>
+                            <div class="stepper-input">
+                                <button class="stepper-btn" id="stepper-down">▼</button>
+                                <input type="text" id="quick-font-size" class="inspector-input-mini" value="${document.getElementById(IDs.size).value}">
+                                <button class="stepper-btn" id="stepper-up">▲</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="inspector-row">
+                    <div class="inspector-icon-box" title="背景">🎨</div>
+                    <div class="inspector-controls">
+                        <div class="inspector-control-group">
+                            <span class="inspector-label-mini">背景色</span>
+                            <div class="flex-center" style="gap:8px;">
+                                <div class="color-swatch-wrapper">
+                                    <input type="color" id="quick-bg-color" class="color-picker-hidden" value="${document.getElementById(IDs.bg).value}">
+                                    <div class="color-swatch" id="swatch-bg-color" style="background:${document.getElementById(IDs.bg).value}"></div>
+                                </div>
+                                <label style="font-size:10px; cursor:pointer; color:#888; display:flex; align-items:center; gap:3px;">
+                                    <input type="checkbox" id="quick-bg-transparent-toggle" ${document.getElementById(IDs.bg + '-transparent').checked ? 'checked' : ''}> 透明
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="inspector-row" style="height:auto; padding:10px 0 0;">
+                    <button class="btn-dark btn-block btn-mini" onclick="document.getElementById('${isTitle ? 'modal-prod-title' : 'modal-prod-qnum'}').classList.remove('hidden'); document.getElementById('modal-design-quick').classList.add('hidden');">
+                        ⚙️ 詳細設定を開く
+                    </button>
+                </div>
+                ${doneBtn}
+            `;
+
+            syncHelper('quick-text-color', IDs.text, 'swatch-text-color');
+            syncHelper('quick-bg-color', IDs.bg, 'swatch-bg-color');
+            bindStepper('quick-font-size', IDs.size);
+            bindTransToggle('quick-text-transparent-toggle', IDs.text + '-transparent', 'swatch-text-color', 'quick-text-color');
+            bindTransToggle('quick-bg-transparent-toggle', IDs.bg + '-transparent', 'swatch-bg-color', 'quick-bg-color');
+
+            const contentInp = document.getElementById('quick-content-override');
+            if (contentInp) {
+                contentInp.oninput = () => {
+                    const targetEl = document.getElementById(isTitle ? 'design-title-text-value' : 'design-qnum-text-value');
+                    if (targetEl) targetEl.value = contentInp.value;
+                    this.renderPreview();
+                };
+            }
+            modal.classList.remove('hidden');
+            return;
+        }
+
+        if (type === 'bg') {
+            title.textContent = "背景";
+            body.innerHTML = `
+                <div class="inspector-row">
+                    <div class="inspector-icon-box" title="背景色">🎨</div>
+                    <div class="inspector-controls">
+                        <div class="inspector-control-group">
+                            <span class="inspector-label-mini">背景色</span>
+                            <div class="color-swatch-wrapper">
+                                <input type="color" id="quick-bg-color" class="color-picker-hidden" value="${document.getElementById('design-main-bg-color').value}">
+                                <div class="color-swatch" id="swatch-bg-color" style="background:${document.getElementById('design-main-bg-color').value}"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="inspector-row" style="height:auto; padding:10px 0 0;">
+                    <button class="btn-dark btn-block btn-mini" onclick="document.getElementById('modal-design-bg').classList.remove('hidden'); document.getElementById('modal-design-quick').classList.add('hidden');">
+                        🖼 背景画像の詳細設定
+                    </button>
+                </div>
+                ${doneBtn}
+            `;
+            syncHelper('quick-bg-color', 'design-main-bg-color', 'swatch-bg-color');
+            modal.classList.remove('hidden');
+            return;
+        }
+
+        // Question or Choice Area
+        title.textContent = (type === 'q') ? "問題エリア" : "選択肢エリア";
+        const prefix = (type === 'q') ? 'q' : 'c';
+
+        body.innerHTML = `
+            <div class="inspector-row">
+                <div class="inspector-icon-box" title="テキスト">T</div>
+                <div class="inspector-controls">
+                    <div class="inspector-control-group">
+                        <span class="inspector-label-mini">文字色</span>
+                        <div class="flex-center" style="gap:8px;">
+                            <div class="color-swatch-wrapper">
+                                <input type="color" id="quick-text-color" class="color-picker-hidden" value="${document.getElementById(`design-${prefix}-text`).value}">
+                                <div class="color-swatch" id="swatch-text-color" style="background:${document.getElementById(`design-${prefix}-text-transparent`).checked ? 'transparent' : document.getElementById(`design-${prefix}-text`).value}"></div>
+                            </div>
+                            <label style="font-size:10px; cursor:pointer; color:#888; display:flex; align-items:center; gap:3px;">
+                                <input type="checkbox" id="quick-text-transparent-toggle" ${document.getElementById(`design-${prefix}-text-transparent`).checked ? 'checked' : ''}> 透明
+                            </label>
+                        </div>
+                    </div>
+                    <div class="inspector-control-group">
+                        <span class="inspector-label-mini">サイズ</span>
+                        <div class="stepper-input">
+                            <button class="stepper-btn" id="stepper-down">▼</button>
+                            <input type="text" id="quick-font-size" class="inspector-input-mini" value="${document.getElementById(`design-${prefix}-size`).value}">
+                            <button class="stepper-btn" id="stepper-up">▲</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="inspector-row">
+                <div class="inspector-icon-box" title="レイアウト">📐</div>
+                <div class="inspector-controls">
+                    <div class="inspector-control-group" style="flex:1;">
+                        <span class="inspector-label-mini">揃え</span>
+                        <div class="align-btn-group-toolbar">
+                            ${prefix === 'q' ? `
+                                <button type="button" class="btn-align-q ${document.getElementById('creator-set-align').value === 'left' ? 'active' : ''}" data-align="left">左</button>
+                                <button type="button" class="btn-align-q ${document.getElementById('creator-set-align').value === 'center' ? 'active' : ''}" data-align="center">中</button>
+                                <button type="button" class="btn-align-q ${document.getElementById('creator-set-align').value === 'right' ? 'active' : ''}" data-align="right">右</button>
+                            ` : `
+                                <button type="button" class="btn-align-c ${document.getElementById('creator-set-c-align').value === 'left' ? 'active' : ''}" data-align="left">左</button>
+                                <button type="button" class="btn-align-c ${document.getElementById('creator-set-c-align').value === 'center' ? 'active' : ''}" data-align="center">中</button>
+                                <button type="button" class="btn-align-c ${document.getElementById('creator-set-c-align').value === 'right' ? 'active' : ''}" data-align="right">右</button>
+                            `}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="inspector-row">
+                <div class="inspector-icon-box" title="ブロック">□</div>
+                <div class="inspector-controls">
+                    <div class="inspector-control-group">
+                        <span class="inspector-label-mini">枠線</span>
+                        <div class="flex-center" style="gap:8px;">
+                            <div class="color-swatch-wrapper">
+                                <input type="color" id="quick-border-color" class="color-picker-hidden" value="${document.getElementById(`design-${prefix}-border`).value}">
+                                <div class="color-swatch" id="swatch-border-color" style="background:${document.getElementById(`design-${prefix}-border-transparent`).checked ? 'transparent' : document.getElementById(`design-${prefix}-border`).value}"></div>
+                            </div>
+                            <label style="font-size:10px; cursor:pointer; color:#888; display:flex; align-items:center; gap:3px;">
+                                <input type="checkbox" id="quick-border-transparent-toggle" ${document.getElementById(`design-${prefix}-border-transparent`).checked ? 'checked' : ''}> 透明
+                            </label>
+                        </div>
+                    </div>
+                    <div class="inspector-control-group">
+                        <span class="inspector-label-mini">背景色</span>
+                        <div class="flex-center" style="gap:8px;">
+                            <div class="color-swatch-wrapper">
+                                <input type="color" id="quick-bg-color" class="color-picker-hidden" value="${document.getElementById(`design-${prefix}-bg`).value}">
+                                <div class="color-swatch" id="swatch-bg-color" style="background:${document.getElementById(`design-${prefix}-bg-transparent`).checked ? 'transparent' : document.getElementById(`design-${prefix}-bg`).value}"></div>
+                            </div>
+                            <label style="font-size:10px; cursor:pointer; color:#888; display:flex; align-items:center; gap:3px;">
+                                <input type="checkbox" id="quick-bg-transparent-toggle" ${document.getElementById(`design-${prefix}-bg-transparent`).checked ? 'checked' : ''}> 透明
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            ${doneBtn}
+        `;
+
+        modal.classList.remove('hidden');
+
+        // Bind events
+        syncHelper('quick-text-color', `design-${prefix}-text`, 'swatch-text-color');
+        syncHelper('quick-border-color', `design-${prefix}-border`, 'swatch-border-color');
+        syncHelper('quick-bg-color', `design-${prefix}-bg`, 'swatch-bg-color');
+
+        bindTransToggle('quick-text-transparent-toggle', `design-${prefix}-text-transparent`, 'swatch-text-color', 'quick-text-color');
+        bindTransToggle('quick-border-transparent-toggle', `design-${prefix}-border-transparent`, 'swatch-border-color', 'quick-border-color');
+        bindTransToggle('quick-bg-transparent-toggle', `design-${prefix}-bg-transparent`, 'swatch-bg-color', 'quick-bg-color');
 
         bindStepper('quick-font-size', `design-${prefix}-size`);
 
