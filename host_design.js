@@ -743,11 +743,15 @@ App.Design = {
                 <div style="${wrapperStyle}">
                     <div class="preview-q-block ${this.activeQuickEdit === 'q' ? 'is-editing' : ''}" onclick="event.stopPropagation(); App.Design.openQuickEdit('q', event)" style="${qStyle}">${qText}</div>
                     <div class="preview-c-block ${this.activeQuickEdit === 'c' ? 'is-editing' : ''}" onclick="event.stopPropagation(); App.Design.openQuickEdit('c', event)" style="${cBlockStyle}">
-                        ${choices.map((c, i) => `
-                            <div style="${cStyle}">
-                                <span style="${labelStyle}">${String.fromCharCode(65 + i)}</span> <span>${c}</span>
-                            </div>
-                        `).join('')}
+                        ${choices.map((c, i) => {
+                const isMulti = qType && qType.startsWith('multi');
+                const labelHtml = isMulti ? '' : `<span style="${labelStyle}">${String.fromCharCode(65 + i)}</span> `;
+                return `
+                                <div style="${cStyle}">
+                                    ${labelHtml}<span>${c}</span>
+                                </div>
+                            `;
+            }).join('')}
                     </div>
                 </div>
             `;
