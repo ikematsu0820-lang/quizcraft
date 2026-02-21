@@ -510,52 +510,56 @@
         </div>
     </div>
 
-    <div id="host-control-view" class="view hidden host-studio-layout">
-        <!-- Simple New Header -->
-        <div class="simple-studio-header"
-            style="display:flex; justify-content:space-between; align-items:center; padding:15px 20px; background:#111; border-bottom:1px solid #333;">
-            <div style="display:flex; gap:20px; align-items:center;">
-                <div class="room-info">
-                    <span style="color:#888; font-size:12px; display:block;">ROOM ID</span>
-                    <span id="studio-header-room-id"
-                        style="color:#ffd700; font-size:24px; font-family:monospace; font-weight:bold;">---</span>
+    <div id="host-control-view" class="view hidden host-studio-layout"
+        style="height:auto; min-height:100vh; overflow:visible; display:flex; flex-direction:column;">
+        <!-- Fixed Header & Controls Unit -->
+        <div style="position:sticky; top:0; z-index:1000; width:100%; flex-shrink:0;">
+            <!-- Simple New Header -->
+            <div class="simple-studio-header"
+                style="display:flex; justify-content:space-between; align-items:center; padding:8px 20px; background:#111; border-bottom:1px solid #333; flex-shrink:0;">
+                <div style="display:flex; gap:20px; align-items:center;">
+                    <div class="room-info">
+                        <span style="color:#888; font-size:12px; display:block;">ROOM ID</span>
+                        <span id="studio-header-room-id"
+                            style="color:#ffd700; font-size:24px; font-family:monospace; font-weight:bold;">---</span>
+                    </div>
+                    <div class="room-info">
+                        <span style="color:#888; font-size:12px; display:block;">PLAYERS</span>
+                        <span id="studio-player-count-display"
+                            style="color:#fff; font-size:24px; font-weight:bold;">0</span>
+                    </div>
                 </div>
-                <div class="room-info">
-                    <span style="color:#888; font-size:12px; display:block;">PLAYERS</span>
-                    <span id="studio-player-count-display"
-                        style="color:#fff; font-size:24px; font-weight:bold;">0</span>
-                </div>
-            </div>
-            <button id="host-close-studio-btn" class="btn-dark" style="padding:5px 15px; font-size:12px;">EXIT</button>
-        </div>
-
-        <!-- Main Action Area -->
-        <div class="simple-studio-main"
-            style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:20px;">
-
-            <div id="studio-status-wrapper" style="width:100%; max-width:400px; margin-bottom:15px;">
-                <div id="studio-q-number-large"
-                    style="background:#e0e0e0; color:#111; font-size:24px; font-weight:800; height:45px; display:flex; align-items:center; justify-content:center; margin-bottom:8px; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,0.3); border-bottom:4px solid #bbb; text-align:center;">
-                    ---</div>
-                <div id="studio-monitor-status-row" style="display:flex; justify-content:space-between; gap:8px;">
-                    <div class="studio-status-indicator" id="status-ind-qnum">問題番号表示</div>
-                    <div class="studio-status-indicator" id="status-ind-question">問題表示</div>
-                    <div class="studio-status-indicator" id="status-ind-answer">正解表示</div>
-                </div>
+                <button id="host-close-studio-btn-simple" class="btn-dark"
+                    style="padding:5px 15px; font-size:12px;">EXIT</button>
             </div>
 
-            <div id="studio-step-display"
-                style="display:none; color:#888; margin-bottom:20px; font-size:14px; letter-spacing:1px;">
-                WAITING</div>
+            <!-- Fixed Top Controls Area -->
+            <div class="simple-studio-controls"
+                style="display:flex; flex-direction:column; align-items:center; padding:8px 20px 2px 20px; background:#111; border-bottom:1px solid #333; flex-shrink:0; width:100%; box-sizing:border-box;">
 
-            <!-- The Giant Button -->
-            <button id="console-btn-phase-main" class="btn-giant-action" style="
+                <div id="studio-status-wrapper" style="width:100%; max-width:400px; margin-bottom:10px;">
+                    <div id="studio-q-number-large"
+                        style="background:#e0e0e0; color:#111; font-size:14px; font-weight:800; display:flex; align-items:center; justify-content:center; margin-bottom:8px; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,0.3); border-bottom:2px solid #bbb; text-align:center;">
+                        ---</div>
+                    <div id="studio-monitor-status-row" style="display:flex; justify-content:space-between; gap:8px;">
+                        <div class="studio-status-indicator" id="status-ind-qnum">問題番号表示</div>
+                        <div class="studio-status-indicator" id="status-ind-question">問題表示</div>
+                        <div class="studio-status-indicator" id="status-ind-answer">正解表示</div>
+                    </div>
+                </div>
+
+                <div id="studio-step-display"
+                    style="display:none; color:#888; margin-bottom:10px; font-size:14px; letter-spacing:1px;">
+                    WAITING</div>
+
+                <!-- The Giant Button -->
+                <button id="console-btn-phase-main" class="btn-giant-action" style="
                 width: 100%;
                 max-width: 400px;
-                height: 90px;
-                font-size: 24px;
+                height: 45px;
+                font-size: 20px;
                 font-weight: bold;
-                border-radius: 16px;
+                border-radius: 12px;
                 background: linear-gradient(135deg, #00bfff 0%, #0077aa 100%);
                 border: none;
                 color: white;
@@ -564,15 +568,19 @@
                 position: relative;
                 overflow: hidden;
             ">
-                START QUIZ
-            </button>
+                    START QUIZ
+                </button>
+                <div id="studio-mode-display" style="display:none; margin-top:2px; color:#555; font-size:12px;"></div>
+            </div>
+        </div>
 
-            <!-- Sub Status / Q Number -->
-            <div id="studio-mode-display" style="display:none; margin-top:20px; color:#555; font-size:12px;"></div>
+        <!-- Content Area (Scrolls with page) -->
+        <div class="simple-studio-main"
+            style="flex:1; display:flex; flex-direction:column; justify-content:flex-start; align-items:center; padding:5px 20px 20px 20px; width:100%; box-sizing:border-box;">
 
             <!-- Central Console Card -->
             <div class="console-card-wrapper"
-                style="width:100%; max-width:500px; margin-top:20px; background:#222; border-radius:12px; overflow:hidden; border:1px solid #444; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+                style="width:100%; max-width:500px; margin-top:10px; background:#222; border-radius:12px; overflow:hidden; border:1px solid #444; box-shadow:0 10px 30px rgba(0,0,0,0.5); min-height:350px;">
 
                 <!-- 1. Question Text -->
                 <div style="background:#333; padding:10px 15px; border-bottom:1px solid #444;">
@@ -588,9 +596,9 @@
                 </div>
 
                 <!-- 3. Player's Answer (Main) -->
-                <div style="background:#444; padding:30px 20px; text-align:center; position:relative;">
+                <div style="background:#444; padding:15px 20px; text-align:center; position:relative;">
                     <div id="console-card-player-name"
-                        style="position:absolute; top:10px; left:10px; font-size:10px; color:#aaa; background:#222; padding:2px 8px; border-radius:4px;">
+                        style="position:absolute; top:8px; left:10px; font-size:10px; color:#aaa; background:#222; padding:2px 8px; border-radius:4px;">
                         プレイヤー</div>
                     <div id="console-card-player-answer-content"
                         style="color:#fff; font-size:28px; font-weight:bold; min-height:1.2em; word-break:break-all;">
@@ -604,7 +612,7 @@
             </div>
 
             <!-- Participants List -->
-            <div class="simple-player-section" style="width:100%; max-width:600px; margin-top:30px;">
+            <div class="simple-player-section" style="width:100%; max-width:600px; margin-top:15px;">
                 <div
                     style="color:#666; font-size:12px; margin-bottom:10px; border-bottom:1px solid #333; padding-bottom:5px;">
                     参加者</div>
@@ -613,16 +621,15 @@
                     <!-- Players injected here -->
                 </div>
             </div>
-        </div>
-
-        <!-- Restored: Answer Stats & Grid (Moved from Legacy) -->
-        <div style="width:100%; max-width:800px; margin-top:20px;">
-            <div id="studio-answer-stats"></div>
-            <div id="studio-answered-count" style="text-align:center; color:#888; margin-top:5px;"></div>
-            <div id="studio-answer-progress"
-                style="height:4px; background:#444; margin-top:5px; width:0%; transition:width 0.3s;"></div>
-            <div id="studio-player-answers"
-                style="display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:10px; margin-top:15px;">
+            <!-- Restored: Answer Stats & Grid (Moved from Legacy) -->
+            <div style="width:100%; max-width:800px; margin-top:20px;">
+                <div id="studio-answer-stats"></div>
+                <div id="studio-answered-count" style="text-align:center; color:#888; margin-top:5px;"></div>
+                <div id="studio-answer-progress"
+                    style="height:4px; background:#444; margin-top:5px; width:0%; transition:width 0.3s;"></div>
+                <div id="studio-player-answers"
+                    style="display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:10px; margin-top:15px;">
+                </div>
             </div>
         </div>
     </div>

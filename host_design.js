@@ -158,8 +158,12 @@ App.Design = {
                     qs[0].isTitleHidden = !qs[0].isTitleHidden;
                 } else if (info.type === 'qnumber') {
                     qs[info.qIdx].isQNumHidden = !qs[info.qIdx].isQNumHidden;
-                } else {
+                } else if (info.type === 'question') {
                     qs[info.qIdx].isHidden = !qs[info.qIdx].isHidden;
+                } else if (info.type === 'answer') {
+                    qs[info.qIdx].isAnsHidden = !qs[info.qIdx].isAnsHidden;
+                } else if (info.type === 'result') {
+                    qs[info.qIdx].isResHidden = !qs[info.qIdx].isResHidden;
                 }
                 this.renderPreview();
             };
@@ -242,7 +246,7 @@ App.Design = {
     moveQ: function (delta) {
         const qs = this.getQuestionsFromTarget();
         if (!qs) return;
-        const totalSteps = 1 + (qs.length * 2);
+        const totalSteps = 1 + (qs.length * 4);
         const newIdx = this.previewQIndex + delta;
         this.jumpToStep(newIdx, totalSteps);
     },
@@ -250,8 +254,13 @@ App.Design = {
     getStepInfo: function (idx, questions) {
         if (!questions || questions.length === 0) return { type: 'none' };
         if (idx === 0) return { type: 'title', qIdx: 0 };
-        if (idx % 2 === 1) return { type: 'qnumber', qIdx: Math.floor((idx - 1) / 2) };
-        return { type: 'question', qIdx: Math.floor((idx - 2) / 2) };
+        const offset = idx - 1;
+        const qIdx = Math.floor(offset / 4);
+        const step = offset % 4;
+        if (step === 0) return { type: 'qnumber', qIdx };
+        if (step === 1) return { type: 'question', qIdx };
+        if (step === 2) return { type: 'answer', qIdx };
+        if (step === 3) return { type: 'result', qIdx };
     },
 
     jumpToStep: function (idx, total) {
@@ -277,8 +286,8 @@ App.Design = {
     setupModal: function (btnId, modalId) {
         const btn = document.getElementById(btnId);
         const modal = document.getElementById(modalId);
-        if (!btn || !modal) return;
-        btn.onclick = () => modal.classList.remove('hidden');
+        if (!modal) return;
+        if (btn) btn.onclick = () => modal.classList.remove('hidden');
         modal.querySelectorAll('.modal-close-btn').forEach(b => b.onclick = () => modal.classList.add('hidden'));
         modal.onclick = (e) => { if (e.target === modal) modal.classList.add('hidden'); };
     },
@@ -526,6 +535,7 @@ App.Design = {
     },
 
     renderPreview: function () {
+        this.currentStepIsHidden = false; // Reset
         const content = document.getElementById('design-monitor-preview-content');
         const frame = document.getElementById('preview-monitor-container');
         const playerFrame = document.getElementById('preview-player-container');
@@ -563,7 +573,7 @@ App.Design = {
                 questions = this.currentTarget.data.playlist?.[0]?.questions || [];
             }
 
-            const totalSteps = 1 + (questions.length * 2);
+            const totalSteps = 1 + (questions.length * 4);
 
             if (questions.length > 0) {
                 if (this.previewQIndex >= totalSteps) this.previewQIndex = 0;
@@ -572,11 +582,13 @@ App.Design = {
                 const qIdx = info.qIdx;
                 qData = qIdx >= 0 ? questions[qIdx] : null;
 
-                // Visibility status
                 let isHidden = false;
                 if (stepType === 'title') isHidden = !!questions[0].isTitleHidden;
                 else if (stepType === 'qnumber') isHidden = !!questions[qIdx].isQNumHidden;
                 else if (stepType === 'question') isHidden = !!questions[qIdx].isHidden;
+                else if (stepType === 'answer') isHidden = !!questions[qIdx].isAnsHidden;
+                else if (stepType === 'result') isHidden = !!questions[qIdx].isResHidden;
+                this.currentStepIsHidden = isHidden; // Store for final overlay application
 
                 const hideBtn = document.getElementById('design-pager-hide-toggle');
                 if (hideBtn) hideBtn.classList.toggle('is-hidden', isHidden);
@@ -592,33 +604,18 @@ App.Design = {
                 let statusText = "TITLE";
                 if (stepType === 'qnumber') statusText = `第${qIdx + 1}問 (番号)`;
                 if (stepType === 'question') statusText = `第${qIdx + 1}問 (内容)`;
+                if (stepType === 'answer') statusText = `第${qIdx + 1}問 (正解)`;
+                if (stepType === 'result') statusText = `第${qIdx + 1}問 (結果)`;
                 if (status) status.textContent = statusText;
 
                 if (prev) prev.disabled = (this.previewQIndex === 0);
                 if (next) next.disabled = (this.previewQIndex === totalSteps - 1);
 
-                // Add "HIDDEN" overlay if active
-                const addOverlay = (target) => {
-                    const existing = target.querySelector('.preview-hidden-overlay');
-                    if (isHidden) {
-                        if (!existing) {
-                            const ov = document.createElement('div');
-                            ov.className = 'preview-hidden-overlay';
-                            ov.innerHTML = '<div class="msg">非表示設定中</div>';
-                            target.appendChild(ov);
-                        }
-                    } else if (existing) {
-                        existing.remove();
-                    }
-                };
-
-                // If it's Title or QNumber, use Production Design rendering
                 if (stepType === 'title' || stepType === 'qnumber') {
                     this.renderProductionStep(stepType, qIdx, questions);
-                    addOverlay(content);
+                    this.applyHiddenOverlay();
                     return;
                 }
-                addOverlay(content);
             } else {
                 const pager = document.getElementById('design-pager-container');
                 if (pager) pager.classList.add('hidden');
@@ -767,16 +764,95 @@ App.Design = {
             }
         }
 
+        let extraHtml = '';
+        if (this.currentTarget && this.currentTarget.data && this.previewQIndex > 0) {
+            let questions = this.getQuestionsFromTarget() || [];
+            if (questions.length > 0) {
+                const info = this.getStepInfo(this.previewQIndex, questions);
+                const qIdx = info.qIdx;
+                const qData = qIdx >= 0 ? questions[qIdx] : null;
+                if (qData) {
+                    if (info.type === 'answer') {
+                        let ansStr = Array.isArray(qData.correct) ? qData.correct.join(' / ') : (qData.correct !== undefined ? qData.correct : "正解内容");
+                        if (qType === 'choice' && qData.c) {
+                            if (Array.isArray(qData.correct)) ansStr = qData.correct.map(idx => qData.c[idx]).join(' / ');
+                            else ansStr = qData.c[qData.correct] || qData.c[qData.correctIndex] || ansStr;
+                        } else if (qType === 'sort' && qData.c) {
+                            if (Array.isArray(qData.correct)) ansStr = qData.correct.map(idx => qData.c[idx]).join(' → ');
+                            else if (typeof qData.correct === 'string') ansStr = qData.correct.split('').map(char => qData.c[char.charCodeAt(0) - 65]).join(' → ');
+                        }
+                        const accent = d.qBorderColor || '#00bfff';
+                        extraHtml = `
+                        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); z-index:300; background:rgba(0,0,0,0.95); border:6px solid ${accent}; border-radius:20px; padding:40px 60px; color:#fff; box-shadow:0 0 80px rgba(0,0,0,0.9); text-align:center; min-width:60vw; font-family:sans-serif;">
+                            <div style="font-size:3vh; color:${accent}; font-weight:800; margin-bottom:15px; letter-spacing:2px;">CORRECT ANSWER</div>
+                            <div style="font-size:8vh; font-weight:900; line-height:1.2; word-break:break-all; max-width:80vw;">${ansStr}</div>
+                            <div style="font-size:2.5vh; color:#aaa; font-weight:normal; margin-top:20px; border-top:1px solid #333; padding-top:20px;">${qData.commentary || ""}</div>
+                        </div>
+                        `;
+                    } else if (info.type === 'result') {
+                        extraHtml = `
+                        <div style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:400; font-family:sans-serif;">
+                            <h1 style="font-size:6vh; color:#ffd700; text-shadow:0 0 20px #ffd700; margin-bottom:4vh;">CURRENT RANKING</h1>
+                            <div style="width:70%; max-width:1000px; background:rgba(0,0,0,0.5); padding:20px; border-radius:10px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; padding:15px; border-bottom:1px solid #444; font-size:5vh; color:#ffd700;">
+                                    <div style="font-weight:bold; width:10%;">1</div>
+                                    <div style="flex:1; text-align:left; padding-left:20px;">👑 プレイヤーA</div>
+                                    <div style="font-weight:900;">100 <span style="font-size:0.6em;">pts</span></div>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; align-items:center; padding:15px; border-bottom:1px solid #444; font-size:4vh; color:#c0c0c0;">
+                                    <div style="font-weight:bold; width:10%;">2</div>
+                                    <div style="flex:1; text-align:left; padding-left:20px;">🥈 プレイヤーB</div>
+                                    <div style="font-weight:900;">80 <span style="font-size:0.6em;">pts</span></div>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; align-items:center; padding:15px; border-bottom:1px solid #444; font-size:4vh; color:#cd7f32;">
+                                    <div style="font-weight:bold; width:10%;">3</div>
+                                    <div style="flex:1; text-align:left; padding-left:20px;">🥉 プレイヤーC</div>
+                                    <div style="font-weight:900;">50 <span style="font-size:0.6em;">pts</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        `;
+                    }
+                }
+            }
+        }
+
         content.innerHTML = `
             <div class="preview-bg-block ${this.activeQuickEdit === 'bg' ? 'is-editing' : ''}" 
                  onclick="App.Design.openQuickEdit('bg', event)"
-                 style="width:100%; height:100%; ${bgStyle} font-family:sans-serif; overflow:hidden; cursor:pointer;">
+                 style="width:100%; height:100%; ${bgStyle} font-family:sans-serif; overflow:hidden; cursor:pointer; position:relative;">
                 ${layoutHtml}
+                ${extraHtml}
             </div>
         `;
 
         // Player Preview Rendering
         this.renderPlayerPreview(qText, choices, qType, d, this.statusLabelForPlayer);
+
+        this.applyHiddenOverlay();
+    },
+
+    applyHiddenOverlay: function () {
+        const isHidden = this.currentStepIsHidden;
+        const addOverlay = (target) => {
+            if (!target) return;
+            const existing = target.querySelector('.preview-hidden-overlay');
+            if (isHidden) {
+                if (!existing) {
+                    const ov = document.createElement('div');
+                    ov.className = 'preview-hidden-overlay';
+                    ov.innerHTML = '<div class="msg">非表示設定中</div>';
+                    target.appendChild(ov);
+                }
+            } else if (existing) {
+                existing.remove();
+            }
+        };
+
+        const content = document.getElementById('design-monitor-preview-content');
+        const playerContent = document.getElementById('design-player-preview-content');
+        addOverlay(content);
+        addOverlay(playerContent);
     },
 
     renderPlayerPreview: function (qText, choices, qType, design, statusLabel = "") {

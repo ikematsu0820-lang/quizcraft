@@ -533,7 +533,6 @@ function handleNormalResponseUI(p, quizArea, waitMsg) {
                 if (area) area.innerHTML = '';
             } else {
                 lockChoices(p.lastAnswer);
-                renderChangeButton();
             }
         } else {
             // 解答済み＆修正不可
@@ -566,26 +565,11 @@ function handleNormalResponseUI(p, quizArea, waitMsg) {
     }
 }
 
-function renderChangeButton() {
-    const inputCont = document.getElementById('player-input-container');
-    let changeBtnArea = document.getElementById('change-btn-area');
-    if (!changeBtnArea) {
-        changeBtnArea = document.createElement('div');
-        changeBtnArea.id = 'change-btn-area';
-        inputCont.parentNode.insertBefore(changeBtnArea, inputCont.nextSibling);
-    }
-    if (!document.getElementById('btn-change-ans')) {
-        changeBtnArea.innerHTML = `
-            <button id="btn-change-ans" class="btn-change-answer">
-                答えを変更する
-            </button>
-        `;
-        document.getElementById('btn-change-ans').onclick = openConfirmModal;
-    }
-}
 
 function renderResultScreen(p) {
     const ansBox = document.getElementById('player-input-container');
+    ansBox.style.opacity = "1";
+    ansBox.style.pointerEvents = "auto";
     let correctText = "";
     if (currentQuestion.type === 'choice') {
         if (Array.isArray(currentQuestion.correct)) {
@@ -634,15 +618,15 @@ function renderResultScreen(p) {
         <div style="display:flex; flex-direction:column; align-items:center; margin-bottom:20px;">
             ${judgeHtml}
         </div>
-        <div style="background:#fff; color:#000; padding:20px; border-radius:12px; font-weight:900; text-align:center; margin-top:20px; box-shadow:0 0 20px rgba(255, 255, 255, 0.3);">
-            <div style="font-size:0.8em; letter-spacing:1px; margin-bottom:8px; opacity:0.6; color:#000;">
+        <div style="background:rgba(0,0,0,0.03); color:var(--color-text); padding:20px; border-radius:12px; font-weight:900; text-align:center; margin-top:20px; border: 1px solid rgba(0,0,0,0.05);">
+            <div style="font-size:0.8em; letter-spacing:1px; margin-bottom:8px; color:var(--color-text-sub);">
                 ${(currentQuestion.mode === 'dobon' || currentQuestion.mode === 'multi' || currentQuestion.multi || roomConfig.mode === 'dobon') ? "NG ANSWER (選んではいけません)" : "CORRECT ANSWER"}
             </div>
             <div style="font-size:1.8em; line-height:1.4;">${correctText}</div>
         </div>
-        <div style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#fff; padding:12px; border-radius:12px; font-weight:bold; text-align:center; margin-top:12px;">
+        <div style="background:rgba(0,0,0,0.05); color:var(--color-text); padding:12px; border-radius:12px; font-weight:bold; text-align:center; margin-top:12px;">
             <div style="font-size:0.7em; color:var(--color-text-sub); margin-bottom:4px; letter-spacing:1px;">YOUR ANSWER</div>
-            <div style="font-size:1.2em; ${p.lastResult === 'lose' ? 'text-decoration:line-through; color:var(--color-text-sub);' : ''}">${myAnsText}</div>
+            <div style="font-size:1.2em; ${p.lastResult === 'lose' ? 'text-decoration:line-through; color:#ff6b6b;' : 'color:var(--color-text);'}">${myAnsText}</div>
         </div>
     `;
     document.getElementById('question-text-disp').textContent = currentQuestion.q;
@@ -677,7 +661,7 @@ function showFinalResult(roomId, myId) {
             div.style.justifyContent = 'space-between';
             div.style.padding = '8px';
             div.style.borderBottom = '1px solid #444';
-            div.style.color = (p.id === myId) ? '#00bfff' : '#fff';
+            div.style.color = (p.id === myId) ? 'var(--color-primary)' : 'var(--color-text)';
             div.style.fontWeight = (p.id === myId) ? 'bold' : 'normal';
 
             div.innerHTML = `<span>${i + 1}. ${p.name}</span><span>${p.score}pt</span>`;
@@ -820,7 +804,7 @@ function renderPlayerQuestion(q, roomId, playerId) {
                     } else {
                         selected.add(val);
                         btn.style.opacity = '1';
-                        btn.style.borderColor = '#fff';
+                        btn.style.borderColor = 'var(--color-primary)';
                         btn.style.transform = 'scale(1.02)';
                     }
                 } else {
@@ -833,7 +817,7 @@ function renderPlayerQuestion(q, roomId, playerId) {
                         b.style.transform = 'scale(1)';
                     });
                     btn.style.opacity = '1';
-                    btn.style.borderColor = '#fff';
+                    btn.style.borderColor = 'var(--color-primary)';
                     btn.style.transform = 'scale(1.02)';
                 }
             };
@@ -963,7 +947,7 @@ function renderPlayerQuestion(q, roomId, playerId) {
                     if (i < currentSelection.length) {
                         slot.textContent = currentSelection[i];
                         slot.style.borderColor = '#00bfff';
-                        slot.style.color = '#fff';
+                        slot.style.color = 'var(--color-text)';
                         slot.style.background = '#00bfff33';
                     } else {
                         slot.textContent = (i + 1);
@@ -993,7 +977,7 @@ function renderPlayerQuestion(q, roomId, playerId) {
                 btn.style.alignItems = 'center';
                 btn.style.border = '1px solid #666';
                 btn.style.background = '#4a4a4a';
-                btn.style.color = '#fff';
+                btn.style.color = 'var(--color-text)';
                 btn.style.borderRadius = '8px';
                 btn.style.width = '100%';
                 btn.style.marginBottom = '0';

@@ -2,18 +2,90 @@
  * style_player.css (v200: Premium Unified Design)
  * =======================================================*/
 
-/* ベースデザイン */
-/* Main View - Add padding bottom for fixed button */
-#player-game-view {
-    color: #fff;
+/* ベースデザイン - Light Theme Override */
+#player-game-view,
+#respondent-view,
+#ranking-view {
+    --bg-glass: rgba(255, 255, 255, 0.8);
+    --bg-glass-strong: rgba(255, 255, 255, 0.95);
+    --border-glass: 1px solid rgba(0, 0, 0, 0.1);
+    --color-text: #2d3436;
+    --color-text-sub: #636e72;
+    --color-primary: #0984e3;
+    --color-accent: #e67e22;
+    --shadow-soft: 0 8px 30px rgba(0, 0, 0, 0.08);
+
+    background: #fdfdfd !important;
+    color: var(--color-text) !important;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
     padding: 15px;
     padding-bottom: 120px;
-    /* Space for Fixed Button */
     box-sizing: border-box;
-    background: transparent;
+}
+
+#respondent-view .header-back-btn,
+#ranking-view .header-back-btn {
+    background: rgba(0, 0, 0, 0.05) !important;
+    color: #666 !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Custom scrollbar for light theme */
+#player-game-view ::-webkit-scrollbar-thumb,
+#respondent-view ::-webkit-scrollbar-thumb,
+#ranking-view ::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15) !important;
+}
+
+#player-game-view ::-webkit-scrollbar-track,
+#respondent-view ::-webkit-scrollbar-track,
+#ranking-view ::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.03) !important;
+}
+
+#respondent-view input,
+#respondent-view .modern-input {
+    background: rgba(0, 0, 0, 0.04) !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+    color: #333 !important;
+}
+
+#respondent-view input::placeholder {
+    color: #999 !important;
+}
+
+#respondent-view .landing-title,
+#respondent-view .landing-subtitle {
+    background: none !important;
+    -webkit-text-fill-color: initial !important;
+    color: #111 !important;
+}
+
+#ranking-view .ranking-title-main {
+    background: none !important;
+    -webkit-text-fill-color: initial !important;
+    color: var(--color-text) !important;
+}
+
+#player-game-view .view-header h1,
+#player-game-view .view-header h2,
+#player-game-view .view-header h3,
+#respondent-view .view-header h1,
+#respondent-view .view-header h2,
+#respondent-view .view-header h3,
+#ranking-view .view-header h1,
+#ranking-view .view-header h2,
+#ranking-view .view-header h3 {
+    background: none !important;
+    -webkit-text-fill-color: initial !important;
+    color: var(--color-text) !important;
+}
+
+#player-game-view {
+    padding-bottom: 120px;
+    /* Space for Fixed Button */
 }
 
 /* ... (Rest of #player-quiz-area etc. untouched, assume match) ... */
@@ -37,13 +109,13 @@
     color: #fff;
     font-size: 2em;
     font-weight: 900;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 2px 5px rgba(255, 255, 255, 0.3);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2), inset 0 2px 5px rgba(255, 255, 255, 0.3);
     cursor: pointer;
     margin: 0;
     display: flex;
     justify-content: center;
     align-items: center;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 1000;
     letter-spacing: 2px;
@@ -131,17 +203,17 @@
     font-weight: 800;
     font-size: 1.1em;
     color: var(--color-primary);
-    text-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
+    text-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
 }
 
 .alive-badge {
-    background: rgba(255, 255, 255, 0.1);
-    color: #ccc;
+    background: rgba(0, 0, 0, 0.05);
+    color: #666;
     font-size: 0.8em;
     padding: 4px 12px;
     border-radius: 20px;
     font-weight: bold;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .score-area {
@@ -150,7 +222,7 @@
     font-weight: 900;
     margin-bottom: 20px;
     color: var(--color-accent);
-    text-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+    text-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
     letter-spacing: 1px;
 }
 
@@ -167,7 +239,7 @@
 }
 
 .lobby-msg h3 {
-    color: #fff;
+    color: var(--color-text);
     font-size: 1.5em;
     margin-bottom: 10px;
     font-weight: 800;
@@ -190,8 +262,8 @@
 .standby-info {
     margin: 20px 0;
     padding: 15px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.06);
     border-radius: 12px;
     width: 100%;
     box-sizing: border-box;
@@ -270,9 +342,10 @@
 }
 
 .btn-neutral {
-    background: rgba(40, 40, 40, 0.8);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(220, 220, 220, 0.8);
+    color: #444;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .answer-btn.btn-dimmed {
@@ -293,9 +366,9 @@
 
 /* 答えを変更するボタン */
 .btn-change-answer {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    color: #fff;
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    color: var(--color-text);
     width: 80%;
     margin: 25px auto 0;
     padding: 15px;
@@ -342,15 +415,15 @@
 }
 
 .confirm-modal {
-    background: #222;
-    color: #fff;
+    background: #fff;
+    color: var(--color-text);
     padding: 30px;
     border-radius: 20px;
     width: 85%;
     max-width: 320px;
     text-align: center;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(0, 0, 0, 0.05);
     animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
@@ -379,8 +452,8 @@
 }
 
 .btn-confirm-no {
-    background: rgba(255, 255, 255, 0.1);
-    color: #ddd;
+    background: rgba(0, 0, 0, 0.05);
+    color: #666;
     border: none;
     padding: 12px 24px;
     border-radius: 50px;
@@ -450,8 +523,8 @@
 }
 
 .letter-display-box {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--color-text);
     padding: 12px;
     font-size: 22px;
     font-weight: 800;
@@ -459,7 +532,7 @@
     margin-bottom: 15px;
     border-radius: 10px;
     min-height: 50px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(0, 0, 0, 0.1);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -483,11 +556,11 @@
 
 /* Result Overlays */
 .result-overlay-win {
-    background: radial-gradient(circle at center, rgba(0, 229, 255, 0.4) 0%, rgba(0, 0, 0, 0.95) 100%) !important;
+    background: radial-gradient(circle at center, rgba(0, 229, 255, 0.2) 0%, rgba(255, 255, 255, 0.9) 100%) !important;
 }
 
 .result-overlay-lose {
-    background: radial-gradient(circle at center, rgba(255, 0, 122, 0.4) 0%, rgba(0, 0, 0, 0.95) 100%) !important;
+    background: radial-gradient(circle at center, rgba(255, 0, 122, 0.2) 0%, rgba(255, 255, 255, 0.9) 100%) !important;
 }
 
 /* Global Buzz Notification */
@@ -563,7 +636,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.9);
+    background: rgba(255, 255, 255, 0.9);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -581,7 +654,7 @@
 #result-text {
     font-size: 3em;
     font-weight: 900;
-    background: linear-gradient(to right, #fff, #aaa);
+    background: linear-gradient(to right, var(--color-text), #888);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -601,7 +674,7 @@
 
 /* --- Sorting UI --- */
 .sort-display-area {
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(0, 0, 0, 0.03);
     padding: 15px;
     border-radius: 12px;
     margin-bottom: 20px;
@@ -609,9 +682,9 @@
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.05);
     justify-content: center;
-    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.5);
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05);
     backdrop-filter: blur(5px);
 }
 
@@ -660,7 +733,7 @@
 }
 
 .empty-sort-msg {
-    color: rgba(255, 255, 255, 0.3);
+    color: rgba(0, 0, 0, 0.25);
     font-style: italic;
     font-size: 0.9em;
     display: flex;
@@ -701,9 +774,9 @@
 
 
 .player-multi-item {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: #fff;
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    color: var(--color-text);
     padding: 15px;
     border-radius: 12px;
     font-weight: 700;
@@ -723,7 +796,7 @@
 }
 
 .multi-index {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.05);
     width: 26px;
     height: 26px;
     border-radius: 50%;
@@ -743,14 +816,14 @@
 }
 
 .multi-text-hidden {
-    color: #444;
+    color: #bbb;
     letter-spacing: 5px;
     font-family: monospace;
     font-size: 1.1em;
 }
 
 .multi-text-revealed {
-    color: #fff;
+    color: var(--color-text);
     font-size: 1.1em;
     animation: revealPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
@@ -792,12 +865,14 @@
 .sortable-item {
     display: flex;
     align-items: center;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: 12px;
     padding: 15px;
     cursor: grab;
     transition: background 0.2s, transform 0.2s;
+    color: var(--color-text);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
     user-select: none;
 }
 
@@ -811,11 +886,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(0, 0, 0, 0.05);
     border-radius: 8px;
     margin-right: 15px;
     font-size: 1.2em;
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(0, 0, 0, 0.2);
     flex-shrink: 0;
 }
 
@@ -837,9 +912,9 @@
 }
 
 .sortable-drag {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(0, 0, 0, 0.05);
     transform: scale(1.02);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
 /* --- Multi-Answer Fixed Layout --- */

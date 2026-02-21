@@ -751,9 +751,7 @@ App.Studio = {
                     });
 
                 } else {
-                    // Normal Mode (Unified Flow: Question -> Answer)
-                    // For multi-answer questions, the host can reveal answers individually during this phase (Step 2)
-                    // so we don't need a separate "Reveal Answers" (Step 4) phase.
+                    // Normal Mode (Unified Flow: Question -> Answer -> Result)
                     btnMain.textContent = "正解を表示";
                     btnMain.onclick = () => this.setStep(5);
 
@@ -772,15 +770,20 @@ App.Studio = {
                 this.updateNextPreview(); // Ensure next is previewed (Answer slide)
                 break;
 
-            case 4: // 解答オープン (Multi-Answer Reveal Step)
-                if (document.getElementById('studio-step-display')) {
-                    document.getElementById('studio-step-display').textContent = "Q." + (App.State.currentQIndex + 1) + " 解答オープン";
+            case 4: // 解答オープン (Result / Responses)
+                if (q.isResHidden) {
+                    this.goNext();
+                    return;
                 }
 
-                btnMain.textContent = "正解を表示";
+                if (document.getElementById('studio-step-display')) {
+                    document.getElementById('studio-step-display').textContent = "Q." + (App.State.currentQIndex + 1) + " 結果発表";
+                }
+
+                btnMain.textContent = "次の問題へ";
                 btnMain.classList.remove('action-ready');
                 btnMain.classList.add('action-next');
-                btnMain.onclick = () => this.setStep(5);
+                btnMain.onclick = () => this.goNext();
 
                 syncBadge.textContent = "REVEAL";
                 syncBadge.style.background = "#9b59b6"; // Purple
@@ -792,12 +795,22 @@ App.Studio = {
                 break;
 
             case 5: // 正解表示 (Answer)
+                if (q.isAnsHidden) {
+                    if (App.Data.currentConfig.mode !== 'buzz' && ['choice', 'sort', 'letter_select'].includes(q.type)) {
+                        this.judgeSimultaneous();
+                    }
+                    if (App.Data.currentConfig.mode === 'normal' && q.type === 'free_written' &&
+                        (App.Data.currentConfig.answerAttempts || 'single') === 'single') {
+                        this.flushPendingResults();
+                    }
+                    this.setStep(4);
+                    return;
+                }
+
                 // Update Simple UI Status
                 if (document.getElementById('studio-step-display')) {
                     document.getElementById('studio-step-display').textContent = "Q." + (App.State.currentQIndex + 1) + " 正解表示";
                 }
-
-                // q is already defined at the top of setStep
 
                 // Show Answer on Monitor
                 if (q.prodDesign) {
@@ -810,10 +823,10 @@ App.Studio = {
                     document.getElementById('studio-commentary-text').textContent = q.commentary || "";
                 }
 
-                btnMain.textContent = "次の問題へ";
+                btnMain.textContent = "結果発表へ";
                 btnMain.classList.remove('action-next');
                 btnMain.classList.add('action-ready'); // Ready for next
-                btnMain.onclick = () => this.goNext();
+                btnMain.onclick = () => this.setStep(4);
 
                 syncBadge.textContent = "ANSWER";
                 syncBadge.style.background = "#2ecc71";
@@ -857,7 +870,7 @@ App.Studio = {
         console.log("goNext called. Current:", App.State.currentQIndex, "Total:", questions.length);
 
         while (nextIdx < questions.length) {
-            if (!questions[nextIdx].isHidden) {
+            if (true) {
                 console.log("Found next Q at:", nextIdx);
                 App.State.currentQIndex = nextIdx;
                 this.resetPlayerStatus();
@@ -2770,7 +2783,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-judge-wrong')?.addEventListener('click', () => App.Studio.judgeBuzz(false));
     document.getElementById('btn-toggle-ans')?.addEventListener('click', () => App.Studio.toggleAns());
     document.getElementById('btn-force-next')?.addEventListener('click', () => App.Studio.goNext());
-    document.getElementById('host-close-studio-btn')?.addEventListener('click', () => App.Dashboard.enter());
+    document.getElementById('host-close-studio-btn-simple')?.addEventListener('click', () => App.Dashboard.enter());
     document.getElementById('btn-phase-main')?.addEventListener('click', () => {
         if (App.Studio.onMainAction) App.Studio.onMainAction();
     });

@@ -139,14 +139,22 @@ window.App.Viewer = {
             statusDiv.textContent = "QUIZ";
             const q = this.questions[st.qIndex] || {};
             this.applyDefaultDesign(viewContainer, q.design);
-            this.renderQuestionLayout(viewContainer, mainText, q, st, st.revealedMulti);
+            if (q.isHidden) {
+                mainText.innerHTML = '';
+            } else {
+                this.renderQuestionLayout(viewContainer, mainText, q, st, st.revealedMulti);
+            }
         }
         // --- 3. ANSWERING (Phase 2) ---
         else if (st.step === 'answering') {
             statusDiv.textContent = "THINKING";
             const q = this.questions[st.qIndex] || {};
             this.applyDefaultDesign(viewContainer, q.design);
-            this.renderQuestionLayout(viewContainer, mainText, q, st, st.revealedMulti);
+            if (q.isHidden) {
+                mainText.innerHTML = '';
+            } else {
+                this.renderQuestionLayout(viewContainer, mainText, q, st, st.revealedMulti);
+            }
 
 
             if (st.timeLimit) {
@@ -179,6 +187,11 @@ window.App.Viewer = {
             statusDiv.textContent = "RESPONSES";
             const q = this.questions[st.qIndex] || {};
             this.applyDefaultDesign(viewContainer, q.design);
+
+            if (q.isResHidden) {
+                mainText.innerHTML = '';
+                return;
+            }
 
             // Check if Question Changed
             if (this._lastQIndex !== st.qIndex) {
@@ -213,6 +226,13 @@ window.App.Viewer = {
         else if (st.step === 'reveal_correct' || st.step === 'answer') {
             statusDiv.textContent = "ANSWER";
             const q = this.questions[st.qIndex] || {};
+            this.applyDefaultDesign(viewContainer, q.design);
+
+            if (q.isAnsHidden) {
+                mainText.innerHTML = '';
+                return;
+            }
+
             this.renderQuestionLayout(viewContainer, mainText, q, st, st.revealedMulti);
 
             // Suppress popup for ANY multi type that has a grid layout (q.c)

@@ -166,8 +166,8 @@ App.ProductionDesign = {
     setupModal: function (btnId, modalId) {
         const btn = document.getElementById(btnId);
         const modal = document.getElementById(modalId);
-        if (!btn || !modal) return;
-        btn.onclick = () => modal.classList.remove('hidden');
+        if (!modal) return;
+        if (btn) btn.onclick = () => modal.classList.remove('hidden');
         modal.querySelectorAll('.modal-close-btn').forEach(b => b.onclick = () => modal.classList.add('hidden'));
         modal.onclick = (e) => { if (e.target === modal) modal.classList.add('hidden'); };
     },
