@@ -88,7 +88,7 @@ App.Config = {
             const mode = questions[0].mode;
 
             if (type === 'choice') {
-                if (mode === 'dobon' || mode === 'multi') typeDisplay = "2-2) ドボン問題";
+                if (mode === 'dobon' || mode === 'multi') typeDisplay = "2-2) ダウト問題";
                 else typeDisplay = "2-1) 単一解答";
             }
             else if (type === 'letter_select') typeDisplay = APP_TEXT.Creator.TypeLetterSelect;
@@ -105,7 +105,7 @@ App.Config = {
             ? `<option value="normal" disabled style="color:#555;">✖ 一斉解答 (口頭形式では選択不可)</option>`
             : `<option value="normal">一斉解答 (Normal)</option>`;
 
-        const borderLeftColor = (typeDisplay.includes('選択式') || typeDisplay.includes('ドボン') || typeDisplay.includes('単一解答')) ? '#000000' : '#aaa';
+        const borderLeftColor = (typeDisplay.includes('選択式') || typeDisplay.includes('ダウト') || typeDisplay.includes('単一解答')) ? '#000000' : '#aaa';
 
         let html = `
             <div style="background:#252525; padding:12px; border-radius:6px; border:1px solid #444; border-left:4px solid ${borderLeftColor}; margin-bottom:20px; display:flex; align-items:center;">
@@ -140,7 +140,7 @@ App.Config = {
                     </button>
                 </div>
                 <!-- Validation Message for Dobon -->
-                ${isDobon ? '<p style="color:#e74c3c; font-size:0.85em; margin-top:5px; text-align:center;">※ドボン形式が含まれるため、一斉解答・早押しは選択できません</p>' : ''}
+                ${isDobon ? '<p style="color:#e74c3c; font-size:0.85em; margin-top:5px; text-align:center;">※ダウト形式が含まれるため、一斉解答・早押しは選択できません</p>' : ''}
                 
                 <select id="config-mode-select" class="hidden">
                     <option value="normal">Normal</option>
@@ -149,7 +149,7 @@ App.Config = {
                     <option value="solo">Solo</option>
                 </select>
                 ${qType.startsWith('multi') ? '<p style="font-size:0.8em; color:#ffd700; margin-top:5px;">※多答形式は一斉解答を利用できません</p>' : ''}
-                ${isDobon ? '<p style="font-size:0.8em; color:#ff5555; margin-top:5px;">※ドボン問題は「順番解答」のみ利用可能です</p>' : ''}
+                ${isDobon ? '<p style="font-size:0.8em; color:#ff5555; margin-top:5px;">※ダウト問題は「順番解答」のみ利用可能です</p>' : ''}
                 <div id="mode-detail-area"></div>
                 </div>
 

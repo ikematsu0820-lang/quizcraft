@@ -4,7 +4,7 @@
 
 const APP_TEXT = {
     AppTitle: "Quiz Studio",
-    Version: "Cloud Edition v67",
+    Version: "v67",
 
     Main: { HostBtn: "クイズを作る", PlayerBtn: "クイズに答える" },
     Login: { Title: "番組IDを入力", Placeholder: "QUIZ2026", SubmitBtn: "ログイン / 新規作成", BackBtn: "ホーム", AlertEmpty: "番組IDを入力してください", AlertError: "ID文字種エラー" },

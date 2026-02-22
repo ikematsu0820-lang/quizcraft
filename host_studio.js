@@ -2088,7 +2088,7 @@ App.Studio = {
 
                 // ★ User Request: "End quiz (question) when someone gets it wrong in Sequence Dobon"
                 if (isDobon && !isCorrect) {
-                    App.Ui.showToast("不正解... ドボン！(終了)");
+                    App.Ui.showToast("不正解... ダウト！(終了)");
 
                     // Stop the current answerer
                     window.db.ref(`rooms/${roomId}/status`).update({
