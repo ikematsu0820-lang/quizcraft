@@ -940,7 +940,14 @@ window.App.Creator = {
         if (!setId) {
             // Check if any question is Dobon/Multi -> Default to 'turn'
             const hasDobon = window.App.Data.createdQuestions.some(q => q.mode === 'dobon' || q.mode === 'multi');
-            const defaultMode = hasDobon ? 'turn' : 'normal';
+            const hasOneOnOne = window.App.Data.createdQuestions.some(q => ['free_oral', 'free_written', 'letter_select'].includes(q.type));
+
+            let defaultMode = 'normal';
+            if (hasDobon) {
+                defaultMode = 'turn';
+            } else if (hasOneOnOne) {
+                defaultMode = 'buzz';
+            }
 
             data.config = { mode: defaultMode, gameType: 'score', theme: 'light' };
             data.createdAt = firebase.database.ServerValue.TIMESTAMP;

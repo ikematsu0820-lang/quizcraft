@@ -243,9 +243,12 @@ App.Config = {
                 targetMode = 'turn';
             }
         }
-        // 3. Oral -> Default Buzz (if normal/default)
-        else if (isOral && targetMode === 'normal') {
-            targetMode = 'buzz';
+        // 3. One-on-One types (1-1, 1-2, 1-3) -> Default Buzz (if normal/default)
+        else if (targetMode === 'normal') {
+            const hasOneOnOne = questions.some(q => ['free_oral', 'free_written', 'letter_select', 'multi_oral'].includes(q.type));
+            if (hasOneOnOne) {
+                targetMode = 'buzz';
+            }
         }
 
         // Apply to select
