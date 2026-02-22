@@ -139,8 +139,6 @@ App.Config = {
                         <span class="label">ソロ</span>
                     </button>
                 </div>
-                <!-- Validation Message for Dobon -->
-                ${isDobon ? '<p style="color:#e74c3c; font-size:0.85em; margin-top:5px; text-align:center;">※ダウト形式が含まれるため、一斉解答・早押しは選択できません</p>' : ''}
                 
                 <select id="config-mode-select" class="hidden">
                     <option value="normal">Normal</option>
@@ -149,7 +147,7 @@ App.Config = {
                     <option value="solo">Solo</option>
                 </select>
                 ${qType.startsWith('multi') ? '<p style="font-size:0.8em; color:#ffd700; margin-top:5px;">※多答形式は一斉解答を利用できません</p>' : ''}
-                ${isDobon ? '<p style="font-size:0.8em; color:#ff5555; margin-top:5px;">※ダウト問題は「順番解答」のみ利用可能です</p>' : ''}
+
                 <div id="mode-detail-area"></div>
                 </div>
 
