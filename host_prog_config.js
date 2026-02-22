@@ -526,7 +526,7 @@ window.App.ProgConfig = {
             createdAt: firebase.database.ServerValue.TIMESTAMP
         };
         const showId = window.App.State.currentShowId;
-        return window.db.ref(`saved_programs / ${showId}`).push(data).then(() => {
+        return window.db.ref(`saved_programs/${showId}`).push(data).then(() => {
             if (!silent) window.App.Ui.showToast("番組を保存しました");
             // ダッシュボードに戻る
             if (window.App.Dashboard && window.App.Dashboard.enter) {
@@ -541,7 +541,7 @@ window.App.ProgConfig = {
         if (!modal || !select) return;
         modal.classList.remove('hidden');
         select.innerHTML = '<option value="">読み込み中...</option>';
-        window.db.ref(`saved_programs / ${window.App.State.currentShowId}`).once('value', snap => {
+        window.db.ref(`saved_programs/${window.App.State.currentShowId}`).once('value', snap => {
             select.innerHTML = '<option value="">-- プログラムを選択 --</option>';
             const data = snap.val();
             if (data) {
