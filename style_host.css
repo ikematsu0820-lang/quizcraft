@@ -157,7 +157,7 @@ select option {
     width: 75%;
     /* Reduced width */
     max-width: 1000px;
-    background: rgba(30, 30, 30, 0.85);
+    background: rgba(20, 20, 20, 0.85);
     /* Translucent dark gray */
     backdrop-filter: blur(15px);
     /* Strong blur for frosted glass */
@@ -165,13 +165,8 @@ select option {
     border-top-left-radius: 24px;
     /* Larger radius */
     border-top-right-radius: 24px;
-    padding: 20px;
-    padding-bottom: 40px;
-    /* Safe area */
-    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6);
-    transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 10px 0 40px 0;
 }
 
 .bottom-sheet-content.show {
@@ -179,65 +174,59 @@ select option {
 }
 
 .bottom-sheet-header {
-    background: rgba(255, 255, 255, 0.1);
-    /* Lighter card background */
-    border-radius: 12px;
-    padding: 12px 16px;
-    margin-bottom: 20px;
+    background: transparent;
+    padding: 15px 25px;
+    margin-bottom: 5px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: none;
-    /* Remove separator */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .bottom-sheet-title {
-    font-size: 1.1em;
-    font-weight: 700;
+    font-size: 1.15em;
+    font-weight: 800;
     color: #fff;
-    text-align: left;
-    /* Align left per image */
     flex: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-right: 10px;
+    letter-spacing: 0.5px;
 }
 
 .bottom-sheet-close {
-    background: rgba(100, 100, 100, 0.5);
-    /* Grey styling */
+    background: rgba(255, 255, 255, 0.1);
     border: none;
-    color: #ddd;
-    width: 24px;
-    height: 24px;
+    color: #fff;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
-    font-size: 14px;
+    font-size: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
-    position: static;
-    /* Flow in flex */
     cursor: pointer;
+    transition: all 0.2s;
+}
+
+.bottom-sheet-close:hover {
+    background: rgba(255, 255, 255, 0.2);
 }
 
 .sheet-btn {
     width: 100%;
-    padding: 15px;
+    padding: 16px 25px;
     text-align: left;
     background: transparent;
     border: none;
     color: #fff;
     font-size: 1.1em;
-    border-radius: 12px;
+    font-weight: 600;
     display: flex;
     align-items: center;
     gap: 15px;
-    transition: background 0.2s;
+    transition: all 0.2s;
 }
 
-.sheet-btn:active {
-    background: rgba(255, 255, 255, 0.1);
+.sheet-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .sheet-btn i {

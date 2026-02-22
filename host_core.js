@@ -500,19 +500,21 @@ window.App.Dashboard = {
                         </div>
                         <button class="bottom-sheet-close" onclick="document.getElementById('item-menu-modal').remove()">×</button>
                     </div>
-                    <div class="bottom-sheet-body">
+                    <div class="bottom-sheet-body" style="padding: 10px 0;">
                         <button class="sheet-btn" onclick="${startAction}; document.getElementById('item-menu-modal').remove()">
-                            <i class="fas fa-play" style="color:#00e5ff;"></i> スタート
+                            <i class="fas fa-play" style="color:#00e5ff; font-size: 0.9em;"></i> スタート
                         </button>
                         <button class="sheet-btn" onclick="${editAction}; document.getElementById('item-menu-modal').remove()">
-                            <i class="fas fa-edit"></i> 編集
+                            <i class="fas fa-pen-fancy" style="color: #64b5f6; font-size: 0.9em;"></i> 編集
                         </button>
                         <button class="sheet-btn" onclick="${copyAction}; document.getElementById('item-menu-modal').remove()">
-                            <i class="fas fa-copy"></i> 複製
+                            <i class="far fa-file-alt" style="color: #81c784; font-size: 0.9em;"></i> 複製
                         </button>
-                        <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin: 5px 0;">
+                        
+                        <div style="height: 1px; background: rgba(255,255,255,0.08); margin: 10px 0;"></div>
+                        
                         <button class="sheet-btn text-danger" onclick="${delAction}; document.getElementById('item-menu-modal').remove()">
-                            <i class="fas fa-trash"></i> 削除
+                            <i class="fas fa-trash-alt" style="font-size: 0.9em;"></i> 削除
                         </button>
                     </div>
                 </div>
