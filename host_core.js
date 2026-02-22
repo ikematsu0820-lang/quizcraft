@@ -621,8 +621,11 @@ window.App.Dashboard = {
     },
 
     openEditMenuInSheet: function (key) {
-        const data = this.itemCache[key];
-        if (!data) return;
+        const data = (this.itemCache && this.itemCache[key]) ? this.itemCache[key] : null;
+        if (!data) {
+            console.error("Dashboard: itemCache data not found for", key);
+            return;
+        }
 
         const modal = document.querySelector('#item-menu-modal .bottom-sheet-content');
         if (!modal) return;
@@ -630,20 +633,27 @@ window.App.Dashboard = {
         const titleEl = modal.querySelector('.bottom-sheet-title');
         const bodyEl = modal.querySelector('.bottom-sheet-body');
 
+        if (!titleEl || !bodyEl) return;
+
+        // Feedback toast
+        if (window.App.Ui && window.App.Ui.showToast) {
+            window.App.Ui.showToast("編集メニューに切り替えます");
+        }
+
         // Update Title with Back Button
         titleEl.innerHTML = `
             <div style="display:flex; align-items:center; gap:12px;">
-                <button onclick="window.App.Dashboard.openItemMenu('${key}', 'set')" style="background:none; border:none; color:#00e5ff; font-size:1.2em; cursor:pointer; padding:0; display:flex; align-items:center;"><i class="fas fa-chevron-left"></i></button>
+                <button onclick="window.App.Dashboard.openItemMenu('${key}', 'set')" style="background:none; border:none; color:#00e5ff; font-size:1.2em; cursor:pointer; padding:0; display:flex; align-items:center; opacity:0.8; transition:0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'"><i class="fas fa-chevron-left"></i></button>
                 <span>編集メニュー</span>
             </div>
         `;
-        titleEl.onclick = null; // Disable rename on edit menu title
+        titleEl.onclick = null;
         titleEl.style.cursor = 'default';
 
         // Update Body with Edit Options
         bodyEl.innerHTML = `
             <div style="padding: 10px 0;">
-                <button class="sheet-btn" onclick="window.App.Creator.loadSet('${key}', window.App.Dashboard.itemCache['${key}']); document.getElementById('item-menu-modal').remove()">
+                <button class="sheet-btn" onclick="window.App.Dashboard.transitionToCreator('${key}'); document.getElementById('item-menu-modal').remove()">
                     <i class="fas fa-edit" style="color: #64b5f6; font-size: 0.9em;"></i> 問題作成
                 </button>
                 <button class="sheet-btn" onclick="window.App.Dashboard.transitionToRules('${key}'); document.getElementById('item-menu-modal').remove()">
@@ -654,6 +664,13 @@ window.App.Dashboard = {
                 </button>
             </div>
         `;
+    },
+
+    transitionToCreator: function (key) {
+        const data = this.itemCache ? this.itemCache[key] : null;
+        if (window.App.Creator && window.App.Creator.loadSet) {
+            window.App.Creator.loadSet(key, data);
+        }
     },
 
     transitionToRules: function (key) {
@@ -670,18 +687,17 @@ window.App.Dashboard = {
     },
 
     transitionToDesign: function (key) {
+        const data = this.itemCache ? this.itemCache[key] : null;
         if (window.App.Design && window.App.Design.init) {
-            window.App.Design.init(key, this.itemCache[key]);
+            window.App.Design.init(key, data);
         }
     },
 
     openEditMenu: function (key) {
-        // ... kept for compatibility but should use openEditMenuInSheet now
         this.openEditMenuInSheet(key);
     },
 
     _showEditModal: function () {
-        // ... kept for compatibility
     }
 };
 
