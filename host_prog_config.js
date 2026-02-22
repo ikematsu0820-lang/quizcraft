@@ -146,14 +146,12 @@ window.App.ProgConfig = {
                 <div class="modal-content" style="position:relative; background:#1a1a1a; padding:20px; border-radius:16px 16px 0 0; box-shadow:0 -5px 20px rgba(0,0,0,0.5); animation:slideUp 0.3s ease-out;">
                     <h3 style="margin:0 0 15px 0; font-size:1.1em; color:#fff; text-align:center;">構成要素を追加</h3>
                     
-                    <button class="btn-block btn-primary" onclick="window.App.ProgConfig.openSetSelector(); document.getElementById('prog-add-menu-modal').remove()" style="margin-bottom:10px; padding:15px; font-weight:bold; font-size:1.1em; text-align:left;">
-                        <span style="font-size:1.4em; margin-right:10px;">📋</span> シングル（セットを選択）
-                        <div style="font-size:0.7em; opacity:0.7; font-weight:normal; margin-left:36px;">保存済みセット一覧から選んで追加します</div>
+                    <button class="btn-block btn-primary" onclick="window.App.ProgConfig.openSetSelector(); document.getElementById('prog-add-menu-modal').remove()" style="margin-bottom:10px; padding:15px; font-weight:bold; font-size:1.1em; text-align:center;">
+                        シングル
                     </button>
 
-                    <button class="btn-block btn-info" onclick="window.App.ProgConfig.addContainer(); document.getElementById('prog-add-menu-modal').remove()" style="margin-bottom:20px; padding:15px; font-weight:bold; font-size:1.1em; text-align:left;">
-                        <span style="font-size:1.4em; margin-right:10px;">📦</span> マルチ（コンテナ）
-                        <div style="font-size:0.7em; opacity:0.7; font-weight:normal; margin-left:36px;">複数のセットをまとめる枠を追加します</div>
+                    <button class="btn-block btn-info" onclick="window.App.ProgConfig.addContainer(); document.getElementById('prog-add-menu-modal').remove()" style="margin-bottom:20px; padding:15px; font-weight:bold; font-size:1.1em; text-align:center;">
+                        マルチ
                     </button>
 
                     <button onclick="document.getElementById('prog-add-menu-modal').remove()" class="btn-dark btn-block" style="padding:12px;">キャンセル</button>
