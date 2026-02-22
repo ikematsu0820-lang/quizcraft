@@ -479,7 +479,7 @@ window.App.Dashboard = {
 
         // Edit 
         const editAction = isSet
-            ? `window.App.Dashboard.openEditMenu('${key}')`
+            ? `window.App.Dashboard.openEditMenuInSheet('${key}')`
             : `window.App.ProgConfig.loadProgramForDashboard(window.App.Dashboard.itemCache['${key}'])`;
 
         // Copy
@@ -620,63 +620,68 @@ window.App.Dashboard = {
         });
     },
 
-    openEditMenu: function (key) {
-        this.currentEditKey = key;
-        this.currentEditData = this.itemCache ? this.itemCache[key] : null;
+    openEditMenuInSheet: function (key) {
+        const data = this.itemCache[key];
+        if (!data) return;
 
-        if (!this.currentEditData) {
-            // Fallback fetch if not in cache (shouldn't happen in normal flow)
-            window.db.ref(`saved_sets/${window.App.State.currentShowId}/${key}`).once('value', snap => {
-                this.currentEditData = snap.val();
-                this._showEditModal();
-            });
-            return;
+        const modal = document.querySelector('#item-menu-modal .bottom-sheet-content');
+        if (!modal) return;
+
+        const titleEl = modal.querySelector('.bottom-sheet-title');
+        const bodyEl = modal.querySelector('.bottom-sheet-body');
+
+        // Update Title with Back Button
+        titleEl.innerHTML = `
+            <div style="display:flex; align-items:center; gap:12px;">
+                <button onclick="window.App.Dashboard.openItemMenu('${key}', 'set')" style="background:none; border:none; color:#00e5ff; font-size:1.2em; cursor:pointer; padding:0; display:flex; align-items:center;"><i class="fas fa-chevron-left"></i></button>
+                <span>編集メニュー</span>
+            </div>
+        `;
+        titleEl.onclick = null; // Disable rename on edit menu title
+        titleEl.style.cursor = 'default';
+
+        // Update Body with Edit Options
+        bodyEl.innerHTML = `
+            <div style="padding: 10px 0;">
+                <button class="sheet-btn" onclick="window.App.Creator.loadSet('${key}', window.App.Dashboard.itemCache['${key}']); document.getElementById('item-menu-modal').remove()">
+                    <i class="fas fa-edit" style="color: #64b5f6; font-size: 0.9em;"></i> 問題作成
+                </button>
+                <button class="sheet-btn" onclick="window.App.Dashboard.transitionToRules('${key}'); document.getElementById('item-menu-modal').remove()">
+                    <i class="fas fa-cog" style="color: #ffd54f; font-size: 0.9em;"></i> ルール設定
+                </button>
+                <button class="sheet-btn" onclick="window.App.Dashboard.transitionToDesign('${key}'); document.getElementById('item-menu-modal').remove()">
+                    <i class="fas fa-paint-brush" style="color: #81c784; font-size: 0.9em;"></i> 問題デザイン
+                </button>
+            </div>
+        `;
+    },
+
+    transitionToRules: function (key) {
+        if (window.App.Config && window.App.Config.init) {
+            window.App.Config.init();
+            setTimeout(() => {
+                const sel = document.getElementById('config-set-select');
+                if (sel) {
+                    sel.value = key;
+                    sel.dispatchEvent(new Event('change'));
+                }
+            }, 500);
         }
-        this._showEditModal();
+    },
+
+    transitionToDesign: function (key) {
+        if (window.App.Design && window.App.Design.init) {
+            window.App.Design.init(key, this.itemCache[key]);
+        }
+    },
+
+    openEditMenu: function (key) {
+        // ... kept for compatibility but should use openEditMenuInSheet now
+        this.openEditMenuInSheet(key);
     },
 
     _showEditModal: function () {
-        const data = this.currentEditData;
-        const modal = document.getElementById('edit-menu-modal');
-        const titleEl = document.getElementById('edit-menu-set-title');
-        if (modal) {
-            if (titleEl) titleEl.textContent = `対象: ${data.title}`;
-            modal.classList.remove('hidden');
-        }
-
-        // Bind events once if not already bound
-        if (!this.editMenuEventsBound) {
-            document.getElementById('edit-menu-questions').onclick = () => {
-                modal.classList.add('hidden');
-                window.App.Creator.loadSet(this.currentEditKey, this.currentEditData);
-            };
-            document.getElementById('edit-menu-rules').onclick = () => {
-                modal.classList.add('hidden');
-                // ルール設定画面へ遷移。セットを選択した状態で初期化
-                if (window.App.Config && window.App.Config.init) {
-                    window.App.Config.init();
-                    setTimeout(() => {
-                        const sel = document.getElementById('config-set-select');
-                        if (sel) {
-                            sel.value = this.currentEditKey;
-                            sel.dispatchEvent(new Event('change'));
-                        }
-                    }, 500);
-                }
-            };
-            document.getElementById('edit-menu-design').onclick = () => {
-                modal.classList.add('hidden');
-                // デザイン画面へ遷移。セット情報を渡して自動ロード
-                if (window.App.Design && window.App.Design.init) {
-                    window.App.Design.init(this.currentEditKey, this.currentEditData);
-                }
-            };
-
-            document.getElementById('edit-menu-close').onclick = () => {
-                modal.classList.add('hidden');
-            };
-            this.editMenuEventsBound = true;
-        }
+        // ... kept for compatibility
     }
 };
 
