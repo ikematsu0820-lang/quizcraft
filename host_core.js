@@ -504,7 +504,7 @@ window.App.Dashboard = {
                         <button class="sheet-btn" onclick="${startAction}; document.getElementById('item-menu-modal').remove()">
                             <i class="fas fa-play" style="color:#00e5ff; font-size: 0.9em;"></i> スタート
                         </button>
-                        <button class="sheet-btn" onclick="${editAction}; document.getElementById('item-menu-modal').remove()">
+                        <button class="sheet-btn" onclick="${editAction}">
                             <i class="fas fa-pen-fancy" style="color: #64b5f6; font-size: 0.9em;"></i> 編集
                         </button>
                         <button class="sheet-btn" onclick="${copyAction}; document.getElementById('item-menu-modal').remove()">
