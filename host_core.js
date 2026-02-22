@@ -329,8 +329,8 @@ window.App.Dashboard = {
         const getQCategory = (item) => {
             if (!item.questions || item.questions.length === 0) return 'unknown';
             const t = item.questions[0].type;
-            if (['free_oral', 'free_written'].includes(t)) return 'free';
-            if (['choice', 'letter_select'].includes(t)) return 'choice';
+            if (['free_oral', 'free_written', 'letter_select'].includes(t)) return 'free';
+            if (t === 'choice') return 'choice';
             if (t === 'sort') return 'sort';
             if (['multi', 'multi_written', 'multi_oral'].includes(t)) return 'multi';
             return 'unknown';
