@@ -98,6 +98,14 @@ body {
     overflow-x: hidden;
 }
 
+/* Mobile-friendly width: limit to typical smartphone width (390px) for all non‑monitor views */
+@media (max-width: 600px) {
+    .view:not(.monitor-view) {
+        max-width: 390px;
+    }
+}
+
+
 .hidden {
     display: none !important;
 }

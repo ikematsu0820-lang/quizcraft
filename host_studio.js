@@ -642,7 +642,8 @@ App.Studio = {
                 window.db.ref(`rooms/${roomId}/status`).update({
                     step: 'standby',
                     qIndex: App.State.currentQIndex,
-                    programTitle: pTitle
+                    programTitle: pTitle,
+                    turnIndex: (App.Data.currentConfig.mode === 'turn' || App.Data.currentConfig.mode === 'solo') ? this.turnIndex : null
                 });
 
                 // ★ Turn/Solo Mode: Show order/challenger setup UI on Q1
@@ -677,7 +678,8 @@ App.Studio = {
                 window.db.ref(`rooms/${roomId}/status`).update({
                     step: 'reveal_q_num',
                     qIndex: App.State.currentQIndex,
-                    qNumLabel: `第${App.State.currentQIndex + 1}問`
+                    qNumLabel: `第${App.State.currentQIndex + 1}問`,
+                    turnIndex: (App.Data.currentConfig.mode === 'turn' || App.Data.currentConfig.mode === 'solo') ? this.turnIndex : null
                 });
                 break;
 
@@ -755,6 +757,7 @@ App.Studio = {
                         qText: currentQ.q,
                         currentAnswerer: turnPlayerId,
                         currentAnswererName: turnPlayerName,
+                        turnIndex: this.turnIndex, // Sync turn status
                         isTurnMode: true
                     });
 

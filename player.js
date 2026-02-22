@@ -217,6 +217,16 @@ function updateUI() {
         document.getElementById('current-score-value').textContent = p.periodScore;
     }
 
+    const turnHeaderBadge = document.getElementById('current-turn-header-disp');
+    if (turnHeaderBadge) {
+        if (st.currentAnswerer && st.currentAnswerer !== myPlayerId && (st.step === 'reveal_q' || st.step === 'question' || st.step === 'answering')) {
+            turnHeaderBadge.classList.remove('hidden');
+            turnHeaderBadge.textContent = `${st.currentAnswererName || '他のプレイヤー'} の番です`;
+        } else {
+            turnHeaderBadge.classList.add('hidden');
+        }
+    }
+
     const lobby = document.getElementById('player-lobby-msg');
     const quizArea = document.getElementById('player-quiz-area');
     const waitMsg = document.getElementById('player-wait-msg');
@@ -246,31 +256,36 @@ function updateUI() {
     }
 
     // --- 状態ごとのUI制御 ---
-    if (st.step === 'standby') {
+    if (st.step === 'standby' || st.step === 'reveal_q_num') {
         lobby.classList.remove('hidden');
         const score = p.periodScore || 0;
-        const tips = [
-            "正解するほどポイントが貯まります！",
-            "早押し問題はスピードが命！",
-            "最後まで諦めずに挑戦しよう！",
-            "アバター設定は準備中です。"
-        ];
-        const randomTip = tips[Math.floor(Date.now() / 5000) % tips.length];
+
+        let displayTitle = st.programTitle || "";
+        let displayQNum = st.qNumLabel || "";
+
+        // フォールバック: QNumLabelがない場合はインデックスから生成
+        if (st.step === 'reveal_q_num' && !displayQNum) {
+            displayQNum = `第${(st.qIndex || 0) + 1}問`;
+        }
+
+        // 順番が確定している場合のリスト作成
+        let turnOrderHtml = getTurnOrderHtml(st, myName);
 
         lobby.innerHTML = `
-            <div class="lobby-icon" style="font-size:3em; margin-bottom:10px;">⏳</div>
-            <h3 style="letter-spacing:4px; margin:0;">STANDBY</h3>
-            <div class="standby-info">
-                <div class="standby-score-label">Your Score</div>
-                <div class="standby-score-value">${score} pt</div>
+            <div class="prep-display-box">
+                <div class="prep-title">${displayTitle}</div>
+                <div class="prep-qnum">${displayQNum}</div>
             </div>
-            <p style="font-size:0.9em; color:var(--color-text-sub); margin-top:10px;">💡 Tip: ${randomTip}</p>
+            ${turnOrderHtml}
+            <div class="standby-info" style="margin-top:20px; opacity:0.6;">
+                <p style="font-size:0.9em; margin:0;">${turnOrderHtml ? '準備が整うまでお待ちください' : '対戦相手が揃うまでお待ちください...'}</p>
+            </div>
         `;
         isReanswering = false;
         if (changeArea) changeArea.innerHTML = '';
         quizArea.classList.add('hidden');
     }
-    else if (st.step === 'reveal_q') {
+    else if (st.step === 'reveal_q' || st.step === 'question') {
         // 出題中 (Simplified Flow: Allow answering immediately)
         quizArea.classList.remove('hidden');
 
@@ -287,8 +302,9 @@ function updateUI() {
             waitMsg.style.color = '#9b59b6';
             waitMsg.style.border = '1px solid rgba(155, 89, 182, 0.3)';
             waitMsg.style.padding = '20px';
-            const answererName = st.currentAnswererName || '他のプレイヤー';
-            waitMsg.innerHTML = `<div style="font-size:2em; margin-bottom:8px;">🔒</div><p style="font-weight:bold; font-size:1.1em; margin:0;">${answererName} の番です</p><p style="font-size:0.85em; color:#888; margin-top:6px;">あなたの番が来るまでお待ちください</p>`;
+            waitMsg.innerHTML = `
+                <p style="font-size:0.9em; color:#888; margin:0;">あなたの番が来るまでお待ちください</p>
+            `;
         } else if (p.lastResult === 'win') {
             toggleInputEnabled(false);
             const changeArea = document.getElementById('change-btn-area');
@@ -403,10 +419,7 @@ function updateUI() {
                 buzzArea.classList.add('hidden');
                 toggleInputEnabled(false);
                 waitMsg.classList.remove('hidden');
-                const winnerName = st.currentAnswererName || "他のプレイヤー";
-                waitMsg.innerHTML = `🔒 <b>LOCKED</b><br>${winnerName} が解答中です...`;
-
-                // ★追加: 誤答などでリセットされるまでロックされ続ける仕様
+                waitMsg.innerHTML = "他のプレイヤーが解答中です...";
             }
             else {
                 // 誰も解答権がない状態 (例: 誤答後リセット待ち、または開始前)
@@ -500,6 +513,32 @@ function updateUI() {
     else if (st.step === 'final_ranking') {
         showFinalResult(myRoomId, myPlayerId);
     }
+}
+
+function getTurnOrderHtml(st, myName) {
+    if (!st.turnOrderNames || st.turnOrderNames.length === 0) return "";
+
+    const isSolo = (roomConfig.mode === 'solo');
+    const titleText = isSolo ? "チャレンジャー" : "解答順番";
+    let itemsHtml = "";
+
+    st.turnOrderNames.forEach((name, idx) => {
+        const isMe = (name === myName);
+        const isActive = (st.turnIndex === idx);
+        itemsHtml += `
+            <div class="turn-order-item ${isMe ? 'is-me' : ''} ${isActive ? 'is-active' : ''}">
+                <div class="turn-order-num">${idx + 1}</div>
+                <div class="turn-order-name">${name} ${isMe ? '(あなた)' : ''}</div>
+            </div>
+        `;
+    });
+
+    return `
+        <div class="turn-order-list-container">
+            <div class="turn-order-title">${titleText}</div>
+            <div class="turn-order-grid">${itemsHtml}</div>
+        </div>
+    `;
 }
 
 // ★追加: 入力エリア（選択肢など）の有効/無効切り替え
@@ -788,10 +827,8 @@ function renderPlayerQuestion(q, roomId, playerId) {
 
             // Check if taken
             if (isDobonMode && takenChoices.includes(item.originalIndex)) {
-                btn.classList.add('btn-disabled-choice'); // Add CSS class for styling
-                btn.disabled = true; // Disable interaction
-                btn.style.opacity = '0.4'; // Visual feedback
-                btn.style.textDecoration = 'line-through'; // Cross out text
+                btn.classList.add('btn-disabled-choice');
+                btn.disabled = true;
             }
 
             // Add visual indicator (Radio or Check)

@@ -197,6 +197,23 @@
     margin-bottom: 20px;
     backdrop-filter: blur(12px);
     box-shadow: var(--shadow-soft);
+    position: relative;
+    /* For absolute centering of turn badge */
+}
+
+.turn-header-badge {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(155, 89, 182, 0.1);
+    color: #9b59b6;
+    padding: 4px 15px;
+    border-radius: 20px;
+    border: 1px solid rgba(155, 89, 182, 0.3);
+    font-size: 0.9em;
+    font-weight: 800;
+    white-space: nowrap;
 }
 
 .player-name {
@@ -216,14 +233,47 @@
     border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-.score-area {
-    text-align: center;
-    font-size: 1.8em;
-    font-weight: 900;
-    margin-bottom: 20px;
+.score-header {
+    font-size: 1em;
+    font-weight: 800;
+    color: var(--color-text);
+    white-space: nowrap;
+}
+
+.score-header span {
+    font-size: 1.5em;
     color: var(--color-accent);
-    text-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
-    letter-spacing: 1px;
+    margin: 0 4px;
+}
+
+/* 準備画面（タイトル・第N問） */
+.prep-display-box {
+    margin: 40px auto;
+    width: 90%;
+    max-width: 500px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.prep-title {
+    font-size: 2.5em;
+    font-weight: 900;
+    color: var(--color-text);
+    letter-spacing: 2px;
+}
+
+.prep-qnum {
+    font-size: 3.5em;
+    font-weight: 900;
+    color: var(--color-text);
+    letter-spacing: 4px;
+}
+
+.score-area {
+    display: none;
+    /* Removed as it is now in header */
 }
 
 /* 待機メッセージ */
@@ -346,6 +396,16 @@
     color: #444;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
     border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.btn-disabled-choice {
+    background: rgba(0, 0, 0, 0.05) !important;
+    color: #aaa !important;
+    border: 1px solid rgba(0, 0, 0, 0.03) !important;
+    box-shadow: none !important;
+    opacity: 0.5 !important;
+    pointer-events: none;
+    cursor: default;
 }
 
 .answer-btn.btn-dimmed {
@@ -672,21 +732,78 @@
     box-shadow: 0 0 20px rgba(0, 184, 148, 0.2);
 }
 
-/* --- Sorting UI --- */
-.sort-display-area {
-    background: rgba(0, 0, 0, 0.03);
-    padding: 15px;
+/* 解答順表示 */
+.turn-order-list-container {
+    background: rgba(155, 89, 182, 0.1);
+    border: 1px solid rgba(155, 89, 182, 0.2);
     border-radius: 12px;
-    margin-bottom: 20px;
-    min-height: 60px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    justify-content: center;
-    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05);
-    backdrop-filter: blur(5px);
+    padding: 15px;
+    margin: 20px auto;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
 }
+
+.turn-order-title {
+    font-size: 0.8em;
+    font-weight: 800;
+    color: #9b59b6;
+    margin-bottom: 12px;
+    text-align: center;
+    letter-spacing: 2px;
+}
+
+.turn-order-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.turn-order-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+}
+
+.turn-order-item.is-me {
+    border: 1px solid #9b59b6;
+    background: rgba(155, 89, 182, 0.05);
+}
+
+.turn-order-item.is-active {
+    transform: scale(1.02);
+    box-shadow: 0 4px 15px rgba(155, 89, 182, 0.2);
+    border: 2px solid #9b59b6;
+}
+
+.turn-order-num {
+    width: 24px;
+    height: 24px;
+    background: #9b59b6;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8em;
+    font-weight: 900;
+}
+
+.turn-order-name {
+    font-weight: 700;
+    font-size: 0.95em;
+    flex: 1;
+}
+
+.turn-order-item.is-active .turn-order-name {
+    color: #9b59b6;
+}
+
 
 .sort-choice-grid {
     display: grid;
