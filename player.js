@@ -602,9 +602,13 @@ function handleNormalResponseUI(p, quizArea, waitMsg) {
 
 
 function renderResultScreen(p) {
+    const gameView = document.getElementById('player-game-view');
+    if (gameView) gameView.classList.remove('multi-layout-active');
+
     const ansBox = document.getElementById('player-input-container');
     ansBox.style.opacity = "1";
     ansBox.style.pointerEvents = "auto";
+    ansBox.classList.remove('input-disabled-safe'); // ensure no scroll lock
     let correctText = "";
     if (currentQuestion.type === 'choice') {
         if (Array.isArray(currentQuestion.correct)) {
