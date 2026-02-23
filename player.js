@@ -549,9 +549,11 @@ function toggleInputEnabled(enabled) {
     if (enabled) {
         cont.style.opacity = "1";
         cont.style.pointerEvents = "auto";
+        cont.classList.remove('input-disabled-safe');
     } else {
         cont.style.opacity = "0.4"; // 薄くする
-        cont.style.pointerEvents = "none"; // クリック禁止
+        cont.style.pointerEvents = "auto"; // スクロールは可能にする
+        cont.classList.add('input-disabled-safe');
     }
 }
 

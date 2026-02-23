@@ -1041,6 +1041,14 @@
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
+/* --- Input Disabled Safe Layout --- */
+.input-disabled-safe button,
+.input-disabled-safe input,
+.input-disabled-safe select,
+.input-disabled-safe .player-multi-grid>div {
+    pointer-events: none !important;
+}
+
 /* --- Multi-Answer Fixed Layout --- */
 .multi-layout-active {
     height: 100dvh;
