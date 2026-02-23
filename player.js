@@ -297,14 +297,8 @@ function updateUI() {
             toggleInputEnabled(false);
             const changeArea = document.getElementById('change-btn-area');
             if (changeArea) changeArea.innerHTML = '';
-            waitMsg.classList.remove('hidden');
-            waitMsg.style.background = 'rgba(155, 89, 182, 0.15)';
-            waitMsg.style.color = '#9b59b6';
-            waitMsg.style.border = '1px solid rgba(155, 89, 182, 0.3)';
-            waitMsg.style.padding = '20px';
-            waitMsg.innerHTML = `
-                <p style="font-size:0.9em; color:#888; margin:0;">あなたの番が来るまでお待ちください</p>
-            `;
+            // The top header badge already says whose turn it is, so we hide the waitMsg entirely here.
+            waitMsg.classList.add('hidden');
         } else if (p.lastResult === 'win') {
             toggleInputEnabled(false);
             const changeArea = document.getElementById('change-btn-area');
