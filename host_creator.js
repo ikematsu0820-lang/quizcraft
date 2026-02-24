@@ -890,6 +890,18 @@ window.App.Creator = {
             `;
             list.appendChild(div);
         });
+
+        // Update badge
+        const badge = document.getElementById('creator-cart-badge');
+        if (badge) {
+            const count = window.App.Data.createdQuestions.length;
+            if (count > 0) {
+                badge.textContent = count;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
     },
 
     save: function () {
@@ -983,6 +995,17 @@ window.loadSetForEditing = (k, i) => window.App.Creator.loadSet(k, i);
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('add-question-btn')?.addEventListener('click', () => window.App.Creator.add());
     document.getElementById('update-question-btn')?.addEventListener('click', () => window.App.Creator.update());
+    // Setup modal toggles
+    document.getElementById('creator-cart-btn')?.addEventListener('click', () => {
+        document.getElementById('creator-list-modal').classList.remove('hidden');
+    });
+    document.getElementById('creator-list-close-btn')?.addEventListener('click', () => {
+        document.getElementById('creator-list-modal').classList.add('hidden');
+    });
+    document.getElementById('creator-list-close-icon')?.addEventListener('click', () => {
+        document.getElementById('creator-list-modal').classList.add('hidden');
+    });
+
     document.getElementById('cancel-update-btn')?.addEventListener('click', () => window.App.Creator.resetForm());
     document.getElementById('save-to-cloud-btn')?.addEventListener('click', () => window.App.Creator.save());
 });
