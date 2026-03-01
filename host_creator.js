@@ -1017,6 +1017,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.App.Data.createdQuestions[window.App.Creator.editingIndex] = { ...window.App.Data.createdQuestions[window.App.Creator.editingIndex], ...currentQ };
                 window.App.Creator.renderList();
             }
+            window.App.Creator.resetForm();
         }
         document.getElementById('creator-list-modal').classList.remove('hidden');
     });
