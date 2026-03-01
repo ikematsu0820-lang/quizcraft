@@ -121,35 +121,16 @@ App.Config = {
             <div class="config-item-box">
                 <div class="mb-15">
                 <label class="config-label">1. ${APP_TEXT.Config.LabelMode}</label>
-                <div class="mode-segmented-control">
-                    <button type="button" class="mode-segmented-btn ${isOral || qType.startsWith('multi') || isDobon ? 'disabled' : ''}" data-mode="normal" ${(isOral || qType.startsWith('multi') || isDobon) ? 'disabled' : ''}>
-                        <span class="icon">⚡</span>
-                        <span class="label">一斉</span>
-                    </button>
-                    <button type="button" class="mode-segmented-btn ${isDobon ? 'disabled' : ''}" data-mode="buzz" ${isDobon ? 'disabled' : ''}>
-                        <span class="icon">🚨</span>
-                        <span class="label">早押し</span>
-                    </button>
-                    <!-- Disabled Turn/Solo as per request -->
-                    <button type="button" class="mode-segmented-btn" data-mode="turn">
-                        <span class="icon">🔄</span>
-                        <span class="label">順番</span>
-                    </button>
-                    <button type="button" class="mode-segmented-btn" data-mode="solo">
-                        <span class="icon">🏆</span>
-                        <span class="label">ソロ</span>
-                    </button>
+                <div id="mode-card-selector" style="display:flex; flex-direction:column; gap:8px; margin-top:6px;">
+                    <!-- Mode cards rendered by JS -->
                 </div>
-                
                 <select id="config-mode-select" class="hidden">
                     <option value="normal">Normal</option>
                     <option value="buzz">Buzz</option>
                     <option value="turn">Turn</option>
                     <option value="solo">Solo</option>
                 </select>
-                ${qType.startsWith('multi') ? '<p style="font-size:0.8em; color:#ffd700; margin-top:5px;">※多答形式は一斉解答を利用できません</p>' : ''}
-
-                <div id="mode-detail-area"></div>
+                ${qType.startsWith('multi') ? '<p style="font-size:0.8em; color:#ffd700; margin-top:8px;">※多答形式は一斉解答を利用できません</p>' : ''}
                 </div>
 
                 <hr style="border:0; border-top:1px dashed #444; margin:20px 0;">
@@ -265,12 +246,13 @@ App.Config = {
         const typeHidden = document.getElementById('config-game-type');
 
         const updateDetails = () => {
-            this.renderModeDetail(modeSel.value, conf, qType);
             const isPanel = (typeHidden.value === 'panel');
             this.toggleScoreSections(!isPanel);
         };
 
         modeSel.onchange = updateDetails;
+        // Mode card rendering (initial)
+        this.renderModeCards(modeSel.value || 'normal', conf, qType, isOral, isDobon);
         // Game type card rendering (initial)
         this.renderGameTypeCards(typeHidden.value || 'score', conf);
 
@@ -309,37 +291,12 @@ App.Config = {
             this.renderGameTypeCards(conf.gameType, conf);
         }
 
+        // Render mode cards with correct initial selection
+        this.renderModeCards(targetMode, conf, qType, isOral, isDobon);
+
         // Initial detail render
         updateDetails();
-        this.renderQList();
         this.toggleScoreSections(typeHidden.value !== 'panel');
-
-
-        // Setup mode button click handlers
-        document.querySelectorAll('.mode-segmented-btn').forEach(card => {
-            card.onclick = () => {
-                if (card.classList.contains('disabled')) return;
-
-                const selectedMode = card.dataset.mode;
-
-                // Update visual state
-                document.querySelectorAll('.mode-segmented-btn').forEach(c => c.classList.remove('active'));
-                card.classList.add('active');
-
-                // Update hidden select
-                modeSel.value = selectedMode;
-
-                // Trigger detail rendering
-                updateDetails();
-            };
-        });
-
-        // Set initial active button
-        document.querySelectorAll('.mode-segmented-btn').forEach(card => {
-            if (card.dataset.mode === targetMode) {
-                card.classList.add('active');
-            }
-        });
     },
 
     toggleScoreSections: function (show) {
@@ -350,6 +307,262 @@ App.Config = {
         const bulkGrid = document.getElementById('config-bulk-grid');
         if (bulkGrid) {
             bulkGrid.style.gridTemplateColumns = show ? "1fr 1fr 1fr" : "1fr";
+        }
+    },
+
+    // モード選択カードをレンダリング（ゲームタイプと同じスタイル）
+    renderModeCards: function (selectedMode, conf, qType, isOral, isDobon) {
+        const container = document.getElementById('mode-card-selector');
+        if (!container) return;
+
+        const modes = [
+            {
+                value: 'normal',
+                icon: '⚡',
+                label: '一斉解答',
+                desc: '全員同時に解答',
+                color: '#00e5ff',
+                disabled: isOral || (qType && qType.startsWith('multi')) || isDobon,
+                hasDetail: qType === 'free_written'
+            },
+            {
+                value: 'buzz',
+                icon: '🚨',
+                label: '早押し',
+                desc: '最初に押した人が解答',
+                color: '#ff6b6b',
+                disabled: isDobon,
+                hasDetail: true
+            },
+            {
+                value: 'turn',
+                icon: '🔄',
+                label: '順番解答',
+                desc: 'プレイヤーが順番に解答',
+                color: '#ffd700',
+                disabled: false,
+                hasDetail: true
+            },
+            {
+                value: 'solo',
+                icon: '🏆',
+                label: 'ソロ対戦',
+                desc: '個人タイムアタック',
+                color: '#a855f7',
+                disabled: false,
+                hasDetail: true
+            }
+        ];
+
+        const self = this;
+        const modeSel = document.getElementById('config-mode-select');
+
+        container.innerHTML = '';
+        modes.forEach(m => {
+            const isSelected = (selectedMode === m.value);
+            const row = document.createElement('div');
+            row.style.cssText = `
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 10px 12px;
+                border-radius: 10px;
+                border: 2px solid ${isSelected ? m.color : (m.disabled ? '#2a2a2a' : '#333')};
+                background: ${isSelected ? `rgba(${self._hexToRgb(m.color)}, 0.1)` : (m.disabled ? '#161616' : '#1a1a1a')};
+                cursor: ${m.disabled ? 'not-allowed' : 'pointer'};
+                opacity: ${m.disabled ? '0.45' : '1'};
+                transition: all 0.2s;
+            `;
+
+            // --- Left: radio indicator + icon + text ---
+            const left = document.createElement('div');
+            left.style.cssText = 'display:flex; align-items:center; gap:10px; flex:1;';
+            left.innerHTML = `
+                <div style="
+                    width:18px; height:18px; border-radius:50%;
+                    border: 2px solid ${isSelected ? m.color : '#555'};
+                    background: ${isSelected ? m.color : 'transparent'};
+                    display:flex; align-items:center; justify-content:center;
+                    flex-shrink:0;
+                    box-shadow: ${isSelected ? `0 0 8px ${m.color}88` : 'none'};
+                ">
+                    ${isSelected ? '<div style="width:6px;height:6px;border-radius:50%;background:#000;"></div>' : ''}
+                </div>
+                <span style="font-size:1.3em;">${m.icon}</span>
+                <div>
+                    <div style="font-weight:bold; color:${isSelected ? m.color : (m.disabled ? '#444' : '#ccc')}; font-size:0.95em;">${m.label}</div>
+                    <div style="font-size:0.72em; color:${m.disabled ? '#333' : '#666'};">${m.desc}</div>
+                </div>
+            `;
+            if (!m.disabled) {
+                left.onclick = () => {
+                    modeSel.value = m.value;
+                    self.renderModeCards(m.value, conf, qType, isOral, isDobon);
+                };
+            }
+            row.appendChild(left);
+
+            // --- Right: 詳細設定ボタン ---
+            if (m.hasDetail && !m.disabled) {
+                const detailBtn = document.createElement('button');
+                detailBtn.type = 'button';
+                detailBtn.style.cssText = `
+                    background: rgba(255,255,255,0.06);
+                    border: 1px solid #444;
+                    color: #aaa;
+                    border-radius: 20px;
+                    padding: 5px 12px;
+                    font-size: 0.75em;
+                    cursor: pointer;
+                    white-space: nowrap;
+                    flex-shrink: 0;
+                `;
+                detailBtn.innerHTML = '⚙ 詳細';
+                detailBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    // Select this mode first
+                    modeSel.value = m.value;
+                    self.renderModeCards(m.value, conf, qType, isOral, isDobon);
+                    // Open detail sheet
+                    self.openModeDetailSheet(m.value, conf, qType);
+                };
+                row.appendChild(detailBtn);
+            }
+
+            container.appendChild(row);
+        });
+    },
+
+    // モード詳細設定をモーダルで開く
+    openModeDetailSheet: function (mode, conf, qType) {
+        const existingSheet = document.getElementById('mode-detail-sheet');
+        if (existingSheet) existingSheet.remove();
+
+        let sheetContent = '';
+        let modeLabel = '';
+
+        if (mode === 'normal') {
+            modeLabel = '⚡ 一斉解答 — 解答設定';
+            sheetContent = `
+                <div style="margin-bottom:8px;">
+                    <label class="config-label" style="margin:0;">解答権</label>
+                </div>
+                <div style="display:flex; gap:6px; margin-bottom:12px;">
+                    <button type="button" class="mode-segmented-btn ans-attempt-btn ${(conf.answerAttempts || 'single') === 'single' ? 'active' : ''}" data-val="single" style="flex:1; padding:10px 4px;">
+                        <span class="icon">1️⃣</span>
+                        <span class="label">1回のみ</span>
+                    </button>
+                    <button type="button" class="mode-segmented-btn ans-attempt-btn ${conf.answerAttempts === 'multiple' ? 'active' : ''}" data-val="multiple" style="flex:1; padding:10px 4px;">
+                        <span class="icon">🔄</span>
+                        <span class="label">複数解答可</span>
+                    </button>
+                </div>
+                <input type="hidden" id="config-answer-attempts" value="${conf.answerAttempts || 'single'}">
+                <p style="color:#888; font-size:0.8em; line-height:1.5;" id="ans-attempt-desc">
+                    ${(conf.answerAttempts || 'single') === 'single' ? '正解表示ボタンを押した時に全員に結果が一斉に届きます' : '採点の都度結果が届き、不正解でも再解答できます'}
+                </p>
+            `;
+        } else if (mode === 'buzz') {
+            modeLabel = '🚨 早押し — 解答設定';
+            const buzzAction = conf.buzzWrongAction || 'next';
+            const buzzPenalty = conf.buzzPenalty || 'none';
+            sheetContent = `
+                <div style="margin-bottom:15px;">
+                    <label class="config-label">誤答時の処理</label>
+                    <select id="config-buzz-wrong-action" class="btn-block config-select">
+                        <option value="next" ${buzzAction === 'next' ? 'selected' : ''}>問題継続（他のプレイヤーが解答可能）</option>
+                        <option value="end" ${buzzAction === 'end' ? 'selected' : ''}>問題終了</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="config-label">おてつき処理</label>
+                    <select id="config-buzz-penalty" class="btn-block config-select">
+                        <option value="none" ${buzzPenalty === 'none' ? 'selected' : ''}>なし</option>
+                        <option value="otetski" ${buzzPenalty === 'otetski' ? 'selected' : ''}>あり（次の問題まで解答権なし）</option>
+                    </select>
+                </div>
+                <div id="buzz-penalty-detail" style="margin-top:8px;"></div>
+            `;
+        } else if (mode === 'turn') {
+            modeLabel = '🔄 順番解答 — 解答設定';
+            sheetContent = `
+                <div>
+                    <label class="config-label">${APP_TEXT.Config.LabelTurnPass}</label>
+                    <select id="config-turn-pass" class="btn-block config-select">
+                        <option value="ok" ${conf.turnPass === 'ok' ? 'selected' : ''}>${APP_TEXT.Config.TurnPassOk}</option>
+                        <option value="ng" ${conf.turnPass === 'ng' ? 'selected' : ''}>${APP_TEXT.Config.TurnPassNg}</option>
+                    </select>
+                </div>
+            `;
+        } else if (mode === 'solo') {
+            modeLabel = '🏆 ソロ対戦 — 解答設定';
+            sheetContent = `
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+                    <div>
+                        <label class="config-label">${APP_TEXT.Config.LabelSoloTimeValue}</label>
+                        <div class="flex-center">
+                            <input type="number" id="config-solo-time-val" class="btn-block" value="${conf.soloTimeVal || 5}" min="0" placeholder="0=なし">
+                            <span class="unit-text">秒</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="config-label">${APP_TEXT.Config.LabelSoloRecovery}</label>
+                        <select id="config-solo-recovery" class="btn-block config-select">
+                            <option value="none" ${conf.soloRecovery === 0 ? 'selected' : ''}>なし</option>
+                            <option value="1" ${conf.soloRecovery === 1 ? 'selected' : ''}>+1s</option>
+                            <option value="3" ${conf.soloRecovery === 3 ? 'selected' : ''}>+3s</option>
+                            <option value="5" ${conf.soloRecovery === 5 ? 'selected' : ''}>+5s</option>
+                        </select>
+                    </div>
+                </div>
+            `;
+        }
+
+        const sheet = document.createElement('div');
+        sheet.id = 'mode-detail-sheet';
+        sheet.className = 'design-modal-overlay';
+        sheet.style.cssText = 'z-index:9500;';
+        sheet.innerHTML = `
+            <div class="design-modal-content" style="max-width:480px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+                    <h3 style="margin:0; font-size:1em; color:#fff;">${modeLabel}</h3>
+                    <button id="mode-detail-sheet-close" style="background:transparent; border:none; font-size:24px; cursor:pointer; color:#aaa; padding:0 8px;">×</button>
+                </div>
+                <div style="padding:4px 0 8px 0;">${sheetContent}</div>
+                <div style="margin-top:16px;">
+                    <button id="mode-detail-sheet-done" class="btn-block btn-primary" style="padding:12px; font-weight:bold;">完了</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(sheet);
+
+        sheet.addEventListener('click', (e) => { if (e.target === sheet) sheet.remove(); });
+        document.getElementById('mode-detail-sheet-close').onclick = () => sheet.remove();
+        document.getElementById('mode-detail-sheet-done').onclick = () => sheet.remove();
+
+        // Wire ans-attempt buttons
+        sheet.querySelectorAll('.ans-attempt-btn').forEach(btn => {
+            btn.onclick = () => {
+                sheet.querySelectorAll('.ans-attempt-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const hidden = document.getElementById('config-answer-attempts');
+                if (hidden) hidden.value = btn.dataset.val;
+                const desc = document.getElementById('ans-attempt-desc');
+                if (desc) {
+                    desc.textContent = btn.dataset.val === 'single'
+                        ? '正解表示ボタンを押した時に全員に結果が一斉に届きます'
+                        : '採点の都度結果が届き、不正解でも再解答できます';
+                }
+            };
+        });
+
+        // Wire buzz penalty
+        const buzzPenaltySel = document.getElementById('config-buzz-penalty');
+        if (buzzPenaltySel) {
+            buzzPenaltySel.onchange = () => {
+                const detail = document.getElementById('buzz-penalty-detail');
+                if (detail) detail.innerHTML = '';
+            };
         }
     },
 
@@ -381,6 +594,8 @@ App.Config = {
             App.Ui.showToast("設定を全ての問題に適用しました");
         };
     },
+
+
 
     renderModeDetail: function (mode, conf = {}, qType = 'choice') {
         const area = document.getElementById('mode-detail-area');
