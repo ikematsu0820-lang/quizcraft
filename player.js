@@ -802,7 +802,9 @@ function renderPlayerQuestion(q, roomId, playerId) {
 
     if (q.type === 'choice') {
         let choices = q.c.map((text, i) => ({ text: text, originalIndex: i }));
-        if (roomConfig.shuffleChoices === 'on') {
+        // Shuffle if: per-question shuffle flag is true (default), OR room-level shuffleChoices is 'on'
+        const shouldShuffle = (q.shuffle !== false) || (roomConfig.shuffleChoices === 'on');
+        if (shouldShuffle) {
             for (let i = choices.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [choices[i], choices[j]] = [choices[j], choices[i]];
