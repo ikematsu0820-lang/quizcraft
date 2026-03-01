@@ -853,6 +853,7 @@ window.App.Creator = {
         document.getElementById('question-text').value = q.q;
         document.getElementById('creator-commentary').value = q.commentary || '';
         this.renderForm(q.type, q);
+        document.getElementById('creator-list-modal')?.classList.add('hidden');
         document.getElementById('creator-view').scrollIntoView({ behavior: "smooth" });
     },
 
