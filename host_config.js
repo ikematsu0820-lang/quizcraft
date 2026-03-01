@@ -71,7 +71,8 @@ App.Config = {
         this.selectedSetKey = select.value;
         window.db.ref(`saved_sets/${App.State.currentShowId}/${this.selectedSetKey}`).once('value', snap => {
             this.selectedSetData = snap.val();
-            this.renderBuilderForm(this.selectedSetData.config || {}, this.selectedSetData.questions || []);
+            if (!this.selectedSetData.config) this.selectedSetData.config = {};
+            this.renderBuilderForm(this.selectedSetData.config, this.selectedSetData.questions || []);
             actionArea.classList.remove('hidden');
         });
     },
@@ -154,75 +155,126 @@ App.Config = {
                 <hr style="border:0; border-top:1px dashed #444; margin:20px 0;">
 
                 <div class="mb-15">
-                    <label class="config-label">2. ゲームタイプ</label>
-                    <select id="config-game-type" class="btn-block config-select">
-                        <option value="score">得点制</option>
-                        <option value="panel">パネル制</option>
-                        <option value="slot">変動得点制</option>
-                    </select>
-                    <div id="gametype-detail-area"></div>
+                    <label class="config-label">2. 正解ボーナス</label>
+                    <input type="hidden" id="config-game-type" value="score">
+                    <div id="gametype-selector" style="display:flex; flex-direction:column; gap:8px; margin-top:6px;">
+                        <!-- Game type cards rendered by JS -->
+                    </div>
                 </div>
 
-                <hr style="border:0; border-top:1px dashed #444; margin:20px 0;">
-                
-                <h5 style="margin:15px 0 8px 0; font-size:11px; color:#666; font-weight:700; text-transform:uppercase;">問題別一括設定 (Bulk)</h5>
-                
-                <div class="rule-compact-row">
-                    <!-- TIME Switch -->
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <span style="font-size:11px; font-weight:700; color:#aaa;">TIME</span>
-                        <label class="pro-switch">
-                            <input type="checkbox" id="config-bulk-time-toggle" checked>
-                            <span class="pro-slider"></span>
-                        </label>
-                    </div>
-                    <div class="config-q-input-group pro-style">
-                        <input type="number" id="config-bulk-time-input" value="10" min="1" placeholder="Sec" style="width:50px;">
-                    </div>
-
-                    <div style="width:1px; height:24px; background:rgba(255,255,255,0.1); margin:0 5px;"></div>
-
-                    <!-- POINT -->
-                    <div class="config-q-input-group pro-style score-section">
-                        <label>POINT</label>
-                        <input type="number" id="config-bulk-point-input" value="1" min="1" style="width:50px;">
-                    </div>
-
-                    <!-- LOSS -->
-                    <div class="config-q-input-group pro-style score-section">
-                        <label>LOSS</label>
-                        <input type="number" id="config-bulk-loss-input" value="0" min="0" style="width:50px;">
-                    </div>
-
-                    <div style="flex:1"></div>
-                    <button id="config-bulk-apply-btn" class="btn-mini btn-primary" style="height:28px; padding:0 12px; font-size:11px;">SET ALL</button>
-                </div>
-
-                <button id="btn-toggle-q-list" class="btn-block btn-dark" style="margin-bottom:10px;">▼ 個別で設定する (全${questions.length}問)</button>
-                <div id="config-questions-list" class="hidden scroll-list" style="height:300px; border:1px solid #333; padding:5px; background:#1a1a1a;"></div>
             </div>`;
 
+
+
+        // ── 詳細設定モーダル ──────────────────────────────────
+        html += `
+            <div style="margin-top:8px;">
+                <button id="btn-open-detail-settings" class="btn-block btn-dark" style="display:flex; align-items:center; justify-content:center; gap:8px; padding:12px; font-size:1em; border:1px solid #444; border-radius:8px;">
+                    <span>⚙</span> 詳細設定（時間・点数・個別設定）
+                    <span style="margin-left:auto; font-size:0.8em; color:#888;">▶</span>
+                </button>
+            </div>`;
+
+        // Remove the old bulk section (it's being moved to modal below)
         container.innerHTML = html;
 
+        // ── Modal for detail settings ──────────────────────────
+        let existingDetailModal = document.getElementById('config-detail-modal');
+        if (!existingDetailModal) {
+            const detailModal = document.createElement('div');
+            detailModal.id = 'config-detail-modal';
+            detailModal.className = 'design-modal-overlay hidden';
+            detailModal.style.zIndex = '9000';
+            detailModal.innerHTML = `
+                <div class="design-modal-content" style="max-width:600px; max-height:85vh; display:flex; flex-direction:column; overflow:hidden;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:15px; flex-shrink:0;">
+                        <h3 class="modal-title" style="margin:0;">詳細設定</h3>
+                        <button id="config-detail-modal-close" style="background:transparent; border:none; font-size:24px; cursor:pointer; color:#aaa; padding:0 8px;">×</button>
+                    </div>
+                    <div style="flex:1; overflow-y:auto; padding-right:5px;">
+                        <h5 style="margin:0 0 8px 0; font-size:11px; color:#666; font-weight:700; text-transform:uppercase;">問題別一括設定 (Bulk)</h5>
+                        <div class="rule-compact-row">
+                            <!-- TIME Switch -->
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <span style="font-size:11px; font-weight:700; color:#aaa;">TIME</span>
+                                <label class="pro-switch">
+                                    <input type="checkbox" id="config-bulk-time-toggle" checked>
+                                    <span class="pro-slider"></span>
+                                </label>
+                            </div>
+                            <div class="config-q-input-group pro-style">
+                                <input type="number" id="config-bulk-time-input" value="10" min="1" placeholder="Sec" style="width:50px;">
+                            </div>
+
+                            <div style="width:1px; height:24px; background:rgba(255,255,255,0.1); margin:0 5px;"></div>
+
+                            <!-- POINT -->
+                            <div class="config-q-input-group pro-style score-section">
+                                <label>POINT</label>
+                                <input type="number" id="config-bulk-point-input" value="1" min="1" style="width:50px;">
+                            </div>
+
+                            <!-- LOSS -->
+                            <div class="config-q-input-group pro-style score-section">
+                                <label>LOSS</label>
+                                <input type="number" id="config-bulk-loss-input" value="0" min="0" style="width:50px;">
+                            </div>
+
+                            <div style="flex:1"></div>
+                            <button id="config-bulk-apply-btn" class="btn-mini btn-primary" style="height:28px; padding:0 12px; font-size:11px;">SET ALL</button>
+                        </div>
+
+                        <button id="btn-toggle-q-list" class="btn-block btn-dark" style="margin:12px 0 8px 0;">▼ 個別で設定する (全${questions.length}問)</button>
+                        <div id="config-questions-list" class="hidden scroll-list" style="max-height:280px; overflow-y:auto; border:1px solid #333; padding:5px; background:#1a1a1a;"></div>
+                    </div>
+                    <div style="margin-top:12px; flex-shrink:0;">
+                        <button id="config-detail-modal-done" class="btn-block btn-primary" style="padding:12px; font-weight:bold;">完了</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(detailModal);
+
+            detailModal.addEventListener('click', (e) => {
+                if (e.target === detailModal) detailModal.classList.add('hidden');
+            });
+            document.getElementById('config-detail-modal-close').onclick = () => detailModal.classList.add('hidden');
+            document.getElementById('config-detail-modal-done').onclick = () => detailModal.classList.add('hidden');
+        } else {
+            // Update question count text in existing modal
+            const toggleBtn = existingDetailModal.querySelector('#btn-toggle-q-list');
+            if (toggleBtn) toggleBtn.textContent = `▼ 個別で設定する (全${questions.length}問)`;
+        }
+
+        document.getElementById('btn-open-detail-settings').onclick = () => {
+            document.getElementById('config-detail-modal').classList.remove('hidden');
+            // Re-render Q list each time modal opens to keep it fresh
+            this.renderQList();
+            // Wire bulk buttons (they live in the modal DOM)
+            this.setupBulkButtons();
+            // Wire the individual-q toggle
+            const toggleQBtn = document.getElementById('btn-toggle-q-list');
+            if (toggleQBtn) {
+                toggleQBtn.onclick = () => {
+                    const list = document.getElementById('config-questions-list');
+                    list.classList.toggle('hidden');
+                };
+            }
+        };
+
         const modeSel = document.getElementById('config-mode-select');
-        const typeSel = document.getElementById('config-game-type');
+        const typeHidden = document.getElementById('config-game-type');
 
         const updateDetails = () => {
             this.renderModeDetail(modeSel.value, conf, qType);
-            this.renderGameTypeDetail(typeSel.value, conf);
-            const isPanel = (typeSel.value === 'panel');
+            const isPanel = (typeHidden.value === 'panel');
             this.toggleScoreSections(!isPanel);
         };
 
         modeSel.onchange = updateDetails;
-        typeSel.onchange = updateDetails;
+        // Game type card rendering (initial)
+        this.renderGameTypeCards(typeHidden.value || 'score', conf);
 
-        document.getElementById('btn-toggle-q-list').onclick = () => {
-            const list = document.getElementById('config-questions-list');
-            list.classList.toggle('hidden');
-        };
-
-        this.setupBulkButtons();
+        // (btn-toggle-q-list and setupBulkButtons are now wired on modal open)
 
         // Default Mode Logic with Checks
         let targetMode = conf.mode || 'normal';
@@ -252,12 +304,16 @@ App.Config = {
         // Apply to select
         modeSel.value = targetMode;
 
-        if (conf.gameType) typeSel.value = conf.gameType;
+        if (conf.gameType) {
+            typeHidden.value = conf.gameType;
+            this.renderGameTypeCards(conf.gameType, conf);
+        }
 
         // Initial detail render
         updateDetails();
         this.renderQList();
-        this.toggleScoreSections(typeSel.value !== 'panel');
+        this.toggleScoreSections(typeHidden.value !== 'panel');
+
 
         // Setup mode button click handlers
         document.querySelectorAll('.mode-segmented-btn').forEach(card => {
@@ -469,128 +525,366 @@ App.Config = {
         }
     },
 
-    renderGameTypeDetail: function (gameType, conf = {}) {
-        const area = document.getElementById('gametype-detail-area');
-        let html = '';
-        if (gameType === 'score') {
-            const scoreType = conf.scoreType || 'uniform';
-            html += `<div class="mode-settings-box mode-box-normal" id="score-type-container" style="border-color:#00bfff; margin-top:5px; padding-bottom:10px;">
-                <div style="display:flex; align-items:center; gap:15px; margin-bottom:15px;">
-                    <label class="config-label" style="margin:0; white-space:nowrap; min-width:80px;">得点方式</label>
-                    <select id="config-score-type" class="config-select" style="flex:1; height:38px;">
-                        <option value="uniform" ${scoreType === 'uniform' ? 'selected' : ''}>① 全員一律</option>
-                        <option value="ranked" ${scoreType === 'ranked' ? 'selected' : ''}>② 順位ボーナス</option>
-                        <option value="first_come" ${scoreType === 'first_come' ? 'selected' : ''}>③ 先着のみ</option>
-                    </select>
-                </div>
-                <div id="score-type-detail" style="background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);"></div>
-            </div>`;
-        } else if (gameType === 'panel') {
-            html += `<div class="mode-settings-box mode-box-normal" style="border-color:#ffd700; margin-top:5px;">
-                <label style="color:#ffd700;">★ パネル制</label>
-                <p class="unit-text">25枚のパネル操作盤を有効にします。</p>
-            </div>`;
-        } else if (gameType === 'slot') {
-            html += `<div class="mode-settings-box mode-box-normal" style="border-color:#ff00ff; margin-top:5px;">
-                <label style="color:#ff00ff;">★ 変動得点制</label>
-                <p class="unit-text">正解時にスロットを回し、出た目が得点になります。</p>
-                <div class="mt-5">
-                    <label class="config-label">スロットの範囲</label>
-                    <div class="grid-2-col gap-10">
-                        <div>
-                            <label class="text-sm">最小値</label>
-                            <input type="number" id="conf-slot-min" value="${conf.slotMin || 1}" class="config-select">
-                        </div>
-                        <div>
-                            <label class="text-sm">最大値</label>
-                            <input type="number" id="conf-slot-max" value="${conf.slotMax || 10}" class="config-select">
-                        </div>
-                    </div>
-                </div>
-            </div>`;
-        }
-        area.innerHTML = html;
+    // ゲームタイプカード（選択肢 + 詳細設定ボタン）をレンダリング
+    renderGameTypeCards: function (selectedType, conf) {
+        const container = document.getElementById('gametype-selector');
+        if (!container) return;
 
-        if (gameType === 'score') {
-            const scoreTypeSel = document.getElementById('config-score-type');
-            scoreTypeSel.onchange = () => {
-                conf.scoreType = scoreTypeSel.value;
-                this.renderScoreDetail(conf.scoreType, conf);
+        const types = [
+            {
+                value: 'score',
+                icon: '🏅',
+                label: '得点制',
+                desc: '正解で得点加算',
+                color: '#00bfff',
+                hasDetail: true
+            },
+            {
+                value: 'panel',
+                icon: '🟦',
+                label: 'パネル制',
+                desc: '25枚パネル',
+                color: '#ffd700',
+                hasDetail: false
+            },
+            {
+                value: 'slot',
+                icon: '🎰',
+                label: '変動得点制',
+                desc: 'スロットで得点',
+                color: '#ff00ff',
+                hasDetail: true
+            }
+        ];
+
+        const self = this;
+
+        container.innerHTML = '';
+        types.forEach(t => {
+            const isSelected = (selectedType === t.value);
+            const row = document.createElement('div');
+            row.style.cssText = `
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 10px 12px;
+                border-radius: 10px;
+                border: 2px solid ${isSelected ? t.color : '#333'};
+                background: ${isSelected ? `rgba(${self._hexToRgb(t.color)}, 0.1)` : '#1a1a1a'};
+                cursor: pointer;
+                transition: all 0.2s;
+            `;
+
+            // --- Left: radio indicator + icon + text ---
+            const left = document.createElement('div');
+            left.style.cssText = 'display:flex; align-items:center; gap:10px; flex:1;';
+            left.innerHTML = `
+                <div style="
+                    width:18px; height:18px; border-radius:50%;
+                    border: 2px solid ${isSelected ? t.color : '#555'};
+                    background: ${isSelected ? t.color : 'transparent'};
+                    display:flex; align-items:center; justify-content:center;
+                    flex-shrink:0;
+                    box-shadow: ${isSelected ? `0 0 8px ${t.color}88` : 'none'};
+                ">
+                    ${isSelected ? '<div style="width:6px;height:6px;border-radius:50%;background:#000;"></div>' : ''}
+                </div>
+                <span style="font-size:1.3em;">${t.icon}</span>
+                <div>
+                    <div style="font-weight:bold; color:${isSelected ? t.color : '#ccc'}; font-size:0.95em;">${t.label}</div>
+                    <div style="font-size:0.72em; color:#666;">${t.desc}</div>
+                </div>
+            `;
+            left.onclick = () => {
+                document.getElementById('config-game-type').value = t.value;
+                self.renderGameTypeCards(t.value, conf);
+                self.toggleScoreSections(t.value !== 'panel');
             };
-            this.renderScoreDetail(conf.scoreType || 'uniform', conf);
-        }
+            row.appendChild(left);
+
+            // --- Right: 詳細設定ボタン (if has detail) ---
+            if (t.hasDetail) {
+                const detailBtn = document.createElement('button');
+                detailBtn.type = 'button';
+                detailBtn.style.cssText = `
+                    background: rgba(255,255,255,0.06);
+                    border: 1px solid #444;
+                    color: #aaa;
+                    border-radius: 20px;
+                    padding: 5px 12px;
+                    font-size: 0.75em;
+                    cursor: pointer;
+                    white-space: nowrap;
+                    flex-shrink: 0;
+                `;
+                detailBtn.innerHTML = '⚙ 詳細';
+                detailBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    // Select this type first
+                    document.getElementById('config-game-type').value = t.value;
+                    self.renderGameTypeCards(t.value, conf);
+                    self.toggleScoreSections(t.value !== 'panel');
+                    // Open bottom sheet
+                    self.openGameTypeDetailSheet(t.value, conf);
+                };
+                row.appendChild(detailBtn);
+            }
+
+            container.appendChild(row);
+        });
     },
 
-    renderScoreDetail: function (scoreType, conf) {
-        const detailArea = document.getElementById('score-type-detail');
+    _hexToRgb: function (hex) {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return `${r},${g},${b}`;
+    },
+
+    // ボトムシートで詳細設定を開く
+    openGameTypeDetailSheet: function (gameType, conf) {
+        if (document.getElementById('gametype-detail-sheet')) {
+            document.getElementById('gametype-detail-sheet').remove();
+        }
+
+        let sheetContent = '';
+
+        if (gameType === 'score') {
+            const scoreType = conf.scoreType || 'uniform';
+            sheetContent = `
+                <h3 style="margin:0 0 16px 0; font-size:1.1em; color:#00bfff; display:flex; align-items:center; gap:8px;">
+                    🏅 得点制 — 正解ボーナス方式
+                </h3>
+                <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;" id="score-type-radio-group">
+                    ${['uniform', 'ranked', 'first_come'].map((v, i) => {
+                const labels = ['① 全員一律', '② 順位ボーナス', '③ 先着のみ'];
+                const descs = ['正解した全員に同じ点数を加算', '正解順位に応じて異なる点数を加算', '指定した先着人数のみ得点'];
+                const sel = (scoreType === v);
+                return `<label style="
+                            display:flex; align-items:center; gap:12px;
+                            padding:12px 14px; border-radius:10px;
+                            border:2px solid ${sel ? '#00bfff' : '#333'};
+                            background: ${sel ? 'rgba(0,191,255,0.08)' : '#111'};
+                            cursor:pointer;
+                        ">
+                            <input type="radio" name="score-type-radio" value="${v}" ${sel ? 'checked' : ''} style="display:none;">
+                            <div style="
+                                width:16px; height:16px; border-radius:50%;
+                                border:2px solid ${sel ? '#00bfff' : '#555'};
+                                background:${sel ? '#00bfff' : 'transparent'};
+                                flex-shrink:0;
+                            "></div>
+                            <div>
+                                <div style="font-weight:bold; color:${sel ? '#00bfff' : '#ccc'}; font-size:0.9em;">${labels[i]}</div>
+                                <div style="font-size:0.72em; color:#666;">${descs[i]}</div>
+                            </div>
+                        </label>`;
+            }).join('')}
+                </div>
+                <div id="score-type-sheet-detail" style="background:rgba(0,0,0,0.3); padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.06); margin-bottom:16px; min-height:60px;"></div>
+            `;
+        } else if (gameType === 'slot') {
+            sheetContent = `
+                <h3 style="margin:0 0 16px 0; font-size:1.1em; color:#ff00ff; display:flex; align-items:center; gap:8px;">
+                    🎰 変動得点制 — スロット設定
+                </h3>
+                <p style="color:#aaa; font-size:0.85em; margin-bottom:16px;">正解時にスロットを回し、出た目が得点になります。</p>
+                <div style="display:flex; gap:15px; align-items:center;">
+                    <div style="flex:1;">
+                        <label style="font-size:0.75em; color:#888; display:block; margin-bottom:4px;">最小値</label>
+                        <input type="number" id="conf-slot-min" value="${conf.slotMin || 1}" min="0"
+                            style="width:100%; padding:10px; background:#111; border:1px solid #444; color:#fff; border-radius:6px; font-size:1em; text-align:center;">
+                    </div>
+                    <div style="color:#555; font-size:1.2em; margin-top:16px;">〜</div>
+                    <div style="flex:1;">
+                        <label style="font-size:0.75em; color:#888; display:block; margin-bottom:4px;">最大値</label>
+                        <input type="number" id="conf-slot-max" value="${conf.slotMax || 10}" min="1"
+                            style="width:100%; padding:10px; background:#111; border:1px solid #444; color:#fff; border-radius:6px; font-size:1em; text-align:center;">
+                    </div>
+                </div>
+            `;
+        }
+
+        const sheet = document.createElement('div');
+        sheet.id = 'gametype-detail-sheet';
+        sheet.style.cssText = 'position:fixed; top:0; left:0; right:0; bottom:0; z-index:19999; display:flex; flex-direction:column; justify-content:flex-end;';
+        sheet.innerHTML = `
+            <div style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.65);"
+                onclick="document.getElementById('gametype-detail-sheet').remove()"></div>
+            <div id="gametype-sheet-inner" style="
+                position:relative;
+                background:#1a1a1a;
+                padding:20px 20px 30px 20px;
+                border-radius:20px 20px 0 0;
+                box-shadow:0 -5px 30px rgba(0,0,0,0.6);
+                animation: slideUp 0.3s ease-out;
+                max-height: 85vh;
+                overflow-y: auto;
+            ">
+                <div style="width:36px; height:4px; background:#444; border-radius:2px; margin:0 auto 20px auto;"></div>
+                ${sheetContent}
+                <button id="gametype-sheet-done-btn" style="
+                    width:100%; padding:14px; border:none; border-radius:10px;
+                    background: linear-gradient(135deg, #00bfff, #0080ff);
+                    color:#fff; font-size:1em; font-weight:bold; cursor:pointer;
+                    box-shadow: 0 4px 12px rgba(0,191,255,0.3);
+                ">✓ 確定</button>
+            </div>
+        `;
+        document.body.appendChild(sheet);
+
+        const self = this;
+
+        // Setup score type radio interactions
+        if (gameType === 'score') {
+            const radios = sheet.querySelectorAll('input[name="score-type-radio"]');
+            const radioLabels = sheet.querySelectorAll('#score-type-radio-group label');
+
+            const renderDetail = (val) => {
+                self.renderScoreDetailInSheet(val, conf);
+            };
+
+            // Style + interaction
+            radios.forEach((radio, i) => {
+                const parentLabel = radioLabels[i];
+                parentLabel.onclick = () => {
+                    radios.forEach(r => r.checked = false);
+                    radio.checked = true;
+                    // Update visual
+                    radioLabels.forEach((lbl, li) => {
+                        const isActive = (li === i);
+                        lbl.style.borderColor = isActive ? '#00bfff' : '#333';
+                        lbl.style.background = isActive ? 'rgba(0,191,255,0.08)' : '#111';
+                        const dot = lbl.querySelector('div');
+                        if (dot) {
+                            dot.style.borderColor = isActive ? '#00bfff' : '#555';
+                            dot.style.background = isActive ? '#00bfff' : 'transparent';
+                        }
+                        const textDiv = lbl.querySelectorAll('div > div')[0];
+                        if (textDiv) textDiv.style.color = isActive ? '#00bfff' : '#ccc';
+                    });
+                    renderDetail(radio.value);
+                };
+            });
+
+            // Initial render
+            renderDetail(conf.scoreType || 'uniform');
+        }
+
+        // Done button
+        sheet.querySelector('#gametype-sheet-done-btn').onclick = () => {
+            // Save score type
+            if (gameType === 'score') {
+                const selectedRadio = sheet.querySelector('input[name="score-type-radio"]:checked');
+                if (selectedRadio) conf.scoreType = selectedRadio.value;
+                // Save detail values
+                self._collectScoreDetailFromSheet(conf);
+            } else if (gameType === 'slot') {
+                const slotMin = sheet.querySelector('#conf-slot-min');
+                const slotMax = sheet.querySelector('#conf-slot-max');
+                if (slotMin) conf.slotMin = parseInt(slotMin.value) || 1;
+                if (slotMax) conf.slotMax = parseInt(slotMax.value) || 10;
+            }
+            sheet.remove();
+        };
+    },
+
+    renderScoreDetailInSheet: function (scoreType, conf) {
+        const detailArea = document.getElementById('score-type-sheet-detail');
         if (!detailArea) return;
         let html = '';
         if (scoreType === 'uniform') {
             const uniformPts = conf.uniformPts !== undefined ? conf.uniformPts : 1;
             html = `<div style="display:flex; align-items:center; gap:10px;">
-                <span class="text-sm" style="color:#aaa;">正解者に一律</span>
-                <input type="number" id="conf-score-uniform" class="config-select" style="width:60px; text-align:center;" value="${uniformPts}" min="0">
-                <span class="text-sm" style="color:#aaa;">点</span>
+                <span style="color:#aaa; font-size:0.9em;">正解者に一律</span>
+                <input type="number" id="conf-score-uniform" style="width:70px; text-align:center; padding:8px; background:#222; border:1px solid #555; color:#fff; border-radius:6px; font-size:1em;" value="${uniformPts}" min="0">
+                <span style="color:#aaa; font-size:0.9em;">点</span>
             </div>`;
         } else if (scoreType === 'ranked') {
             const ranks = conf.rankPts || [10, 5, 3];
             const otherPts = conf.rankOtherPts !== undefined ? conf.rankOtherPts : 1;
-
             html = `<div id="ranked-inputs">`;
             ranks.forEach((pts, i) => {
                 html += `<div class="ranked-row" style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
-                    <span class="text-sm" style="color:#aaa; width:30px; text-align:right;">${i + 1}位</span>
-                    <input type="number" class="config-select rank-pt-input" data-index="${i}" style="width:60px; text-align:center;" value="${pts}" min="0">
-                    <span class="text-sm" style="color:#aaa;">点</span>
-                    ${i >= 0 ? `<button class="btn-danger btn-mini remove-rank-btn" data-index="${i}" style="padding:4px 8px; margin-left:10px;">削除</button>` : ''}
+                    <span style="color:#aaa; font-size:0.85em; width:32px; text-align:right;">${i + 1}位</span>
+                    <input type="number" class="rank-pt-input" data-index="${i}" style="width:65px; text-align:center; padding:8px; background:#222; border:1px solid #555; color:#fff; border-radius:6px;" value="${pts}" min="0">
+                    <span style="color:#aaa; font-size:0.85em;">点</span>
+                    <button class="remove-rank-btn" data-index="${i}" style="background:#5c0000; border:1px solid #ff4444; color:#ff4444; border-radius:6px; padding:4px 10px; font-size:0.8em; cursor:pointer;">✕</button>
                 </div>`;
             });
             html += `</div>
-            <button id="add-rank-btn" class="btn-dark btn-mini" style="margin-bottom:15px; padding:6px 12px; border-radius:4px;">＋ 順位を追加する</button>
-            <div style="display:flex; align-items:center; gap:10px; border-top:1px dashed #444; padding-top:10px;">
-                <span class="text-sm" style="color:#aaa;">上記以降の正解者は一律</span>
-                <input type="number" id="conf-score-rank-other" class="config-select" style="width:60px; text-align:center;" value="${otherPts}" min="0">
-                <span class="text-sm" style="color:#aaa;">点</span>
+            <button id="add-rank-btn" style="margin-bottom:14px; padding:7px 14px; background:rgba(255,255,255,0.06); border:1px solid #444; color:#aaa; border-radius:6px; font-size:0.85em; cursor:pointer;">＋ 順位を追加</button>
+            <div style="display:flex; align-items:center; gap:10px; border-top:1px dashed #333; padding-top:12px;">
+                <span style="color:#888; font-size:0.85em;">上記以降は一律</span>
+                <input type="number" id="conf-score-rank-other" style="width:65px; text-align:center; padding:8px; background:#222; border:1px solid #555; color:#fff; border-radius:6px;" value="${otherPts}" min="0">
+                <span style="color:#888; font-size:0.85em;">点</span>
             </div>`;
         } else if (scoreType === 'first_come') {
             const fcCount = conf.firstComeCount || 1;
-            const fcPts = conf.firstComePts || 10;
-            html = `<div style="display:flex; align-items:center; gap:10px;">
-                <span class="text-sm" style="color:#aaa;">先着</span>
-                <input type="number" id="conf-score-fc-count" class="config-select" style="width:60px; text-align:center;" value="${fcCount}" min="1">
-                <span class="text-sm" style="color:#aaa;">名に</span>
-                <input type="number" id="conf-score-fc-pts" class="config-select" style="width:60px; text-align:center;" value="${fcPts}" min="0">
-                <span class="text-sm" style="color:#aaa;">点</span>
+            const fcPts = conf.firstComePts !== undefined ? conf.firstComePts : 10;
+            html = `<div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <span style="color:#aaa; font-size:0.9em;">先着</span>
+                <input type="number" id="conf-score-fc-count" style="width:65px; text-align:center; padding:8px; background:#222; border:1px solid #555; color:#fff; border-radius:6px;" value="${fcCount}" min="1">
+                <span style="color:#aaa; font-size:0.9em;">名に</span>
+                <input type="number" id="conf-score-fc-pts" style="width:65px; text-align:center; padding:8px; background:#222; border:1px solid #555; color:#fff; border-radius:6px;" value="${fcPts}" min="0">
+                <span style="color:#aaa; font-size:0.9em;">点</span>
             </div>`;
         }
         detailArea.innerHTML = html;
 
         if (scoreType === 'ranked') {
+            const self = this;
             const addBtn = document.getElementById('add-rank-btn');
             if (addBtn) {
                 addBtn.onclick = () => {
-                    const inputs = document.querySelectorAll('.rank-pt-input');
+                    const inputs = document.querySelectorAll('#score-type-sheet-detail .rank-pt-input');
                     const newRanks = Array.from(inputs).map(inp => parseInt(inp.value) || 0);
                     newRanks.push(1);
                     conf.rankPts = newRanks;
                     const otherInp = document.getElementById('conf-score-rank-other');
                     if (otherInp) conf.rankOtherPts = parseInt(otherInp.value) || 0;
-                    this.renderScoreDetail('ranked', conf);
+                    self.renderScoreDetailInSheet('ranked', conf);
                 };
             }
-            document.querySelectorAll('.remove-rank-btn').forEach(btn => {
+            document.querySelectorAll('#score-type-sheet-detail .remove-rank-btn').forEach(btn => {
                 btn.onclick = (e) => {
                     const idx = parseInt(e.target.dataset.index);
-                    const inputs = document.querySelectorAll('.rank-pt-input');
+                    const inputs = document.querySelectorAll('#score-type-sheet-detail .rank-pt-input');
                     const newRanks = Array.from(inputs).map(inp => parseInt(inp.value) || 0);
                     newRanks.splice(idx, 1);
                     conf.rankPts = newRanks;
                     const otherInp = document.getElementById('conf-score-rank-other');
                     if (otherInp) conf.rankOtherPts = parseInt(otherInp.value) || 0;
-                    this.renderScoreDetail('ranked', conf);
+                    self.renderScoreDetailInSheet('ranked', conf);
                 };
             });
         }
+    },
+
+    _collectScoreDetailFromSheet: function (conf) {
+        // Called on Done, reads current sheet values into conf
+        const scoreType = conf.scoreType || 'uniform';
+        if (scoreType === 'uniform') {
+            const el = document.getElementById('conf-score-uniform');
+            if (el) conf.uniformPts = parseInt(el.value) || 0;
+        } else if (scoreType === 'ranked') {
+            const inputs = document.querySelectorAll('#score-type-sheet-detail .rank-pt-input');
+            if (inputs.length > 0) {
+                conf.rankPts = Array.from(inputs).map(inp => parseInt(inp.value) || 0);
+            }
+            const otherInp = document.getElementById('conf-score-rank-other');
+            if (otherInp) conf.rankOtherPts = parseInt(otherInp.value) || 0;
+        } else if (scoreType === 'first_come') {
+            const fcCount = document.getElementById('conf-score-fc-count');
+            const fcPts = document.getElementById('conf-score-fc-pts');
+            if (fcCount) conf.firstComeCount = parseInt(fcCount.value) || 1;
+            if (fcPts) conf.firstComePts = parseInt(fcPts.value) || 0;
+        }
+    },
+
+    // ★ Legacy stub (kept for executeSave references that expect DOM elements before sheet-based input)
+    renderScoreDetail: function (scoreType, conf) {
+        // No-op: score detail is now handled in the bottom sheet
     },
 
     renderQList: function () {
@@ -723,11 +1017,8 @@ App.Config = {
             }
         });
 
-        let parsedRankPts = this.selectedSetData?.config?.rankPts || [10, 5, 3];
-        const rankedInputs = document.querySelectorAll('.rank-pt-input');
-        if (rankedInputs.length > 0) {
-            parsedRankPts = Array.from(rankedInputs).map(inp => parseInt(inp.value) || 0);
-        }
+        // conf オブジェクトにはボトムシートで確定した値が保存されている
+        const currentConf = this.selectedSetData?.config || {};
 
         const newConfig = {
             mode: mode,
@@ -741,20 +1032,22 @@ App.Config = {
             normalLimit: document.getElementById('config-normal-limit')?.value || 'unlimited',
             manualFlip: document.getElementById('config-manual-flip')?.value === 'true',
             passCount: parseInt(document.getElementById('conf-pass-count')?.value || "10") || 10,
-            slotMin: parseInt(document.getElementById('conf-slot-min')?.value || "1") || 1,
-            slotMax: parseInt(document.getElementById('conf-slot-max')?.value || "10") || 10,
+            // slot values: read from conf (set by bottom sheet), fallback to DOM if sheet still open
+            slotMin: currentConf.slotMin !== undefined ? currentConf.slotMin : (parseInt(document.getElementById('conf-slot-min')?.value || "1") || 1),
+            slotMax: currentConf.slotMax !== undefined ? currentConf.slotMax : (parseInt(document.getElementById('conf-slot-max')?.value || "10") || 10),
             turnOrder: document.getElementById('config-turn-order')?.value || 'fixed',
             turnPass: document.getElementById('config-turn-pass')?.value || 'ok',
             soloStyle: document.getElementById('config-solo-style')?.value || 'manual',
             soloTimeType: document.getElementById('config-solo-time-type')?.value || 'per_q',
             soloTimeVal: parseInt(document.getElementById('config-solo-time-val')?.value || "0") || 0,
             soloRecovery: parseInt(document.getElementById('config-solo-recovery')?.value || "0") || 0,
-            scoreType: document.getElementById('config-score-type')?.value || 'uniform',
-            uniformPts: parseInt(document.getElementById('conf-score-uniform')?.value) || (document.getElementById('conf-score-uniform')?.value === "0" ? 0 : 1),
-            rankPts: parsedRankPts,
-            rankOtherPts: parseInt(document.getElementById('conf-score-rank-other')?.value) || (document.getElementById('conf-score-rank-other')?.value === "0" ? 0 : 1),
-            firstComeCount: parseInt(document.getElementById('conf-score-fc-count')?.value || "1") || 1,
-            firstComePts: parseInt(document.getElementById('conf-score-fc-pts')?.value) || (document.getElementById('conf-score-fc-pts')?.value === "0" ? 0 : 10)
+            // score values: read from conf (set by bottom sheet)
+            scoreType: currentConf.scoreType || 'uniform',
+            uniformPts: currentConf.uniformPts !== undefined ? currentConf.uniformPts : 1,
+            rankPts: currentConf.rankPts || [10, 5, 3],
+            rankOtherPts: currentConf.rankOtherPts !== undefined ? currentConf.rankOtherPts : 1,
+            firstComeCount: currentConf.firstComeCount !== undefined ? currentConf.firstComeCount : 1,
+            firstComePts: currentConf.firstComePts !== undefined ? currentConf.firstComePts : 10
         };
 
         let showId = App.State.currentShowId;
