@@ -381,14 +381,8 @@ App.Config = {
                         <div style="display:flex; align-items:center; gap:15px;">
                             <label class="config-label" style="margin:0; white-space:nowrap; min-width:auto;">おてつき</label>
                             <select id="config-buzz-penalty" class="config-select" style="flex:1;">
-                                ${buzzAction === 'next' ? `
-                                    <option value="none" ${buzzPenalty === 'none' ? 'selected' : ''}>なし</option>
-                                    <option value="reset_all" ${buzzPenalty === 'reset_all' ? 'selected' : ''}>全員解答受付前に戻す</option>
-                                    <option value="time_ban" ${buzzPenalty === 'time_ban' ? 'selected' : ''}>一定時間解答を無効にする</option>
-                                ` : `
-                                    <option value="none" ${buzzPenalty === 'none' ? 'selected' : ''}>なし</option>
-                                    <option value="rest" ${buzzPenalty === 'rest' ? 'selected' : ''}>休み</option>
-                                `}
+                                <option value="none" ${buzzPenalty === 'none' ? 'selected' : ''}>なし</option>
+                                <option value="otetski" ${buzzPenalty === 'otetski' ? 'selected' : ''}>あり（次の問題まで解答権なし）</option>
                             </select>
                         </div>
                         <div id="buzz-penalty-detail" style="margin-top:8px;">
@@ -466,42 +460,11 @@ App.Config = {
 
         if (buzzActionSel && buzzPenaltySel) {
             buzzActionSel.onchange = () => {
-                const action = buzzActionSel.value;
-                if (action === 'next') {
-                    buzzPenaltySel.innerHTML = `
-                        <option value="none">なし</option>
-                        <option value="reset_all">全員解答受付前に戻す</option>
-                        <option value="time_ban">一定時間解答を無効にする</option>
-                    `;
-                } else {
-                    buzzPenaltySel.innerHTML = `
-                        <option value="none">なし</option>
-                        <option value="rest">休み</option>
-                    `;
-                }
-                if (buzzPenaltyDetail) buzzPenaltyDetail.innerHTML = '';
+                // penalty options are now fixed, no need to change them
             };
 
             buzzPenaltySel.onchange = () => {
-                if (!buzzPenaltyDetail) return;
-                const penalty = buzzPenaltySel.value;
-                if (penalty === 'time_ban') {
-                    buzzPenaltyDetail.innerHTML = `
-                        <div style="display:flex; align-items:center; gap:8px; margin-left:auto; max-width:180px;">
-                            <input type="number" id="config-buzz-penalty-time" class="config-select" style="width:60px; text-align:center;" value="${conf.buzzPenaltyTime || 3}" min="1" max="60">
-                            <span style="color:#aaa; font-size:0.85em;">秒</span>
-                        </div>
-                    `;
-                } else if (penalty === 'rest') {
-                    buzzPenaltyDetail.innerHTML = `
-                        <div style="display:flex; align-items:center; gap:8px; margin-left:auto; max-width:180px;">
-                            <input type="number" id="config-buzz-rest-count" class="config-select" style="width:60px; text-align:center;" value="${conf.buzzRestCount || 1}" min="1" max="10">
-                            <span style="color:#aaa; font-size:0.85em;">問休み</span>
-                        </div>
-                    `;
-                } else {
-                    buzzPenaltyDetail.innerHTML = '';
-                }
+                if (buzzPenaltyDetail) buzzPenaltyDetail.innerHTML = '';
             };
         }
     },

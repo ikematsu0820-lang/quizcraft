@@ -2057,6 +2057,21 @@ App.Studio = {
                         });
                         App.Ui.showToast(`不正解。${banTime}秒間解答無効！早押し再開`);
 
+                    } else if (buzzPenalty === 'otetski') {
+                        // おてつき: 次の問題まで解答権なし
+                        snap.ref.update({ otetskiQ: App.State.currentQIndex });
+                        window.db.ref(`rooms/${roomId}/status`).update({
+                            currentAnswerer: null,
+                            currentAnswererName: null,
+                            isBuzzActive: true
+                        });
+                        window.db.ref(`rooms/${roomId}/players`).once('value', allSnap => {
+                            allSnap.forEach(child => {
+                                if (child.key !== playerId) child.ref.update({ buzzTime: null });
+                            });
+                        });
+                        App.Ui.showToast(`不正解。おてつき！（次の問題まで解答権なし）`);
+
                     } else {
                         // なし: 通常通り再開
                         window.db.ref(`rooms/${roomId}/status`).update({

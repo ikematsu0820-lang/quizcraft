@@ -373,6 +373,20 @@ function updateUI() {
                     btn.disabled = true;
                     btn.textContent = `${p.buzzRest}問休み`;
                     btn.style.background = "#333";
+                } else if (p.otetskiQ !== undefined && p.otetskiQ !== null && p.otetskiQ === localStatus.qIndex) {
+                    // おてつき: 次の問題まで解答権なし
+                    btn.disabled = true;
+                    btn.textContent = "⛔ 解答権なし";
+                    btn.style.background = "#333";
+                    // Show wait message below
+                    const buzzArea = document.getElementById('player-buzz-area');
+                    if (buzzArea && !buzzArea.querySelector('.otetski-msg')) {
+                        const msg = document.createElement('p');
+                        msg.className = 'otetski-msg';
+                        msg.textContent = '次の問題がはじまるまで、お待ちください';
+                        msg.style.cssText = 'color:#ff8c00; font-weight:bold; font-size:0.95em; margin-top:12px; text-align:center;';
+                        buzzArea.appendChild(msg);
+                    }
                 } else if (p.buzzBannedUntil && p.buzzBannedUntil > Date.now()) {
                     // おてつき: 一定時間解答無効
                     btn.disabled = true;
