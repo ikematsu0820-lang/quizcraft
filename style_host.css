@@ -320,10 +320,6 @@ select option {
     width: 100%;
 }
 
-#dash-prog-config-btn {
-    grid-column: span 2;
-}
-
 .dashboard-footer-area {
     padding: 0;
     /* Padding moved to container */

@@ -145,7 +145,7 @@ window.App.bindEvents = function () {
         if (window.App.Design && window.App.Design.init) window.App.Design.init();
     });
     document.getElementById('dash-production-design-btn')?.addEventListener('click', () => {
-        if (window.App.ProductionDesign && window.App.ProductionDesign.init) window.App.ProductionDesign.init();
+        window.App.Ui.showToast("シーンデザイン機能は準備中です");
     });
     document.getElementById('dash-prog-config-btn')?.addEventListener('click', () => {
         if (window.App.ProgConfig && window.App.ProgConfig.init) window.App.ProgConfig.init();
