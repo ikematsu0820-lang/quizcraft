@@ -21,8 +21,14 @@ textarea,
     /* Pro tool standard */
     font-weight: 500;
     backdrop-filter: blur(8px);
-    min-height: 32px;
+    min-height: 36px;
+    height: 36px;
+    line-height: 1.4;
+    display: flex;
+    align-items: center;
     text-align: left !important;
+    box-sizing: border-box;
+    vertical-align: middle;
 }
 
 input:focus,
@@ -926,6 +932,8 @@ select.bold-select {
     font-size: 0.85em;
     color: #888;
     font-weight: 700;
+    line-height: 1.4;
+    align-self: center;
 }
 
 /* Modal Close Button */

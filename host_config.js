@@ -370,8 +370,8 @@ App.Config = {
             html += `
                 <div class="mode-settings-box mode-box-buzz">
                     <div style="display:flex; align-items:center; gap:15px; margin-bottom:10px;">
-                        <label class="config-label" style="margin:0; white-space:nowrap; min-width:auto;">誤答時の処理</label>
-                        <select id="config-buzz-wrong-action" class="config-select" style="flex:1;">
+                        <label class="config-label" style="margin:0; white-space:nowrap; min-width:80px;">誤答時の処理</label>
+                        <select id="config-buzz-wrong-action" class="config-select" style="flex:1; height:38px;">
                             <option value="next" ${buzzAction === 'next' ? 'selected' : ''}>問題継続</option>
                             <option value="end" ${buzzAction === 'end' ? 'selected' : ''}>問題終了</option>
                         </select>
@@ -379,8 +379,8 @@ App.Config = {
 
                     <div id="buzz-penalty-area">
                         <div style="display:flex; align-items:center; gap:15px;">
-                            <label class="config-label" style="margin:0; white-space:nowrap; min-width:auto;">おてつき</label>
-                            <select id="config-buzz-penalty" class="config-select" style="flex:1;">
+                            <label class="config-label" style="margin:0; white-space:nowrap; min-width:80px;">おてつき</label>
+                            <select id="config-buzz-penalty" class="config-select" style="flex:1; height:38px;">
                                 <option value="none" ${buzzPenalty === 'none' ? 'selected' : ''}>なし</option>
                                 <option value="otetski" ${buzzPenalty === 'otetski' ? 'selected' : ''}>あり（次の問題まで解答権なし）</option>
                             </select>
