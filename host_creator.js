@@ -266,7 +266,6 @@ window.App.Creator = {
 
         document.getElementById('creator-form-title').textContent = APP_TEXT.Creator.HeadingNewQ;
         document.getElementById('add-question-btn').classList.remove('hidden');
-        document.getElementById('update-question-area').classList.add('hidden');
         document.getElementById('question-text').value = '';
         document.getElementById('creator-commentary').value = '';
 
@@ -839,11 +838,18 @@ window.App.Creator = {
     },
 
     edit: function (index) {
+        // Save current edits if leaving another editing question
+        if (this.editingIndex !== null && this.editingIndex !== index) {
+            const currentQ = this.getData();
+            if (currentQ) {
+                window.App.Data.createdQuestions[this.editingIndex] = { ...window.App.Data.createdQuestions[this.editingIndex], ...currentQ };
+            }
+        }
+
         this.editingIndex = index;
         const q = window.App.Data.createdQuestions[index];
         document.getElementById('creator-form-title').textContent = APP_TEXT.Creator.HeadingEditQ;
         document.getElementById('add-question-btn').classList.add('hidden');
-        document.getElementById('update-question-area').classList.remove('hidden');
         document.getElementById('question-text').value = q.q;
         document.getElementById('creator-commentary').value = q.commentary || '';
         this.renderForm(q.type, q);
@@ -905,6 +911,13 @@ window.App.Creator = {
     },
 
     save: function () {
+        if (this.editingIndex !== null) {
+            const currentQ = this.getData();
+            if (currentQ) {
+                window.App.Data.createdQuestions[this.editingIndex] = { ...window.App.Data.createdQuestions[this.editingIndex], ...currentQ };
+            }
+        }
+
         console.log("Save initiated. Questions:", window.App.Data.createdQuestions.length);
         if (window.App.Data.createdQuestions.length === 0) {
             alert('問題がありません。追加してください。');
@@ -997,6 +1010,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('update-question-btn')?.addEventListener('click', () => window.App.Creator.update());
     // Setup modal toggles
     document.getElementById('creator-cart-btn')?.addEventListener('click', () => {
+        if (window.App.Creator.editingIndex !== null) {
+            const currentQ = window.App.Creator.getData();
+            if (currentQ) {
+                window.App.Data.createdQuestions[window.App.Creator.editingIndex] = { ...window.App.Data.createdQuestions[window.App.Creator.editingIndex], ...currentQ };
+                window.App.Creator.renderList();
+            }
+        }
         document.getElementById('creator-list-modal').classList.remove('hidden');
     });
     document.getElementById('creator-list-close-btn')?.addEventListener('click', () => {
