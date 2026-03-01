@@ -472,7 +472,20 @@ App.Config = {
     renderGameTypeDetail: function (gameType, conf = {}) {
         const area = document.getElementById('gametype-detail-area');
         let html = '';
-        if (gameType === 'panel') {
+        if (gameType === 'score') {
+            const scoreType = conf.scoreType || 'uniform';
+            html += `<div class="mode-settings-box mode-box-normal" id="score-type-container" style="border-color:#00bfff; margin-top:5px; padding-bottom:10px;">
+                <div style="display:flex; align-items:center; gap:15px; margin-bottom:15px;">
+                    <label class="config-label" style="margin:0; white-space:nowrap; min-width:80px;">得点方式</label>
+                    <select id="config-score-type" class="config-select" style="flex:1; height:38px;">
+                        <option value="uniform" ${scoreType === 'uniform' ? 'selected' : ''}>① 全員一律</option>
+                        <option value="ranked" ${scoreType === 'ranked' ? 'selected' : ''}>② 順位ボーナス</option>
+                        <option value="first_come" ${scoreType === 'first_come' ? 'selected' : ''}>③ 先着のみ</option>
+                    </select>
+                </div>
+                <div id="score-type-detail" style="background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);"></div>
+            </div>`;
+        } else if (gameType === 'panel') {
             html += `<div class="mode-settings-box mode-box-normal" style="border-color:#ffd700; margin-top:5px;">
                 <label style="color:#ffd700;">★ パネル制</label>
                 <p class="unit-text">25枚のパネル操作盤を有効にします。</p>
@@ -497,6 +510,87 @@ App.Config = {
             </div>`;
         }
         area.innerHTML = html;
+
+        if (gameType === 'score') {
+            const scoreTypeSel = document.getElementById('config-score-type');
+            scoreTypeSel.onchange = () => {
+                conf.scoreType = scoreTypeSel.value;
+                this.renderScoreDetail(conf.scoreType, conf);
+            };
+            this.renderScoreDetail(conf.scoreType || 'uniform', conf);
+        }
+    },
+
+    renderScoreDetail: function (scoreType, conf) {
+        const detailArea = document.getElementById('score-type-detail');
+        if (!detailArea) return;
+        let html = '';
+        if (scoreType === 'uniform') {
+            const uniformPts = conf.uniformPts !== undefined ? conf.uniformPts : 1;
+            html = `<div style="display:flex; align-items:center; gap:10px;">
+                <span class="text-sm" style="color:#aaa;">正解者に一律</span>
+                <input type="number" id="conf-score-uniform" class="config-select" style="width:60px; text-align:center;" value="${uniformPts}" min="0">
+                <span class="text-sm" style="color:#aaa;">点</span>
+            </div>`;
+        } else if (scoreType === 'ranked') {
+            const ranks = conf.rankPts || [10, 5, 3];
+            const otherPts = conf.rankOtherPts !== undefined ? conf.rankOtherPts : 1;
+
+            html = `<div id="ranked-inputs">`;
+            ranks.forEach((pts, i) => {
+                html += `<div class="ranked-row" style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                    <span class="text-sm" style="color:#aaa; width:30px; text-align:right;">${i + 1}位</span>
+                    <input type="number" class="config-select rank-pt-input" data-index="${i}" style="width:60px; text-align:center;" value="${pts}" min="0">
+                    <span class="text-sm" style="color:#aaa;">点</span>
+                    ${i >= 0 ? `<button class="btn-danger btn-mini remove-rank-btn" data-index="${i}" style="padding:4px 8px; margin-left:10px;">削除</button>` : ''}
+                </div>`;
+            });
+            html += `</div>
+            <button id="add-rank-btn" class="btn-dark btn-mini" style="margin-bottom:15px; padding:6px 12px; border-radius:4px;">＋ 順位を追加する</button>
+            <div style="display:flex; align-items:center; gap:10px; border-top:1px dashed #444; padding-top:10px;">
+                <span class="text-sm" style="color:#aaa;">上記以降の正解者は一律</span>
+                <input type="number" id="conf-score-rank-other" class="config-select" style="width:60px; text-align:center;" value="${otherPts}" min="0">
+                <span class="text-sm" style="color:#aaa;">点</span>
+            </div>`;
+        } else if (scoreType === 'first_come') {
+            const fcCount = conf.firstComeCount || 1;
+            const fcPts = conf.firstComePts || 10;
+            html = `<div style="display:flex; align-items:center; gap:10px;">
+                <span class="text-sm" style="color:#aaa;">先着</span>
+                <input type="number" id="conf-score-fc-count" class="config-select" style="width:60px; text-align:center;" value="${fcCount}" min="1">
+                <span class="text-sm" style="color:#aaa;">名に</span>
+                <input type="number" id="conf-score-fc-pts" class="config-select" style="width:60px; text-align:center;" value="${fcPts}" min="0">
+                <span class="text-sm" style="color:#aaa;">点</span>
+            </div>`;
+        }
+        detailArea.innerHTML = html;
+
+        if (scoreType === 'ranked') {
+            const addBtn = document.getElementById('add-rank-btn');
+            if (addBtn) {
+                addBtn.onclick = () => {
+                    const inputs = document.querySelectorAll('.rank-pt-input');
+                    const newRanks = Array.from(inputs).map(inp => parseInt(inp.value) || 0);
+                    newRanks.push(1);
+                    conf.rankPts = newRanks;
+                    const otherInp = document.getElementById('conf-score-rank-other');
+                    if (otherInp) conf.rankOtherPts = parseInt(otherInp.value) || 0;
+                    this.renderScoreDetail('ranked', conf);
+                };
+            }
+            document.querySelectorAll('.remove-rank-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    const idx = parseInt(e.target.dataset.index);
+                    const inputs = document.querySelectorAll('.rank-pt-input');
+                    const newRanks = Array.from(inputs).map(inp => parseInt(inp.value) || 0);
+                    newRanks.splice(idx, 1);
+                    conf.rankPts = newRanks;
+                    const otherInp = document.getElementById('conf-score-rank-other');
+                    if (otherInp) conf.rankOtherPts = parseInt(otherInp.value) || 0;
+                    this.renderScoreDetail('ranked', conf);
+                };
+            });
+        }
     },
 
     renderQList: function () {
@@ -629,6 +723,12 @@ App.Config = {
             }
         });
 
+        let parsedRankPts = this.selectedSetData?.config?.rankPts || [10, 5, 3];
+        const rankedInputs = document.querySelectorAll('.rank-pt-input');
+        if (rankedInputs.length > 0) {
+            parsedRankPts = Array.from(rankedInputs).map(inp => parseInt(inp.value) || 0);
+        }
+
         const newConfig = {
             mode: mode,
             gameType: gameType,
@@ -648,7 +748,13 @@ App.Config = {
             soloStyle: document.getElementById('config-solo-style')?.value || 'manual',
             soloTimeType: document.getElementById('config-solo-time-type')?.value || 'per_q',
             soloTimeVal: parseInt(document.getElementById('config-solo-time-val')?.value || "0") || 0,
-            soloRecovery: parseInt(document.getElementById('config-solo-recovery')?.value || "0") || 0
+            soloRecovery: parseInt(document.getElementById('config-solo-recovery')?.value || "0") || 0,
+            scoreType: document.getElementById('config-score-type')?.value || 'uniform',
+            uniformPts: parseInt(document.getElementById('conf-score-uniform')?.value) || (document.getElementById('conf-score-uniform')?.value === "0" ? 0 : 1),
+            rankPts: parsedRankPts,
+            rankOtherPts: parseInt(document.getElementById('conf-score-rank-other')?.value) || (document.getElementById('conf-score-rank-other')?.value === "0" ? 0 : 1),
+            firstComeCount: parseInt(document.getElementById('conf-score-fc-count')?.value || "1") || 1,
+            firstComePts: parseInt(document.getElementById('conf-score-fc-pts')?.value) || (document.getElementById('conf-score-fc-pts')?.value === "0" ? 0 : 10)
         };
 
         let showId = App.State.currentShowId;
