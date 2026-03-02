@@ -357,7 +357,7 @@
     border-radius: 12px;
     font-size: 1.15em;
     font-weight: 800;
-    color: #fff;
+    color: #ffffff !important;
     cursor: pointer;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
@@ -371,24 +371,24 @@
 
 /* 色バリエーション */
 .btn-blue {
-    background: var(--grad-primary);
+    background: var(--grad-primary) !important;
     box-shadow: 0 8px 20px rgba(0, 114, 255, 0.3);
 }
 
 .btn-red {
-    background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+    background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%) !important;
     box-shadow: 0 8px 20px rgba(255, 75, 43, 0.3);
 }
 
 .btn-green {
-    background: linear-gradient(135deg, #00b09b 0%, #96c93d 100%);
+    background: linear-gradient(135deg, #00b09b 0%, #96c93d 100%) !important;
     box-shadow: 0 8px 20px rgba(150, 201, 61, 0.3);
 }
 
 .btn-yellow {
-    background: var(--grad-gold);
+    background: var(--grad-gold) !important;
     box-shadow: 0 8px 20px rgba(241, 196, 15, 0.3);
-    color: #000;
+    color: #000000 !important;
 }
 
 .btn-neutral {

@@ -1047,9 +1047,9 @@ function renderPlayerQuestion(q, roomId, playerId) {
                 btn.style.display = 'flex';
                 btn.style.justifyContent = 'space-between';
                 btn.style.alignItems = 'center';
-                btn.style.border = '1px solid #666';
-                btn.style.background = '#4a4a4a';
-                btn.style.color = 'var(--color-text)';
+                btn.style.border = '1px solid #ccc';
+                btn.style.background = '#ffffff';
+                btn.style.color = '#333333';
                 btn.style.borderRadius = '8px';
                 btn.style.width = '100%';
                 btn.style.marginBottom = '0';
