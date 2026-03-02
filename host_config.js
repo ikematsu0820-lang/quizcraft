@@ -149,8 +149,8 @@ App.Config = {
                     <label class="config-label">3. 制限時間</label>
                     <input type="hidden" id="config-time-limit-enabled" value="${conf.timeLimitEnabled || 'off'}">
                     <input type="hidden" id="config-time-limit-seconds" value="${conf.timeLimitSeconds || 30}">
-                    <div id="time-limit-card-selector" style="display:flex; flex-direction:column; gap:8px; margin-top:6px;">
-                        <!-- Time limit cards rendered by JS -->
+                    <div id="time-limit-card-selector" style="margin-top:6px;">
+                        <!-- Time limit card rendered by JS -->
                     </div>
                 </div>
 
@@ -312,91 +312,187 @@ App.Config = {
         this.toggleScoreSections(typeHidden.value !== 'panel');
     },
 
-    // 制限時間カードをレンダリング
+    // 制限時間カードをレンダリング (単一カード + トグル + 詳細ボタン)
     renderTimeLimitCards: function (selected, seconds) {
         const container = document.getElementById('time-limit-card-selector');
         if (!container) return;
 
         const enabledHidden = document.getElementById('config-time-limit-enabled');
         const secondsHidden = document.getElementById('config-time-limit-seconds');
-
         const self = this;
-        const renderCards = (sel, secs) => {
+
+        let currentEnabled = selected;
+        let currentSeconds = seconds;
+
+        const render = () => {
             container.innerHTML = '';
+            const isOn = currentEnabled === 'on';
+            const color = '#f39c12';
+            const colorRgb = '243,156,18';
 
-            const options = [
-                { value: 'off', icon: '∞', label: '制限なし', desc: '時間無制限で解答できます', color: '#636e72' },
-                { value: 'on', icon: '⏱', label: 'あり', desc: '全問共通の制限時間を設定', color: '#f39c12' }
-            ];
+            const row = document.createElement('div');
+            row.style.cssText = `
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 10px 12px;
+                border-radius: 10px;
+                border: 2px solid ${isOn ? color : '#333'};
+                background: ${isOn ? `rgba(${colorRgb}, 0.08)` : '#1a1a1a'};
+                transition: all 0.2s;
+            `;
 
-            options.forEach(opt => {
-                const isSelected = (sel === opt.value);
-                const row = document.createElement('div');
-                row.style.cssText = `
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                    padding: 10px 12px;
-                    border-radius: 10px;
-                    border: 2px solid ${isSelected ? opt.color : '#333'};
-                    background: ${isSelected ? `rgba(${self._hexToRgb(opt.color)}, 0.1)` : '#1a1a1a'};
+            // Left: icon + text
+            const left = document.createElement('div');
+            left.style.cssText = 'display:flex; align-items:center; gap:10px; flex:1; cursor:pointer;';
+            left.innerHTML = `
+                <span style="font-size:1.3em;">${isOn ? '⏱' : '∞'}</span>
+                <div>
+                    <div style="font-weight:bold; color:${isOn ? color : '#ccc'}; font-size:0.95em;">3. 制限時間</div>
+                    <div style="font-size:0.72em; color:#666;">${isOn ? `${currentSeconds}秒で切れます` : '時間無制限で解答できます'}</div>
+                </div>
+            `;
+            left.onclick = () => {
+                currentEnabled = isOn ? 'off' : 'on';
+                if (enabledHidden) enabledHidden.value = currentEnabled;
+                render();
+            };
+            row.appendChild(left);
+
+            // Right: Toggle switch
+            const toggleWrap = document.createElement('label');
+            toggleWrap.style.cssText = 'position:relative; display:inline-block; width:44px; height:24px; flex-shrink:0; cursor:pointer;';
+            toggleWrap.innerHTML = `
+                <input type="checkbox" ${isOn ? 'checked' : ''} style="opacity:0; width:0; height:0; position:absolute;">
+                <span style="
+                    position:absolute; inset:0;
+                    background:${isOn ? color : '#333'};
+                    border-radius:24px;
+                    transition:0.2s;
+                "></span>
+                <span style="
+                    position:absolute;
+                    left:${isOn ? '22px' : '2px'};
+                    top:2px;
+                    width:20px; height:20px;
+                    border-radius:50%;
+                    background:#fff;
+                    transition:0.2s;
+                    box-shadow:0 1px 4px rgba(0,0,0,0.4);
+                "></span>
+            `;
+            toggleWrap.onclick = (e) => {
+                e.stopPropagation();
+                currentEnabled = isOn ? 'off' : 'on';
+                if (enabledHidden) enabledHidden.value = currentEnabled;
+                render();
+            };
+            row.appendChild(toggleWrap);
+
+            // Right: 詳細ボタン (only when ON)
+            if (isOn) {
+                const detailBtn = document.createElement('button');
+                detailBtn.type = 'button';
+                detailBtn.style.cssText = `
+                    background: rgba(243,156,18,0.12);
+                    border: 1px solid ${color};
+                    color: ${color};
+                    border-radius: 20px;
+                    padding: 5px 12px;
+                    font-size: 0.75em;
                     cursor: pointer;
-                    transition: all 0.2s;
+                    white-space: nowrap;
+                    flex-shrink: 0;
                 `;
-
-                // Left: radio + icon + text
-                const left = document.createElement('div');
-                left.style.cssText = 'display:flex; align-items:center; gap:10px; flex:1;';
-                left.innerHTML = `
-                    <div style="
-                        width:18px; height:18px; border-radius:50%;
-                        border: 2px solid ${isSelected ? opt.color : '#555'};
-                        background: ${isSelected ? opt.color : 'transparent'};
-                        display:flex; align-items:center; justify-content:center;
-                        flex-shrink:0;
-                        box-shadow: ${isSelected ? `0 0 8px ${opt.color}88` : 'none'};
-                    ">
-                        ${isSelected ? '<div style="width:6px;height:6px;border-radius:50%;background:#000;"></div>' : ''}
-                    </div>
-                    <span style="font-size:1.3em;">${opt.icon}</span>
-                    <div>
-                        <div style="font-weight:bold; color:${isSelected ? opt.color : '#ccc'}; font-size:0.95em;">${opt.label}</div>
-                        <div style="font-size:0.72em; color:#666;">${opt.desc}</div>
-                    </div>
-                `;
-                left.onclick = () => {
-                    if (enabledHidden) enabledHidden.value = opt.value;
-                    renderCards(opt.value, secs);
+                detailBtn.innerHTML = '⚙ 詳細';
+                detailBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    self.openTimeLimitDetailSheet(currentSeconds, (newSecs) => {
+                        currentSeconds = newSecs;
+                        if (secondsHidden) secondsHidden.value = newSecs;
+                        render();
+                    });
                 };
-                row.appendChild(left);
+                row.appendChild(detailBtn);
+            }
 
-                // Right: seconds input (only when 'on' is selected)
-                if (opt.value === 'on' && isSelected) {
-                    const inputWrap = document.createElement('div');
-                    inputWrap.style.cssText = 'display:flex; align-items:center; gap:6px; flex-shrink:0;';
-                    inputWrap.innerHTML = `
-                        <input type="number" id="config-time-limit-seconds-input"
-                            value="${secs}" min="5" max="300" step="5"
-                            style="
-                                width:64px; text-align:center; font-size:1.1em; font-weight:800;
-                                background:rgba(243,156,18,0.1); border:1px solid #f39c12;
-                                border-radius:8px; color:#f39c12; padding:6px 4px;
-                            ">
-                        <span style="color:#aaa; font-size:0.85em;">秒</span>
-                    `;
-                    inputWrap.querySelector('input').oninput = (e) => {
-                        const v = parseInt(e.target.value) || 30;
-                        if (secondsHidden) secondsHidden.value = v;
-                        secs = v;
-                    };
-                    row.appendChild(inputWrap);
-                }
-
-                container.appendChild(row);
-            });
+            container.appendChild(row);
         };
 
-        renderCards(selected, seconds);
+        render();
+    },
+
+    // 制限時間の秒数設定モーダル
+    openTimeLimitDetailSheet: function (currentSeconds, onSave) {
+        const existing = document.getElementById('time-limit-detail-sheet');
+        if (existing) existing.remove();
+
+        const sheet = document.createElement('div');
+        sheet.id = 'time-limit-detail-sheet';
+        sheet.className = 'design-modal-overlay';
+        sheet.style.cssText = 'z-index:9500;';
+        sheet.innerHTML = `
+            <div class="design-modal-content" style="max-width:340px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+                    <h3 style="margin:0; font-size:1em; color:#fff;">⏱ 制限時間 — 詳細設定</h3>
+                    <button id="tl-detail-close" style="background:transparent; border:none; font-size:24px; cursor:pointer; color:#aaa; padding:0 8px;">×</button>
+                </div>
+                <div style="margin-bottom:20px;">
+                    <label class="config-label">全問共通の制限時間</label>
+                    <div style="display:flex; align-items:center; gap:12px; margin-top:10px;">
+                        <input type="number" id="tl-seconds-input"
+                            value="${currentSeconds}" min="5" max="600" step="5"
+                            style="
+                                flex:1; text-align:center; font-size:2em; font-weight:800;
+                                background:rgba(243,156,18,0.1); border:2px solid #f39c12;
+                                border-radius:12px; color:#f39c12; padding:10px;
+                            ">
+                        <span style="color:#aaa; font-size:1em; flex-shrink:0;">秒</span>
+                    </div>
+                    <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+                        ${[10, 15, 20, 30, 45, 60].map(s => `
+                            <button type="button" class="tl-preset-btn" data-sec="${s}"
+                                style="
+                                    flex:1; min-width:50px;
+                                    padding:6px 4px;
+                                    border-radius:8px; font-size:0.85em; font-weight:bold;
+                                    background:${currentSeconds === s ? 'rgba(243,156,18,0.2)' : '#222'};
+                                    border:1px solid ${currentSeconds === s ? '#f39c12' : '#444'};
+                                    color:${currentSeconds === s ? '#f39c12' : '#aaa'};
+                                    cursor:pointer;
+                                ">${s}秒</button>
+                        `).join('')}
+                    </div>
+                </div>
+                <div style="margin-top:8px;">
+                    <button id="tl-detail-done" class="btn-block btn-primary" style="padding:12px; font-weight:bold;">完了</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(sheet);
+
+        sheet.addEventListener('click', (e) => { if (e.target === sheet) sheet.remove(); });
+        document.getElementById('tl-detail-close').onclick = () => sheet.remove();
+
+        // Preset buttons
+        sheet.querySelectorAll('.tl-preset-btn').forEach(btn => {
+            btn.onclick = () => {
+                const sec = parseInt(btn.dataset.sec);
+                document.getElementById('tl-seconds-input').value = sec;
+                sheet.querySelectorAll('.tl-preset-btn').forEach(b => {
+                    const active = b === btn;
+                    b.style.background = active ? 'rgba(243,156,18,0.2)' : '#222';
+                    b.style.borderColor = active ? '#f39c12' : '#444';
+                    b.style.color = active ? '#f39c12' : '#aaa';
+                });
+            };
+        });
+
+        document.getElementById('tl-detail-done').onclick = () => {
+            const val = parseInt(document.getElementById('tl-seconds-input').value) || 30;
+            onSave(Math.max(5, Math.min(600, val)));
+            sheet.remove();
+        };
     },
 
     toggleScoreSections: function (show) {
