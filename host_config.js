@@ -444,6 +444,16 @@ App.Config = {
                 hasDetail: true
             },
             {
+                value: 'dobon',
+                icon: '🎯',
+                label: 'ダウト専用',
+                desc: 'ダウト問題専用の詳細設定',
+                color: '#e17055',
+                disabled: !isDobon,
+                hasDetail: isDobon,
+                hiddenMode: true
+            },
+            {
                 value: 'solo',
                 icon: '🏆',
                 label: 'ソロ対戦',
@@ -520,9 +530,11 @@ App.Config = {
                 detailBtn.innerHTML = '⚙ 詳細';
                 detailBtn.onclick = (e) => {
                     e.stopPropagation();
-                    // Select this mode first
-                    modeSel.value = m.value;
-                    self.renderModeCards(m.value, conf, qType, isOral, isDobon);
+                    // For dobon mode, open detail without changing mode select
+                    if (!m.hiddenMode) {
+                        modeSel.value = m.value;
+                        self.renderModeCards(m.value, conf, qType, isOral, isDobon);
+                    }
                     // Open detail sheet
                     self.openModeDetailSheet(m.value, conf, qType, isDobon);
                 };
@@ -585,41 +597,16 @@ App.Config = {
             `;
         } else if (mode === 'turn') {
             modeLabel = '🔄 順番解答 — 解答設定';
-            // チャレンジャー回し方：ダウト問題・多答問題のみ表示
+            // 解答者の回し方：ダウト問題・多答問題のみ表示
             const showRotateMode = isDobon || (qType && qType.startsWith('multi'));
             const currentRotate = conf.turnRotateMode || 'per_q';
             const challengerSection = showRotateMode ? `
                 <div style="margin-bottom:16px;">
-                    <label class="config-label">🎯 チャレンジャーの回し方</label>
-                    <div style="display:flex; flex-direction:column; gap:8px; margin-top:6px;">
-                        <label style="display:flex; align-items:center; gap:10px; padding:10px 12px;
-                            border-radius:10px; cursor:pointer;
-                            border: 2px solid ${currentRotate === 'per_q' ? '#0984e3' : '#333'};
-                            background: ${currentRotate === 'per_q' ? 'rgba(9,132,227,0.12)' : '#1a1a1a'};
-                            transition:all 0.2s;">
-                            <input type="radio" name="turn-rotate-mode" value="per_q"
-                                ${currentRotate === 'per_q' ? 'checked' : ''}
-                                style="accent-color:#0984e3; width:16px; height:16px;">
-                            <div>
-                                <div style="font-weight:bold; color:${currentRotate === 'per_q' ? '#0984e3' : '#ccc'}; font-size:0.9em;">問題ごとにチャレンジャーを変える</div>
-                                <div style="font-size:0.72em; color:#666;">毎問、次の人が最初にチャレンジします</div>
-                            </div>
-                        </label>
-                        <label style="display:flex; align-items:center; gap:10px; padding:10px 12px;
-                            border-radius:10px; cursor:pointer;
-                            border: 2px solid ${currentRotate === 'until_end' ? '#e17055' : '#333'};
-                            background: ${currentRotate === 'until_end' ? 'rgba(225,112,85,0.12)' : '#1a1a1a'};
-                            transition:all 0.2s;">
-                            <input type="radio" name="turn-rotate-mode" value="until_end"
-                                ${currentRotate === 'until_end' ? 'checked' : ''}
-                                style="accent-color:#e17055; width:16px; height:16px;">
-                            <div>
-                                <div style="font-weight:bold; color:${currentRotate === 'until_end' ? '#e17055' : '#ccc'}; font-size:0.9em;">ダウトが出るまで同じ問題を回す</div>
-                                <div style="font-size:0.72em; color:#666;">ダウトか全員解答まで順番を繰り返します</div>
-                            </div>
-                        </label>
-                    </div>
-                    <input type="hidden" id="config-turn-rotate-mode" value="${currentRotate}">
+                    <label class="config-label">🔄 解答者の回し方</label>
+                    <select id="config-turn-rotate-mode" class="btn-block config-select" style="margin-top:6px;">
+                        <option value="per_q" ${currentRotate === 'per_q' ? 'selected' : ''}>問題ごとに変える（毎問、次の人が最初）</option>
+                        <option value="until_end" ${currentRotate === 'until_end' ? 'selected' : ''}>ダウトが出るまで回す（全員解答まで繰り返し）</option>
+                    </select>
                 </div>
                 <hr style="border:0; border-top:1px dashed #333; margin-bottom:16px;">
             ` : '';
@@ -630,6 +617,18 @@ App.Config = {
                     <select id="config-turn-pass" class="btn-block config-select">
                         <option value="ok" ${conf.turnPass === 'ok' ? 'selected' : ''}>${APP_TEXT.Config.TurnPassOk}</option>
                         <option value="ng" ${conf.turnPass === 'ng' ? 'selected' : ''}>${APP_TEXT.Config.TurnPassNg}</option>
+                    </select>
+                </div>
+            `;
+        } else if (mode === 'dobon') {
+            modeLabel = '🎯 ダウト問題 — 解答設定';
+            const currentRotate = conf.turnRotateMode || 'per_q';
+            sheetContent = `
+                <div style="margin-bottom:16px;">
+                    <label class="config-label">🔄 解答者の回し方</label>
+                    <select id="config-turn-rotate-mode" class="btn-block config-select" style="margin-top:6px;">
+                        <option value="per_q" ${currentRotate === 'per_q' ? 'selected' : ''}>問題ごとに変える（毎問、次の人が最初）</option>
+                        <option value="until_end" ${currentRotate === 'until_end' ? 'selected' : ''}>ダウトが出るまで回す（全員解答まで繰り返し）</option>
                     </select>
                 </div>
             `;
@@ -679,25 +678,7 @@ App.Config = {
         document.getElementById('mode-detail-sheet-close').onclick = () => sheet.remove();
         document.getElementById('mode-detail-sheet-done').onclick = () => sheet.remove();
 
-        // Wire turn-rotate-mode radio buttons
-        sheet.querySelectorAll('input[name="turn-rotate-mode"]').forEach(radio => {
-            radio.onchange = () => {
-                const hidden = document.getElementById('config-turn-rotate-mode');
-                if (hidden) hidden.value = radio.value;
-                // Update label colors dynamically
-                sheet.querySelectorAll('input[name="turn-rotate-mode"]').forEach(r => {
-                    const label = r.closest('label');
-                    const isChecked = (r === radio);
-                    const color = r.value === 'per_q' ? '#0984e3' : '#e17055';
-                    if (label) {
-                        label.style.borderColor = isChecked ? color : '#333';
-                        label.style.background = isChecked ? `rgba(${r.value === 'per_q' ? '9,132,227' : '225,112,85'},0.12)` : '#1a1a1a';
-                        const titleEl = label.querySelector('div > div:first-child');
-                        if (titleEl) titleEl.style.color = isChecked ? color : '#ccc';
-                    }
-                });
-            };
-        });
+        // No extra wiring needed for turn-rotate-mode (now a plain <select>)
 
         // Wire ans-attempt buttons
         sheet.querySelectorAll('.ans-attempt-btn').forEach(btn => {
