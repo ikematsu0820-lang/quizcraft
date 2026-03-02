@@ -1190,8 +1190,10 @@ function renderPlayerQuestion(q, roomId, playerId) {
             inputCont.appendChild(wrapper);
         } else {
             // multi_oral
-            document.getElementById('player-oral-done-area').classList.remove('hidden');
-            document.getElementById('player-oral-done-btn').onclick = () => { submitAnswer(roomId, playerId, "[Done]"); };
+            const helpText = document.createElement('div');
+            helpText.className = 'player-sort-help';
+            helpText.innerHTML = '口頭で解答してください。<br>判定は司会者が行います。';
+            inputCont.appendChild(helpText);
         }
 
         // Then Render Grid (Below Input)
@@ -1217,8 +1219,10 @@ function renderPlayerQuestion(q, roomId, playerId) {
         inputCont.appendChild(grid);
     }
     else if (q.type === 'free_oral') {
-        document.getElementById('player-oral-done-area').classList.remove('hidden');
-        document.getElementById('player-oral-done-btn').onclick = () => { submitAnswer(roomId, playerId, "[Oral]"); };
+        const helpText = document.createElement('div');
+        helpText.className = 'player-sort-help';
+        helpText.innerHTML = '口頭で解答してください。<br>判定は司会者が行います。';
+        inputCont.appendChild(helpText);
     }
     else {
         // デフォルト: 記述式

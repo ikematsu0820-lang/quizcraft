@@ -1718,8 +1718,9 @@ App.Studio = {
                 // Maybe because they are waiting for turn but system doesn't know.
                 // Let's allow selecting ANY player in Dobon mode to force judgment if needed.
                 const isDobonOrMulti = (q && (q.mode === 'dobon' || q.mode === 'multi'));
+                const isOral = (q && q.type.includes('oral'));
 
-                if (!isDobonOrMulti) {
+                if (!isDobonOrMulti && !isOral) {
                     chip.classList.add('disabled');
                     chip.style.opacity = '0.35';
                     chip.style.pointerEvents = 'none';
@@ -1729,7 +1730,8 @@ App.Studio = {
             chip.textContent = p.name;
             chip.onclick = () => {
                 const isDobonOrMulti = (q && (q.mode === 'dobon' || q.mode === 'multi'));
-                if (!hasAnswered && !isDobonOrMulti) return;
+                const isOral = (q && q.type.includes('oral'));
+                if (!hasAnswered && !isDobonOrMulti && !isOral) return;
 
                 this.selectedPlayerId = p.id;
                 this.renderUnifiedConsole(players);
@@ -1827,7 +1829,7 @@ App.Studio = {
                     App.Studio.updatePlayerScore(this.selectedPlayerId, false);
                 };
 
-                if (p.lastAnswer !== null && p.lastAnswer !== undefined) {
+                if (p.lastAnswer !== null || (q && q.type.includes('oral'))) {
                     if (cardBtns) {
                         cardBtns.innerHTML = ''; // Clear just to be safe
                         cardBtns.appendChild(btnO);
@@ -1876,7 +1878,7 @@ App.Studio = {
                         App.Studio.updatePlayerScore(this.selectedPlayerId, false);
                     };
 
-                    if (p.lastAnswer !== null && p.lastAnswer !== undefined) {
+                    if (p.lastAnswer !== null || (q && q.type.includes('oral'))) {
                         if (cardBtns) {
                             cardBtns.innerHTML = '';
                             cardBtns.appendChild(btnO);
