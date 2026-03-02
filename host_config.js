@@ -575,7 +575,7 @@ App.Config = {
                     </select>
                 </div>
                 <div>
-                    <label class="config-label">おてつき処理</label>
+                    <label class="config-label">誤答時のプレイヤーの処理</label>
                     <select id="config-buzz-penalty" class="btn-block config-select">
                         <option value="none" ${buzzPenalty === 'none' ? 'selected' : ''}>なし</option>
                         <option value="otetski" ${buzzPenalty === 'otetski' ? 'selected' : ''}>あり（次の問題まで解答権なし）</option>
