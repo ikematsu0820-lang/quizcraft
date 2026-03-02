@@ -444,16 +444,6 @@ App.Config = {
                 hasDetail: true
             },
             {
-                value: 'dobon',
-                icon: '🎯',
-                label: 'ダウト専用',
-                desc: 'ダウト問題専用の詳細設定',
-                color: '#e17055',
-                disabled: !isDobon,
-                hasDetail: isDobon,
-                hiddenMode: true
-            },
-            {
                 value: 'solo',
                 icon: '🏆',
                 label: 'ソロ対戦',
@@ -617,18 +607,6 @@ App.Config = {
                     <select id="config-turn-pass" class="btn-block config-select">
                         <option value="ok" ${conf.turnPass === 'ok' ? 'selected' : ''}>${APP_TEXT.Config.TurnPassOk}</option>
                         <option value="ng" ${conf.turnPass === 'ng' ? 'selected' : ''}>${APP_TEXT.Config.TurnPassNg}</option>
-                    </select>
-                </div>
-            `;
-        } else if (mode === 'dobon') {
-            modeLabel = '🎯 ダウト問題 — 解答設定';
-            const currentRotate = conf.turnRotateMode || 'per_q';
-            sheetContent = `
-                <div style="margin-bottom:16px;">
-                    <label class="config-label">🔄 解答者の回し方</label>
-                    <select id="config-turn-rotate-mode" class="btn-block config-select" style="margin-top:6px;">
-                        <option value="per_q" ${currentRotate === 'per_q' ? 'selected' : ''}>問題ごとに変える（毎問、次の人が最初）</option>
-                        <option value="until_end" ${currentRotate === 'until_end' ? 'selected' : ''}>ダウトが出るまで回す（全員解答まで繰り返し）</option>
                     </select>
                 </div>
             `;
