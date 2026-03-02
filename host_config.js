@@ -143,6 +143,17 @@ App.Config = {
                     </div>
                 </div>
 
+                <hr style="border:0; border-top:1px dashed #444; margin:20px 0;">
+
+                <div class="mb-15">
+                    <label class="config-label">3. 制限時間</label>
+                    <input type="hidden" id="config-time-limit-enabled" value="${conf.timeLimitEnabled || 'off'}">
+                    <input type="hidden" id="config-time-limit-seconds" value="${conf.timeLimitSeconds || 30}">
+                    <div id="time-limit-card-selector" style="display:flex; flex-direction:column; gap:8px; margin-top:6px;">
+                        <!-- Time limit cards rendered by JS -->
+                    </div>
+                </div>
+
             </div>`;
 
 
@@ -255,6 +266,8 @@ App.Config = {
         this.renderModeCards(modeSel.value || 'normal', conf, qType, isOral, isDobon);
         // Game type card rendering (initial)
         this.renderGameTypeCards(typeHidden.value || 'score', conf);
+        // Time limit card rendering (initial)
+        this.renderTimeLimitCards(conf.timeLimitEnabled || 'off', conf.timeLimitSeconds || 30);
 
         // (btn-toggle-q-list and setupBulkButtons are now wired on modal open)
 
@@ -297,6 +310,93 @@ App.Config = {
         // Initial detail render
         updateDetails();
         this.toggleScoreSections(typeHidden.value !== 'panel');
+    },
+
+    // 制限時間カードをレンダリング
+    renderTimeLimitCards: function (selected, seconds) {
+        const container = document.getElementById('time-limit-card-selector');
+        if (!container) return;
+
+        const enabledHidden = document.getElementById('config-time-limit-enabled');
+        const secondsHidden = document.getElementById('config-time-limit-seconds');
+
+        const self = this;
+        const renderCards = (sel, secs) => {
+            container.innerHTML = '';
+
+            const options = [
+                { value: 'off', icon: '∞', label: '制限なし', desc: '時間無制限で解答できます', color: '#636e72' },
+                { value: 'on', icon: '⏱', label: 'あり', desc: '全問共通の制限時間を設定', color: '#f39c12' }
+            ];
+
+            options.forEach(opt => {
+                const isSelected = (sel === opt.value);
+                const row = document.createElement('div');
+                row.style.cssText = `
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    padding: 10px 12px;
+                    border-radius: 10px;
+                    border: 2px solid ${isSelected ? opt.color : '#333'};
+                    background: ${isSelected ? `rgba(${self._hexToRgb(opt.color)}, 0.1)` : '#1a1a1a'};
+                    cursor: pointer;
+                    transition: all 0.2s;
+                `;
+
+                // Left: radio + icon + text
+                const left = document.createElement('div');
+                left.style.cssText = 'display:flex; align-items:center; gap:10px; flex:1;';
+                left.innerHTML = `
+                    <div style="
+                        width:18px; height:18px; border-radius:50%;
+                        border: 2px solid ${isSelected ? opt.color : '#555'};
+                        background: ${isSelected ? opt.color : 'transparent'};
+                        display:flex; align-items:center; justify-content:center;
+                        flex-shrink:0;
+                        box-shadow: ${isSelected ? `0 0 8px ${opt.color}88` : 'none'};
+                    ">
+                        ${isSelected ? '<div style="width:6px;height:6px;border-radius:50%;background:#000;"></div>' : ''}
+                    </div>
+                    <span style="font-size:1.3em;">${opt.icon}</span>
+                    <div>
+                        <div style="font-weight:bold; color:${isSelected ? opt.color : '#ccc'}; font-size:0.95em;">${opt.label}</div>
+                        <div style="font-size:0.72em; color:#666;">${opt.desc}</div>
+                    </div>
+                `;
+                left.onclick = () => {
+                    if (enabledHidden) enabledHidden.value = opt.value;
+                    renderCards(opt.value, secs);
+                };
+                row.appendChild(left);
+
+                // Right: seconds input (only when 'on' is selected)
+                if (opt.value === 'on' && isSelected) {
+                    const inputWrap = document.createElement('div');
+                    inputWrap.style.cssText = 'display:flex; align-items:center; gap:6px; flex-shrink:0;';
+                    inputWrap.innerHTML = `
+                        <input type="number" id="config-time-limit-seconds-input"
+                            value="${secs}" min="5" max="300" step="5"
+                            style="
+                                width:64px; text-align:center; font-size:1.1em; font-weight:800;
+                                background:rgba(243,156,18,0.1); border:1px solid #f39c12;
+                                border-radius:8px; color:#f39c12; padding:6px 4px;
+                            ">
+                        <span style="color:#aaa; font-size:0.85em;">秒</span>
+                    `;
+                    inputWrap.querySelector('input').oninput = (e) => {
+                        const v = parseInt(e.target.value) || 30;
+                        if (secondsHidden) secondsHidden.value = v;
+                        secs = v;
+                    };
+                    row.appendChild(inputWrap);
+                }
+
+                container.appendChild(row);
+            });
+        };
+
+        renderCards(selected, seconds);
     },
 
     toggleScoreSections: function (show) {
@@ -1262,7 +1362,11 @@ App.Config = {
             rankPts: currentConf.rankPts || [10, 5, 3],
             rankOtherPts: currentConf.rankOtherPts !== undefined ? currentConf.rankOtherPts : 1,
             firstComeCount: currentConf.firstComeCount !== undefined ? currentConf.firstComeCount : 1,
-            firstComePts: currentConf.firstComePts !== undefined ? currentConf.firstComePts : 10
+            firstComePts: currentConf.firstComePts !== undefined ? currentConf.firstComePts : 10,
+            // 制限時間
+            timeLimitEnabled: document.getElementById('config-time-limit-enabled')?.value || 'off',
+            timeLimitSeconds: parseInt(document.getElementById('config-time-limit-seconds-input')?.value ||
+                document.getElementById('config-time-limit-seconds')?.value || '30') || 30
         };
 
         let showId = App.State.currentShowId;
