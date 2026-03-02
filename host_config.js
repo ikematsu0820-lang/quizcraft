@@ -95,10 +95,10 @@ App.Config = {
             else if (type === 'letter_select') typeDisplay = APP_TEXT.Creator.TypeLetterSelect;
             else if (type === 'sort') typeDisplay = APP_TEXT.Creator.TypeSort;
             else if (type === 'free_oral') { typeDisplay = APP_TEXT.Creator.TypeFreeOral; isOral = true; }
-            else if (type === 'free_written') typeDisplay = APP_TEXT.Creator.TypeFreeWritten;
-            else if (type === 'multi_written') typeDisplay = APP_TEXT.Creator.TypeMultiWritten;
-            else if (type === 'multi_oral') { typeDisplay = APP_TEXT.Creator.TypeMultiOral; isOral = true; }
-            else if (type === 'multi') typeDisplay = APP_TEXT.Creator.TypeMulti;
+            else if (type === 'free_written') { typeDisplay = APP_TEXT.Creator.TypeFreeWritten; qType = type; }
+            else if (type === 'multi_written') { typeDisplay = APP_TEXT.Creator.TypeMultiWritten; qType = type; }
+            else if (type === 'multi_oral') { typeDisplay = APP_TEXT.Creator.TypeMultiOral; isOral = true; qType = type; }
+            else if (type === 'multi') { typeDisplay = APP_TEXT.Creator.TypeMulti; qType = type; }
             else typeDisplay = "不明";
         }
 
