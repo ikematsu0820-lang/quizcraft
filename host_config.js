@@ -524,7 +524,7 @@ App.Config = {
                     modeSel.value = m.value;
                     self.renderModeCards(m.value, conf, qType, isOral, isDobon);
                     // Open detail sheet
-                    self.openModeDetailSheet(m.value, conf, qType);
+                    self.openModeDetailSheet(m.value, conf, qType, isDobon);
                 };
                 row.appendChild(detailBtn);
             }
@@ -534,7 +534,7 @@ App.Config = {
     },
 
     // モード詳細設定をモーダルで開く
-    openModeDetailSheet: function (mode, conf, qType) {
+    openModeDetailSheet: function (mode, conf, qType, isDobon) {
         const existingSheet = document.getElementById('mode-detail-sheet');
         if (existingSheet) existingSheet.remove();
 
@@ -585,7 +585,46 @@ App.Config = {
             `;
         } else if (mode === 'turn') {
             modeLabel = '🔄 順番解答 — 解答設定';
+            // チャレンジャー回し方：ダウト問題・多答問題のみ表示
+            const showRotateMode = isDobon || (qType && qType.startsWith('multi'));
+            const currentRotate = conf.turnRotateMode || 'per_q';
+            const challengerSection = showRotateMode ? `
+                <div style="margin-bottom:16px;">
+                    <label class="config-label">🎯 チャレンジャーの回し方</label>
+                    <div style="display:flex; flex-direction:column; gap:8px; margin-top:6px;">
+                        <label style="display:flex; align-items:center; gap:10px; padding:10px 12px;
+                            border-radius:10px; cursor:pointer;
+                            border: 2px solid ${currentRotate === 'per_q' ? '#0984e3' : '#333'};
+                            background: ${currentRotate === 'per_q' ? 'rgba(9,132,227,0.12)' : '#1a1a1a'};
+                            transition:all 0.2s;">
+                            <input type="radio" name="turn-rotate-mode" value="per_q"
+                                ${currentRotate === 'per_q' ? 'checked' : ''}
+                                style="accent-color:#0984e3; width:16px; height:16px;">
+                            <div>
+                                <div style="font-weight:bold; color:${currentRotate === 'per_q' ? '#0984e3' : '#ccc'}; font-size:0.9em;">問題ごとにチャレンジャーを変える</div>
+                                <div style="font-size:0.72em; color:#666;">毎問、次の人が最初にチャレンジします</div>
+                            </div>
+                        </label>
+                        <label style="display:flex; align-items:center; gap:10px; padding:10px 12px;
+                            border-radius:10px; cursor:pointer;
+                            border: 2px solid ${currentRotate === 'until_end' ? '#e17055' : '#333'};
+                            background: ${currentRotate === 'until_end' ? 'rgba(225,112,85,0.12)' : '#1a1a1a'};
+                            transition:all 0.2s;">
+                            <input type="radio" name="turn-rotate-mode" value="until_end"
+                                ${currentRotate === 'until_end' ? 'checked' : ''}
+                                style="accent-color:#e17055; width:16px; height:16px;">
+                            <div>
+                                <div style="font-weight:bold; color:${currentRotate === 'until_end' ? '#e17055' : '#ccc'}; font-size:0.9em;">ダウトが出るまで同じ問題を回す</div>
+                                <div style="font-size:0.72em; color:#666;">ダウトか全員解答まで順番を繰り返します</div>
+                            </div>
+                        </label>
+                    </div>
+                    <input type="hidden" id="config-turn-rotate-mode" value="${currentRotate}">
+                </div>
+                <hr style="border:0; border-top:1px dashed #333; margin-bottom:16px;">
+            ` : '';
             sheetContent = `
+                ${challengerSection}
                 <div>
                     <label class="config-label">${APP_TEXT.Config.LabelTurnPass}</label>
                     <select id="config-turn-pass" class="btn-block config-select">
@@ -639,6 +678,26 @@ App.Config = {
         sheet.addEventListener('click', (e) => { if (e.target === sheet) sheet.remove(); });
         document.getElementById('mode-detail-sheet-close').onclick = () => sheet.remove();
         document.getElementById('mode-detail-sheet-done').onclick = () => sheet.remove();
+
+        // Wire turn-rotate-mode radio buttons
+        sheet.querySelectorAll('input[name="turn-rotate-mode"]').forEach(radio => {
+            radio.onchange = () => {
+                const hidden = document.getElementById('config-turn-rotate-mode');
+                if (hidden) hidden.value = radio.value;
+                // Update label colors dynamically
+                sheet.querySelectorAll('input[name="turn-rotate-mode"]').forEach(r => {
+                    const label = r.closest('label');
+                    const isChecked = (r === radio);
+                    const color = r.value === 'per_q' ? '#0984e3' : '#e17055';
+                    if (label) {
+                        label.style.borderColor = isChecked ? color : '#333';
+                        label.style.background = isChecked ? `rgba(${r.value === 'per_q' ? '9,132,227' : '225,112,85'},0.12)` : '#1a1a1a';
+                        const titleEl = label.querySelector('div > div:first-child');
+                        if (titleEl) titleEl.style.color = isChecked ? color : '#ccc';
+                    }
+                });
+            };
+        });
 
         // Wire ans-attempt buttons
         sheet.querySelectorAll('.ans-attempt-btn').forEach(btn => {
@@ -1352,6 +1411,7 @@ App.Config = {
             slotMax: currentConf.slotMax !== undefined ? currentConf.slotMax : (parseInt(document.getElementById('conf-slot-max')?.value || "10") || 10),
             turnOrder: document.getElementById('config-turn-order')?.value || 'fixed',
             turnPass: document.getElementById('config-turn-pass')?.value || 'ok',
+            turnRotateMode: document.getElementById('config-turn-rotate-mode')?.value || currentConf.turnRotateMode || 'per_q',
             soloStyle: document.getElementById('config-solo-style')?.value || 'manual',
             soloTimeType: document.getElementById('config-solo-time-type')?.value || 'per_q',
             soloTimeVal: parseInt(document.getElementById('config-solo-time-val')?.value || "0") || 0,
