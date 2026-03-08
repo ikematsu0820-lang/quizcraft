@@ -816,14 +816,9 @@ function renderPlayerQuestion(q, roomId, playerId) {
 
     if (q.type === 'choice') {
         let choices = q.c.map((text, i) => ({ text: text, originalIndex: i }));
-        // Shuffle if: per-question shuffle flag is true (default), OR room-level shuffleChoices is 'on'
-        const shouldShuffle = (q.shuffle !== false) || (roomConfig.shuffleChoices === 'on');
-        if (shouldShuffle) {
-            for (let i = choices.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [choices[i], choices[j]] = [choices[j], choices[i]];
-            }
-        }
+        // Shuffle is now handled server-side (host_studio.js shuffleQuestions).
+        // All players receive the same pre-shuffled order. No client-side shuffle needed.
+
         // Forced Single Selection for Dobon/Turn mode even if q.multi is true
         const isDobonMode = (q.mode === 'dobon' || q.mode === 'multi');
         const isMulti = isDobonMode ? false : (q.multi || false);
@@ -850,7 +845,8 @@ function renderPlayerQuestion(q, roomId, playerId) {
             // Add visual indicator (Radio or Check)
             const icon = isMulti ? (selected.has(item.originalIndex) ? '☑ ' : '☐ ') : (selected.has(item.originalIndex) ? '◉ ' : '○ ');
 
-            btn.innerHTML = `<span style="font-weight:900; margin-right:10px; opacity:0.8; font-family:monospace;">${String.fromCharCode(65 + item.originalIndex)}</span> ${item.text}`;
+            // Alphabet label based on display order (i), not originalIndex
+            btn.innerHTML = `<span style="font-weight:900; margin-right:10px; opacity:0.8; font-family:monospace;">${String.fromCharCode(65 + i)}</span> ${item.text}`;
             btn.dataset.ans = item.originalIndex;
 
             // Color logic:
@@ -958,14 +954,9 @@ function renderPlayerQuestion(q, roomId, playerId) {
         const items = q.c || [];
         const n = items.length;
 
-        // Common Shuffle Logic
+        // Shuffle is now handled server-side (host_studio.js shuffleQuestions).
+        // Labels are assigned by display order.
         let zipped = items.map((txt, i) => ({ txt, label: String.fromCharCode(65 + i) }));
-        if (q.shuffle !== false) {
-            for (let i = zipped.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [zipped[i], zipped[j]] = [zipped[j], zipped[i]];
-            }
-        }
 
         inputCont.innerHTML = '';
 

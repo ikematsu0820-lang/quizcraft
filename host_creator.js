@@ -599,7 +599,7 @@ window.App.Creator = {
 
         const labelSpan = document.createElement('span');
         labelSpan.className = 'choice-label-text bold cyan text-lg w-20 text-center';
-        labelSpan.textContent = labelText;
+        labelSpan.textContent = `${index + 1}`;
 
         wrapper.appendChild(chk);
         wrapper.appendChild(labelSpan);
@@ -704,7 +704,7 @@ window.App.Creator = {
     },
 
     updateLabels: function (parent) {
-        parent.querySelectorAll('.choice-label-text').forEach((el, i) => el.textContent = String.fromCharCode(65 + i));
+        parent.querySelectorAll('.choice-label-text').forEach((el, i) => el.textContent = `${i + 1}`);
     },
 
 
