@@ -158,100 +158,12 @@ App.Config = {
 
 
 
-        // ── 詳細設定モーダル ──────────────────────────────────
-        html += `
-            <div style="margin-top:8px;">
-                <button id="btn-open-detail-settings" class="btn-block btn-dark" style="display:flex; align-items:center; justify-content:center; gap:8px; padding:12px; font-size:1em; border:1px solid #444; border-radius:8px;">
-                    <span>⚙</span> 詳細設定（時間・点数・個別設定）
-                    <span style="margin-left:auto; font-size:0.8em; color:#888;">▶</span>
-                </button>
-            </div>`;
+
 
         // Remove the old bulk section (it's being moved to modal below)
         container.innerHTML = html;
 
-        // ── Modal for detail settings ──────────────────────────
-        let existingDetailModal = document.getElementById('config-detail-modal');
-        if (!existingDetailModal) {
-            const detailModal = document.createElement('div');
-            detailModal.id = 'config-detail-modal';
-            detailModal.className = 'design-modal-overlay hidden';
-            detailModal.style.zIndex = '9000';
-            detailModal.innerHTML = `
-                <div class="design-modal-content" style="max-width:600px; max-height:85vh; display:flex; flex-direction:column; overflow:hidden;">
-                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:15px; flex-shrink:0;">
-                        <h3 class="modal-title" style="margin:0;">詳細設定</h3>
-                        <button id="config-detail-modal-close" style="background:transparent; border:none; font-size:24px; cursor:pointer; color:#aaa; padding:0 8px;">×</button>
-                    </div>
-                    <div style="flex:1; overflow-y:auto; padding-right:5px;">
-                        <h5 style="margin:0 0 8px 0; font-size:11px; color:#666; font-weight:700; text-transform:uppercase;">問題別一括設定 (Bulk)</h5>
-                        <div class="rule-compact-row">
-                            <!-- TIME Switch -->
-                            <div style="display:flex; align-items:center; gap:8px;">
-                                <span style="font-size:11px; font-weight:700; color:#aaa;">TIME</span>
-                                <label class="pro-switch">
-                                    <input type="checkbox" id="config-bulk-time-toggle" checked>
-                                    <span class="pro-slider"></span>
-                                </label>
-                            </div>
-                            <div class="config-q-input-group pro-style">
-                                <input type="number" id="config-bulk-time-input" value="10" min="1" placeholder="Sec" style="width:50px;">
-                            </div>
 
-                            <div style="width:1px; height:24px; background:rgba(255,255,255,0.1); margin:0 5px;"></div>
-
-                            <!-- POINT -->
-                            <div class="config-q-input-group pro-style score-section">
-                                <label>POINT</label>
-                                <input type="number" id="config-bulk-point-input" value="1" min="1" style="width:50px;">
-                            </div>
-
-                            <!-- LOSS -->
-                            <div class="config-q-input-group pro-style score-section">
-                                <label>LOSS</label>
-                                <input type="number" id="config-bulk-loss-input" value="0" min="0" style="width:50px;">
-                            </div>
-
-                            <div style="flex:1"></div>
-                            <button id="config-bulk-apply-btn" class="btn-mini btn-primary" style="height:28px; padding:0 12px; font-size:11px;">SET ALL</button>
-                        </div>
-
-                        <button id="btn-toggle-q-list" class="btn-block btn-dark" style="margin:12px 0 8px 0;">▼ 個別で設定する (全${questions.length}問)</button>
-                        <div id="config-questions-list" class="hidden scroll-list" style="max-height:280px; overflow-y:auto; border:1px solid #333; padding:5px; background:#1a1a1a;"></div>
-                    </div>
-                    <div style="margin-top:12px; flex-shrink:0;">
-                        <button id="config-detail-modal-done" class="btn-block btn-primary" style="padding:12px; font-weight:bold;">完了</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(detailModal);
-
-            detailModal.addEventListener('click', (e) => {
-                if (e.target === detailModal) detailModal.classList.add('hidden');
-            });
-            document.getElementById('config-detail-modal-close').onclick = () => detailModal.classList.add('hidden');
-            document.getElementById('config-detail-modal-done').onclick = () => detailModal.classList.add('hidden');
-        } else {
-            // Update question count text in existing modal
-            const toggleBtn = existingDetailModal.querySelector('#btn-toggle-q-list');
-            if (toggleBtn) toggleBtn.textContent = `▼ 個別で設定する (全${questions.length}問)`;
-        }
-
-        document.getElementById('btn-open-detail-settings').onclick = () => {
-            document.getElementById('config-detail-modal').classList.remove('hidden');
-            // Re-render Q list each time modal opens to keep it fresh
-            this.renderQList();
-            // Wire bulk buttons (they live in the modal DOM)
-            this.setupBulkButtons();
-            // Wire the individual-q toggle
-            const toggleQBtn = document.getElementById('btn-toggle-q-list');
-            if (toggleQBtn) {
-                toggleQBtn.onclick = () => {
-                    const list = document.getElementById('config-questions-list');
-                    list.classList.toggle('hidden');
-                };
-            }
-        };
 
         const modeSel = document.getElementById('config-mode-select');
         const typeHidden = document.getElementById('config-game-type');
@@ -665,21 +577,25 @@ App.Config = {
             const buzzAction = conf.buzzWrongAction || 'next';
             const buzzPenalty = conf.buzzPenalty || 'none';
             sheetContent = `
-                <div style="margin-bottom:15px;">
-                    <label class="config-label">誤答時の処理</label>
+                <div style="margin-bottom:6px;">
+                    <label class="config-label" style="margin-bottom:10px; font-size:0.95em;">❌ 誤答時の処理</label>
+                </div>
+                <div style="margin-bottom:14px; padding-left:8px; border-left:3px solid #e74c3c;">
+                    <label class="config-label" style="font-size:0.85em; color:#aaa;">問題の処理</label>
                     <select id="config-buzz-wrong-action" class="btn-block config-select">
-                        <option value="next" ${buzzAction === 'next' ? 'selected' : ''}>問題継続（他のプレイヤーが解答可能）</option>
-                        <option value="end" ${buzzAction === 'end' ? 'selected' : ''}>問題終了</option>
+                        <option value="next" ${buzzAction === 'next' ? 'selected' : ''}>問題継続</option>
+                        <option value="end" ${buzzAction === 'end' ? 'selected' : ''}>次の問題</option>
                     </select>
+                    <p style="color:#666; font-size:0.72em; margin:4px 0 0 0;">${buzzAction === 'next' ? '他のプレイヤーが引き続き解答できます' : '誤答時にその問題を終了します'}</p>
                 </div>
-                <div>
-                    <label class="config-label">誤答時のプレイヤーの処理</label>
+                <div style="padding-left:8px; border-left:3px solid #f39c12;">
+                    <label class="config-label" style="font-size:0.85em; color:#aaa;">誤答者の処理</label>
                     <select id="config-buzz-penalty" class="btn-block config-select">
-                        <option value="none" ${buzzPenalty === 'none' ? 'selected' : ''}>なし</option>
-                        <option value="otetski" ${buzzPenalty === 'otetski' ? 'selected' : ''}>あり（次の問題まで解答権なし）</option>
+                        <option value="none" ${buzzPenalty === 'none' ? 'selected' : ''}>解答継続</option>
+                        <option value="otetski" ${buzzPenalty === 'otetski' ? 'selected' : ''}>その問題の解答権なし</option>
                     </select>
+                    <p style="color:#666; font-size:0.72em; margin:4px 0 0 0;">${buzzPenalty === 'none' ? '誤答しても再度早押しできます' : '誤答したプレイヤーはその問題で解答できません'}</p>
                 </div>
-                <div id="buzz-penalty-detail" style="margin-top:8px;"></div>
             `;
         } else if (mode === 'turn') {
             modeLabel = '🔄 順番解答 — 解答設定';
@@ -770,12 +686,19 @@ App.Config = {
             };
         });
 
-        // Wire buzz penalty
+        // Wire buzz selects to update descriptions dynamically
+        const buzzActionSel = document.getElementById('config-buzz-wrong-action');
+        if (buzzActionSel) {
+            const desc = buzzActionSel.closest('div')?.querySelector('p');
+            buzzActionSel.onchange = () => {
+                if (desc) desc.textContent = buzzActionSel.value === 'next' ? '他のプレイヤーが引き続き解答できます' : '誤答時にその問題を終了します';
+            };
+        }
         const buzzPenaltySel = document.getElementById('config-buzz-penalty');
         if (buzzPenaltySel) {
+            const desc = buzzPenaltySel.closest('div')?.querySelector('p');
             buzzPenaltySel.onchange = () => {
-                const detail = document.getElementById('buzz-penalty-detail');
-                if (detail) detail.innerHTML = '';
+                if (desc) desc.textContent = buzzPenaltySel.value === 'none' ? '誤答しても再度早押しできます' : '誤答したプレイヤーはその問題で解答できません';
             };
         }
     },
