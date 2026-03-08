@@ -1652,14 +1652,16 @@ App.Studio = {
             cardCorrect.parentNode.style.flexDirection = 'row';
             cardCorrect.parentNode.style.alignItems = 'center';
 
-            if (q.type.startsWith('multi') || q.type.startsWith('ranking')) {
-                // Multi-answer: manual reveal buttons with improved UI
+            if (q.type.startsWith('multi') || q.type.startsWith('ranking') || q.type.startsWith('assoc')) {
+                // Multi-answer / Assoc: manual reveal buttons with improved UI
 
                 // Adjust Parent Layout for Multi-Answer
                 cardCorrect.parentNode.style.flexDirection = 'column';
                 cardCorrect.parentNode.style.alignItems = 'stretch';
 
-                const correctList = Array.isArray(q.correct) ? q.correct : [q.correct];
+                // For assoc, the hints are in q.c. For multi/ranking, correct answers are in q.correct (often same as q.c)
+                const isAssoc = q.type.startsWith('assoc');
+                const correctList = isAssoc ? q.c : (Array.isArray(q.correct) ? q.correct : [q.correct]);
 
                 // Wrapper
                 const wrapper = document.createElement('div');
@@ -1669,6 +1671,17 @@ App.Studio = {
                 const container = document.createElement('div');
                 container.className = 'multi-ans-container';
 
+                if (isAssoc) {
+                    const ansHeader = document.createElement('div');
+                    ansHeader.style.padding = '8px 12px';
+                    ansHeader.style.background = 'rgba(255, 255, 255, 0.1)';
+                    ansHeader.style.marginBottom = '5px';
+                    ansHeader.style.borderRadius = '5px';
+                    ansHeader.style.fontWeight = 'bold';
+                    ansHeader.innerHTML = `<span style="color:#aaa; font-size:0.8em;">正解キーワード</span><br/>${q.correct}`;
+                    container.appendChild(ansHeader);
+                }
+
                 correctList.forEach((ans, idx) => {
                     const item = document.createElement('div');
                     const isRevealed = !!(this.revealedMultiIndices && this.revealedMultiIndices[idx]);
@@ -1676,7 +1689,7 @@ App.Studio = {
                     item.className = 'multi-ans-item' + (isRevealed ? ' revealed' : '');
 
                     const isRanking = q.type.startsWith('ranking');
-                    const idxLabel = isRanking ? `${idx + 1}\u4f4d` : `${idx + 1}`;
+                    const idxLabel = isRanking ? `${idx + 1}位` : (isAssoc ? `ヒント${idx + 1}` : `${idx + 1}`);
 
                     // Internal Structure: Index | Text | Check
                     item.innerHTML = `
