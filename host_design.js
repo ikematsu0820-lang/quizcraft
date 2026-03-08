@@ -178,11 +178,7 @@ App.Design = {
             };
         }
 
-        // Preview Toggles (Segmented Control)
-        const tPlayer = document.getElementById('design-toggle-player');
-        const tMonitor = document.getElementById('design-toggle-monitor');
-        if (tPlayer) tPlayer.onclick = () => this.switchDevice('player');
-        if (tMonitor) tMonitor.onclick = () => this.switchDevice('monitor');
+        // Monitor mode is now the only mode (player preview removed)
         // Toolbar Collapse Toggle
         const toggleBtn = document.getElementById('btn-toggle-design-toolbar');
         if (toggleBtn) {
@@ -543,12 +539,10 @@ App.Design = {
         this.currentStepIsHidden = false; // Reset
         const content = document.getElementById('design-monitor-preview-content');
         const frame = document.getElementById('preview-monitor-container');
-        const playerFrame = document.getElementById('preview-player-container');
-        const playerContent = document.getElementById('design-player-preview-content');
 
-        if (!content || !frame || !playerFrame) return;
+        if (!content || !frame) return;
 
-        // Scaling logic for both frames
+        // Scaling logic for monitor frame
         const scaleFrame = (targetFrame, targetContent, baseWidth) => {
             const measureEl = targetFrame.querySelector('.design-preview-frame') || targetFrame;
             const fw = measureEl.clientWidth;
@@ -559,7 +553,6 @@ App.Design = {
             }
         };
         scaleFrame(frame, content, 1280);
-        scaleFrame(playerFrame, playerContent, 375); // Mock base width
 
         const s = this.collectSettings();
         const d = s.design;

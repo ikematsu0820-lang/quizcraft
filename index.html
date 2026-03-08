@@ -114,13 +114,6 @@
             <button id="design-target-refresh-btn" class="hidden"></button>
         </div>
         <div class="pager-segmented-wrapper">
-            <div class="preview-segmented-control design-preview-device-selector" id="design-device-selector"
-                style="margin-bottom: 10px;">
-                <button id="design-toggle-player" class="segmented-btn active" data-type="player"
-                    onclick="App.Design.switchDevice('player')">📱 スマホ</button>
-                <button id="design-toggle-monitor" class="segmented-btn" data-type="monitor"
-                    onclick="App.Design.switchDevice('monitor')">🖥️ モニター</button>
-            </div>
             <div id="design-pager-container" class="design-pager-area hidden">
                 <button id="design-pager-prev" class="pager-arrow-btn">◀︎</button>
                 <div id="design-pager-status" class="pager-status-text">待機</div>
@@ -132,7 +125,7 @@
                 </button>
 
                 <!-- Layout Dropdown (Monitor Only) -->
-                <div class="design-layout-selector-wrapper" style="margin-left: 15px; display: none;">
+                <div class="design-layout-selector-wrapper" style="margin-left: 15px;">
                     <select id="creator-set-layout-inline" class="config-select"
                         style="padding: 5px 10px; border-radius: 4px; background: rgba(0, 150, 255, 0.2); border: 1px solid rgba(0, 229, 255, 0.5); color: #fff;">
                         <option value="standard">上下分割 (標準)</option>
@@ -147,22 +140,8 @@
         </div>
 
         <div class="design-preview-area-top">
-            <!-- Smartphone (Player) -->
-            <div id="preview-player-container" class="preview-group player-group">
-                <div class="design-preview-frame player-frame">
-                    <div id="design-player-preview-content">
-                        <div class="player-preview-mock">
-                            <div class="p-status-bar"></div>
-                            <div class="p-q-text"></div>
-                            <div class="p-answers"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="preview-label">回答者画面デモ</div>
-            </div>
-
-            <!-- Monitor (Host) -->
-            <div id="preview-monitor-container" class="preview-group monitor-group hidden">
+            <!-- Monitor (Host) - Always visible -->
+            <div id="preview-monitor-container" class="preview-group monitor-group">
                 <div class="design-preview-frame">
                     <div id="design-monitor-preview-content"></div>
                 </div>
