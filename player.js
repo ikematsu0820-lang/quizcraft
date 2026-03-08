@@ -219,9 +219,22 @@ function updateUI() {
 
     const turnHeaderBadge = document.getElementById('current-turn-header-disp');
     if (turnHeaderBadge) {
-        if (st.currentAnswerer && st.currentAnswerer !== myPlayerId && (st.step === 'reveal_q' || st.step === 'question' || st.step === 'answering')) {
+        if (st.currentAnswerer && (st.step === 'reveal_q' || st.step === 'question' || st.step === 'answering')) {
             turnHeaderBadge.classList.remove('hidden');
-            turnHeaderBadge.textContent = `${st.currentAnswererName || '他のプレイヤー'} の番です`;
+            const isMe = (st.currentAnswerer === myPlayerId);
+            const prefix = isMe ? 'あなた' : (st.currentAnswererName || '他のプレイヤー');
+            const suffix = (roomConfig && roomConfig.mode === 'solo') ? "が挑戦中！" : "の番です";
+            turnHeaderBadge.textContent = `${prefix} ${suffix}`;
+
+            if (isMe) {
+                turnHeaderBadge.style.background = "linear-gradient(135deg, #e74c3c, #c0392b)";
+                turnHeaderBadge.style.boxShadow = "0 2px 10px rgba(231, 76, 60, 0.4)";
+                turnHeaderBadge.style.borderBottom = "2px solid #ff7979";
+            } else {
+                turnHeaderBadge.style.background = "rgba(0, 0, 0, 0.7)";
+                turnHeaderBadge.style.boxShadow = "none";
+                turnHeaderBadge.style.borderBottom = "none";
+            }
         } else {
             turnHeaderBadge.classList.add('hidden');
         }
@@ -246,7 +259,7 @@ function updateUI() {
     // クイズエリア（問題文・選択肢）は、待機中以外は基本表示する方針に変更
     if (['question', 'answering', 'answer', 'reveal_q', 'reveal_correct'].includes(st.step)) {
         quizArea.classList.remove('hidden');
-        if (currentQuestion && currentQuestion.type.startsWith('multi')) {
+        if (currentQuestion && (currentQuestion.type.startsWith('multi') || currentQuestion.type.startsWith('ranking'))) {
             updateMultiAnswers();
         }
     } else {
@@ -521,6 +534,76 @@ function updateUI() {
     else if (st.step === 'final_ranking') {
         showFinalResult(myRoomId, myPlayerId);
     }
+
+    // Update time limit UI based on state
+    updateTimeLimitDisplay(st);
+}
+
+let playerTimeLimitTimerId = null;
+
+function updateTimeLimitDisplay(st) {
+    const timerDisp = document.getElementById('answer-timer-disp');
+    if (!timerDisp) return;
+
+    if (playerTimeLimitTimerId) {
+        clearInterval(playerTimeLimitTimerId);
+        playerTimeLimitTimerId = null;
+    }
+
+    // Only show timer in answering phases when a time limit is set
+    if (!st.timeLimit || !['question', 'answering', 'reveal_q'].includes(st.step)) {
+        timerDisp.innerHTML = '';
+        timerDisp.classList.add('hidden');
+        return;
+    }
+
+    timerDisp.classList.remove('hidden');
+
+    // Inject timer HTML structure once if not present
+    if (!document.getElementById('player-time-bar-inner')) {
+        timerDisp.innerHTML = `
+            <div style="width:100%;height:10px;background:rgba(255,255,255,0.2);border-radius:5px;overflow:hidden;margin-top:20px;">
+                <div id="player-time-bar-inner" style="width:0%;height:100%;background:#00bfff;transition:width 0.2s linear;"></div>
+            </div>
+            <div id="player-time-text" style="text-align:center;font-size:1.2em;font-weight:bold;margin-top:5px;color:#fff;">${st.timeLimit}</div>
+        `;
+    }
+
+    const innerBar = document.getElementById('player-time-bar-inner');
+    const timeText = document.getElementById('player-time-text');
+
+    const duration = st.timeLimit;
+    // For sync reason, use server time if possible, or fallback to relative diff. 
+    // Here we use the st.timeLimitStart as base if provided.
+    const startTimeStamp = st.timeLimitStart || Date.now();
+    const endTime = startTimeStamp + (duration * 1000);
+
+    const tick = () => {
+        const now = Date.now();
+        const remain = Math.max(0, endTime - now);
+        const percent = Math.min(100, Math.max(0, (remain / (duration * 1000)) * 100));
+        const secsLeft = Math.ceil(remain / 1000);
+
+        if (innerBar) innerBar.style.width = percent + '%';
+        if (timeText) {
+            timeText.textContent = secsLeft;
+            if (secsLeft <= 5) {
+                timeText.style.color = '#ff4b2b';
+                innerBar.style.background = '#ff4b2b';
+            } else {
+                timeText.style.color = '#fff';
+                innerBar.style.background = '#00bfff';
+            }
+        }
+
+        if (remain <= 0 && playerTimeLimitTimerId) {
+            clearInterval(playerTimeLimitTimerId);
+            playerTimeLimitTimerId = null;
+        }
+    };
+
+    tick();
+    playerTimeLimitTimerId = setInterval(tick, 200);
 }
 
 function getTurnOrderHtml(st, myName) {
@@ -636,7 +719,8 @@ function renderResultScreen(p) {
     } else if (currentQuestion.type === 'sort') {
         const correctStr = Array.isArray(currentQuestion.correct) ? currentQuestion.correct.map(idx => String.fromCharCode(65 + idx)).join('') : currentQuestion.correct;
         correctText = correctStr.split('').map(char => currentQuestion.c[char.charCodeAt(0) - 65]).join(' → ');
-    } else if (currentQuestion.type && currentQuestion.type.startsWith('multi')) {
+    } else if (currentQuestion.type && (currentQuestion.type.startsWith('multi') || currentQuestion.type.startsWith('ranking'))) {
+        const isRanking = currentQuestion.type.startsWith('ranking');
         const revealed = localStatus.revealedMulti || {};
         const choices = currentQuestion.c || [];
 
@@ -644,10 +728,11 @@ function renderResultScreen(p) {
         choices.forEach((choice, i) => {
             const isRevealed = revealed[i];
             const itemClass = isRevealed ? 'player-multi-item is-revealed' : 'player-multi-item is-missed';
+            const indexLabel = isRanking ? `${i + 1}位` : `${i + 1}`;
 
             gridHtml += `
                 <div class="${itemClass}" style="min-height:44px; padding:10px 15px;">
-                    <div class="multi-index">${i + 1}</div>
+                    <div class="multi-index">${indexLabel}</div>
                     <div class="multi-text-revealed" style="font-size:1em;">${choice}</div>
                 </div>
             `;
@@ -685,7 +770,7 @@ function renderResultScreen(p) {
         // Removed flash effect
     }
 
-    const isMultiResult = currentQuestion.type && currentQuestion.type.startsWith('multi');
+    const isMultiResult = currentQuestion.type && (currentQuestion.type.startsWith('multi') || currentQuestion.type.startsWith('ranking'));
     ansBox.innerHTML = `
         <div style="display:flex; flex-direction:column; align-items:center; margin-bottom:20px;">
             ${judgeHtml}
@@ -805,7 +890,7 @@ function renderPlayerQuestion(q, roomId, playerId) {
     inputCont.innerHTML = '';
 
     const gameView = document.getElementById('player-game-view');
-    if (q.type && q.type.startsWith('multi')) {
+    if (q.type && (q.type.startsWith('multi') || q.type.startsWith('ranking'))) {
         gameView.classList.add('multi-layout-active');
         inputCont.classList.add('multi-mode-container');
     } else {
@@ -1142,10 +1227,11 @@ function renderPlayerQuestion(q, roomId, playerId) {
         }
     }
 
-    else if (q.type.startsWith('multi')) {
+    else if (q.type.startsWith('multi') || q.type.startsWith('ranking')) {
+        const isRankingType = q.type.startsWith('ranking');
         inputCont.classList.add('multi-mode-container');
         // ★ For multi-written, place Input & Submit at the TOP (below Question)
-        if (q.type === 'multi_written') {
+        if (q.type === 'multi_written' || q.type === 'ranking_written') {
             const wrapper = document.createElement('div');
             wrapper.style.display = 'flex';
             wrapper.style.gap = '10px';
@@ -1197,11 +1283,11 @@ function renderPlayerQuestion(q, roomId, playerId) {
 
             const idx = document.createElement('div');
             idx.className = 'multi-index';
-            idx.textContent = i + 1;
+            idx.textContent = isRankingType ? `${i + 1}位` : (i + 1);
 
             const text = document.createElement('div');
             text.className = 'multi-text-hidden';
-            text.textContent = '?????';
+            text.textContent = isRankingType ? `?位` : '?????';
 
             item.appendChild(idx);
             item.appendChild(text);
@@ -1231,7 +1317,8 @@ function renderPlayerQuestion(q, roomId, playerId) {
 
 function updateMultiAnswers() {
     const q = currentQuestion;
-    if (!q || !q.type.startsWith('multi')) return;
+    if (!q || !(q.type.startsWith('multi') || q.type.startsWith('ranking'))) return;
+    const isRankingType = q.type.startsWith('ranking');
     const revealed = localStatus.revealedMulti || {};
 
     q.c.forEach((choice, i) => {
@@ -1248,7 +1335,7 @@ function updateMultiAnswers() {
         } else if (!isRevealed) {
             item.classList.remove('is-revealed');
             textEl.className = 'multi-text-hidden';
-            textEl.textContent = '?????';
+            textEl.textContent = isRankingType ? `?位` : '?????';
         }
     });
 }

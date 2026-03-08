@@ -752,7 +752,7 @@ App.Design = {
                     <div class="preview-q-block ${this.activeQuickEdit === 'q' ? 'is-editing' : ''}" onclick="event.stopPropagation(); App.Design.openQuickEdit('q', event)" style="${qStyle}">${qText}</div>
                     <div class="preview-c-block ${this.activeQuickEdit === 'c' ? 'is-editing' : ''}" onclick="event.stopPropagation(); App.Design.openQuickEdit('c', event)" style="${cBlockStyle}">
                         ${choices.map((c, i) => {
-                const isMulti = qType && qType.startsWith('multi');
+                const isMulti = qType && (qType.startsWith('multi') || qType.startsWith('ranking'));
                 const info = (this.currentTarget && this.currentTarget.data) ? this.getStepInfo(this.previewQIndex, this.getQuestionsFromTarget() || []) : null;
                 const isAnswerPhase = info && info.type === 'answer';
 
@@ -763,7 +763,8 @@ App.Design = {
                 if (isRevealed) finalCStyle += `background:#2ecc71 !important; border:3px solid #fff !important; color:#fff !important; transform:scale(1.05);`;
                 else if (isMissed) finalCStyle += `background:#ff5555 !important; border:3px solid #fff !important; color:#fff !important;`;
 
-                const labelHtml = isMulti ? '' : `<span style="${labelStyle}">${String.fromCharCode(65 + i)}</span> `;
+                const isRanking = qType && qType.startsWith('ranking');
+                const labelHtml = isMulti ? (isRanking ? `<span style="${labelStyle}">${i + 1}位</span> ` : '') : `<span style="${labelStyle}">${String.fromCharCode(65 + i)}</span> `;
                 return `
                                 <div style="${finalCStyle}">
                                     ${labelHtml}<span>${c}</span>
@@ -778,7 +779,7 @@ App.Design = {
         // Toggle Grid Config Button visibility
         const btnGrid = document.getElementById('btn-open-grid-config');
         if (btnGrid) {
-            const isGridType = ['choice', 'sort'].includes(qType) || (qType && qType.startsWith('multi'));
+            const isGridType = ['choice', 'sort'].includes(qType) || (qType && (qType.startsWith('multi') || qType.startsWith('ranking')));
             if (isGridType) {
                 btnGrid.classList.remove('hidden');
             } else {
@@ -795,7 +796,7 @@ App.Design = {
                 const qData = qIdx >= 0 ? questions[qIdx] : null;
                 if (qData) {
                     if (info.type === 'answer') {
-                        const isMulti = qType && qType.startsWith('multi');
+                        const isMulti = qType && (qType.startsWith('multi') || qType.startsWith('ranking'));
                         if (isMulti) {
                             // Suppress popup for multi-answer grid reveal
                             extraHtml = '';

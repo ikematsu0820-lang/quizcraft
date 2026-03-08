@@ -160,21 +160,6 @@ window.App.Viewer = {
                 this.renderQuestionLayout(viewContainer, mainText, q, st, st.revealedMulti);
             }
 
-
-            if (st.timeLimit) {
-                const timerArea = document.getElementById('viewer-timer-bar-area');
-                const timerBar = document.getElementById('viewer-timer-bar');
-                if (timerArea && timerBar) {
-                    timerArea.classList.remove('hidden');
-                    timerBar.className = '';
-                    timerBar.style.width = '100%';
-                    setTimeout(() => {
-                        timerBar.className = 'timer-animate';
-                        timerBar.style.transition = `width ${st.timeLimit}s linear`;
-                        timerBar.style.width = '0%';
-                    }, 50);
-                }
-            }
         }
         // --- 4. CLOSED (Phase 3) ---
         else if (st.step === 'closed') {
@@ -204,7 +189,7 @@ window.App.Viewer = {
             }
 
             // Handle Multi-Answer Progressive Reveal
-            if (q.type && q.type.startsWith('multi')) {
+            if (q.type && (q.type.startsWith('multi') || q.type.startsWith('ranking'))) {
                 // Combine persistent state (st.revealedMulti) with session state (revealedMultiIndexes)
                 // st.revealedMulti is the source of truth from Host Control
                 const combinedRevealed = { ...(st.revealedMulti || {}) };
@@ -240,7 +225,7 @@ window.App.Viewer = {
             this.renderQuestionLayout(viewContainer, mainText, q, st, st.revealedMulti);
 
             // Suppress popup for ANY multi type that has a grid layout (q.c)
-            if (q.type && q.type.startsWith('multi') && Array.isArray(q.c) && q.c.length > 0) return;
+            if (q.type && (q.type.startsWith('multi') || q.type.startsWith('ranking')) && Array.isArray(q.c) && q.c.length > 0) return;
 
             const accent = q.design?.qBorderColor || '#00bfff';
             const answerBox = document.createElement('div');
@@ -298,6 +283,57 @@ window.App.Viewer = {
             mainText.innerHTML = '';
             this.renderBombGrid(st.cards);
         }
+
+        this.updateTimeLimitDisplay(st);
+    },
+
+    viewerTimeLimitTimerId: null,
+
+    updateTimeLimitDisplay: function (st) {
+        const timerArea = document.getElementById('viewer-timer-bar-area');
+        const timerBar = document.getElementById('viewer-timer-bar');
+        if (!timerArea || !timerBar) return;
+
+        if (this.viewerTimeLimitTimerId) {
+            clearInterval(this.viewerTimeLimitTimerId);
+            this.viewerTimeLimitTimerId = null;
+        }
+
+        if (!st.timeLimit || !['question', 'answering', 'reveal_q'].includes(st.step)) {
+            timerArea.classList.add('hidden');
+            timerBar.style.width = '100%';
+            timerBar.style.transition = 'none';
+            return;
+        }
+
+        timerArea.classList.remove('hidden');
+        timerBar.style.transition = 'none';
+
+        const duration = st.timeLimit;
+        const startTimeStamp = st.timeLimitStart || Date.now();
+        const endTime = startTimeStamp + (duration * 1000);
+
+        const tick = () => {
+            const now = Date.now();
+            const remain = Math.max(0, endTime - now);
+            const percent = Math.min(100, Math.max(0, (remain / (duration * 1000)) * 100));
+
+            timerBar.style.width = percent + '%';
+
+            if (percent <= 20) {
+                timerBar.style.backgroundColor = '#ff4b2b';
+            } else {
+                timerBar.style.backgroundColor = '#ffd700';
+            }
+
+            if (remain <= 0 && this.viewerTimeLimitTimerId) {
+                clearInterval(this.viewerTimeLimitTimerId);
+                this.viewerTimeLimitTimerId = null;
+            }
+        };
+
+        tick();
+        this.viewerTimeLimitTimerId = setInterval(tick, 200);
     },
 
     renderProduction: function (container, contentBox, type, q, st) {
@@ -556,7 +592,7 @@ window.App.Viewer = {
                     html += `<div class="c-area" style="${gridStyle}">`;
                     q.c.forEach((c, i) => {
                         const isRevealed = revealedMulti[i];
-                        const isMultiType = (q.type && q.type.startsWith('multi'));
+                        const isMultiType = (q.type && (q.type.startsWith('multi') || q.type.startsWith('ranking')));
                         const isAnswerPhase = (st.step === 'reveal_correct' || st.step === 'answer');
                         const isMissed = isMultiType && isAnswerPhase && !isRevealed;
 
@@ -574,8 +610,10 @@ window.App.Viewer = {
 
                         const isHidden = isMultiType && !isRevealed && !isMissed;
 
+                        const prefixLabel = q.type.startsWith('ranking') ? `${i + 1}位` : String.fromCharCode(65 + i);
+
                         html += `<div class="choice-item" style="${colorStyle} ${bgStyle} ${bStyle} ${transformStyle} transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-                            <span class="choice-prefix" style="color:${isRevealed || isMissed ? '#fff' : borderColor}; ${isMultiType ? 'display:none;' : ''}">${String.fromCharCode(65 + i)}</span> 
+                            <span class="choice-prefix" style="color:${isRevealed || isMissed ? '#fff' : borderColor}; ${isMultiType && !q.type.startsWith('ranking') ? 'display:none;' : ''}">${prefixLabel}</span> 
                             <span style="${isHidden ? 'visibility:hidden;' : ''}">${c}</span>
                         </div>`;
                     });
@@ -605,8 +643,9 @@ window.App.Viewer = {
 
                 if (q.c) {
                     q.c.forEach((c, i) => {
+
                         const isRevealed = revealedMulti[i];
-                        const isMultiType = (q.type && q.type.startsWith('multi'));
+                        const isMultiType = (q.type && (q.type.startsWith('multi') || q.type.startsWith('ranking')));
                         const isAnswerPhase = (st.step === 'reveal_correct' || st.step === 'answer');
                         const isMissed = isMultiType && isAnswerPhase && !isRevealed;
 
@@ -624,8 +663,10 @@ window.App.Viewer = {
 
                         const isHidden = isMultiType && !isRevealed && !isMissed;
 
+                        const prefixLabel = q.type.startsWith('ranking') ? `${i + 1}位` : String.fromCharCode(65 + i);
+
                         html += `<div class="choice-item" style="${colorStyle} ${bgStyle} ${bStyle} ${transformStyle} transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-                            <span class="choice-prefix" style="color:${isRevealed || isMissed ? '#fff' : borderColor}; ${isMultiType ? 'display:none;' : ''}">${String.fromCharCode(65 + i)}</span> 
+                            <span class="choice-prefix" style="color:${isRevealed || isMissed ? '#fff' : borderColor}; ${isMultiType && !q.type.startsWith('ranking') ? 'display:none;' : ''}">${prefixLabel}</span> 
                             <span style="${isHidden ? 'visibility:hidden;' : ''}">${c}</span>
                         </div>`;
                     });

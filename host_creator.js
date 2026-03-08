@@ -50,7 +50,8 @@ window.App.Creator = {
             { v: 'free', t: APP_TEXT.Creator.TypeFree },
             { v: 'choice', t: APP_TEXT.Creator.TypeChoice },
             { v: 'sort', t: APP_TEXT.Creator.TypeSort },
-            { v: 'multi_group', t: APP_TEXT.Creator.TypeMulti }
+            { v: 'multi_group', t: APP_TEXT.Creator.TypeMulti },
+            { v: 'assoc_group', t: APP_TEXT.Creator.TypeAssoc }
         ];
 
         const placeholder = document.createElement('option');
@@ -67,26 +68,33 @@ window.App.Creator = {
             sel.appendChild(el);
         });
 
+        // Use global shared logic to build subItems
+        const getSubItems = (mainVal) => {
+            if (mainVal === 'free') return [
+                { v: 'free_written', t: APP_TEXT.Creator.TypeFreeWritten },
+                { v: 'free_oral', t: APP_TEXT.Creator.TypeFreeOral },
+                { v: 'letter_select', t: APP_TEXT.Creator.TypeLetterSelect }
+            ];
+            if (mainVal === 'multi_group') return [
+                { v: 'multi_written', t: APP_TEXT.Creator.TypeMultiWritten },
+                { v: 'multi_oral', t: APP_TEXT.Creator.TypeMultiOral },
+                { v: 'ranking_written', t: APP_TEXT.Creator.TypeRankingWritten },
+                { v: 'ranking_oral', t: APP_TEXT.Creator.TypeRankingOral }
+            ];
+            if (mainVal === 'choice') return [
+                { v: 'choice_single', t: "2-1) 単一解答" },
+                { v: 'choice_multi', t: "2-2) ダウト問題" }
+            ];
+            if (mainVal === 'assoc_group') return [
+                { v: 'assoc_written', t: APP_TEXT.Creator.TypeAssocWritten },
+                { v: 'assoc_oral', t: APP_TEXT.Creator.TypeAssocOral }
+            ];
+            return [];
+        };
+
         const updateSubTypes = (mainVal) => {
             subSel.innerHTML = '';
-            let subItems = [];
-            if (mainVal === 'free') {
-                subItems = [
-                    { v: 'free_written', t: APP_TEXT.Creator.TypeFreeWritten },
-                    { v: 'free_oral', t: APP_TEXT.Creator.TypeFreeOral },
-                    { v: 'letter_select', t: APP_TEXT.Creator.TypeLetterSelect }
-                ];
-            } else if (mainVal === 'multi_group') {
-                subItems = [
-                    { v: 'multi_written', t: APP_TEXT.Creator.TypeMultiWritten },
-                    { v: 'multi_oral', t: APP_TEXT.Creator.TypeMultiOral }
-                ];
-            } else if (mainVal === 'choice') {
-                subItems = [
-                    { v: 'choice_single', t: "2-1) 単一解答" },
-                    { v: 'choice_multi', t: "2-2) ダウト問題" }
-                ];
-            }
+            let subItems = getSubItems(mainVal);
 
             subItems.forEach(o => {
                 const el = document.createElement('option');
@@ -103,7 +111,7 @@ window.App.Creator = {
                 document.getElementById('creator-form-container').innerHTML = '';
                 return;
             }
-            if (val === 'free' || val === 'multi_group' || val === 'choice') {
+            if (val === 'free' || val === 'multi_group' || val === 'choice' || val === 'assoc_group') {
                 updateSubTypes(val);
                 subArea.classList.remove('hidden');
                 this.renderForm(subSel.value);
@@ -136,100 +144,59 @@ window.App.Creator = {
             const firstQ = window.App.Data.createdQuestions[0];
             const type = firstQ.type;
 
+            const updateSubTypesShared = (mainVal) => {
+                subSel.innerHTML = '';
+                let subItems = [];
+                if (mainVal === 'free') {
+                    subItems = [
+                        { v: 'free_written', t: APP_TEXT.Creator.TypeFreeWritten },
+                        { v: 'free_oral', t: APP_TEXT.Creator.TypeFreeOral },
+                        { v: 'letter_select', t: APP_TEXT.Creator.TypeLetterSelect }
+                    ];
+                } else if (mainVal === 'multi_group') {
+                    subItems = [
+                        { v: 'multi_written', t: APP_TEXT.Creator.TypeMultiWritten },
+                        { v: 'multi_oral', t: APP_TEXT.Creator.TypeMultiOral },
+                        { v: 'ranking_written', t: APP_TEXT.Creator.TypeRankingWritten },
+                        { v: 'ranking_oral', t: APP_TEXT.Creator.TypeRankingOral }
+                    ];
+                } else if (mainVal === 'choice') {
+                    subItems = [
+                        { v: 'choice_single', t: "2-1) 単一解答" },
+                        { v: 'choice_multi', t: "2-2) ダウト問題" }
+                    ];
+                } else if (mainVal === 'assoc_group') {
+                    subItems = [
+                        { v: 'assoc_written', t: APP_TEXT.Creator.TypeAssocWritten },
+                        { v: 'assoc_oral', t: APP_TEXT.Creator.TypeAssocOral }
+                    ];
+                }
+                subItems.forEach(o => {
+                    const el = document.createElement('option');
+                    el.value = o.v;
+                    el.textContent = o.t;
+                    subSel.appendChild(el);
+                });
+            };
+
             if (type.startsWith('free') || type === 'letter_select') {
                 sel.value = 'free';
-                const updateSubTypes = (mainVal) => {
-                    subSel.innerHTML = '';
-                    let subItems = [];
-                    if (mainVal === 'free') {
-                        subItems = [
-                            { v: 'free_written', t: APP_TEXT.Creator.TypeFreeWritten },
-                            { v: 'free_oral', t: APP_TEXT.Creator.TypeFreeOral },
-                            { v: 'letter_select', t: APP_TEXT.Creator.TypeLetterSelect }
-                        ];
-                    } else if (mainVal === 'multi_group') {
-                        subItems = [
-                            { v: 'multi_written', t: APP_TEXT.Creator.TypeMultiWritten },
-                            { v: 'multi_oral', t: APP_TEXT.Creator.TypeMultiOral }
-                        ];
-                    } else if (mainVal === 'choice') {
-                        subItems = [
-                            { v: 'choice_single', t: "2-1) 単一解答" },
-                            { v: 'choice_multi', t: "2-2) ダウト問題" }
-                        ];
-                    }
-                    subItems.forEach(o => {
-                        const el = document.createElement('option');
-                        el.value = o.v;
-                        el.textContent = o.t;
-                        subSel.appendChild(el);
-                    });
-                };
-                updateSubTypes('free');
+                updateSubTypesShared('free');
                 subArea.classList.remove('hidden');
                 subSel.value = type;
-            } else if (type.startsWith('multi')) {
+            } else if (type.startsWith('multi') || type.startsWith('ranking')) {
                 sel.value = 'multi_group';
-                const updateSubTypes = (mainVal) => {
-                    subSel.innerHTML = '';
-                    let subItems = [];
-                    if (mainVal === 'free') {
-                        subItems = [
-                            { v: 'free_written', t: APP_TEXT.Creator.TypeFreeWritten },
-                            { v: 'free_oral', t: APP_TEXT.Creator.TypeFreeOral },
-                            { v: 'letter_select', t: APP_TEXT.Creator.TypeLetterSelect }
-                        ];
-                    } else if (mainVal === 'multi_group') {
-                        subItems = [
-                            { v: 'multi_written', t: APP_TEXT.Creator.TypeMultiWritten },
-                            { v: 'multi_oral', t: APP_TEXT.Creator.TypeMultiOral }
-                        ];
-                    } else if (mainVal === 'choice') {
-                        subItems = [
-                            { v: 'choice_single', t: "2-1) 単一解答" },
-                            { v: 'choice_multi', t: "2-2) ダウト問題" }
-                        ];
-                    }
-                    subItems.forEach(o => {
-                        const el = document.createElement('option');
-                        el.value = o.v;
-                        el.textContent = o.t;
-                        subSel.appendChild(el);
-                    });
-                };
-                updateSubTypes('multi_group');
+                updateSubTypesShared('multi_group');
                 subArea.classList.remove('hidden');
                 subSel.value = type;
-            } else if (type === 'choice') {
+            } else if (type.startsWith('assoc')) {
+                sel.value = 'assoc_group';
+                updateSubTypesShared('assoc_group');
+                subArea.classList.remove('hidden');
+                subSel.value = type;
+            } else if (type.startsWith('choice')) {
                 sel.value = 'choice';
-                const updateSubTypes = (mainVal) => {
-                    subSel.innerHTML = '';
-                    let subItems = [];
-                    if (mainVal === 'free') {
-                        subItems = [
-                            { v: 'free_written', t: APP_TEXT.Creator.TypeFreeWritten },
-                            { v: 'free_oral', t: APP_TEXT.Creator.TypeFreeOral },
-                            { v: 'letter_select', t: APP_TEXT.Creator.TypeLetterSelect }
-                        ];
-                    } else if (mainVal === 'multi_group') {
-                        subItems = [
-                            { v: 'multi_written', t: APP_TEXT.Creator.TypeMultiWritten },
-                            { v: 'multi_oral', t: APP_TEXT.Creator.TypeMultiOral }
-                        ];
-                    } else if (mainVal === 'choice') {
-                        subItems = [
-                            { v: 'choice_single', t: "2-1) 単一解答" },
-                            { v: 'choice_multi', t: "2-2) ダウト問題" }
-                        ];
-                    }
-                    subItems.forEach(o => {
-                        const el = document.createElement('option');
-                        el.value = o.v;
-                        el.textContent = o.t;
-                        subSel.appendChild(el);
-                    });
-                };
-                updateSubTypes('choice');
+                updateSubTypesShared('choice');
                 subArea.classList.remove('hidden');
                 const isMulti = firstQ.multi || firstQ.mode === 'multi';
                 subSel.value = isMulti ? 'choice_multi' : 'choice_single';
@@ -448,16 +415,32 @@ window.App.Creator = {
             }
             container.appendChild(row);
         }
-        else if (type.startsWith('multi')) {
-            container.innerHTML = `<p class="text-sm text-gray mb-5">${APP_TEXT.Creator.DescMulti}</p>`;
+        else if (type.startsWith('assoc')) {
+            container.innerHTML = `<p class="text-sm text-gray mb-5">${APP_TEXT.Creator.DescAssoc}</p>`;
+            const assocDiv = document.createElement('div');
+            assocDiv.className = 'grid-gap-5';
+            container.appendChild(assocDiv);
+
+            if (data && data.c) {
+                data.c.forEach((txt, i) => this.addAssocInput(assocDiv, i, txt));
+            } else {
+                for (let i = 0; i < 5; i++) Object.assign(this, { addAssocInput: this.addAssocInput }) && this.addAssocInput(assocDiv, i, '');
+            }
+            this.createAddBtn(container, APP_TEXT.Creator.BtnAddAssoc, () => this.addAssocInput(assocDiv, undefined, ''));
+        }
+        else if (type.startsWith('multi') || type.startsWith('ranking')) {
+            const isRanking = type.startsWith('ranking');
+            const descText = isRanking ? APP_TEXT.Creator.DescRanking : APP_TEXT.Creator.DescMulti;
+            const addBtnText = isRanking ? APP_TEXT.Creator.BtnAddRanking : APP_TEXT.Creator.BtnAddMulti;
+            container.innerHTML = `<p class="text-sm text-gray mb-5">${descText}</p>`;
             const multiDiv = document.createElement('div');
             multiDiv.className = 'grid-gap-5';
             container.appendChild(multiDiv);
 
-            if (data) data.c.forEach((txt, i) => this.addMultiInput(multiDiv, i, txt));
-            else for (let i = 0; i < 5; i++) this.addMultiInput(multiDiv, i);
+            if (data) data.c.forEach((txt, i) => this.addMultiInput(multiDiv, i, txt, isRanking));
+            else for (let i = 0; i < 5; i++) this.addMultiInput(multiDiv, i, '', isRanking);
 
-            this.createAddBtn(container, APP_TEXT.Creator.BtnAddMulti, () => this.addMultiInput(multiDiv));
+            this.createAddBtn(container, addBtnText, () => this.addMultiInput(multiDiv, undefined, '', isRanking));
         }
     },
 
@@ -684,14 +667,37 @@ window.App.Creator = {
         });
     },
 
-    addMultiInput: function (parent, index, text = "") {
+    addMultiInput: function (parent, index, text = "", isRanking = false) {
+        const idx = (index !== undefined) ? index : parent.children.length;
         const row = document.createElement('div');
         row.className = 'flex-center gap-5';
+        const labelText = isRanking ? `${idx + 1}位` : `${idx + 1}`;
+        const placeholder = isRanking ? `${idx + 1}位の答え` : 'Answer';
         row.innerHTML = `
-            <input type="text" class="multi-text-input flex-1" placeholder="Answer" value="${text}">
+            <span class="bold cyan text-lg" style="min-width:35px; text-align:center;">${labelText}</span>
+            <input type="text" class="multi-text-input flex-1" placeholder="${placeholder}" value="${text}">
             <button class="btn-mini btn-dark w-30">×</button>
         `;
         row.querySelector('button').onclick = () => row.remove();
+        parent.appendChild(row);
+    },
+
+    addAssocInput: function (parent, index, text = "") {
+        const idx = (index !== undefined) ? index : parent.children.length;
+        const row = document.createElement('div');
+        row.className = 'flex-center gap-5';
+        row.innerHTML = `
+            <span class="bold cyan text-lg" style="min-width:45px; text-align:center;">ヒント${idx + 1}</span>
+            <input type="text" class="assoc-text-input flex-1" placeholder="ヒント内容" value="${text}">
+            <button class="btn-mini btn-dark w-30">×</button>
+        `;
+        row.querySelector('button').onclick = () => {
+            row.remove();
+            // Re-index remaining association inputs
+            Array.from(parent.children).forEach((r, i) => {
+                r.querySelector('span').textContent = `ヒント${i + 1}`;
+            });
+        };
         parent.appendChild(row);
     },
 
@@ -797,7 +803,12 @@ window.App.Creator = {
             const ans = document.getElementById('creator-text-answer').value.trim();
             if (normalizedType === 'free_written' && !ans) { alert(APP_TEXT.Creator.AlertNoTextAns); return null; }
             newQ.correct = ans ? ans.split(',').map(s => s.trim()).filter(s => s) : [];
-        } else if (normalizedType.startsWith('multi')) {
+        } else if (normalizedType.startsWith('assoc')) {
+            const opts = [];
+            document.querySelectorAll('.assoc-text-input').forEach(inp => { if (inp.value.trim()) opts.push(inp.value.trim()); });
+            if (opts.length < 1) return null; // require at least 1 hint maybe? or 5? Let's say at least 1 for flexibility.
+            newQ.c = opts; newQ.correct = opts;
+        } else if (normalizedType.startsWith('multi') || normalizedType.startsWith('ranking')) {
             const opts = [];
             document.querySelectorAll('.multi-text-input').forEach(inp => { if (inp.value.trim()) opts.push(inp.value.trim()); });
             if (opts.length < 1) return null;

@@ -332,7 +332,7 @@ window.App.Dashboard = {
             if (['free_oral', 'free_written', 'letter_select'].includes(t)) return 'free';
             if (t === 'choice') return 'choice';
             if (t === 'sort') return 'sort';
-            if (['multi', 'multi_written', 'multi_oral'].includes(t)) return 'multi';
+            if (['multi', 'multi_written', 'multi_oral', 'ranking_written', 'ranking_oral'].includes(t)) return 'multi';
             return 'unknown';
         };
 

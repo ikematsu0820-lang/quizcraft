@@ -26,13 +26,18 @@ const APP_TEXT = {
         TypeFreeOral: "1-2) 口頭解答（口頭・司会判定）",
         TypeFreeWritten: "1-1) 記述式（自由入力・司会判定）",
         TypeMulti: "④ 多答クイズ",
+        TypeAssoc: "⑤ ５連想クイズ",
         TypeMultiWritten: "4-1) 記述式（自由入力・司会判定）",
         TypeMultiOral: "4-2) 口頭解答（口頭・司会判定）",
+        TypeRankingWritten: "4-3) ランキング記述式（自由入力・司会判定）",
+        TypeRankingOral: "4-4) ランキング口頭式（口頭・司会判定）",
+        TypeAssocWritten: "5-1) ５連想記述式（自由入力・司会判定）",
+        TypeAssocOral: "5-2) ５連想口頭式（口頭・司会判定）",
 
         PlaceholderQ: "問題文を入力", BtnAdd: "リストに追加", BtnUpdateQ: "更新する", BtnCancel: "キャンセル", ListHeading: "作成中のリスト", BtnSave: "クラウドに保存して完了", BtnUpdate: "更新して完了", OptMulti: "正解を選択",
         LabelTextFormat: "解答形式", TextFormatWritten: "記述式", TextFormatOral: "口頭 (正解入力任意)", LabelSortInitial: "初期配置", SortInitialRandom: "ランダム (推奨)", SortInitialFixed: "固定 (作成順)",
-        DescSort: "※各項目の横に正しい順序を入力してください（1, 2, ...）", DescText: "※正解キーワード（カンマ区切り）", DescMulti: "※全ての項目が正解になります",
-        BtnAddChoice: "＋ 選択肢を追加", BtnAddSort: "＋ 項目を追加", BtnAddMulti: "＋ 正解を追加",
+        DescSort: "※各項目の横に正しい順序を入力してください（1, 2, ...）", DescText: "※正解キーワード（カンマ区切り）", DescMulti: "※全ての項目が正解になります", DescRanking: "※1位から順番に入力してください", DescAssoc: "※5つのヒントを順番に入力してください",
+        BtnAddChoice: "＋ 選択肢を追加", BtnAddSort: "＋ 項目を追加", BtnAddMulti: "＋ 正解を追加", BtnAddRanking: "＋ ランキングを追加", BtnAddAssoc: "＋ ヒントを追加",
 
         HeadingSettings: "",
         LabelLayout: "モニターレイアウト", LayoutStandard: "標準 (上:問題 / 下:選択肢)", LayoutSplitList: "左右分割 (右:縦書き問題 / 左:リスト)", LayoutSplitGrid: "左右分割 (右:縦書き問題 / 左:グリッド)", LabelAlign: "文字の配置", AlignLeft: "左揃え", AlignCenter: "中央揃え", AlignRight: "右揃え",
@@ -68,7 +73,6 @@ const APP_TEXT = {
 
         // Turn Settings
         LabelTurnOrder: "▼ 順番ルール", TurnOrderFixed: "固定 (参加順)", TurnOrderRandom: "ランダム", TurnOrderRank: "成績順 (点数高い順)",
-        LabelTurnPass: "▼ パス設定", TurnPassOk: "パス可 (次へ回す)", TurnPassNg: "パス不可",
 
         // ★Solo Settings (New)
         LabelSoloStyle: "▼ 出題進行 (Progress)", SoloStyleManual: "手動 (Manual)", SoloStyleAuto: "自動 (Auto Interval)", SoloStyleCorrect: "正解で次へ (Next on Correct)",

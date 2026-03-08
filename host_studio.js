@@ -13,6 +13,8 @@ App.Studio = {
     turnOrder: [],    // Array of player IDs in set order for turn mode
     turnIndex: 0,     // Current turn index
     turnAdvancedThisQ: false, // Flag to prevent double-advancing turn in normal mode
+    timeLimitTimer: null,     // Timer ID for time limit countdown
+    timeLimitEndTime: null,   // End time for current time limit
 
     onMainAction: function () {
         // This is a fallback/dispatcher. Typically btnMain.onclick is overwritten by setStep.
@@ -136,8 +138,8 @@ App.Studio = {
             document.getElementById('studio-player-count-display').textContent = count;
             this.updatePlayerList(players);
 
-            // ★ Turn Mode: Update UI on player join/leave in Step 0
-            if (App.Data.currentConfig?.mode === 'turn' && this.currentStepId === 0) {
+            // ★ Turn/Solo Mode: Update UI on player join/leave in Step 0
+            if ((App.Data.currentConfig?.mode === 'turn' || App.Data.currentConfig?.mode === 'solo') && this.currentStepId === 0) {
                 const btnMain = document.getElementById('btn-phase-main');
                 if (btnMain) this.renderTurnOrderSetup(btnMain);
             }
@@ -452,11 +454,17 @@ App.Studio = {
         App.State.currentPeriodIndex = index;
         if (!item.progSettings) item.progSettings = { showRankingAfter: false, eliminationMode: 'none' };
 
-        // Follow design studio's slide order by default, only shuffle if explicit config says so
-        const shuffle = (item.config && item.config.shuffleQuestions === true);
+        // Always run shuffleQuestions to apply per-question choice shuffling (q.shuffle flag).
+        // The global config.shuffleQuestions only controls question ORDER randomization.
         let qs = item.questions || [];
         if (!Array.isArray(qs)) qs = Object.values(qs);
-        App.Data.studioQuestions = shuffle ? this.shuffleQuestions(qs) : qs;
+        // Apply per-question choice shuffling (based on each q.shuffle flag)
+        qs = this.shuffleQuestions(qs);
+        // If global question order shuffle is enabled, randomize the question order too
+        if (item.config && item.config.shuffleQuestions === true) {
+            qs = this.shuffleArray([...qs]);
+        }
+        App.Data.studioQuestions = qs;
         App.Data.currentConfig = item.config || { mode: 'normal' };
         App.Data.currentConfig.periodTitle = item.title || "Untitled";
         App.State.currentQIndex = 0;
@@ -500,11 +508,13 @@ App.Studio = {
         this.revealedMultiIndices = {};
         this.isTurnOrderConfirmed = false;
         this.turnSetupDismissed = false;
+        this.clearTimeLimit();
         this.setStep(0);
     },
 
     setStep: function (stepId) {
         this.currentStepId = stepId;
+        this.clearTimeLimit(); // Always clear any running time limit timer on step change
         document.getElementById('turn-order-setup')?.remove(); // Cleanup turn setup UI
         this.updateStudioStatus(stepId); // Sync Status Indicators
         this.updateNextPreview(); // Update preview when step changes
@@ -718,6 +728,9 @@ App.Studio = {
                         isBuzzActive: true // Active immediately
                     });
 
+                    // Start time limit for buzz mode too
+                    this.startTimeLimit(roomId);
+
                 } else if (isTurn || isSolo) {
                     // Turn/Solo Mode: Only the current turn player can answer
                     // Ensure turnIndex is valid
@@ -761,6 +774,9 @@ App.Studio = {
                         isTurnMode: true
                     });
 
+                    // Start time limit for turn/solo mode
+                    this.startTimeLimit(roomId);
+
                 } else {
                     // Normal Mode (Unified Flow: Question -> Answer -> Result)
                     btnMain.textContent = "正解を表示";
@@ -776,6 +792,9 @@ App.Studio = {
                         qIndex: App.State.currentQIndex,
                         qText: currentQ.q
                     });
+
+                    // Start time limit for normal mode
+                    this.startTimeLimit(roomId);
                 }
 
                 this.updateNextPreview(); // Ensure next is previewed (Answer slide)
@@ -1227,7 +1246,7 @@ App.Studio = {
     toggleMultiAnswer: function (index) {
         const roomId = App.State.currentRoomId;
         const q = App.Data.studioQuestions[App.State.currentQIndex];
-        if (!q || !q.type.startsWith('multi')) return;
+        if (!q || !(q.type.startsWith('multi') || q.type.startsWith('ranking'))) return;
 
         this.revealedMultiIndices = this.revealedMultiIndices || {};
         this.revealedMultiIndices[index] = !this.revealedMultiIndices[index];
@@ -1248,7 +1267,7 @@ App.Studio = {
         if (!container) return;
 
         container.innerHTML = '';
-        if (!q || !q.type.startsWith('multi') || !q.c) {
+        if (!q || !(q.type.startsWith('multi') || q.type.startsWith('ranking') || q.type.startsWith('assoc')) || !q.c) {
             container.classList.add('hidden');
             return;
         }
@@ -1269,8 +1288,12 @@ App.Studio = {
             btn.style.padding = '5px 10px';
             btn.style.whiteSpace = 'normal'; // Allow wrapping
 
+            let indexLabel = `${i + 1}`;
+            if (q.type.startsWith('ranking')) indexLabel = `${i + 1}位`;
+            else if (q.type.startsWith('assoc')) indexLabel = `ヒント${i + 1}`;
+
             // Show number AND text
-            btn.innerHTML = `<span style="font-size:0.8em; opacity:0.7; display:block; margin-bottom:2px;">${i + 1}</span>${choice}`;
+            btn.innerHTML = `<span style="font-size:0.8em; opacity:0.7; display:block; margin-bottom:2px;">${indexLabel}</span>${choice}`;
 
             btn.title = choice;
             btn.style.flex = "1 0 120px"; // Flexible width with min-basis
@@ -1629,7 +1652,7 @@ App.Studio = {
             cardCorrect.parentNode.style.flexDirection = 'row';
             cardCorrect.parentNode.style.alignItems = 'center';
 
-            if (q.type.startsWith('multi')) {
+            if (q.type.startsWith('multi') || q.type.startsWith('ranking')) {
                 // Multi-answer: manual reveal buttons with improved UI
 
                 // Adjust Parent Layout for Multi-Answer
@@ -1652,9 +1675,12 @@ App.Studio = {
 
                     item.className = 'multi-ans-item' + (isRevealed ? ' revealed' : '');
 
+                    const isRanking = q.type.startsWith('ranking');
+                    const idxLabel = isRanking ? `${idx + 1}\u4f4d` : `${idx + 1}`;
+
                     // Internal Structure: Index | Text | Check
                     item.innerHTML = `
-                        <div class="multi-ans-idx">${idx + 1}</div>
+                        <div class="multi-ans-idx">${idxLabel}</div>
                         <div class="multi-ans-text" title="${ans}">${ans}</div>
                         <div class="multi-ans-check">✓</div>
                     `;
@@ -1694,16 +1720,32 @@ App.Studio = {
                 return timeA - timeB;
             });
 
-        // If no one selected yet, select the fastest answered/buzzed player
+        const isTurnMode = App.Data.currentConfig?.mode === 'turn';
+        const isSoloMode = App.Data.currentConfig?.mode === 'solo';
+        const isOral = (q && q.type && q.type.includes('oral'));
+        const isDobonOrMulti = (q && (q.mode === 'dobon' || q.mode === 'multi'));
+        const isManualSelectableNoRes = (isOral || isDobonOrMulti || isTurnMode || isSoloMode);
+
+        // If no one selected yet, select the fastest answered/buzzed player OR turn player
         if (!this.selectedPlayerId && sortedPlayers.length > 0) {
-            const firstAnswered = sortedPlayers.find(p => p.lastAnswer !== null && p.lastAnswer !== undefined || p.buzzTime);
-            if (firstAnswered) this.selectedPlayerId = firstAnswered.id;
+            if (isTurnMode || isSoloMode) {
+                const turnId = this.turnOrder && this.turnOrder[this.turnIndex];
+                if (turnId && players[turnId]) {
+                    this.selectedPlayerId = turnId;
+                }
+            } else {
+                const firstAnswered = sortedPlayers.find(p => p.lastAnswer !== null && p.lastAnswer !== undefined || p.buzzTime);
+                if (firstAnswered) this.selectedPlayerId = firstAnswered.id;
+            }
         }
-        // If selected player hasn't answered yet, deselect
+
+        // If selected player hasn't answered yet, deselect UNLESS manual selection is allowed
         if (this.selectedPlayerId && players[this.selectedPlayerId]) {
             const sel = players[this.selectedPlayerId];
             const hasResponded = (sel.lastAnswer !== null && sel.lastAnswer !== undefined) || sel.buzzTime;
-            if (!hasResponded) this.selectedPlayerId = null;
+            if (!hasResponded && !isManualSelectableNoRes) {
+                this.selectedPlayerId = null;
+            }
         }
 
         horizontalList.innerHTML = '';
@@ -1711,28 +1753,17 @@ App.Studio = {
             const hasAnswered = (p.lastAnswer !== null && p.lastAnswer !== undefined) || p.buzzTime;
             const chip = document.createElement('div');
             chip.className = `console-player-chip ${this.selectedPlayerId === p.id ? 'active' : ''}`;
-            if (!hasAnswered) {
-                // Special case: For Dobon/Turn, we might want to select them even before answer?
-                // But generally wait for answer.
-                // However, user report says "Turn + Dobon -> No reaction". 
-                // Maybe because they are waiting for turn but system doesn't know.
-                // Let's allow selecting ANY player in Dobon mode to force judgment if needed.
-                const isDobonOrMulti = (q && (q.mode === 'dobon' || q.mode === 'multi'));
-                const isOral = (q && q.type.includes('oral'));
 
-                if (!isDobonOrMulti && !isOral) {
-                    chip.classList.add('disabled');
-                    chip.style.opacity = '0.35';
-                    chip.style.pointerEvents = 'none';
-                    chip.style.filter = 'grayscale(1)';
-                }
+            if (!hasAnswered && !isManualSelectableNoRes) {
+                chip.classList.add('disabled');
+                chip.style.opacity = '0.35';
+                chip.style.pointerEvents = 'none';
+                chip.style.filter = 'grayscale(1)';
             }
+
             chip.textContent = p.name;
             chip.onclick = () => {
-                const isDobonOrMulti = (q && (q.mode === 'dobon' || q.mode === 'multi'));
-                const isOral = (q && q.type.includes('oral'));
-                if (!hasAnswered && !isDobonOrMulti && !isOral) return;
-
+                if (!hasAnswered && !isManualSelectableNoRes) return;
                 this.selectedPlayerId = p.id;
                 this.renderUnifiedConsole(players);
             };
@@ -1828,8 +1859,8 @@ App.Studio = {
                     console.log("Btn X Clicked for", this.selectedPlayerId);
                     App.Studio.updatePlayerScore(this.selectedPlayerId, false);
                 };
-
-                if (p.lastAnswer !== null || (q && q.type.includes('oral'))) {
+                const hasAnswerData = (p.lastAnswer !== null && p.lastAnswer !== undefined);
+                if (hasAnswerData || (q && q.type.includes('oral'))) {
                     if (cardBtns) {
                         cardBtns.innerHTML = ''; // Clear just to be safe
                         cardBtns.appendChild(btnO);
@@ -1978,7 +2009,7 @@ App.Studio = {
             }
 
             // ★ Multi-Answer Auto-Reveal Logic
-            if (isCorrect && q.type && q.type.startsWith('multi')) {
+            if (isCorrect && q.type && (q.type.startsWith('multi') || q.type.startsWith('ranking'))) {
                 let matchedIndex = -1;
                 if (q.c) {
                     const ansIdx = parseInt(p.lastAnswer);
@@ -2096,7 +2127,7 @@ App.Studio = {
             if (config.mode === 'turn') {
                 // Consistent Dobon definition with judgeBuzzAuto
                 const isDobon = (q.mode === 'dobon' || q.mode === 'multi' || (q.type === 'choice' && q.multi));
-                const isMulti = (q.mode === 'multi' || (q.type && q.type.startsWith('multi')));
+                const isMulti = (q.mode === 'multi' || (q.type && (q.type.startsWith('multi') || q.type.startsWith('ranking'))));
 
                 // Advance turn if:
                 // 1. It is Multi mode (always advance, correct or wrong, to keep the flow? Or maybe just correct?)
@@ -2203,7 +2234,8 @@ App.Studio = {
             // No explicit config — default to buzz for free/multi types
             const hasFreeOrMulti = questions.some(q =>
                 q.type === 'free_oral' || q.type === 'free_written' ||
-                q.type === 'multi_oral' || q.type === 'multi_written'
+                q.type === 'multi_oral' || q.type === 'multi_written' ||
+                q.type === 'ranking_oral' || q.type === 'ranking_written'
             );
             if (hasFreeOrMulti) smartMode = 'buzz';
         }
@@ -2341,6 +2373,56 @@ App.Studio = {
         }
         return arr;
     },
+
+    // ★ Time Limit: Start countdown timer for the current question
+    startTimeLimit: function (roomId) {
+        this.clearTimeLimit(); // Clear any existing timer
+
+        const config = App.Data.currentConfig;
+        if (!config || config.timeLimitEnabled !== 'on') return;
+
+        const seconds = parseInt(config.timeLimitSeconds) || 30;
+        if (seconds <= 0) return;
+
+        const now = Date.now();
+        this.timeLimitEndTime = now + (seconds * 1000);
+
+        // Send time limit info to Firebase (for viewer/player countdown)
+        window.db.ref(`rooms/${roomId}/status`).update({
+            timeLimit: seconds,
+            timeLimitStart: now
+        });
+
+        // Set local timer to auto-close
+        this.timeLimitTimer = setTimeout(() => {
+            console.log("Time limit expired, auto-closing question.");
+            App.Ui.showToast(`制限時間（${seconds}秒）終了！`);
+
+            // Send 'closed' status to lock all players
+            window.db.ref(`rooms/${roomId}/status`).update({
+                step: 'closed',
+                timeLimit: null,
+                timeLimitStart: null
+            });
+
+            // After a brief pause, auto-advance to answer reveal
+            setTimeout(() => {
+                if (this.currentStepId === 2) {
+                    this.setStep(5); // Go to answer reveal
+                }
+            }, 2000);
+        }, seconds * 1000);
+    },
+
+    // ★ Time Limit: Clear the countdown timer
+    clearTimeLimit: function () {
+        if (this.timeLimitTimer) {
+            clearTimeout(this.timeLimitTimer);
+            this.timeLimitTimer = null;
+        }
+        this.timeLimitEndTime = null;
+    },
+
     showPanelSelection: function (winnerId) {
         const modal = document.getElementById('panel-selection-modal');
         if (!modal) return;
@@ -2523,12 +2605,8 @@ App.Studio = {
             this.turnOrder = [...validOrder, ...newPlayers];
         } else {
             // Solo Mode: Single selection
-            let currentSelection = (this.turnOrder && this.turnOrder.length > 0) ? this.turnOrder[0] : null;
-            if (!currentSelection || !players[currentSelection]) {
-                currentSelection = playerIds[0]; // Default to first player
-                this.turnOrder = [currentSelection];
-            } else {
-                this.turnOrder = [currentSelection];
+            if (!isAlreadyConfirmed) {
+                this.turnOrder = []; // Wait for user to select 1 player
             }
         }
 
@@ -2555,14 +2633,48 @@ App.Studio = {
                     const isSelected = (this.turnOrder[0] === pid);
                     const bg = isSelected ? 'rgba(155,89,182,0.3)' : 'rgba(255,255,255,0.05)';
                     const border = isSelected ? '1px solid #9b59b6' : '1px solid rgba(255,255,255,0.1)';
-                    row.style.cssText = `display:flex; align-items:center; gap:10px; background:${bg}; border:${border}; border-radius:8px; padding:10px 12px; transition:all 0.2s; cursor:${isConfirmed ? 'default' : 'pointer'};`;
+                    row.style.cssText = `display:flex; align-items:center; gap:10px; background:${bg}; border:${border}; border-radius:8px; padding:10px 12px; transition:all 0.2s; cursor:pointer;`;
 
-                    if (!isConfirmed) {
-                        row.onclick = () => {
-                            this.turnOrder = [pid];
-                            renderList();
-                        };
-                    }
+                    // In solo mode, clicking a player makes them the challenger and enables the Start button
+                    row.onclick = () => {
+                        this.turnOrder = [pid];
+                        this.isTurnOrderConfirmed = true; // State persistence
+                        isConfirmed = true;
+
+                        // UI Updates: Enable Start Button immediately
+                        const exactBtn = document.getElementById('btn-phase-main');
+                        if (exactBtn) {
+                            exactBtn.disabled = false;
+                            exactBtn.style.opacity = '1';
+                            exactBtn.style.pointerEvents = 'auto';
+                            exactBtn.style.cursor = 'pointer';
+                            exactBtn.style.filter = 'none';
+                            exactBtn.style.background = '';
+                            exactBtn.classList.add('anim-pop-in');
+                            exactBtn.classList.remove('action-ready');
+                            exactBtn.classList.add('action-next');
+                        }
+                        if (btnMain && btnMain !== exactBtn) {
+                            btnMain.disabled = false;
+                            btnMain.classList.remove('action-ready');
+                            btnMain.classList.add('action-next');
+                        }
+                        this.syncMainButton();
+
+                        // Sync to Firebase
+                        this.turnIndex = 0;
+                        this.turnAdvancedThisQ = false;
+                        const roomId = App.State.currentRoomId;
+                        const turnOrderNames = [players[pid] ? players[pid].name : '---'];
+                        window.db.ref(`rooms/${roomId}/status`).update({
+                            turnOrder: this.turnOrder,
+                            turnOrderNames: turnOrderNames,
+                            turnIndex: 0,
+                            isTurnMode: true
+                        });
+
+                        renderList();
+                    };
                 } else {
                     row.style.cssText = 'display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px 12px; transition:all 0.2s;';
                 }
@@ -2588,7 +2700,7 @@ App.Studio = {
                 row.appendChild(numBadge);
                 row.appendChild(nameEl);
 
-                // Turn Mode Buttons
+                // Turn Mode Buttons (Not used in Solo)
                 if (!isSolo) {
                     const btnContainer = document.createElement('div');
                     btnContainer.style.display = 'flex';
@@ -2642,14 +2754,13 @@ App.Studio = {
         renderList();
         container.appendChild(listEl);
 
-        // Function Buttons Container
-        const funcBtnContainer = document.createElement('div');
-        funcBtnContainer.style.cssText = 'display:flex; gap:10px; margin-top:15px; margin-bottom:5px;';
-
-        // Shuffle button (Turn Mode Only)
-        let shuffleBtn = null;
+        // Turn Mode Only: Function Buttons Container (Shuffle + Confirm)
         if (!isSolo) {
-            shuffleBtn = document.createElement('button');
+            const funcBtnContainer = document.createElement('div');
+            funcBtnContainer.style.cssText = 'display:flex; gap:10px; margin-top:15px; margin-bottom:5px;';
+
+            // Shuffle button
+            const shuffleBtn = document.createElement('button');
             shuffleBtn.style.cssText = 'flex:1; padding:10px; border:1px solid rgba(155,89,182,0.4); border-radius:8px; background:rgba(155,89,182,0.15); color:#9b59b6; cursor:pointer; font-size:0.9em; font-weight:bold; transition:all 0.2s;';
             shuffleBtn.innerHTML = '<i class="fas fa-random"></i> ランダム';
             shuffleBtn.disabled = isConfirmed;
@@ -2670,89 +2781,86 @@ App.Studio = {
                 renderList();
             };
             funcBtnContainer.appendChild(shuffleBtn);
-        }
 
-        // Confirm Button
-        const confirmBtn = document.createElement('button');
-        confirmBtn.style.cssText = 'flex:2; padding:12px; border:none; border-radius:8px; background:linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); color:#fff; cursor:pointer; font-size:1.0em; font-weight:bold; box-shadow:0 4px 12px rgba(155,89,182,0.4); transition:all 0.2s;';
+            // Confirm Button
+            const confirmBtn = document.createElement('button');
+            confirmBtn.style.cssText = 'flex:2; padding:12px; border:none; border-radius:8px; background:linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); color:#fff; cursor:pointer; font-size:1.0em; font-weight:bold; box-shadow:0 4px 12px rgba(155,89,182,0.4); transition:all 0.2s;';
 
-        if (isConfirmed) {
-            confirmBtn.disabled = true;
-            confirmBtn.innerHTML = '<i class="fas fa-check"></i> 確定済み';
-            confirmBtn.style.background = '#444';
-            confirmBtn.style.boxShadow = 'none';
-            confirmBtn.style.color = '#aaa';
-            confirmBtn.style.cursor = 'default';
-        } else {
-            confirmBtn.innerHTML = isSolo ? 'チャレンジャーを確定' : '順番を確定する';
-            confirmBtn.onmouseover = () => confirmBtn.style.filter = 'brightness(1.1)';
-            confirmBtn.onmouseout = () => confirmBtn.style.filter = 'brightness(1.0)';
-        }
+            if (isConfirmed) {
+                confirmBtn.disabled = true;
+                confirmBtn.innerHTML = '<i class="fas fa-check"></i> 確定済み';
+                confirmBtn.style.background = '#444';
+                confirmBtn.style.boxShadow = 'none';
+                confirmBtn.style.color = '#aaa';
+                confirmBtn.style.cursor = 'default';
+            } else {
+                confirmBtn.innerHTML = '順番を確定する';
+                confirmBtn.onmouseover = () => confirmBtn.style.filter = 'brightness(1.1)';
+                confirmBtn.onmouseout = () => confirmBtn.style.filter = 'brightness(1.0)';
+            }
 
-        confirmBtn.onclick = () => {
-            isConfirmed = true;
-            this.isTurnOrderConfirmed = true; // State persistence
+            confirmBtn.onclick = () => {
+                isConfirmed = true;
+                this.isTurnOrderConfirmed = true; // State persistence
 
-            // UI Updates: Lock inputs
-            confirmBtn.disabled = true;
-            confirmBtn.innerHTML = '<i class="fas fa-check"></i> 確定済み';
-            confirmBtn.style.background = '#444';
-            confirmBtn.style.boxShadow = 'none';
-            confirmBtn.style.color = '#aaa';
-            confirmBtn.style.cursor = 'default';
+                // UI Updates: Lock inputs
+                confirmBtn.disabled = true;
+                confirmBtn.innerHTML = '<i class="fas fa-check"></i> 確定済み';
+                confirmBtn.style.background = '#444';
+                confirmBtn.style.boxShadow = 'none';
+                confirmBtn.style.color = '#aaa';
+                confirmBtn.style.cursor = 'default';
 
-            if (shuffleBtn) {
                 shuffleBtn.disabled = true;
                 shuffleBtn.style.opacity = '0.3';
                 shuffleBtn.style.cursor = 'default';
-            }
 
-            // Re-render list to disable up/down buttons
-            renderList();
-            container.style.opacity = '0.8';
+                // Re-render list to disable up/down buttons
+                renderList();
+                container.style.opacity = '0.8';
 
-            // --- FORCE DOM UPDATE FOR MAIN BUTTON ---
-            const exactBtn = document.getElementById('btn-phase-main');
-            if (exactBtn) {
-                exactBtn.disabled = false;
-                exactBtn.style.opacity = '1';
-                exactBtn.style.pointerEvents = 'auto';
-                exactBtn.style.cursor = 'pointer';
-                exactBtn.style.filter = 'none';
-                exactBtn.style.background = ''; // Clear inline that might override class
-                exactBtn.classList.add('anim-pop-in');
+                // --- FORCE DOM UPDATE FOR MAIN BUTTON ---
+                const exactBtn = document.getElementById('btn-phase-main');
+                if (exactBtn) {
+                    exactBtn.disabled = false;
+                    exactBtn.style.opacity = '1';
+                    exactBtn.style.pointerEvents = 'auto';
+                    exactBtn.style.cursor = 'pointer';
+                    exactBtn.style.filter = 'none';
+                    exactBtn.style.background = ''; // Clear inline that might override class
+                    exactBtn.classList.add('anim-pop-in');
 
-                // Use .action-next for BLUE color (as requested)
-                exactBtn.classList.remove('action-ready');
-                exactBtn.classList.add('action-next');
+                    // Use .action-next for BLUE color (as requested)
+                    exactBtn.classList.remove('action-ready');
+                    exactBtn.classList.add('action-next');
 
-                if (btnMain && btnMain !== exactBtn) {
-                    btnMain.disabled = false;
-                    btnMain.classList.remove('action-ready');
-                    btnMain.classList.add('action-next');
+                    if (btnMain && btnMain !== exactBtn) {
+                        btnMain.disabled = false;
+                        btnMain.classList.remove('action-ready');
+                        btnMain.classList.add('action-next');
+                    }
                 }
-            }
-            this.syncMainButton();
+                this.syncMainButton();
 
-            // Sync to Firebase
-            this.turnIndex = 0;
-            this.turnAdvancedThisQ = false;
-            const roomId = App.State.currentRoomId;
-            const turnOrderNames = this.turnOrder.map(id => {
-                const p = players[id];
-                return p ? p.name : '---';
-            });
-            window.db.ref(`rooms/${roomId}/status`).update({
-                turnOrder: this.turnOrder,
-                turnOrderNames: turnOrderNames,
-                turnIndex: 0,
-                isTurnMode: true
-            });
-            App.Ui.showToast(isSolo ? "チャレンジャーを確定しました" : "解答順番を確定しました");
-        };
-        funcBtnContainer.appendChild(confirmBtn);
-
-        container.appendChild(funcBtnContainer);
+                // Sync to Firebase
+                this.turnIndex = 0;
+                this.turnAdvancedThisQ = false;
+                const roomId = App.State.currentRoomId;
+                const turnOrderNames = this.turnOrder.map(id => {
+                    const p = players[id];
+                    return p ? p.name : '---';
+                });
+                window.db.ref(`rooms/${roomId}/status`).update({
+                    turnOrder: this.turnOrder,
+                    turnOrderNames: turnOrderNames,
+                    turnIndex: 0,
+                    isTurnMode: true
+                });
+                App.Ui.showToast("解答順番を確定しました");
+            };
+            funcBtnContainer.appendChild(confirmBtn);
+            container.appendChild(funcBtnContainer);
+        }
 
         // Override main button to just clean up
         // Check if already wrapped to avoid double-wrapping on re-renders

@@ -98,6 +98,8 @@ App.Config = {
             else if (type === 'free_written') { typeDisplay = APP_TEXT.Creator.TypeFreeWritten; qType = type; }
             else if (type === 'multi_written') { typeDisplay = APP_TEXT.Creator.TypeMultiWritten; qType = type; }
             else if (type === 'multi_oral') { typeDisplay = APP_TEXT.Creator.TypeMultiOral; isOral = true; qType = type; }
+            else if (type === 'ranking_written') { typeDisplay = APP_TEXT.Creator.TypeRankingWritten; qType = type; }
+            else if (type === 'ranking_oral') { typeDisplay = APP_TEXT.Creator.TypeRankingOral; isOral = true; qType = type; }
             else if (type === 'multi') { typeDisplay = APP_TEXT.Creator.TypeMulti; qType = type; }
             else typeDisplay = "不明";
         }
@@ -130,7 +132,7 @@ App.Config = {
                     <option value="turn">Turn</option>
                     <option value="solo">Solo</option>
                 </select>
-                ${qType.startsWith('multi') ? '<p style="font-size:0.8em; color:#ffd700; margin-top:8px;">※多答形式は一斉解答を利用できません</p>' : ''}
+                ${(qType.startsWith('multi') || qType.startsWith('ranking')) ? '<p style="font-size:0.8em; color:#ffd700; margin-top:8px;">※多答形式は一斉解答を利用できません</p>' : ''}
                 </div>
 
                 <hr style="border:0; border-top:1px dashed #444; margin:20px 0;">
@@ -195,14 +197,14 @@ App.Config = {
             }
         }
         // 2. Multi -> Default Turn
-        else if (qType.startsWith('multi')) {
+        else if (qType.startsWith('multi') || qType.startsWith('ranking')) {
             if (!conf.mode || conf.mode === 'normal') {
                 targetMode = 'turn';
             }
         }
         // 3. One-on-One types (1-1, 1-2, 1-3) -> Default Buzz (if normal/default)
         else if (targetMode === 'normal') {
-            const hasOneOnOne = questions.some(q => ['free_oral', 'free_written', 'letter_select', 'multi_oral'].includes(q.type));
+            const hasOneOnOne = questions.some(q => ['free_oral', 'free_written', 'letter_select', 'multi_oral', 'ranking_oral'].includes(q.type));
             if (hasOneOnOne) {
                 targetMode = 'buzz';
             }
@@ -430,7 +432,7 @@ App.Config = {
                 label: '一斉解答',
                 desc: '全員同時に解答',
                 color: '#00e5ff',
-                disabled: isOral || (qType && qType.startsWith('multi')) || isDobon,
+                disabled: isOral || (qType && (qType.startsWith('multi') || qType.startsWith('ranking'))) || isDobon,
                 hasDetail: qType === 'free_written'
             },
             {
@@ -600,7 +602,7 @@ App.Config = {
         } else if (mode === 'turn') {
             modeLabel = '🔄 順番解答 — 解答設定';
             // 解答者の回し方：ダウト問題・多答問題のみ表示
-            const showRotateMode = isDobon || (qType && qType.startsWith('multi'));
+            const showRotateMode = isDobon || (qType && (qType.startsWith('multi') || qType.startsWith('ranking')));
             const currentRotate = conf.turnRotateMode || 'per_q';
             const challengerSection = showRotateMode ? `
                 <div style="margin-bottom:16px;">
@@ -614,13 +616,6 @@ App.Config = {
             ` : '';
             sheetContent = `
                 ${challengerSection}
-                <div>
-                    <label class="config-label">${APP_TEXT.Config.LabelTurnPass}</label>
-                    <select id="config-turn-pass" class="btn-block config-select">
-                        <option value="ok" ${conf.turnPass === 'ok' ? 'selected' : ''}>${APP_TEXT.Config.TurnPassOk}</option>
-                        <option value="ng" ${conf.turnPass === 'ng' ? 'selected' : ''}>${APP_TEXT.Config.TurnPassNg}</option>
-                    </select>
-                </div>
             `;
         } else if (mode === 'solo') {
             modeLabel = '🏆 ソロ対戦 — 解答設定';
@@ -812,13 +807,6 @@ App.Config = {
         } else if (mode === 'turn') {
             html += `
                 <div class="mode-settings-box mode-box-turn">
-                    <div>
-                        <label class="config-label">${APP_TEXT.Config.LabelTurnPass}</label>
-                        <select id="config-turn-pass" class="btn-block config-select">
-                            <option value="ok" ${conf.turnPass === 'ok' ? 'selected' : ''}>${APP_TEXT.Config.TurnPassOk}</option>
-                            <option value="ng" ${conf.turnPass === 'ng' ? 'selected' : ''}>${APP_TEXT.Config.TurnPassNg}</option>
-                        </select>
-                    </div>
                 </div>`;
         } else if (mode === 'solo') {
             html += `
@@ -1388,7 +1376,6 @@ App.Config = {
             slotMin: currentConf.slotMin !== undefined ? currentConf.slotMin : (parseInt(document.getElementById('conf-slot-min')?.value || "1") || 1),
             slotMax: currentConf.slotMax !== undefined ? currentConf.slotMax : (parseInt(document.getElementById('conf-slot-max')?.value || "10") || 10),
             turnOrder: document.getElementById('config-turn-order')?.value || 'fixed',
-            turnPass: document.getElementById('config-turn-pass')?.value || 'ok',
             turnRotateMode: document.getElementById('config-turn-rotate-mode')?.value || currentConf.turnRotateMode || 'per_q',
             soloStyle: document.getElementById('config-solo-style')?.value || 'manual',
             soloTimeType: document.getElementById('config-solo-time-type')?.value || 'per_q',
