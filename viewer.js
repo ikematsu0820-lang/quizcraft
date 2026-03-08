@@ -592,9 +592,10 @@ window.App.Viewer = {
                     html += `<div class="c-area" style="${gridStyle}">`;
                     q.c.forEach((c, i) => {
                         const isRevealed = revealedMulti[i];
-                        const isMultiType = (q.type && (q.type.startsWith('multi') || q.type.startsWith('ranking')));
+                        const isAssoc = (q.type && q.type.startsWith('assoc'));
+                        const isMultiType = (q.type && (q.type.startsWith('multi') || q.type.startsWith('ranking') || isAssoc));
                         const isAnswerPhase = (st.step === 'reveal_correct' || st.step === 'answer');
-                        const isMissed = isMultiType && isAnswerPhase && !isRevealed;
+                        const isMissed = isMultiType && !isAssoc && isAnswerPhase && !isRevealed;
 
                         let bgStyle = isRevealed ? 'background:#2ecc71;' : (d.cBgColor ? `background:${d.cBgColor};` : '');
                         if (isMissed) bgStyle = 'background:#ff5555;';
@@ -613,7 +614,7 @@ window.App.Viewer = {
                         const prefixLabel = q.type.startsWith('ranking') ? `${i + 1}位` : String.fromCharCode(65 + i);
 
                         html += `<div class="choice-item" style="${colorStyle} ${bgStyle} ${bStyle} ${transformStyle} transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-                            <span class="choice-prefix" style="color:${isRevealed || isMissed ? '#fff' : borderColor}; ${isMultiType && !q.type.startsWith('ranking') ? 'display:none;' : ''}">${prefixLabel}</span> 
+                            <span class="choice-prefix" style="color:${isRevealed || isMissed ? '#fff' : borderColor}; ${isMultiType && !q.type.startsWith('ranking') && !isAssoc ? 'display:none;' : ''}">${prefixLabel}</span> 
                             <span style="${isHidden ? 'visibility:hidden;' : ''}">${c}</span>
                         </div>`;
                     });
@@ -645,9 +646,10 @@ window.App.Viewer = {
                     q.c.forEach((c, i) => {
 
                         const isRevealed = revealedMulti[i];
-                        const isMultiType = (q.type && (q.type.startsWith('multi') || q.type.startsWith('ranking')));
+                        const isAssoc = (q.type && q.type.startsWith('assoc'));
+                        const isMultiType = (q.type && (q.type.startsWith('multi') || q.type.startsWith('ranking') || isAssoc));
                         const isAnswerPhase = (st.step === 'reveal_correct' || st.step === 'answer');
-                        const isMissed = isMultiType && isAnswerPhase && !isRevealed;
+                        const isMissed = isMultiType && !isAssoc && isAnswerPhase && !isRevealed;
 
                         let bgStyle = isRevealed ? 'background:#2ecc71;' : (d.cBgColor ? `background:${d.cBgColor};` : '');
                         if (isMissed) bgStyle = 'background:#ff5555;';
@@ -666,7 +668,7 @@ window.App.Viewer = {
                         const prefixLabel = q.type.startsWith('ranking') ? `${i + 1}位` : String.fromCharCode(65 + i);
 
                         html += `<div class="choice-item" style="${colorStyle} ${bgStyle} ${bStyle} ${transformStyle} transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-                            <span class="choice-prefix" style="color:${isRevealed || isMissed ? '#fff' : borderColor}; ${isMultiType && !q.type.startsWith('ranking') ? 'display:none;' : ''}">${prefixLabel}</span> 
+                            <span class="choice-prefix" style="color:${isRevealed || isMissed ? '#fff' : borderColor}; ${isMultiType && !q.type.startsWith('ranking') && !isAssoc ? 'display:none;' : ''}">${prefixLabel}</span> 
                             <span style="${isHidden ? 'visibility:hidden;' : ''}">${c}</span>
                         </div>`;
                     });

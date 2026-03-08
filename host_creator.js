@@ -416,7 +416,19 @@ window.App.Creator = {
             container.appendChild(row);
         }
         else if (type.startsWith('assoc')) {
-            container.innerHTML = `<p class="text-sm text-gray mb-5">${APP_TEXT.Creator.DescAssoc}</p>`;
+            container.innerHTML = `
+                <div class="creator-row">
+                    <label class="config-label">正解キーワード</label>
+                    <input type="text" id="creator-assoc-answer" class="btn-block flex-1" placeholder="キーワード（複数ある場合はカンマ区切り）" style="margin-bottom:10px;">
+                </div>
+                <p class="text-sm text-gray mb-5">${APP_TEXT.Creator.DescAssoc}</p>
+            `;
+
+            const assocAnsInput = container.querySelector('#creator-assoc-answer');
+            if (data && data.correct) {
+                assocAnsInput.value = Array.isArray(data.correct) ? data.correct.join(', ') : data.correct;
+            }
+
             const assocDiv = document.createElement('div');
             assocDiv.className = 'grid-gap-5';
             container.appendChild(assocDiv);
@@ -804,10 +816,14 @@ window.App.Creator = {
             if (normalizedType === 'free_written' && !ans) { alert(APP_TEXT.Creator.AlertNoTextAns); return null; }
             newQ.correct = ans ? ans.split(',').map(s => s.trim()).filter(s => s) : [];
         } else if (normalizedType.startsWith('assoc')) {
+            const ans = document.getElementById('creator-assoc-answer').value.trim();
+            if (normalizedType === 'assoc_written' && !ans) { alert(APP_TEXT.Creator.AlertNoTextAns); return null; }
+            newQ.correct = ans ? ans.split(',').map(s => s.trim()).filter(s => s) : [];
+
             const opts = [];
             document.querySelectorAll('.assoc-text-input').forEach(inp => { if (inp.value.trim()) opts.push(inp.value.trim()); });
             if (opts.length < 1) return null; // require at least 1 hint maybe? or 5? Let's say at least 1 for flexibility.
-            newQ.c = opts; newQ.correct = opts;
+            newQ.c = opts;
         } else if (normalizedType.startsWith('multi') || normalizedType.startsWith('ranking')) {
             const opts = [];
             document.querySelectorAll('.multi-text-input').forEach(inp => { if (inp.value.trim()) opts.push(inp.value.trim()); });

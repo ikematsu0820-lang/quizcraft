@@ -259,7 +259,7 @@ function updateUI() {
     // クイズエリア（問題文・選択肢）は、待機中以外は基本表示する方針に変更
     if (['question', 'answering', 'answer', 'reveal_q', 'reveal_correct'].includes(st.step)) {
         quizArea.classList.remove('hidden');
-        if (currentQuestion && (currentQuestion.type.startsWith('multi') || currentQuestion.type.startsWith('ranking'))) {
+        if (currentQuestion && (currentQuestion.type.startsWith('multi') || currentQuestion.type.startsWith('ranking') || currentQuestion.type.startsWith('assoc'))) {
             updateMultiAnswers();
         }
     } else {
@@ -719,8 +719,9 @@ function renderResultScreen(p) {
     } else if (currentQuestion.type === 'sort') {
         const correctStr = Array.isArray(currentQuestion.correct) ? currentQuestion.correct.map(idx => String.fromCharCode(65 + idx)).join('') : currentQuestion.correct;
         correctText = correctStr.split('').map(char => currentQuestion.c[char.charCodeAt(0) - 65]).join(' → ');
-    } else if (currentQuestion.type && (currentQuestion.type.startsWith('multi') || currentQuestion.type.startsWith('ranking'))) {
+    } else if (currentQuestion.type && (currentQuestion.type.startsWith('multi') || currentQuestion.type.startsWith('ranking') || currentQuestion.type.startsWith('assoc'))) {
         const isRanking = currentQuestion.type.startsWith('ranking');
+        const isAssoc = currentQuestion.type.startsWith('assoc');
         const revealed = localStatus.revealedMulti || {};
         const choices = currentQuestion.c || [];
 
@@ -728,7 +729,7 @@ function renderResultScreen(p) {
         choices.forEach((choice, i) => {
             const isRevealed = revealed[i];
             const itemClass = isRevealed ? 'player-multi-item is-revealed' : 'player-multi-item is-missed';
-            const indexLabel = isRanking ? `${i + 1}位` : `${i + 1}`;
+            const indexLabel = isRanking ? `${i + 1}位` : (isAssoc ? String.fromCharCode(65 + i) : `${i + 1}`);
 
             gridHtml += `
                 <div class="${itemClass}" style="min-height:44px; padding:10px 15px;">
@@ -738,7 +739,12 @@ function renderResultScreen(p) {
             `;
         });
         gridHtml += '</div>';
-        correctText = gridHtml;
+
+        if (isAssoc) {
+            correctText = `[正解] ${currentQuestion.correct}<br>${gridHtml}`;
+        } else {
+            correctText = gridHtml;
+        }
     } else {
         correctText = currentQuestion.correct;
     }
@@ -770,7 +776,7 @@ function renderResultScreen(p) {
         // Removed flash effect
     }
 
-    const isMultiResult = currentQuestion.type && (currentQuestion.type.startsWith('multi') || currentQuestion.type.startsWith('ranking'));
+    const isMultiResult = currentQuestion.type && (currentQuestion.type.startsWith('multi') || currentQuestion.type.startsWith('ranking') || currentQuestion.type.startsWith('assoc'));
     ansBox.innerHTML = `
         <div style="display:flex; flex-direction:column; align-items:center; margin-bottom:20px;">
             ${judgeHtml}
@@ -890,7 +896,7 @@ function renderPlayerQuestion(q, roomId, playerId) {
     inputCont.innerHTML = '';
 
     const gameView = document.getElementById('player-game-view');
-    if (q.type && (q.type.startsWith('multi') || q.type.startsWith('ranking'))) {
+    if (q.type && (q.type.startsWith('multi') || q.type.startsWith('ranking') || q.type.startsWith('assoc'))) {
         gameView.classList.add('multi-layout-active');
         inputCont.classList.add('multi-mode-container');
     } else {
@@ -1227,11 +1233,12 @@ function renderPlayerQuestion(q, roomId, playerId) {
         }
     }
 
-    else if (q.type.startsWith('multi') || q.type.startsWith('ranking')) {
+    else if (q.type.startsWith('multi') || q.type.startsWith('ranking') || q.type.startsWith('assoc')) {
         const isRankingType = q.type.startsWith('ranking');
+        const isAssocType = q.type.startsWith('assoc');
         inputCont.classList.add('multi-mode-container');
-        // ★ For multi-written, place Input & Submit at the TOP (below Question)
-        if (q.type === 'multi_written' || q.type === 'ranking_written') {
+        // ★ For written, place Input & Submit at the TOP (below Question)
+        if (q.type === 'multi_written' || q.type === 'ranking_written' || q.type === 'assoc_written') {
             const wrapper = document.createElement('div');
             wrapper.style.display = 'flex';
             wrapper.style.gap = '10px';
@@ -1283,11 +1290,11 @@ function renderPlayerQuestion(q, roomId, playerId) {
 
             const idx = document.createElement('div');
             idx.className = 'multi-index';
-            idx.textContent = isRankingType ? `${i + 1}位` : (i + 1);
+            idx.textContent = isRankingType ? `${i + 1}位` : (isAssocType ? String.fromCharCode(65 + i) : (i + 1));
 
             const text = document.createElement('div');
             text.className = 'multi-text-hidden';
-            text.textContent = isRankingType ? `?位` : '?????';
+            text.textContent = isRankingType ? `?位` : (isAssocType ? `ヒント${i + 1}` : '?????');
 
             item.appendChild(idx);
             item.appendChild(text);
@@ -1317,8 +1324,9 @@ function renderPlayerQuestion(q, roomId, playerId) {
 
 function updateMultiAnswers() {
     const q = currentQuestion;
-    if (!q || !(q.type.startsWith('multi') || q.type.startsWith('ranking'))) return;
+    if (!q || !(q.type.startsWith('multi') || q.type.startsWith('ranking') || q.type.startsWith('assoc'))) return;
     const isRankingType = q.type.startsWith('ranking');
+    const isAssocType = q.type.startsWith('assoc');
     const revealed = localStatus.revealedMulti || {};
 
     q.c.forEach((choice, i) => {
@@ -1335,7 +1343,9 @@ function updateMultiAnswers() {
         } else if (!isRevealed) {
             item.classList.remove('is-revealed');
             textEl.className = 'multi-text-hidden';
-            textEl.textContent = isRankingType ? `?位` : '?????';
+            if (isRankingType) textEl.textContent = `?位`;
+            else if (isAssocType) textEl.textContent = `ヒント${i + 1}`;
+            else textEl.textContent = '?????';
         }
     });
 }
