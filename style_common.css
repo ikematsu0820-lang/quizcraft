@@ -785,3 +785,29 @@ button.btn-player-hero:hover {
     transform: translateY(0) scale(1);
     pointer-events: auto;
 }
+
+/* --- Test FAB specific styles --- */
+.fab-test-btn {
+    opacity: 0;
+    transform: translateY(20px) scale(0.8);
+    pointer-events: none;
+    transition: all 0.4s cubic-bezier(0.42, 0, 0.58, 1);
+}
+
+.fab-test-btn:hover {
+    transform: scale(1.1) translateY(-5px) !important;
+    box-shadow: 0 15px 40px rgba(0, 229, 255, 0.6) !important;
+}
+
+.fab-test-btn:active {
+    transform: scale(0.95) !important;
+}
+
+#creator-view:not(.hidden)~.fab-test-container .fab-test-btn,
+#config-view:not(.hidden)~.fab-test-container .fab-test-btn,
+#design-view:not(.hidden)~.fab-test-container .fab-test-btn,
+#production-design-view:not(.hidden)~.fab-test-container .fab-test-btn {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+}

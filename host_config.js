@@ -101,6 +101,8 @@ App.Config = {
             else if (type === 'ranking_written') { typeDisplay = APP_TEXT.Creator.TypeRankingWritten; qType = type; }
             else if (type === 'ranking_oral') { typeDisplay = APP_TEXT.Creator.TypeRankingOral; isOral = true; qType = type; }
             else if (type === 'multi') { typeDisplay = APP_TEXT.Creator.TypeMulti; qType = type; }
+            else if (type === 'assoc_written') { typeDisplay = APP_TEXT.Creator.TypeAssocWritten; qType = type; }
+            else if (type === 'assoc_oral') { typeDisplay = APP_TEXT.Creator.TypeAssocOral; isOral = true; qType = type; }
             else typeDisplay = "不明";
         }
 
@@ -204,7 +206,7 @@ App.Config = {
         }
         // 3. One-on-One types (1-1, 1-2, 1-3) -> Default Buzz (if normal/default)
         else if (targetMode === 'normal') {
-            const hasOneOnOne = questions.some(q => ['free_oral', 'free_written', 'letter_select', 'multi_oral', 'ranking_oral'].includes(q.type));
+            const hasOneOnOne = questions.some(q => ['free_oral', 'free_written', 'letter_select', 'multi_oral', 'ranking_oral', 'assoc_oral'].includes(q.type));
             if (hasOneOnOne) {
                 targetMode = 'buzz';
             }

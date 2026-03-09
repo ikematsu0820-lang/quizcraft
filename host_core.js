@@ -81,12 +81,36 @@ window.App.init = function () {
 
     const urlParams = new URLSearchParams(window.location.search);
     const vcode = urlParams.get('vcode');
+    const testHost = urlParams.get('testHost');
+    const testProg = urlParams.get('testProg');
 
     if (vcode) {
         this.Ui.showView(this.Ui.views.viewerMain);
         if (window.App.Viewer && window.App.Viewer.connect) {
             window.App.Viewer.connect(vcode);
         }
+        return;
+    }
+
+    if (testHost) {
+        this.Ui.showView(this.Ui.views.hostControl);
+        window.App.State.currentRoomId = testHost; // Use the same ID for the room
+        window.db.ref(`saved_sets/${testHost}`).once('value', snap => {
+            if (snap.exists() && window.App.Studio && window.App.Studio.quickStart) {
+                window.App.Studio.quickStart(snap.val());
+            }
+        });
+        return;
+    }
+
+    if (testProg) {
+        this.Ui.showView(this.Ui.views.hostControl);
+        window.App.State.currentRoomId = testProg;
+        window.db.ref(`saved_programs/${testProg}`).once('value', snap => {
+            if (snap.exists() && window.App.Studio && window.App.Studio.quickStartProg) {
+                window.App.Studio.quickStartProg(snap.val());
+            }
+        });
         return;
     }
 
@@ -175,6 +199,63 @@ window.App.bindEvents = function () {
     });
     document.getElementById('fab-prog-save')?.addEventListener('click', () => {
         if (window.App.ProgConfig?.saveProgram) window.App.ProgConfig.saveProgram();
+    });
+
+    // --- TEST PLAY LOGIC ---
+    document.getElementById('fab-test-play')?.addEventListener('click', () => {
+        const countStr = prompt("テストプレイを行うプレイヤー数を選んでください (1〜8)\n※ 出題者画面とモニター画面も同時に開きます", "4");
+        if (countStr === null) return; // Cancelled
+
+        let count = parseInt(countStr);
+        if (isNaN(count) || count < 1) count = 1;
+        if (count > 8) count = 8;
+
+        window.App.Ui.showToast("テストデータを準備しています...");
+
+        // 1. Save data from active view implicitly
+        const isProg = !document.getElementById('prog-config-view').classList.contains('hidden');
+        if (isProg && window.App.ProgConfig?.saveProgram) {
+            window.App.ProgConfig.saveProgram();
+        } else if (!document.getElementById('creator-view').classList.contains('hidden')) {
+            if (window.App.Creator?.save) window.App.Creator.save();
+        } else if (!document.getElementById('config-view').classList.contains('hidden')) {
+            if (window.App.Config?.saveRulesToSet) window.App.Config.saveRulesToSet();
+        } else if (!document.getElementById('design-view').classList.contains('hidden')) {
+            if (window.App.Design?.save) window.App.Design.save();
+        }
+
+        // 2. Prepare test room
+        setTimeout(() => {
+            const testId = `TEST-${Math.floor(Math.random() * 9000) + 1000}`; // TEST-1234
+            const dbPath = isProg ? `saved_programs/${testId}` : `saved_sets/${testId}`;
+            const uploadData = isProg ? { playlist: window.App.Data.periodPlaylist } : window.App.Data.currentSet;
+
+            if (!uploadData) {
+                alert("エラー: テストデータが見つかりません");
+                return;
+            }
+
+            window.db.ref(dbPath).set(uploadData).then(() => {
+                // 3. Open tabs
+                const baseUrl = window.location.origin + window.location.pathname;
+
+                // Open Host
+                const hostUrl = `${baseUrl}?${isProg ? 'testProg' : 'testHost'}=${testId}`;
+                window.open(hostUrl, '_blank');
+
+                // Open Viewer (Monitor)
+                const viewerUrl = `${baseUrl}?vcode=${testId}`;
+                window.open(viewerUrl, '_blank');
+
+                // Open Players
+                for (let i = 1; i <= count; i++) {
+                    const playerUrl = `${baseUrl}?room=${testId}&autoName=Player${i}`;
+                    window.open(playerUrl, '_blank');
+                }
+
+                window.App.Ui.showToast("テストプレイを開始しました");
+            });
+        }, 500); // 500ms for saving
     });
 };
 
@@ -273,6 +354,7 @@ window.App.Dashboard = {
                             <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('type', 'choice', this)">選択式</button>
                             <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('type', 'sort', this)">並び替え</button>
                             <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('type', 'multi', this)">多答問題</button>
+                            <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('type', 'assoc', this)">連想</button>
                         </div>
                     </div>
                     <style>
@@ -333,6 +415,7 @@ window.App.Dashboard = {
             if (t === 'choice') return 'choice';
             if (t === 'sort') return 'sort';
             if (['multi', 'multi_written', 'multi_oral', 'ranking_written', 'ranking_oral'].includes(t)) return 'multi';
+            if (t.startsWith('assoc')) return 'assoc';
             return 'unknown';
         };
 

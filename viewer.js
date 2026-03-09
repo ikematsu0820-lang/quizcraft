@@ -283,6 +283,49 @@ window.App.Viewer = {
             mainText.innerHTML = '';
             this.renderBombGrid(st.cards);
         }
+        // --- SELECTING SET (Container / Multi) ---
+        else if (st.step === 'selecting_set') {
+            statusDiv.textContent = "SELECT";
+            this.applyDefaultDesign(viewContainer, null);
+
+            const cTitle = st.containerTitle || '選択コンテナ';
+            const sets = st.containerSets || [];
+
+            let setsHtml = '';
+            sets.forEach((name, i) => {
+                setsHtml += `
+                    <div style="
+                        background: rgba(255,255,255,0.05);
+                        border: 2px solid rgba(0,229,255,0.3);
+                        border-radius: 16px;
+                        padding: 25px 40px;
+                        font-size: 3.5vh;
+                        font-weight: 700;
+                        color: #fff;
+                        text-align: center;
+                        animation: fadeSlideIn ${0.5 + i * 0.15}s ease-out backwards;
+                    ">${name}</div>
+                `;
+            });
+
+            mainText.innerHTML = `
+                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; width:100%; gap:3vh;">
+                    <div style="font-size:2.5vw; color:#ffd700; font-weight:900; text-shadow:0 0 20px rgba(255,215,0,0.4); margin-bottom:1vh;">
+                        📦 ${cTitle}
+                    </div>
+                    <div style="font-size:1.8vw; color:#aaa; margin-bottom:3vh; animation:pulse 2s infinite;">
+                        司会者がクイズセットを選択しています...
+                    </div>
+                    <div style="display:flex; flex-wrap:wrap; gap:2vh; justify-content:center; width:80%; max-width:1200px;">
+                        ${setsHtml}
+                    </div>
+                </div>
+                <style>
+                    @keyframes fadeSlideIn { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:translateY(0); } }
+                    @keyframes pulse { 0%{opacity:0.6;} 50%{opacity:1;} 100%{opacity:0.6;} }
+                </style>
+            `;
+        }
 
         this.updateTimeLimitDisplay(st);
     },

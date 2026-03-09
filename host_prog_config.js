@@ -279,50 +279,28 @@ window.App.ProgConfig = {
 
         playlist.forEach((item, i) => {
             if (item.type === 'container') {
-                // Render Container
+                // Render Container (Compact - same height as single)
                 const childCount = item.items ? item.items.length : 0;
 
-                let childrenHtml = '';
-                if (item.items) {
-                    item.items.forEach((child, ci) => {
-                        const childMode = child.config?.mode || 'normal';
-                        const childQ = child.questions?.length || 0;
-                        childrenHtml += `
-                            <div class="timeline-card prog-card-compact" style="margin-left:20px; border-left:4px solid #444; margin-bottom:5px; cursor:default;" onclick="event.stopPropagation()">
-                                <div class="prog-card-row">
-                                    <div class="prog-card-info" style="background:#222;" onclick="event.stopPropagation(); window.App.ProgConfig.openSettings(${i}, ${ci})">
-                                        <div class="prog-card-title" style="font-size:0.9em;">${child.title}</div>
-                                        <div class="prog-card-meta" style="font-size:0.7em;">${childQ}Q / ${childMode}</div>
-                                    </div>
-                                    <div class="prog-card-settings" style="width:40px;">
-                                        <button class="btn-mini btn-info" onclick="event.stopPropagation(); window.App.ProgConfig.moveInContainer(${i}, ${ci}, -1)" style="padding:2px 5px; width:100%;">▲</button>
-                                        <button class="btn-mini btn-info" onclick="event.stopPropagation(); window.App.ProgConfig.moveInContainer(${i}, ${ci}, 1)" style="padding:2px 5px; width:100%;">▼</button>
-                                        <button class="btn-mini btn-danger" onclick="event.stopPropagation(); window.App.ProgConfig.removeInContainer(${i}, ${ci})" style="padding:2px 5px; width:100%;">✕</button>
-                                    </div>
+                html += `
+                    <div class="timeline-card prog-card-compact" draggable="true" data-index="${i}">
+                        <div class="prog-card-row">
+                            <div class="drag-handle" style="display:flex; align-items:center; padding-right:10px; color:#555; cursor:grab; font-size:1.2em;">☰</div>
+                            <div style="font-weight:bold; color:#00e5ff; font-size:1.2em; margin-right:12px; width:24px; text-align:center; flex-shrink:0;">${i + 1}</div>
+                            <div class="prog-card-info" onclick="window.App.ProgConfig.openContainerDetail(${i})">
+                                <div class="prog-card-title"><span style="font-size:0.7em; padding:1px 6px; margin-right:5px; background:rgba(255,170,0,0.2); color:#ffaa00; border-radius:4px; font-weight:bold;">MULTI</span>${item.title || '選択コンテナ'}</div>
+                                <div class="prog-card-meta">${childCount}セット格納</div>
+                                <div style="font-size:0.75em; color:#888; margin-top:4px;">
+                                    <i class="fas fa-box-open"></i> タップして中身を確認
                                 </div>
                             </div>
-                        `;
-                    });
-                }
-
-                html += `
-                <div class="timeline-card prog-card-compact" draggable="true" data-index="${i}" style="border:1px solid #444; background:#111; padding:10px; cursor:pointer;" onclick="window.App.ProgConfig.openSetSelector(${i})">
-                    <div class="flex-between mb-5">
-                        <div style="display:flex; align-items:center;">
-                            <div class="drag-handle" style="cursor:grab; margin-right:8px; color:#555; font-size:1.2em;">☰</div>
-                            <div style="font-weight:bold; color:#aaa;">📦 選択コンテナ (タップしてセット追加)</div>
-                        </div>
-                        <div class="prog-card-settings" style="display:flex; gap:5px;" onclick="event.stopPropagation()">
-                             <button class="btn-mini btn-info" onclick="window.App.ProgConfig.move(${i}, -1)">▲</button>
-                             <button class="btn-mini btn-info" onclick="window.App.ProgConfig.move(${i}, 1)">▼</button>
-                             <button class="btn-mini btn-danger" onclick="window.App.ProgConfig.remove(${i})">✕</button>
+                            <div class="prog-card-settings" style="display:flex; flex-direction:column; justify-content:center; align-items:center; width:60px; padding:0 5px;">
+                                <button class="btn-mini btn-info" onclick="window.App.ProgConfig.move(${i}, -1)" style="padding:4px 8px; margin-bottom:4px; width:100%;">▲</button>
+                                <button class="btn-mini btn-info" onclick="window.App.ProgConfig.move(${i}, 1)" style="padding:4px 8px; margin-bottom:4px; width:100%;">▼</button>
+                                <button class="btn-mini btn-danger" onclick="window.App.ProgConfig.remove(${i})" style="padding:4px 8px; width:100%;">✕</button>
+                            </div>
                         </div>
                     </div>
-                     
-                    <div style="margin-bottom:10px;">
-                       ${childrenHtml}
-                    </div>
-                </div>
                 `;
 
             } else {
@@ -356,6 +334,7 @@ window.App.ProgConfig = {
                     <div class="timeline-card prog-card-compact" draggable="true" data-index="${i}">
                         <div class="prog-card-row">
                             <div class="drag-handle" style="display:flex; align-items:center; padding-right:10px; color:#555; cursor:grab; font-size:1.2em;">☰</div>
+                            <div style="font-weight:bold; color:#00e5ff; font-size:1.2em; margin-right:12px; width:24px; text-align:center; flex-shrink:0;">${i + 1}</div>
                             <div class="prog-card-info" onclick="window.App.ProgConfig.openSettings(${i})">
                                 <div class="prog-card-title"><span class="badge-set" style="font-size:0.7em; padding:1px 6px; margin-right:5px;">SET</span>${item.title || 'Untitled'} ${updateBadge}</div>
                                 <div class="prog-card-meta">${dateStr}${dateStr ? ' / ' : ''}${qCount}Q / ${modeLabel}</div>
@@ -486,6 +465,70 @@ window.App.ProgConfig = {
         if (!parent || parent.type !== 'container') return;
         parent.items.splice(childIdx, 1);
         this.renderPlaylist();
+        // Refresh the detail sheet if open
+        if (document.getElementById('container-detail-modal')) {
+            this.openContainerDetail(parentIdx);
+        }
+    },
+
+    openContainerDetail: function (index) {
+        const item = window.App.Data.periodPlaylist[index];
+        if (!item || item.type !== 'container') return;
+
+        // Remove existing modal
+        const existing = document.getElementById('container-detail-modal');
+        if (existing) existing.remove();
+
+        const children = item.items || [];
+
+        let childrenHtml = '';
+        if (children.length === 0) {
+            childrenHtml = '<div style="text-align:center; padding:30px; color:#666;">セットがまだ追加されていません</div>';
+        } else {
+            children.forEach((child, ci) => {
+                const childMode = child.config?.mode || 'normal';
+                const childQ = child.questions?.length || 0;
+                let modeLabel = childMode;
+                if (window.App.Studio && window.App.Studio.translateMode) {
+                    modeLabel = window.App.Studio.translateMode(childMode);
+                }
+
+                childrenHtml += `
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:14px 16px; background:#222; border-radius:10px; margin-bottom:8px;">
+                        <div style="flex:1;" onclick="document.getElementById('container-detail-modal').remove(); window.App.ProgConfig.openSettings(${index}, ${ci})">
+                            <div style="font-weight:bold; color:#fff; font-size:0.95em; margin-bottom:3px;">${child.title || 'Untitled'}</div>
+                            <div style="font-size:0.75em; color:#888;">${childQ}Q / ${modeLabel}</div>
+                        </div>
+                        <button class="btn-mini btn-danger" onclick="event.stopPropagation(); window.App.ProgConfig.removeInContainer(${index}, ${ci})" style="padding:4px 10px; font-size:0.85em; flex-shrink:0; margin-left:10px;">✕</button>
+                    </div>
+                `;
+            });
+        }
+
+        const modalHtml = `
+            <div id="container-detail-modal" style="position:fixed; top:0; left:0; right:0; bottom:0; z-index:9999; display:flex; flex-direction:column; justify-content:flex-end;">
+                <div class="modal-bg" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6);" onclick="document.getElementById('container-detail-modal').remove()"></div>
+                <div class="modal-content" style="position:relative; background:#1a1a1a; padding:20px; border-radius:16px 16px 0 0; box-shadow:0 -5px 20px rgba(0,0,0,0.5); max-height:75vh; display:flex; flex-direction:column; animation:slideUp 0.3s ease-out;">
+                    <div style="flex-shrink:0; display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #333; padding-bottom:10px;">
+                        <div>
+                            <h3 style="margin:0; font-size:1.1em; color:#fff;">
+                                <span style="font-size:0.7em; padding:2px 8px; margin-right:6px; background:rgba(255,170,0,0.2); color:#ffaa00; border-radius:4px; font-weight:bold;">MULTI</span>
+                                ${item.title || '選択コンテナ'}
+                            </h3>
+                            <div style="font-size:0.8em; color:#888; margin-top:4px;">${children.length}セット格納中</div>
+                        </div>
+                        <button onclick="document.getElementById('container-detail-modal').remove()" style="background:none; border:none; color:#aaa; font-size:2em; line-height:1; cursor:pointer;">×</button>
+                    </div>
+                    <div style="overflow-y:auto; flex:1; padding-bottom:10px;">
+                        ${childrenHtml}
+                    </div>
+                    <button onclick="document.getElementById('container-detail-modal').remove(); window.App.ProgConfig.openSetSelector(${index})" class="btn-primary btn-block" style="padding:14px; font-weight:bold; font-size:1em; flex-shrink:0; margin-top:10px;">
+                        ＋ セットを追加
+                    </button>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
     },
 
     syncWithSource: function (i) {

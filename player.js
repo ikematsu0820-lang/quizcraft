@@ -21,11 +21,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // Auto-fill room code from URL ?room=CODE
     const urlParams = new URLSearchParams(window.location.search);
     const roomParam = urlParams.get('room');
+    const autoNameParam = urlParams.get('autoName');
+
     if (roomParam) {
         const input = document.getElementById('room-code-input');
         if (input) {
             input.value = roomParam.trim().toUpperCase();
-            // Optional: If name is also there or saved in session, we could auto-join
+        }
+
+        if (autoNameParam) {
+            const nameInput = document.getElementById('player-name-input');
+            if (nameInput) {
+                nameInput.value = autoNameParam.trim();
+                // Delay auto-join slightly to let UI render
+                setTimeout(() => {
+                    joinRoom();
+                }, 500);
+            }
         }
     }
 
@@ -269,7 +281,41 @@ function updateUI() {
     }
 
     // --- 状態ごとのUI制御 ---
-    if (st.step === 'standby' || st.step === 'reveal_q_num') {
+    if (st.step === 'selecting_set') {
+        // マルチコンテナ: 司会者がセットを選択中
+        lobby.classList.remove('hidden');
+        quizArea.classList.add('hidden');
+
+        const cTitle = st.containerTitle || '選択コンテナ';
+        const sets = st.containerSets || [];
+
+        let setsListHtml = '';
+        sets.forEach((name) => {
+            setsListHtml += `
+                <div style="background:rgba(255,255,255,0.05); border:1px solid rgba(0,229,255,0.2); border-radius:10px; padding:12px 16px; text-align:center; font-weight:bold; color:#fff; font-size:0.95em;">
+                    ${name}
+                </div>
+            `;
+        });
+
+        lobby.innerHTML = `
+            <div style="text-align:center; padding:20px 0;">
+                <div style="font-size:1.8em; margin-bottom:10px;">📦</div>
+                <div style="font-size:1.2em; font-weight:900; color:#ffd700; margin-bottom:6px;">${cTitle}</div>
+                <div style="font-size:0.85em; color:#aaa; margin-bottom:20px;">司会者がクイズセットを選択中...</div>
+                <div style="display:flex; flex-direction:column; gap:8px; padding:0 10px;">
+                    ${setsListHtml}
+                </div>
+                <div style="margin-top:25px; font-size:0.8em; color:#666; animation:pulse 2s infinite;">
+                    しばらくお待ちください
+                </div>
+            </div>
+            <style>@keyframes pulse { 0%{opacity:0.5;} 50%{opacity:1;} 100%{opacity:0.5;} }</style>
+        `;
+        isReanswering = false;
+        if (changeArea) changeArea.innerHTML = '';
+    }
+    else if (st.step === 'standby' || st.step === 'reveal_q_num') {
         lobby.classList.remove('hidden');
         const score = p.periodScore || 0;
 

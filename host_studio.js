@@ -451,6 +451,13 @@ App.Studio = {
             return;
         }
 
+        // --- Container (Multi) handling ---
+        if (item.type === 'container') {
+            App.State.currentPeriodIndex = index;
+            this.showContainerSelection(index);
+            return;
+        }
+
         App.State.currentPeriodIndex = index;
         if (!item.progSettings) item.progSettings = { showRankingAfter: false, eliminationMode: 'none' };
 
@@ -938,8 +945,42 @@ App.Studio = {
     handleSetCompletion: function () {
         console.log("Set complete.");
 
+        // --- Check if we're inside a container ---
+        if (this._activeContainerIndex !== undefined && this._activeContainerIndex !== null) {
+            const containerIdx = this._activeContainerIndex;
+            const container = App.Data.periodPlaylist[containerIdx];
+
+            if (container && container.type === 'container') {
+                // Remove the consumed set from the container
+                if (this._activeContainerChildIndex !== undefined && this._activeContainerChildIndex !== null) {
+                    container.items.splice(this._activeContainerChildIndex, 1);
+                }
+
+                // Clear container child context
+                this._activeContainerChildIndex = null;
+
+                // If there are still items left in the container, show selection again
+                if (container.items && container.items.length > 0) {
+                    this.showContainerSelection(containerIdx);
+                    return;
+                } else {
+                    // Container exhausted, advance to next top-level item
+                    this._activeContainerIndex = null;
+                    const nextPeriodIdx = containerIdx + 1;
+                    if (nextPeriodIdx < App.Data.periodPlaylist.length) {
+                        App.Ui.showToast("コンテナ内のクイズをすべて消費しました。次に進みます。");
+                        this.setupPeriod(nextPeriodIdx);
+                        return;
+                    } else {
+                        this.showFinalRankingOption();
+                        return;
+                    }
+                }
+            }
+        }
+
         const currentSet = App.Data.periodPlaylist[App.State.currentPeriodIndex];
-        const progSettings = currentSet.progSettings || {};
+        const progSettings = currentSet ? (currentSet.progSettings || {}) : {};
 
         // Check if there's a next set
         let nextPeriodIdx = App.State.currentPeriodIndex + 1;
@@ -964,6 +1005,169 @@ App.Studio = {
                 this.showFinalRankingOption();
             }
         }
+    },
+
+    // --- Container (Multi) Selection UI ---
+    showContainerSelection: function (containerIndex) {
+        const container = App.Data.periodPlaylist[containerIndex];
+        if (!container || container.type !== 'container' || !container.items || container.items.length === 0) {
+            // Container is empty, skip to next
+            App.Ui.showToast("コンテナにセットがありません。次に進みます。");
+            const nextIdx = containerIndex + 1;
+            if (nextIdx < App.Data.periodPlaylist.length) {
+                this.setupPeriod(nextIdx);
+            } else {
+                this.showFinalRankingOption();
+            }
+            return;
+        }
+
+        this._activeContainerIndex = containerIndex;
+
+        // Notify player/viewer screens
+        const roomId = App.State.currentRoomId;
+        const setNames = container.items.map(it => it.title || 'Untitled');
+        window.db.ref(`rooms/${roomId}/status`).update({
+            step: 'selecting_set',
+            containerTitle: container.title || '選択コンテナ',
+            containerSets: setNames
+        });
+
+        // --- Host UI: Show selection in standby panel ---
+        document.getElementById('studio-execution-grid').classList.add('hidden');
+        document.getElementById('studio-standby-panel').classList.remove('hidden');
+
+        const btnMain = document.getElementById('btn-phase-main');
+        if (btnMain) btnMain.classList.add('hidden');
+
+        // Render selection cards in standby panel
+        const standby = document.getElementById('studio-standby-panel');
+        // Find or create a container-selection area
+        let selArea = document.getElementById('studio-container-selection');
+        if (!selArea) {
+            selArea = document.createElement('div');
+            selArea.id = 'studio-container-selection';
+            standby.appendChild(selArea);
+        }
+
+        let html = `
+            <div style="text-align:center; padding:20px 0;">
+                <div style="font-size:1.5em; font-weight:900; color:#ffd700; margin-bottom:8px;">📦 ${container.title || '選択コンテナ'}</div>
+                <div style="font-size:0.9em; color:#aaa; margin-bottom:20px;">次のクイズセットを選択してください（残り${container.items.length}セット）</div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:12px; padding:0 10px;">
+        `;
+
+        container.items.forEach((child, ci) => {
+            const qCount = child.questions ? child.questions.length : 0;
+            const mode = child.config?.mode || 'normal';
+            const modeLabel = this.translateMode ? this.translateMode(mode) : mode;
+
+            html += `
+                <div onclick="window.App.Studio.startContainerChild(${containerIndex}, ${ci})" style="
+                    background: #1a1a1a;
+                    border: 2px solid #444;
+                    border-radius: 12px;
+                    padding: 18px 20px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                " onmouseover="this.style.borderColor='#00e5ff'; this.style.background='rgba(0,229,255,0.05)'"
+                   onmouseout="this.style.borderColor='#444'; this.style.background='#1a1a1a'">
+                    <div>
+                        <div style="font-weight:bold; color:#fff; font-size:1.1em; margin-bottom:4px;">${child.title || 'Untitled'}</div>
+                        <div style="font-size:0.8em; color:#888;">${qCount}Q / ${modeLabel}</div>
+                    </div>
+                    <div style="color:#00e5ff; font-size:0.85em; font-weight:bold; border:1px solid #00e5ff; padding:6px 16px; border-radius:20px;">
+                        START
+                    </div>
+                </div>
+            `;
+        });
+
+        html += `</div>`;
+        selArea.innerHTML = html;
+        selArea.classList.remove('hidden');
+
+        // Also sync console button
+        this.syncMainButton();
+    },
+
+    startContainerChild: function (containerIndex, childIndex) {
+        const container = App.Data.periodPlaylist[containerIndex];
+        if (!container || !container.items || !container.items[childIndex]) {
+            alert("エラー: 選択されたセットが見つかりません。");
+            return;
+        }
+
+        // Store context for handleSetCompletion
+        this._activeContainerIndex = containerIndex;
+        this._activeContainerChildIndex = childIndex;
+
+        const child = container.items[childIndex];
+
+        // Hide the selection area
+        const selArea = document.getElementById('studio-container-selection');
+        if (selArea) selArea.classList.add('hidden');
+
+        // Load the child as if it were a top-level single set
+        // We temporarily inject it into the flow
+        App.State.currentPeriodIndex = containerIndex; // Keep container as the period index
+        if (!child.progSettings) child.progSettings = { showRankingAfter: false, eliminationMode: 'none' };
+
+        let qs = child.questions || [];
+        if (!Array.isArray(qs)) qs = Object.values(qs);
+        qs = this.shuffleQuestions(qs);
+        if (child.config && child.config.shuffleQuestions === true) {
+            qs = this.shuffleArray([...qs]);
+        }
+        App.Data.studioQuestions = qs;
+        App.Data.currentConfig = child.config || { mode: 'normal' };
+        App.Data.currentConfig.periodTitle = child.title || "Untitled";
+        App.State.currentQIndex = 0;
+
+        const roomId = App.State.currentRoomId;
+        if (!roomId) {
+            alert("エラー: 部屋IDが取得できません。");
+            return;
+        }
+
+        // Firebase Sync
+        window.db.ref(`rooms/${roomId}/config`).set(App.Data.currentConfig);
+        window.db.ref(`rooms/${roomId}/questions`).set(App.Data.studioQuestions);
+
+        // UI Prep
+        document.getElementById('studio-standby-panel').classList.add('hidden');
+        document.getElementById('studio-execution-grid').classList.remove('hidden');
+
+        const panelCtrl = document.getElementById('studio-panel-control');
+        if (panelCtrl) {
+            if (child.config && child.config.gameType === 'panel') {
+                panelCtrl.classList.remove('hidden');
+                this.renderPanelControl();
+            } else {
+                panelCtrl.classList.add('hidden');
+            }
+        }
+
+        this.renderTimeline();
+
+        if (child.config && child.config.mode === 'solo') {
+            document.getElementById('studio-solo-info')?.classList.remove('hidden');
+            this.soloState.lives = child.config.soloLife || 3;
+            const lifeDisp = document.getElementById('studio-life-display');
+            if (lifeDisp) lifeDisp.textContent = this.soloState.lives;
+        } else {
+            document.getElementById('studio-solo-info')?.classList.add('hidden');
+        }
+
+        this.revealedMultiIndices = {};
+        this.isTurnOrderConfirmed = false;
+        this.turnSetupDismissed = false;
+        this.clearTimeLimit();
+        this.setStep(0);
     },
 
     performElimination: function (settings) {
@@ -1246,7 +1450,7 @@ App.Studio = {
     toggleMultiAnswer: function (index) {
         const roomId = App.State.currentRoomId;
         const q = App.Data.studioQuestions[App.State.currentQIndex];
-        if (!q || !(q.type.startsWith('multi') || q.type.startsWith('ranking'))) return;
+        if (!q || !(q.type.startsWith('multi') || q.type.startsWith('ranking') || q.type.startsWith('assoc'))) return;
 
         this.revealedMultiIndices = this.revealedMultiIndices || {};
         this.revealedMultiIndices[index] = !this.revealedMultiIndices[index];
