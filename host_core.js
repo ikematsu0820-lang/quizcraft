@@ -212,50 +212,98 @@ window.App.bindEvents = function () {
 
         window.App.Ui.showToast("テストデータを準備しています...");
 
-        // 1. Save data from active view implicitly
+        // 1. Construct Test Data based on Active View
         const isProg = !document.getElementById('prog-config-view').classList.contains('hidden');
-        if (isProg && window.App.ProgConfig?.saveProgram) {
-            window.App.ProgConfig.saveProgram();
-        } else if (!document.getElementById('creator-view').classList.contains('hidden')) {
-            if (window.App.Creator?.save) window.App.Creator.save();
-        } else if (!document.getElementById('config-view').classList.contains('hidden')) {
-            if (window.App.Config?.saveRulesToSet) window.App.Config.saveRulesToSet();
-        } else if (!document.getElementById('design-view').classList.contains('hidden')) {
-            if (window.App.Design?.save) window.App.Design.save();
-        }
+        let uploadData = null;
 
-        // 2. Prepare test room
-        setTimeout(() => {
-            const testId = `TEST-${Math.floor(Math.random() * 9000) + 1000}`; // TEST-1234
-            const dbPath = isProg ? `saved_programs/${testId}` : `saved_sets/${testId}`;
-            const uploadData = isProg ? { playlist: window.App.Data.periodPlaylist } : window.App.Data.currentSet;
+        if (isProg) {
+            uploadData = { playlist: window.App.Data.periodPlaylist || [] };
+        } else {
+            // For Set Editing Views
+            let workingSet = window.App.Data.currentSet ? JSON.parse(JSON.stringify(window.App.Data.currentSet)) : {};
 
-            if (!uploadData) {
-                alert("エラー: テストデータが見つかりません");
+            // If in Creator view
+            if (!document.getElementById('creator-view').classList.contains('hidden')) {
+                if (window.App.Creator) {
+                    // Update currently open question if editing
+                    if (window.App.Creator.editingIndex !== null) {
+                        const currentQ = window.App.Creator.getData();
+                        if (currentQ) window.App.Data.createdQuestions[window.App.Creator.editingIndex] = { ...window.App.Data.createdQuestions[window.App.Creator.editingIndex], ...currentQ };
+                    }
+                    workingSet.questions = window.App.Data.createdQuestions || [];
+                    workingSet.title = window.App.Creator.editingTitle || "テストセット";
+                    // Apply minimal config if missing
+                    if (!workingSet.config) workingSet.config = { mode: 'normal', gameType: 'score', theme: 'light' };
+                }
+            }
+            // If in Config view
+            else if (!document.getElementById('config-view').classList.contains('hidden')) {
+                if (window.App.Config) {
+                    const mode = document.getElementById('config-mode-select')?.value || 'normal';
+                    const gType = document.getElementById('config-game-type')?.value || 'score';
+                    workingSet.config = {
+                        ...(workingSet.config || {}),
+                        mode: mode,
+                        gameType: gType,
+                        theme: document.getElementById('config-theme-select')?.value || 'dark'
+                    };
+                }
+            }
+            // If in Design view
+            else if (!document.getElementById('design-view').classList.contains('hidden')) {
+                if (window.App.Design && window.App.Design.collectSettings) {
+                    const s = window.App.Design.collectSettings();
+                    if (workingSet.questions) {
+                        workingSet.questions.forEach(q => {
+                            q.design = s.design;
+                            q.layout = s.layout;
+                            q.align = s.align;
+                            q.prodDesign = s.prodDesign;
+                        });
+                    }
+                }
+            }
+
+            // Ensure questions exist
+            if (!workingSet.questions || workingSet.questions.length === 0) {
+                alert("テストプレイする問題がありません。追加してください。");
                 return;
             }
 
-            window.db.ref(dbPath).set(uploadData).then(() => {
-                // 3. Open tabs
-                const baseUrl = window.location.origin + window.location.pathname;
+            uploadData = workingSet;
+        }
 
-                // Open Host
-                const hostUrl = `${baseUrl}?${isProg ? 'testProg' : 'testHost'}=${testId}`;
-                window.open(hostUrl, '_blank');
+        if (!uploadData) {
+            alert("エラー: テストデータが構築できませんでした");
+            return;
+        }
 
-                // Open Viewer (Monitor)
-                const viewerUrl = `${baseUrl}?vcode=${testId}`;
-                window.open(viewerUrl, '_blank');
+        // 2. Prepare test room directly
+        const testId = `TEST-${Math.floor(Math.random() * 9000) + 1000}`; // TEST-1234
+        const dbPath = isProg ? `saved_programs/${testId}` : `saved_sets/${testId}`;
 
-                // Open Players
-                for (let i = 1; i <= count; i++) {
-                    const playerUrl = `${baseUrl}?room=${testId}&autoName=Player${i}`;
-                    window.open(playerUrl, '_blank');
-                }
+        window.db.ref(dbPath).set(uploadData).then(() => {
+            // 3. Open tabs
+            const baseUrl = window.location.origin + window.location.pathname;
 
-                window.App.Ui.showToast("テストプレイを開始しました");
-            });
-        }, 500); // 500ms for saving
+            // Open Host
+            const hostUrl = `${baseUrl}?${isProg ? 'testProg' : 'testHost'}=${testId}`;
+            window.open(hostUrl, '_blank');
+
+            // Open Viewer (Monitor)
+            const viewerUrl = `${baseUrl}?vcode=${testId}`;
+            window.open(viewerUrl, '_blank');
+
+            // Open Players
+            for (let i = 1; i <= count; i++) {
+                const playerUrl = `${baseUrl}?room=${testId}&autoName=Player${i}`;
+                window.open(playerUrl, '_blank');
+            }
+
+            window.App.Ui.showToast("テストプレイを開始しました");
+        }).catch(err => {
+            alert("テスト準備エラー: " + err.message);
+        });
     });
 };
 
