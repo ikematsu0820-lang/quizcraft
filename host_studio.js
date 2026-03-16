@@ -350,35 +350,65 @@ App.Studio = {
         select.innerHTML = '<option>読込中...</option>';
         btn.disabled = true;
 
-        this.localProgramsCache = {}; // キャッシュ初期化
+        this.localProgramsCache = {};
+        this.localSetsCache = {};
 
-        window.db.ref(`saved_programs/${showId}`).once('value', snap => {
-            const data = snap.val();
+        const progPromise = window.db.ref(`saved_programs/${showId}`).once('value');
+        const setsPromise = window.db.ref(`saved_sets/${showId}`).once('value');
+
+        Promise.all([progPromise, setsPromise]).then(([progSnap, setsSnap]) => {
+            const progData = progSnap.val();
+            const setsData = setsSnap.val();
+
             select.innerHTML = '';
-
             const def = document.createElement('option');
             def.value = "";
-            def.textContent = "-- 読み込むプログラムを選択 --";
+            def.textContent = "-- セット / プログラムを選択 --";
             select.appendChild(def);
 
-            if (data) {
-                // 新しい順にソート
-                const sorted = Object.keys(data).map(k => ({ ...data[k], key: k }))
+            // 個別セット
+            if (setsData) {
+                const setGroup = document.createElement('optgroup');
+                setGroup.label = "── 個別セット ──";
+                select.appendChild(setGroup);
+
+                const sortedSets = Object.keys(setsData).map(k => ({ ...setsData[k], key: k }))
                     .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
-                sorted.forEach(prog => {
+                sortedSets.forEach(set => {
+                    this.localSetsCache[set.key] = set;
+                    const opt = document.createElement('option');
+                    opt.value = `set:${set.key}`;
+                    opt.textContent = `${set.title} (${set.questions?.length || 0}Q)`;
+                    setGroup.appendChild(opt);
+                });
+            }
+
+            // プログラム
+            if (progData) {
+                const progGroup = document.createElement('optgroup');
+                progGroup.label = "── プログラム ──";
+                select.appendChild(progGroup);
+
+                const sortedProgs = Object.keys(progData).map(k => ({ ...progData[k], key: k }))
+                    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+                sortedProgs.forEach(prog => {
                     this.localProgramsCache[prog.key] = prog;
                     const opt = document.createElement('option');
-                    opt.value = prog.key;
+                    opt.value = `prog:${prog.key}`;
                     opt.textContent = `${prog.title} (${prog.playlist?.length || 0}セット)`;
-                    select.appendChild(opt);
+                    progGroup.appendChild(opt);
                 });
-                select.disabled = false;
-            } else {
+            }
+
+            if (!setsData && !progData) {
                 const opt = document.createElement('option');
-                opt.textContent = "(保存されたプログラムがありません)";
+                opt.textContent = "(保存されたセット/プログラムがありません)";
                 select.appendChild(opt);
             }
+
+            select.disabled = false;
         });
 
         select.onchange = () => {
@@ -386,42 +416,44 @@ App.Studio = {
         };
 
         btn.onclick = () => {
-            // alert("現在、スタジオ機能の開始ボタンは再設計中です。");
-            App.Ui.showToast("開始ボタンは現在再設計中です（実装待ち）");
-        };
-        /*
-        const key = select.value;
-        if (!key || !this.localProgramsCache[key]) return;
-    
-        const prog = this.localProgramsCache[key];
-        App.Data.periodPlaylist = prog.playlist || [];
-    
-        if (App.Data.periodPlaylist.length === 0) {
-            alert("⚠️ このプログラムにはセットが登録されていません。");
-            return;
-        }
-    
-        document.getElementById('studio-loader-ui').classList.add('hidden');
-        document.getElementById('studio-program-info').textContent = "番組読込完了: " + prog.title;
-    
-        this.renderTimeline();
-    
-        const btnMain = document.getElementById('btn-phase-main');
-        btnMain.textContent = "番組を開始";
-        btnMain.classList.remove('hidden');
-        btnMain.className = 'btn-block btn-large-action action-ready';
-    
-        btnMain.onclick = null;
-        btnMain.onclick = () => {
-            try {
-                this.setupPeriod(0);
-            } catch (e) {
-                alert("開始エラー: " + e.message);
+            const val = select.value;
+            if (!val) return;
+
+            if (val.startsWith('set:')) {
+                const key = val.slice(4);
+                const set = this.localSetsCache[key];
+                if (!set) return;
+                App.Data.periodPlaylist = [set];
+            } else if (val.startsWith('prog:')) {
+                const key = val.slice(5);
+                const prog = this.localProgramsCache[key];
+                if (!prog) return;
+                App.Data.periodPlaylist = prog.playlist || [];
+                if (App.Data.periodPlaylist.length === 0) {
+                    alert("⚠️ このプログラムにはセットが登録されていません。");
+                    return;
+                }
+            } else {
+                return;
             }
+
+            document.getElementById('studio-loader-ui').classList.add('hidden');
+            this.renderTimeline();
+
+            const btnMain = document.getElementById('btn-phase-main');
+            btnMain.textContent = "番組を開始";
+            btnMain.classList.remove('hidden');
+            btnMain.className = 'btn-block btn-large-action action-ready';
+            btnMain.onclick = null;
+            btnMain.onclick = () => {
+                try {
+                    this.setupPeriod(0);
+                } catch (e) {
+                    alert("開始エラー: " + e.message);
+                }
+            };
+            this.syncMainButton();
         };
-        this.syncMainButton();
-        */
-        // };
     },
 
     renderTimeline: function () {
