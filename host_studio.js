@@ -1063,8 +1063,9 @@ App.Studio = {
             containerOptions: options.map(opt => opt.label)
         });
 
-        // ホストUI: スタンバイパネルに選択UIを表示
+        // ホストUI: スタンバイパネルに選択UIを表示（ローダーUIは隠す）
         document.getElementById('studio-execution-grid').classList.add('hidden');
+        document.getElementById('studio-loader-ui')?.classList.add('hidden');
         document.getElementById('studio-standby-panel').classList.remove('hidden');
 
         const btnMain = document.getElementById('btn-phase-main');
