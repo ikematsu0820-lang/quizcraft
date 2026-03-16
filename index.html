@@ -44,7 +44,7 @@
                 <p class="landing-subtitle">番組IDを入力してください</p>
             </div>
             <div class="login-form-area" style="margin: 0 auto;">
-                <input type="text" id="show-id-input" class="modern-input" placeholder="SHOW ID">
+                <input type="text" id="show-id-input" class="modern-input" placeholder="ID">
                 <button id="host-login-submit-btn" class="landing-btn btn-host-modern">ログイン / 新規作成</button>
             </div>
         </div>
@@ -52,7 +52,7 @@
 
     <div id="host-dashboard-view" class="view hidden">
         <div class="view-header">
-            <h3>Show: <span id="dashboard-show-id" class="accent-text">---</span></h3>
+            <h3>ID: <span id="dashboard-show-id" class="accent-text">---</span></h3>
             <button class="header-back-btn btn-logout back-to-main" data-text="Dashboard.Logout">Logout</button>
         </div>
 
@@ -581,6 +581,18 @@
         <div class="simple-studio-main"
             style="flex:1; display:flex; flex-direction:column; justify-content:flex-start; align-items:center; padding:5px 20px 20px 20px; width:100%; box-sizing:border-box;">
 
+            <div id="studio-standby-panel" class="hidden" style="width:100%; max-width:500px; margin-bottom:20px;">
+            </div>
+
+            <div id="studio-loader-ui" class="hidden"
+                style="width:100%; max-width:500px; margin-bottom:20px; background:#222; border:1px solid #444; border-radius:12px; padding:20px; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+                <div style="color:#ffd700; font-size:1.2em; font-weight:bold; margin-bottom:15px; text-align:center;">
+                    プログラム（セット）の読込</div>
+                <select id="studio-program-select" class="btn-block config-select mb-15" style="padding:10px;"></select>
+                <button id="studio-load-program-btn" class="btn-primary btn-block"
+                    style="padding:12px; font-weight:bold; font-size:1.1em;">読み込む</button>
+            </div>
+
             <!-- Central Console Card -->
             <div class="console-card-wrapper"
                 style="width:100%; max-width:500px; margin-top:10px; background:#222; border-radius:12px; overflow:hidden; border:1px solid #444; box-shadow:0 10px 30px rgba(0,0,0,0.5); min-height:350px;">
@@ -634,7 +646,6 @@
         <div id="studio-solo-info"></div>
         <div id="studio-challenger-name"></div>
         <div id="studio-life-display"></div>
-        <div id="studio-standby-panel"></div>
         <div id="studio-program-info"></div>
         <div id="studio-period-timeline"></div>
         <div id="studio-monitor-frame"></div>
@@ -662,11 +673,7 @@
         <button id="btn-toggle-ans"></button>
         <button id="btn-force-next"></button>
 
-        <!-- Loaders -->
-        <div id="studio-loader-ui">
-            <select id="studio-program-select"></select>
-            <button id="studio-load-program-btn"></button>
-        </div>
+        <!-- Loaders (Moved to Main) -->
         <div id="studio-execution-grid"></div>
         <div id="studio-panel-control"></div>
         <div id="studio-sub-controls-legacy"></div>
