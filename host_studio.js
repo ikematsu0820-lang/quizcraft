@@ -463,7 +463,12 @@ App.Studio = {
             const btn = document.createElement('button');
             const isActive = (i === App.State.currentPeriodIndex);
             btn.className = `btn-block ${isActive ? 'btn-info' : 'btn-dark'}`;
-            btn.textContent = `${i + 1}セット目: ${item.title} [${this.translateMode(item.config.mode)}]`;
+            if (item.type === 'container') {
+                const optCount = (item.options || item.items || []).length;
+                btn.textContent = `${i + 1}: 📦 ${item.title} (${optCount}択)`;
+            } else {
+                btn.textContent = `${i + 1}セット目: ${item.title} [${this.translateMode(item.config?.mode || 'normal')}]`;
+            }
             btn.style.textAlign = 'left';
             btn.onclick = () => this.setupPeriod(i);
             area.appendChild(btn);
