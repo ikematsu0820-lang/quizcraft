@@ -417,6 +417,11 @@ select option {
     padding-right: 5px;
 }
 
+/* saved-items-view: account for view-header (~65px) + paddings + bottom nav (120px) */
+#saved-items-view .scroll-list {
+    max-height: calc(100dvh - 230px);
+}
+
 /* Scrollbar Styling */
 .scroll-list::-webkit-scrollbar {
     width: 6px;
