@@ -983,30 +983,18 @@ App.Studio = {
             const container = App.Data.periodPlaylist[containerIdx];
 
             if (container && container.type === 'container') {
-                // Remove the consumed set from the container
-                if (this._activeContainerChildIndex !== undefined && this._activeContainerChildIndex !== null) {
-                    container.items.splice(this._activeContainerChildIndex, 1);
-                }
-
-                // Clear container child context
+                // コンテナ内で1つ遊んだら、コンテナ終了とする（他の選択肢はスキップ）
                 this._activeContainerChildIndex = null;
+                this._activeContainerIndex = null;
 
-                // If there are still items left in the container, show selection again
-                if (container.items && container.items.length > 0) {
-                    this.showContainerSelection(containerIdx);
+                const nextPeriodIdx = containerIdx + 1;
+                if (nextPeriodIdx < App.Data.periodPlaylist.length) {
+                    App.Ui.showToast("選択コンテナのクイズが終了しました。次に進みます。");
+                    this.setupPeriod(nextPeriodIdx);
                     return;
                 } else {
-                    // Container exhausted, advance to next top-level item
-                    this._activeContainerIndex = null;
-                    const nextPeriodIdx = containerIdx + 1;
-                    if (nextPeriodIdx < App.Data.periodPlaylist.length) {
-                        App.Ui.showToast("コンテナ内のクイズをすべて消費しました。次に進みます。");
-                        this.setupPeriod(nextPeriodIdx);
-                        return;
-                    } else {
-                        this.showFinalRankingOption();
-                        return;
-                    }
+                    this.showFinalRankingOption();
+                    return;
                 }
             }
         }
@@ -1039,12 +1027,23 @@ App.Studio = {
         }
     },
 
-    // --- Container (Multi) Selection UI ---
+    // --- Container Selection UI ---
+    // 旧フォーマット(items)を新フォーマット(options)に透過的に変換するヘルパー
+    _getContainerOptions: function (container) {
+        if (container.options && container.options.length > 0) return container.options;
+        // 旧フォーマット backward compat
+        if (container.items && container.items.length > 0) {
+            return container.items.map((s, i) => ({ label: `${i + 1}番`, set: s }));
+        }
+        return [];
+    },
+
     showContainerSelection: function (containerIndex) {
         const container = App.Data.periodPlaylist[containerIndex];
-        if (!container || container.type !== 'container' || !container.items || container.items.length === 0) {
-            // Container is empty, skip to next
-            App.Ui.showToast("コンテナにセットがありません。次に進みます。");
+        const options = this._getContainerOptions(container);
+
+        if (!container || container.type !== 'container' || options.length === 0) {
+            App.Ui.showToast("コンテナに選択肢がありません。次に進みます。");
             const nextIdx = containerIndex + 1;
             if (nextIdx < App.Data.periodPlaylist.length) {
                 this.setupPeriod(nextIdx);
@@ -1056,25 +1055,22 @@ App.Studio = {
 
         this._activeContainerIndex = containerIndex;
 
-        // Notify player/viewer screens
+        // ビューアー画面に選択状態を送信
         const roomId = App.State.currentRoomId;
-        const setNames = container.items.map(it => it.title || 'Untitled');
         window.db.ref(`rooms/${roomId}/status`).update({
             step: 'selecting_set',
             containerTitle: container.title || '選択コンテナ',
-            containerSets: setNames
+            containerOptions: options.map(opt => opt.label)
         });
 
-        // --- Host UI: Show selection in standby panel ---
+        // ホストUI: スタンバイパネルに選択UIを表示
         document.getElementById('studio-execution-grid').classList.add('hidden');
         document.getElementById('studio-standby-panel').classList.remove('hidden');
 
         const btnMain = document.getElementById('btn-phase-main');
         if (btnMain) btnMain.classList.add('hidden');
 
-        // Render selection cards in standby panel
         const standby = document.getElementById('studio-standby-panel');
-        // Find or create a container-selection area
         let selArea = document.getElementById('studio-container-selection');
         if (!selArea) {
             selArea = document.createElement('div');
@@ -1083,16 +1079,17 @@ App.Studio = {
         }
 
         let html = `
-            <div style="text-align:center; padding:20px 0;">
-                <div style="font-size:1.5em; font-weight:900; color:#ffd700; margin-bottom:8px;">📦 ${container.title || '選択コンテナ'}</div>
-                <div style="font-size:0.9em; color:#aaa; margin-bottom:20px;">次のクイズセットを選択してください（残り${container.items.length}セット）</div>
+            <div style="text-align:center; padding:20px 0 10px;">
+                <div style="font-size:1.3em; font-weight:900; color:#ffaa00; margin-bottom:6px;">📦 ${container.title || '選択コンテナ'}</div>
+                <div style="font-size:0.85em; color:#aaa; margin-bottom:16px;">選択肢を選んでセットを開始してください</div>
             </div>
-            <div style="display:flex; flex-direction:column; gap:12px; padding:0 10px;">
+            <div style="display:flex; flex-direction:column; gap:10px; padding:0 10px;">
         `;
 
-        container.items.forEach((child, ci) => {
-            const qCount = child.questions ? child.questions.length : 0;
-            const mode = child.config?.mode || 'normal';
+        options.forEach((opt, ci) => {
+            const set = opt.set || {};
+            const qCount = set.questions ? set.questions.length : 0;
+            const mode = set.config?.mode || 'normal';
             const modeLabel = this.translateMode ? this.translateMode(mode) : mode;
 
             html += `
@@ -1100,20 +1097,20 @@ App.Studio = {
                     background: #1a1a1a;
                     border: 2px solid #444;
                     border-radius: 12px;
-                    padding: 18px 20px;
+                    padding: 14px 18px;
                     cursor: pointer;
-                    transition: all 0.2s;
                     display: flex;
-                    justify-content: space-between;
                     align-items: center;
-                " onmouseover="this.style.borderColor='#00e5ff'; this.style.background='rgba(0,229,255,0.05)'"
+                    gap: 14px;
+                " onmouseover="this.style.borderColor='#ffaa00'; this.style.background='rgba(255,170,0,0.05)'"
                    onmouseout="this.style.borderColor='#444'; this.style.background='#1a1a1a'">
-                    <div>
-                        <div style="font-weight:bold; color:#fff; font-size:1.1em; margin-bottom:4px;">${child.title || 'Untitled'}</div>
-                        <div style="font-size:0.8em; color:#888;">${qCount}Q / ${modeLabel}</div>
+                    <div style="font-size:1.8em; font-weight:900; color:#ffaa00; width:36px; text-align:center; flex-shrink:0;">${ci + 1}</div>
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-weight:bold; color:#fff; font-size:1em; margin-bottom:2px;">${opt.label || `${ci + 1}番`}</div>
+                        <div style="font-size:0.75em; color:#666;">${set.title || 'Untitled'} / ${qCount}Q / ${modeLabel}</div>
                     </div>
-                    <div style="color:#00e5ff; font-size:0.85em; font-weight:bold; border:1px solid #00e5ff; padding:6px 16px; border-radius:20px;">
-                        START
+                    <div style="color:#ffaa00; font-size:0.8em; font-weight:bold; border:1px solid #ffaa00; padding:5px 14px; border-radius:20px; flex-shrink:0;">
+                        SELECT
                     </div>
                 </div>
             `;
@@ -1123,22 +1120,22 @@ App.Studio = {
         selArea.innerHTML = html;
         selArea.classList.remove('hidden');
 
-        // Also sync console button
         this.syncMainButton();
     },
 
     startContainerChild: function (containerIndex, childIndex) {
         const container = App.Data.periodPlaylist[containerIndex];
-        if (!container || !container.items || !container.items[childIndex]) {
+        const options = this._getContainerOptions(container);
+
+        if (!container || !options[childIndex]) {
             alert("エラー: 選択されたセットが見つかりません。");
             return;
         }
 
-        // Store context for handleSetCompletion
         this._activeContainerIndex = containerIndex;
         this._activeContainerChildIndex = childIndex;
 
-        const child = container.items[childIndex];
+        const child = options[childIndex].set;
 
         // Hide the selection area
         const selArea = document.getElementById('studio-container-selection');

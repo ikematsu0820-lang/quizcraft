@@ -164,8 +164,8 @@ window.App.ProgConfig = {
     addContainer: function () {
         const newContainer = {
             type: 'container',
-            title: '選択コンテナ (Selection Period)',
-            items: [],
+            title: '選択コンテナ',
+            options: [],
             progSettings: { showRankingAfter: false, eliminationMode: 'none', eliminationCount: 0 }
         };
         window.App.Data.periodPlaylist.push(newContainer);
@@ -204,9 +204,12 @@ window.App.ProgConfig = {
         };
 
         if (containerIndex !== null) {
-            // Add to container
-            if (window.App.Data.periodPlaylist[containerIndex] && window.App.Data.periodPlaylist[containerIndex].type === 'container') {
-                window.App.Data.periodPlaylist[containerIndex].items.push(newEntry);
+            // Add to container as an option
+            const parent = window.App.Data.periodPlaylist[containerIndex];
+            if (parent && parent.type === 'container') {
+                if (!parent.options) parent.options = [];
+                const defaultLabel = `${parent.options.length + 1}番`;
+                parent.options.push({ label: defaultLabel, set: newEntry });
                 window.App.Ui.showToast(`コンテナに「${newEntry.title}」を追加しました`);
             }
         } else {
@@ -279,8 +282,8 @@ window.App.ProgConfig = {
 
         playlist.forEach((item, i) => {
             if (item.type === 'container') {
-                // Render Container (Compact - same height as single)
-                const childCount = item.items ? item.items.length : 0;
+                // Render Container
+                const optCount = item.options ? item.options.length : (item.items ? item.items.length : 0);
 
                 html += `
                     <div class="timeline-card prog-card-compact" draggable="true" data-index="${i}">
@@ -288,11 +291,9 @@ window.App.ProgConfig = {
                             <div class="drag-handle" style="display:flex; align-items:center; padding-right:10px; color:#555; cursor:grab; font-size:1.2em;">☰</div>
                             <div style="font-weight:bold; color:#00e5ff; font-size:1.2em; margin-right:12px; width:24px; text-align:center; flex-shrink:0;">${i + 1}</div>
                             <div class="prog-card-info" onclick="window.App.ProgConfig.openContainerDetail(${i})">
-                                <div class="prog-card-title"><span style="font-size:0.7em; padding:1px 6px; margin-right:5px; background:rgba(255,170,0,0.2); color:#ffaa00; border-radius:4px; font-weight:bold;">MULTI</span>${item.title || '選択コンテナ'}</div>
-                                <div class="prog-card-meta">${childCount}セット格納</div>
-                                <div style="font-size:0.75em; color:#888; margin-top:4px;">
-                                    <i class="fas fa-box-open"></i> タップして中身を確認
-                                </div>
+                                <div class="prog-card-title"><span style="font-size:0.7em; padding:1px 6px; margin-right:5px; background:rgba(255,170,0,0.2); color:#ffaa00; border-radius:4px; font-weight:bold;">CONTAINER</span>${item.title || '選択コンテナ'}</div>
+                                <div class="prog-card-meta">${optCount}択</div>
+                                <div style="font-size:0.75em; color:#888; margin-top:4px;">タップして選択肢を確認・編集</div>
                             </div>
                             <div class="prog-card-settings" style="display:flex; flex-direction:column; justify-content:center; align-items:center; width:60px; padding:0 5px;">
                                 <button class="btn-mini btn-info" onclick="window.App.ProgConfig.move(${i}, -1)" style="padding:4px 8px; margin-bottom:4px; width:100%;">▲</button>
@@ -453,7 +454,7 @@ window.App.ProgConfig = {
     moveInContainer: function (parentIdx, childIdx, dir) {
         const parent = window.App.Data.periodPlaylist[parentIdx];
         if (!parent || parent.type !== 'container') return;
-        const arr = parent.items;
+        const arr = parent.options || parent.items;
         const target = childIdx + dir;
         if (target < 0 || target >= arr.length) return;
         [arr[childIdx], arr[target]] = [arr[target], arr[childIdx]];
@@ -463,7 +464,8 @@ window.App.ProgConfig = {
     removeInContainer: function (parentIdx, childIdx) {
         const parent = window.App.Data.periodPlaylist[parentIdx];
         if (!parent || parent.type !== 'container') return;
-        parent.items.splice(childIdx, 1);
+        const arr = parent.options || parent.items;
+        arr.splice(childIdx, 1);
         this.renderPlaylist();
         // Refresh the detail sheet if open
         if (document.getElementById('container-detail-modal')) {
@@ -475,31 +477,42 @@ window.App.ProgConfig = {
         const item = window.App.Data.periodPlaylist[index];
         if (!item || item.type !== 'container') return;
 
-        // Remove existing modal
+        // 旧フォーマット(items)を新フォーマット(options)に自動移行
+        if (!item.options && item.items) {
+            item.options = item.items.map((s, i) => ({ label: `${i + 1}番`, set: s }));
+            delete item.items;
+        }
+        if (!item.options) item.options = [];
+
         const existing = document.getElementById('container-detail-modal');
         if (existing) existing.remove();
 
-        const children = item.items || [];
+        const options = item.options;
 
-        let childrenHtml = '';
-        if (children.length === 0) {
-            childrenHtml = '<div style="text-align:center; padding:30px; color:#666;">セットがまだ追加されていません</div>';
+        let optionsHtml = '';
+        if (options.length === 0) {
+            optionsHtml = '<div style="text-align:center; padding:30px; color:#666;">選択肢がまだありません</div>';
         } else {
-            children.forEach((child, ci) => {
-                const childMode = child.config?.mode || 'normal';
-                const childQ = child.questions?.length || 0;
+            options.forEach((opt, ci) => {
+                const set = opt.set || {};
+                const childQ = set.questions?.length || 0;
+                const childMode = set.config?.mode || 'normal';
                 let modeLabel = childMode;
                 if (window.App.Studio && window.App.Studio.translateMode) {
                     modeLabel = window.App.Studio.translateMode(childMode);
                 }
 
-                childrenHtml += `
-                    <div style="display:flex; justify-content:space-between; align-items:center; padding:14px 16px; background:#222; border-radius:10px; margin-bottom:8px;">
-                        <div style="flex:1;" onclick="document.getElementById('container-detail-modal').remove(); window.App.ProgConfig.openSettings(${index}, ${ci})">
-                            <div style="font-weight:bold; color:#fff; font-size:0.95em; margin-bottom:3px;">${child.title || 'Untitled'}</div>
-                            <div style="font-size:0.75em; color:#888;">${childQ}Q / ${modeLabel}</div>
+                optionsHtml += `
+                    <div style="display:flex; align-items:center; gap:10px; padding:12px; background:#222; border-radius:10px; margin-bottom:8px;">
+                        <div style="font-size:1.2em; font-weight:900; color:#ffaa00; width:28px; text-align:center; flex-shrink:0;">${ci + 1}</div>
+                        <div style="flex:1; min-width:0;">
+                            <input type="text" value="${(opt.label || '').replace(/"/g, '&quot;')}"
+                                oninput="window.App.ProgConfig.updateOptionLabel(${index}, ${ci}, this.value)"
+                                style="width:100%; background:#111; border:1px solid #444; color:#fff; border-radius:6px; padding:6px 10px; font-size:0.9em; margin-bottom:4px;"
+                                placeholder="選択肢名（例：歴史、1番）">
+                            <div style="font-size:0.75em; color:#666;">${set.title || 'Untitled'} / ${childQ}Q / ${modeLabel}</div>
                         </div>
-                        <button class="btn-mini btn-danger" onclick="event.stopPropagation(); window.App.ProgConfig.removeInContainer(${index}, ${ci})" style="padding:4px 10px; font-size:0.85em; flex-shrink:0; margin-left:10px;">✕</button>
+                        <button class="btn-mini btn-danger" onclick="event.stopPropagation(); window.App.ProgConfig.removeInContainer(${index}, ${ci})" style="padding:4px 10px; font-size:0.85em; flex-shrink:0;">✕</button>
                     </div>
                 `;
             });
@@ -508,27 +521,42 @@ window.App.ProgConfig = {
         const modalHtml = `
             <div id="container-detail-modal" style="position:fixed; top:0; left:0; right:0; bottom:0; z-index:9999; display:flex; flex-direction:column; justify-content:flex-end;">
                 <div class="modal-bg" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6);" onclick="document.getElementById('container-detail-modal').remove()"></div>
-                <div class="modal-content" style="position:relative; background:#1a1a1a; padding:20px; border-radius:16px 16px 0 0; box-shadow:0 -5px 20px rgba(0,0,0,0.5); max-height:75vh; display:flex; flex-direction:column; animation:slideUp 0.3s ease-out;">
-                    <div style="flex-shrink:0; display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #333; padding-bottom:10px;">
+                <div class="modal-content" style="position:relative; background:#1a1a1a; padding:20px; border-radius:16px 16px 0 0; box-shadow:0 -5px 20px rgba(0,0,0,0.5); max-height:80vh; display:flex; flex-direction:column; animation:slideUp 0.3s ease-out;">
+                    <div style="flex-shrink:0; display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; border-bottom:1px solid #333; padding-bottom:10px;">
                         <div>
                             <h3 style="margin:0; font-size:1.1em; color:#fff;">
-                                <span style="font-size:0.7em; padding:2px 8px; margin-right:6px; background:rgba(255,170,0,0.2); color:#ffaa00; border-radius:4px; font-weight:bold;">MULTI</span>
-                                ${item.title || '選択コンテナ'}
+                                <span style="font-size:0.7em; padding:2px 8px; margin-right:6px; background:rgba(255,170,0,0.2); color:#ffaa00; border-radius:4px; font-weight:bold;">CONTAINER</span>
+                                <input type="text" value="${(item.title || '').replace(/"/g, '&quot;')}"
+                                    oninput="window.App.ProgConfig.updateContainerTitle(${index}, this.value)"
+                                    style="background:transparent; border:none; color:#fff; font-size:1em; font-weight:bold; width:160px; outline:none; border-bottom:1px solid #444;"
+                                    placeholder="コンテナタイトル">
                             </h3>
-                            <div style="font-size:0.8em; color:#888; margin-top:4px;">${children.length}セット格納中</div>
+                            <div style="font-size:0.8em; color:#888; margin-top:4px;">${options.length}択</div>
                         </div>
-                        <button onclick="document.getElementById('container-detail-modal').remove()" style="background:none; border:none; color:#aaa; font-size:2em; line-height:1; cursor:pointer;">×</button>
+                        <button onclick="document.getElementById('container-detail-modal').remove(); window.App.ProgConfig.renderPlaylist();" style="background:none; border:none; color:#aaa; font-size:2em; line-height:1; cursor:pointer;">×</button>
                     </div>
                     <div style="overflow-y:auto; flex:1; padding-bottom:10px;">
-                        ${childrenHtml}
+                        ${optionsHtml}
                     </div>
                     <button onclick="document.getElementById('container-detail-modal').remove(); window.App.ProgConfig.openSetSelector(${index})" class="btn-primary btn-block" style="padding:14px; font-weight:bold; font-size:1em; flex-shrink:0; margin-top:10px;">
-                        ＋ セットを追加
+                        ＋ 選択肢を追加
                     </button>
                 </div>
             </div>
         `;
         document.body.insertAdjacentHTML('beforeend', modalHtml);
+    },
+
+    updateOptionLabel: function (containerIndex, optionIndex, value) {
+        const container = window.App.Data.periodPlaylist[containerIndex];
+        if (!container || !container.options || !container.options[optionIndex]) return;
+        container.options[optionIndex].label = value;
+    },
+
+    updateContainerTitle: function (containerIndex, value) {
+        const container = window.App.Data.periodPlaylist[containerIndex];
+        if (!container) return;
+        container.title = value;
     },
 
     syncWithSource: function (i) {

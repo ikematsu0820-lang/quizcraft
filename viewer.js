@@ -289,35 +289,39 @@ window.App.Viewer = {
             this.applyDefaultDesign(viewContainer, null);
 
             const cTitle = st.containerTitle || '選択コンテナ';
-            const sets = st.containerSets || [];
+            // containerOptions (新) または containerSets (旧) に対応
+            const opts = st.containerOptions || st.containerSets || [];
 
-            let setsHtml = '';
-            sets.forEach((name, i) => {
-                setsHtml += `
+            let optsHtml = '';
+            opts.forEach((label, i) => {
+                optsHtml += `
                     <div style="
-                        background: rgba(255,255,255,0.05);
-                        border: 2px solid rgba(0,229,255,0.3);
+                        background: rgba(255,255,255,0.04);
+                        border: 2px solid rgba(255,170,0,0.4);
                         border-radius: 16px;
-                        padding: 25px 40px;
-                        font-size: 3.5vh;
-                        font-weight: 700;
-                        color: #fff;
-                        text-align: center;
-                        animation: fadeSlideIn ${0.5 + i * 0.15}s ease-out backwards;
-                    ">${name}</div>
+                        padding: 3vh 5vw;
+                        display: flex;
+                        align-items: center;
+                        gap: 3vw;
+                        animation: fadeSlideIn ${0.4 + i * 0.15}s ease-out backwards;
+                        min-width: 280px;
+                    ">
+                        <div style="font-size:5vh; font-weight:900; color:#ffaa00; width:1.5em; text-align:center; flex-shrink:0;">${i + 1}</div>
+                        <div style="font-size:3.5vh; font-weight:700; color:#fff;">${label}</div>
+                    </div>
                 `;
             });
 
             mainText.innerHTML = `
                 <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; width:100%; gap:3vh;">
-                    <div style="font-size:2.5vw; color:#ffd700; font-weight:900; text-shadow:0 0 20px rgba(255,215,0,0.4); margin-bottom:1vh;">
+                    <div style="font-size:2.5vw; color:#ffaa00; font-weight:900; text-shadow:0 0 20px rgba(255,170,0,0.4); margin-bottom:1vh;">
                         📦 ${cTitle}
                     </div>
-                    <div style="font-size:1.8vw; color:#aaa; margin-bottom:3vh; animation:pulse 2s infinite;">
-                        司会者がクイズセットを選択しています...
+                    <div style="font-size:1.8vw; color:#aaa; margin-bottom:2vh; animation:pulse 2s infinite;">
+                        司会者がコースを選択しています...
                     </div>
-                    <div style="display:flex; flex-wrap:wrap; gap:2vh; justify-content:center; width:80%; max-width:1200px;">
-                        ${setsHtml}
+                    <div style="display:flex; flex-direction:column; gap:2vh; align-items:stretch; width:70%; max-width:900px;">
+                        ${optsHtml}
                     </div>
                 </div>
                 <style>
