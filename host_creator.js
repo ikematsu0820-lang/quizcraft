@@ -24,20 +24,23 @@ window.App.Creator = {
         if (window.resetGlobalSettings) window.resetGlobalSettings();
 
         this.setupTypeSelect();
-        this.resetForm();
-        this.renderList();
-        window.App.Ui.showView(window.App.Ui.views.creator);
 
+        // Reset type selector to blank on every init
         const sel = document.getElementById('creator-q-type');
         const subArea = document.getElementById('creator-q-subtype-area');
         const subSel = document.getElementById('creator-q-subtype');
         if (sel) {
+            sel.value = "";
             sel.disabled = false;
             subSel.disabled = false;
             subArea.classList.add('hidden');
             document.getElementById('creator-type-locked-msg').classList.add('hidden');
-            this.renderForm(sel.value === 'free' ? subSel.value : sel.value);
+            document.getElementById('creator-form-container').innerHTML = '';
         }
+
+        this.resetForm();
+        this.renderList();
+        window.App.Ui.showView(window.App.Ui.views.creator);
     },
 
     setupTypeSelect: function () {
