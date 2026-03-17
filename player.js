@@ -394,6 +394,12 @@ function updateUI() {
                 waitMsg.style.padding = "20px";
                 waitMsg.innerHTML = `<div class="status-badge" style="background:#e74c3c;">WRONG</div><p style="margin-top:10px; font-weight:bold; font-size:1.5em;">不正解...</p>`;
             }
+        } else if (st.bjCards && currentQuestion && currentQuestion.type === 'blackjack') {
+            // Blackjack turn: show card selection buttons
+            waitMsg.classList.add('hidden');
+            toggleInputEnabled(false); // disable normal inputs
+            quizArea.classList.remove('hidden');
+            renderBlackjackCards(st, p);
         } else {
             handleNormalResponseUI(p, quizArea, waitMsg);
             toggleInputEnabled(true);
@@ -572,7 +578,45 @@ function updateUI() {
         }
     }
     else if (st.step === 'reveal_correct') {
-        if (currentQuestion) renderResultScreen(p, true);
+        if (currentQuestion && currentQuestion.type === 'blackjack') {
+            // Show blackjack result: who picked what card and new total
+            const container = document.getElementById('player-input-container');
+            if (container) {
+                const myNewTotal = p.bjTotal || 0;
+                const target = st.bjTarget || 21;
+                const isBusted = myNewTotal > target;
+                container.innerHTML = `
+                    <div style="text-align:center; padding:16px;">
+                        <div style="font-size:0.9em; color:#aaa; margin-bottom:4px;">${st.bjPickedPlayerName || ''} が選んだカード</div>
+                        <div style="font-size:2.5em; font-weight:900; color:#ffd700;">${st.bjPickedCard || '?'}</div>
+                        <div style="font-size:0.9em; color:#aaa; margin-top:6px;">+${st.bjPickedValue || 0}</div>
+                        <hr style="border:0; border-top:1px solid #333; margin:12px 0;">
+                        <div style="font-size:0.85em; color:#aaa;">あなたの合計</div>
+                        <div style="font-size:2em; font-weight:900; color:${isBusted ? '#e74c3c' : '#2ecc71'};">${myNewTotal}</div>
+                        ${isBusted ? '<div style="color:#e74c3c; font-weight:bold;">BUST!</div>' : ''}
+                        <div style="font-size:0.8em; color:#aaa; margin-top:4px;">目標: ${target}</div>
+                    </div>
+                `;
+            }
+            quizArea.classList.remove('hidden');
+        } else if (currentQuestion) {
+            renderResultScreen(p, true);
+        }
+    }
+    else if (st.step === 'bj_result') {
+        // Blackjack final result
+        const container = document.getElementById('player-input-container');
+        if (container) {
+            container.innerHTML = `
+                <div style="text-align:center; padding:20px;">
+                    <div style="font-size:1.2em; font-weight:bold; color:#ffd700; margin-bottom:10px;">🃏 ブラックジャック結果</div>
+                    <div style="color:#aaa; font-size:0.9em;">優勝</div>
+                    <div style="font-size:1.8em; font-weight:900; color:#2ecc71;">${st.bjWinner || '---'}</div>
+                    <div style="color:#aaa; font-size:0.9em; margin-top:4px;">合計: ${st.bjWinnerTotal || 0} / 目標: ${st.bjTarget || 21}</div>
+                </div>
+            `;
+        }
+        quizArea.classList.remove('hidden');
     }
     else if (st.step === 'judging') {
         if (currentQuestion) renderResultScreen(p, false); // No commentary at judging if repetitive
@@ -743,6 +787,63 @@ function handleNormalResponseUI(p, quizArea, waitMsg) {
     }
 }
 
+
+function renderBlackjackCards(st, p) {
+    const container = document.getElementById('player-input-container');
+    if (!container) return;
+
+    // If already answered this turn, show waiting message
+    if (p.lastAnswer !== null && p.lastAnswer !== undefined) {
+        const cards = st.bjCards || [];
+        const pickedIdx = parseInt(p.lastAnswer);
+        const pickedName = (pickedIdx >= 0 && pickedIdx < cards.length) ? cards[pickedIdx] : '?';
+        container.innerHTML = `
+            <div style="text-align:center; padding:20px;">
+                <div style="color:#00b894; font-size:1.1em; font-weight:bold; margin-bottom:8px;">カードを選びました</div>
+                <div style="font-size:2em; font-weight:900; color:#ffd700;">${pickedName}</div>
+                <div style="color:#aaa; margin-top:8px; font-size:0.9em;">発表を待っています...</div>
+            </div>
+        `;
+        return;
+    }
+
+    const cards = st.bjCards || [];
+    const usedCards = st.bjUsedCards || [];
+    const myTotal = (p.bjTotal || 0);
+    const target = st.bjTarget || 21;
+
+    let html = `
+        <div style="text-align:center; margin-bottom:12px;">
+            <span style="color:#aaa; font-size:0.85em;">あなたの合計: </span>
+            <span style="color:#ffd700; font-size:1.4em; font-weight:900;">${myTotal}</span>
+            <span style="color:#aaa; font-size:0.85em;"> / 目標: ${target}</span>
+        </div>
+        <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap:8px; padding:4px;">
+    `;
+
+    cards.forEach((cardName, idx) => {
+        const isUsed = usedCards.includes(idx);
+        html += `
+            <button class="bj-card-btn" data-idx="${idx}" ${isUsed ? 'disabled' : ''}
+                style="padding:14px 8px; border-radius:8px; border:2px solid ${isUsed ? '#333' : '#ffd700'};
+                background:${isUsed ? '#1a1a1a' : '#2a2400'}; color:${isUsed ? '#444' : '#ffd700'};
+                font-size:1.1em; font-weight:bold; cursor:${isUsed ? 'not-allowed' : 'pointer'};
+                opacity:${isUsed ? '0.4' : '1'}; transition:all 0.15s;">
+                ${cardName}
+            </button>
+        `;
+    });
+
+    html += `</div>`;
+    container.innerHTML = html;
+
+    container.querySelectorAll('.bj-card-btn:not([disabled])').forEach(btn => {
+        btn.onclick = () => {
+            const idx = parseInt(btn.getAttribute('data-idx'));
+            submitAnswer(myRoomId, myPlayerId, idx);
+        };
+    });
+}
 
 function renderResultScreen(p) {
     const gameView = document.getElementById('player-game-view');

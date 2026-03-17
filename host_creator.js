@@ -51,7 +51,8 @@ window.App.Creator = {
             { v: 'choice', t: APP_TEXT.Creator.TypeChoice },
             { v: 'sort', t: APP_TEXT.Creator.TypeSort },
             { v: 'multi_group', t: APP_TEXT.Creator.TypeMulti },
-            { v: 'assoc_group', t: APP_TEXT.Creator.TypeAssoc }
+            { v: 'assoc_group', t: APP_TEXT.Creator.TypeAssoc },
+            { v: 'num_group', t: '⑥ 数字予想' }
         ];
 
         const placeholder = document.createElement('option');
@@ -89,6 +90,9 @@ window.App.Creator = {
                 { v: 'assoc_written', t: APP_TEXT.Creator.TypeAssocWritten },
                 { v: 'assoc_oral', t: APP_TEXT.Creator.TypeAssocOral }
             ];
+            if (mainVal === 'num_group') return [
+                { v: 'blackjack', t: '6-1) ブラックジャック' }
+            ];
             return [];
         };
 
@@ -111,7 +115,7 @@ window.App.Creator = {
                 document.getElementById('creator-form-container').innerHTML = '';
                 return;
             }
-            if (val === 'free' || val === 'multi_group' || val === 'choice' || val === 'assoc_group') {
+            if (val === 'free' || val === 'multi_group' || val === 'choice' || val === 'assoc_group' || val === 'num_group') {
                 updateSubTypes(val);
                 subArea.classList.remove('hidden');
                 this.renderForm(subSel.value);
@@ -200,6 +204,14 @@ window.App.Creator = {
                 subArea.classList.remove('hidden');
                 const isMulti = firstQ.multi || firstQ.mode === 'multi';
                 subSel.value = isMulti ? 'choice_multi' : 'choice_single';
+            } else if (type === 'blackjack') {
+                sel.value = 'num_group';
+                subSel.innerHTML = '';
+                const bjOpt = document.createElement('option');
+                bjOpt.value = 'blackjack'; bjOpt.textContent = '6-1) ブラックジャック';
+                subSel.appendChild(bjOpt);
+                subArea.classList.remove('hidden');
+                subSel.value = 'blackjack';
             } else {
                 sel.value = type;
                 subArea.classList.add('hidden');
@@ -238,7 +250,7 @@ window.App.Creator = {
 
         const sel = document.getElementById('creator-q-type');
         const subSel = document.getElementById('creator-q-subtype');
-        const type = (sel && (['free', 'multi_group', 'choice'].includes(sel.value))) ? subSel.value : (sel ? sel.value : 'choice');
+        const type = (sel && (['free', 'multi_group', 'choice', 'assoc_group', 'num_group'].includes(sel.value))) ? subSel.value : (sel ? sel.value : 'choice');
         this.renderForm(type);
     },
 
@@ -453,6 +465,28 @@ window.App.Creator = {
             else for (let i = 0; i < 5; i++) this.addMultiInput(multiDiv, i, '', isRanking);
 
             this.createAddBtn(container, addBtnText, () => this.addMultiInput(multiDiv, undefined, '', isRanking));
+        }
+        else if (type === 'blackjack') {
+            const targetVal = data ? data.target : 21;
+            container.innerHTML = `
+                <div class="creator-row mb-10">
+                    <label class="config-label">目標数字（ターゲット）</label>
+                    <input type="number" id="bj-target" class="btn-block" value="${targetVal}" min="1" max="999" style="width:120px;">
+                </div>
+                <p class="text-sm text-gray mb-5">カードを追加してください（テキストと数値のペア）</p>
+            `;
+            const bjDiv = document.createElement('div');
+            bjDiv.id = 'bj-cards-list';
+            bjDiv.className = 'grid-gap-5';
+            container.appendChild(bjDiv);
+
+            if (data && data.c) {
+                data.c.forEach((txt, i) => this.addBjCardInput(bjDiv, i, txt, data.values[i]));
+            } else {
+                for (let i = 0; i < 4; i++) this.addBjCardInput(bjDiv, i, '', '');
+            }
+
+            this.createAddBtn(container, '＋ カードを追加', () => this.addBjCardInput(bjDiv, undefined, '', ''));
         }
     },
 
@@ -713,6 +747,25 @@ window.App.Creator = {
         parent.appendChild(row);
     },
 
+    addBjCardInput: function (parent, index, text = "", value = "") {
+        const idx = (index !== undefined) ? index : parent.children.length;
+        const row = document.createElement('div');
+        row.className = 'flex-center gap-5';
+        row.innerHTML = `
+            <span class="bold cyan text-lg" style="min-width:45px; text-align:center;">Card${idx + 1}</span>
+            <input type="text" class="bj-card-text flex-1" placeholder="カード名（例: 7）" value="${text}">
+            <input type="number" class="bj-card-value" placeholder="数値" value="${value}" style="width:80px;">
+            <button class="btn-mini btn-dark w-30">×</button>
+        `;
+        row.querySelector('button').onclick = () => {
+            row.remove();
+            Array.from(parent.children).forEach((r, i) => {
+                r.querySelector('span').textContent = `Card${i + 1}`;
+            });
+        };
+        parent.appendChild(row);
+    },
+
     createAddBtn: function (parent, text, onClick) {
         const btn = document.createElement('button');
         btn.className = 'btn-info btn-mini mt-10';
@@ -732,7 +785,7 @@ window.App.Creator = {
         const sel = document.getElementById('creator-q-type');
         const subSel = document.getElementById('creator-q-subtype');
 
-        let rawType = (sel && (['free', 'multi_group', 'choice'].includes(sel.value))) ? subSel.value : (sel ? sel.value : 'choice');
+        let rawType = (sel && (['free', 'multi_group', 'choice', 'assoc_group', 'num_group'].includes(sel.value))) ? subSel.value : (sel ? sel.value : 'choice');
         let normalizedType = rawType;
         let choiceMode = 'single';
 
@@ -829,6 +882,19 @@ window.App.Creator = {
             document.querySelectorAll('.multi-text-input').forEach(inp => { if (inp.value.trim()) opts.push(inp.value.trim()); });
             if (opts.length < 1) return null;
             newQ.c = opts; newQ.correct = opts;
+        } else if (normalizedType === 'blackjack') {
+            const target = parseInt(document.getElementById('bj-target')?.value) || 21;
+            const cardTexts = [], cardValues = [];
+            document.querySelectorAll('#bj-cards-list .bj-card-text').forEach((inp, i) => {
+                const valInp = document.querySelectorAll('#bj-cards-list .bj-card-value')[i];
+                const txt = inp.value.trim();
+                const val = parseInt(valInp?.value) || 0;
+                if (txt) { cardTexts.push(txt); cardValues.push(val); }
+            });
+            if (cardTexts.length < 2) { alert('カードを2枚以上追加してください'); return null; }
+            newQ.target = target;
+            newQ.c = cardTexts;
+            newQ.values = cardValues;
         }
         return newQ;
     },
@@ -991,12 +1057,13 @@ window.App.Creator = {
         const ref = setId ? baseRef.child(setId) : baseRef.push();
 
         if (!setId) {
-            // Check if any question is Dobon/Multi -> Default to 'turn'
+            // Check if any question is Dobon/Multi/Blackjack -> Default to 'turn'
             const hasDobon = window.App.Data.createdQuestions.some(q => q.mode === 'dobon' || q.mode === 'multi');
+            const hasBlackjack = window.App.Data.createdQuestions.some(q => q.type === 'blackjack');
             const hasOneOnOne = window.App.Data.createdQuestions.some(q => ['free_oral', 'free_written', 'letter_select'].includes(q.type));
 
             let defaultMode = 'normal';
-            if (hasDobon) {
+            if (hasDobon || hasBlackjack) {
                 defaultMode = 'turn';
             } else if (hasOneOnOne) {
                 defaultMode = 'buzz';

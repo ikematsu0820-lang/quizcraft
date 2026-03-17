@@ -1093,3 +1093,14 @@
     padding-bottom: 20px;
     /* Space at bottom */
 }
+/* ===== Blackjack Card Buttons ===== */
+.bj-card-btn:hover:not([disabled]) {
+    background: #3d3500 !important;
+    border-color: #fff !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255,215,0,0.4);
+}
+
+.bj-card-btn:active:not([disabled]) {
+    transform: translateY(0);
+}

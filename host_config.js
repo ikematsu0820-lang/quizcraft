@@ -83,6 +83,7 @@ App.Config = {
         let isOral = false;
         let qType = 'choice';
         const isDobon = questions.some(q => q.mode === 'dobon' || (q.type === 'choice' && q.mode === 'multi'));
+        const isBlackjack = questions.some(q => q.type === 'blackjack');
 
         if (questions.length > 0) {
             const type = questions[0].type;
@@ -103,6 +104,7 @@ App.Config = {
             else if (type === 'multi') { typeDisplay = APP_TEXT.Creator.TypeMulti; qType = type; }
             else if (type === 'assoc_written') { typeDisplay = APP_TEXT.Creator.TypeAssocWritten; qType = type; }
             else if (type === 'assoc_oral') { typeDisplay = APP_TEXT.Creator.TypeAssocOral; isOral = true; qType = type; }
+            else if (type === 'blackjack') { typeDisplay = "6-1) ブラックジャック"; qType = type; }
             else typeDisplay = "不明";
         }
 
@@ -178,8 +180,10 @@ App.Config = {
         };
 
         modeSel.onchange = updateDetails;
+        // Blackjack requires turn mode — override if needed
+        if (isBlackjack && modeSel.value !== 'turn') modeSel.value = 'turn';
         // Mode card rendering (initial)
-        this.renderModeCards(modeSel.value || 'normal', conf, qType, isOral, isDobon);
+        this.renderModeCards(modeSel.value || (isBlackjack ? 'turn' : 'normal'), conf, qType, isOral, isDobon, isBlackjack);
         // Game type card rendering (initial)
         this.renderGameTypeCards(typeHidden.value || 'score', conf);
         // Time limit card rendering (initial)
@@ -191,8 +195,12 @@ App.Config = {
         let targetMode = conf.mode || 'normal';
 
         // Apply restrictions
+        // 0. Blackjack -> Turn only
+        if (isBlackjack) {
+            targetMode = 'turn';
+        }
         // 1. Dobon -> Turn only (or Solo)
-        if (isDobon) {
+        else if (isDobon) {
             // Default to Turn if logic forces it, or keep existing if it is turn/solo
             if (targetMode !== 'turn' && targetMode !== 'solo') {
                 targetMode = 'turn';
@@ -221,7 +229,7 @@ App.Config = {
         }
 
         // Render mode cards with correct initial selection
-        this.renderModeCards(targetMode, conf, qType, isOral, isDobon);
+        this.renderModeCards(targetMode, conf, qType, isOral, isDobon, isBlackjack);
 
         // Initial detail render
         updateDetails();
@@ -423,7 +431,7 @@ App.Config = {
     },
 
     // モード選択カードをレンダリング（ゲームタイプと同じスタイル）
-    renderModeCards: function (selectedMode, conf, qType, isOral, isDobon) {
+    renderModeCards: function (selectedMode, conf, qType, isOral, isDobon, isBlackjack) {
         const container = document.getElementById('mode-card-selector');
         if (!container) return;
 
@@ -434,7 +442,7 @@ App.Config = {
                 label: '一斉解答',
                 desc: '全員同時に解答',
                 color: '#00e5ff',
-                disabled: isOral || (qType && (qType.startsWith('multi') || qType.startsWith('ranking'))) || isDobon,
+                disabled: isBlackjack || isOral || (qType && (qType.startsWith('multi') || qType.startsWith('ranking'))) || isDobon,
                 hasDetail: qType === 'free_written'
             },
             {
@@ -443,7 +451,7 @@ App.Config = {
                 label: '早押し',
                 desc: '最初に押した人が解答',
                 color: '#ff6b6b',
-                disabled: isDobon,
+                disabled: isBlackjack || isDobon,
                 hasDetail: true
             },
             {
@@ -461,7 +469,7 @@ App.Config = {
                 label: 'ソロ対戦',
                 desc: '個人タイムアタック',
                 color: '#a855f7',
-                disabled: false,
+                disabled: isBlackjack,
                 hasDetail: true
             }
         ];
@@ -509,7 +517,7 @@ App.Config = {
             if (!m.disabled) {
                 left.onclick = () => {
                     modeSel.value = m.value;
-                    self.renderModeCards(m.value, conf, qType, isOral, isDobon);
+                    self.renderModeCards(m.value, conf, qType, isOral, isDobon, isBlackjack);
                 };
             }
             row.appendChild(left);
@@ -535,7 +543,7 @@ App.Config = {
                     // For dobon mode, open detail without changing mode select
                     if (!m.hiddenMode) {
                         modeSel.value = m.value;
-                        self.renderModeCards(m.value, conf, qType, isOral, isDobon);
+                        self.renderModeCards(m.value, conf, qType, isOral, isDobon, isBlackjack);
                     }
                     // Open detail sheet
                     self.openModeDetailSheet(m.value, conf, qType, isDobon);

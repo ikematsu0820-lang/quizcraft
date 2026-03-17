@@ -143,7 +143,9 @@ window.App.Viewer = {
             statusDiv.textContent = "QUIZ";
             const q = this.questions[st.qIndex] || {};
             this.applyDefaultDesign(viewContainer, q.design);
-            if (q.isHidden) {
+            if (q.type === 'blackjack' && st.bjCards) {
+                this.renderBlackjackQuestion(mainText, q, st);
+            } else if (q.isHidden) {
                 mainText.innerHTML = '';
             } else {
                 this.renderQuestionLayout(viewContainer, mainText, q, st, st.revealedMulti);
@@ -217,6 +219,11 @@ window.App.Viewer = {
             const q = this.questions[st.qIndex] || {};
             this.applyDefaultDesign(viewContainer, q.design);
 
+            if (q.type === 'blackjack' && st.bjPickedCard) {
+                this.renderBlackjackReveal(mainText, st);
+                return;
+            }
+
             if (q.isAnsHidden) {
                 mainText.innerHTML = '';
                 return;
@@ -282,6 +289,19 @@ window.App.Viewer = {
             this.applyDefaultDesign(viewContainer, null);
             mainText.innerHTML = '';
             this.renderBombGrid(st.cards);
+        }
+        // --- BLACKJACK FINAL RESULT ---
+        else if (st.step === 'bj_result') {
+            statusDiv.textContent = "RESULT";
+            this.applyDefaultDesign(viewContainer, null);
+            mainText.innerHTML = `
+                <div style="text-align:center; padding:5vh 0;">
+                    <div style="font-size:5vh; font-weight:900; color:#ffd700; margin-bottom:2vh;">🃏 ブラックジャック</div>
+                    <div style="font-size:3vh; color:#aaa; margin-bottom:1vh;">優勝</div>
+                    <div style="font-size:10vh; font-weight:900; color:#2ecc71; text-shadow:0 0 40px #2ecc71aa;">${st.bjWinner || '---'}</div>
+                    <div style="font-size:3vh; color:#aaa; margin-top:2vh;">合計: <span style="color:#fff; font-weight:bold;">${st.bjWinnerTotal || 0}</span> / 目標: ${st.bjTarget || 21}</div>
+                </div>
+            `;
         }
         // --- SELECTING SET (Container / Multi) ---
         else if (st.step === 'selecting_set') {
@@ -422,6 +442,58 @@ window.App.Viewer = {
         }
 
         contentBox.innerHTML = html;
+    },
+
+    renderBlackjackQuestion: function (container, q, st) {
+        const cards = st.bjCards || q.c || [];
+        const usedCards = st.bjUsedCards || [];
+        const target = st.bjTarget || q.target || 21;
+        const currentTotal = st.bjCurrentTotal || 0;
+        const answererName = st.currentAnswererName || '';
+
+        let cardsHtml = '';
+        cards.forEach((name, idx) => {
+            const isUsed = usedCards.includes(idx);
+            cardsHtml += `
+                <div style="
+                    padding:3vh 2vw; border-radius:12px;
+                    border:3px solid ${isUsed ? '#333' : '#ffd700'};
+                    background:${isUsed ? '#1a1a1a' : '#2a2400'};
+                    color:${isUsed ? '#444' : '#ffd700'};
+                    font-size:4vh; font-weight:900;
+                    opacity:${isUsed ? '0.35' : '1'};
+                    text-align:center;
+                ">${name}</div>
+            `;
+        });
+
+        container.innerHTML = `
+            <div style="padding:3vh; width:100%; box-sizing:border-box;">
+                <div style="font-size:3vh; color:#aaa; text-align:center; margin-bottom:1.5vh;">
+                    目標: <span style="color:#ffd700; font-weight:900;">${target}</span>
+                    ${answererName ? ` ／ 解答者: <span style="color:#fff;">${answererName}</span>` : ''}
+                    ${answererName ? ` ／ 現在の合計: <span style="color:#2ecc71;">${currentTotal}</span>` : ''}
+                </div>
+                <div style="font-size:3.5vh; font-weight:900; color:#fff; text-align:center; margin-bottom:2vh;">${q.q || ''}</div>
+                <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(100px, 1fr)); gap:12px;">
+                    ${cardsHtml}
+                </div>
+            </div>
+        `;
+    },
+
+    renderBlackjackReveal: function (container, st) {
+        container.innerHTML = `
+            <div style="text-align:center; padding:5vh 0;">
+                <div style="font-size:2.5vh; color:#aaa; margin-bottom:1vh;">${st.bjPickedPlayerName || ''} のカード</div>
+                <div style="font-size:12vh; font-weight:900; color:#ffd700; text-shadow:0 0 40px #ffd700aa;
+                    animation:popInCenter 0.5s cubic-bezier(0.175,0.885,0.32,1.275);">
+                    ${st.bjPickedCard || '?'}
+                </div>
+                <div style="font-size:3vh; color:#aaa; margin-top:2vh;">+${st.bjPickedValue || 0} → 合計 <span style="color:#2ecc71; font-weight:900;">${st.bjNewTotal || 0}</span></div>
+                <div style="font-size:2.5vh; color:#888; margin-top:1vh;">目標: ${st.bjTarget || 21}</div>
+            </div>
+        `;
     },
 
     renderAllPlayerAnswers: function (container, mode, q) {

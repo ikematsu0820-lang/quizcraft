@@ -552,7 +552,20 @@ App.Studio = {
         this.revealedMultiIndices = {};
         this.isTurnOrderConfirmed = false;
         this.turnSetupDismissed = false;
+        this.bjUsedCards = []; // Reset blackjack used cards for new set
         this.clearTimeLimit();
+
+        // Reset bjTotal for all players if this is a blackjack set
+        const hasBlackjack = (App.Data.studioQuestions || []).some(q => q.type === 'blackjack');
+        if (hasBlackjack && roomId) {
+            window.db.ref(`rooms/${roomId}/players`).once('value', snap => {
+                const players = snap.val() || {};
+                const updates = {};
+                Object.keys(players).forEach(pid => { updates[`${pid}/bjTotal`] = 0; });
+                if (Object.keys(updates).length) window.db.ref(`rooms/${roomId}/players`).update(updates);
+            });
+        }
+
         this.setStep(0);
     },
 
@@ -808,6 +821,14 @@ App.Studio = {
                         }
                     }
 
+                    const bjUpdate = {};
+                    if (currentQ.type === 'blackjack') {
+                        const curTotal = (App.Data.players && App.Data.players[turnPlayerId] && App.Data.players[turnPlayerId].bjTotal) || 0;
+                        bjUpdate.bjCards = currentQ.c || [];
+                        bjUpdate.bjTarget = currentQ.target || 21;
+                        bjUpdate.bjUsedCards = this.bjUsedCards || [];
+                        bjUpdate.bjCurrentTotal = curTotal;
+                    }
                     window.db.ref(`rooms/${roomId}/status`).update({
                         step: 'reveal_q',
                         qIndex: App.State.currentQIndex,
@@ -815,7 +836,8 @@ App.Studio = {
                         currentAnswerer: turnPlayerId,
                         currentAnswererName: turnPlayerName,
                         turnIndex: this.turnIndex, // Sync turn status
-                        isTurnMode: true
+                        isTurnMode: true,
+                        ...bjUpdate
                     });
 
                     // Start time limit for turn/solo mode
@@ -905,6 +927,44 @@ App.Studio = {
                 syncBadge.textContent = "ANSWER";
                 syncBadge.style.background = "#2ecc71";
 
+                // Blackjack: process picked card and update bjTotal
+                if (q.type === 'blackjack') {
+                    const turnPlayerId = this.turnOrder[this.turnIndex];
+                    const player = App.Data.players && App.Data.players[turnPlayerId];
+                    const cardIdx = player ? parseInt(player.lastAnswer) : NaN;
+                    let pickedCardName = '---', pickedCardValue = 0, newTotal = player ? (player.bjTotal || 0) : 0;
+
+                    if (!isNaN(cardIdx) && cardIdx >= 0 && cardIdx < (q.c || []).length) {
+                        pickedCardName = q.c[cardIdx];
+                        pickedCardValue = (q.values || [])[cardIdx] || 0;
+                        newTotal = (player.bjTotal || 0) + pickedCardValue;
+                        if (!this.bjUsedCards) this.bjUsedCards = [];
+                        if (!this.bjUsedCards.includes(cardIdx)) this.bjUsedCards.push(cardIdx);
+                        window.db.ref(`rooms/${roomId}/players/${turnPlayerId}/bjTotal`).set(newTotal);
+                    }
+
+                    const turnPlayerName = player ? (App.Data.players[turnPlayerId].name || '---') : '---';
+                    window.db.ref(`rooms/${roomId}/status`).update({
+                        step: 'reveal_correct',
+                        qIndex: App.State.currentQIndex,
+                        correct: `${pickedCardName} (+${pickedCardValue})`,
+                        commentary: q.commentary || "",
+                        bjPickedCard: pickedCardName,
+                        bjPickedValue: pickedCardValue,
+                        bjPickedPlayerName: turnPlayerName,
+                        bjNewTotal: newTotal,
+                        bjTarget: q.target || 21,
+                        bjUsedCards: this.bjUsedCards || []
+                    });
+
+                    // Show on monitor
+                    const corrDisp = document.getElementById('studio-correct-display');
+                    if (corrDisp) corrDisp.classList.remove('hidden');
+                    document.getElementById('studio-correct-text').textContent = `${turnPlayerName}: ${pickedCardName} (+${pickedCardValue}) → 合計 ${newTotal}`;
+                    document.getElementById('studio-commentary-text').textContent = `目標: ${q.target || 21}`;
+                    break;
+                }
+
                 window.db.ref(`rooms/${roomId}/status`).update({
                     step: 'reveal_correct',
                     qIndex: App.State.currentQIndex,
@@ -981,6 +1041,29 @@ App.Studio = {
 
     handleSetCompletion: function () {
         console.log("Set complete.");
+
+        // Blackjack: announce winner based on bjTotal closest to target
+        const isBlackjackSet = (App.Data.studioQuestions || []).some(q => q.type === 'blackjack');
+        if (isBlackjackSet) {
+            const target = (App.Data.studioQuestions.find(q => q.type === 'blackjack') || {}).target || 21;
+            const players = App.Data.players || {};
+            let winner = null, bestDiff = Infinity;
+            Object.entries(players).forEach(([pid, p]) => {
+                const total = p.bjTotal || 0;
+                if (total > target) return; // busted
+                const diff = target - total;
+                if (diff < bestDiff) { bestDiff = diff; winner = { pid, name: p.name, total }; }
+            });
+            const roomId = App.State.currentRoomId;
+            if (roomId) {
+                window.db.ref(`rooms/${roomId}/status`).update({
+                    step: 'bj_result',
+                    bjWinner: winner ? winner.name : '(バスト)',
+                    bjWinnerTotal: winner ? winner.total : 0,
+                    bjTarget: target
+                });
+            }
+        }
 
         // --- Check if we're inside a container ---
         if (this._activeContainerIndex !== undefined && this._activeContainerIndex !== null) {
