@@ -41,7 +41,9 @@ window.App.Viewer = {
         window.db.ref(`rooms/${this.roomId}`).once('value', snap => {
             if (snap.exists()) {
                 document.getElementById('viewer-login-view').classList.add('hidden');
-                document.getElementById('viewer-main-view').classList.remove('hidden');
+                if (!window.App.isUnifiedMode) {
+                    document.getElementById('viewer-main-view').classList.remove('hidden');
+                }
                 this.startListener();
             } else {
                 alert("Room not found");
