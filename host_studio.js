@@ -31,12 +31,10 @@ App.Studio = {
         let container = document.getElementById('unified-toggle-container');
         if (container) {
             // Reset to host state
-            const btnHost = container.children[0];
-            const btnViewer = container.children[1];
-            btnHost.style.background = 'linear-gradient(135deg, #00bfff 0%, #0077aa 100%)';
-            btnHost.style.color = '#fff';
-            btnViewer.style.background = 'transparent';
-            btnViewer.style.color = '#aaa';
+            const activeStyle = 'background:linear-gradient(135deg, #00bfff 0%, #0077aa 100%); color:#fff; border-radius:20px; padding:10px 20px; font-weight:bold; border:none; box-shadow:0 0 15px rgba(0,191,255,0.4); cursor:pointer;';
+            const inactiveStyle = 'background:transparent; color:#aaa; border-radius:20px; padding:10px 20px; font-weight:normal; border:none; cursor:pointer; transition:all 0.2s;';
+            container.querySelectorAll('button').forEach(btn => btn.style.cssText = inactiveStyle);
+            container.querySelector('[data-role="host"]').style.cssText = activeStyle;
             container.dataset.view = 'host';
             return;
         }
@@ -44,90 +42,105 @@ App.Studio = {
         container = document.createElement('div');
         container.id = 'unified-toggle-container';
         container.dataset.view = 'host';
-        container.style.cssText = 'position:fixed; bottom:20px; right:20px; z-index:9999; display:flex; gap:10px; background:rgba(0,0,0,0.7); padding:8px; border-radius:30px; backdrop-filter:blur(10px); box-shadow:0 8px 24px rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.1); transition:transform 0.3s cubic-bezier(0.175,0.885,0.32,1.275);';
+        container.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:9999; display:flex; gap:6px; background:rgba(0,0,0,0.75); padding:8px 10px; border-radius:30px; backdrop-filter:blur(10px); box-shadow:0 8px 24px rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.1); white-space:nowrap;';
 
-        const btnHost = document.createElement('button');
+        const activeStyle = 'background:linear-gradient(135deg, #00bfff 0%, #0077aa 100%); color:#fff; border-radius:20px; padding:10px 18px; font-weight:bold; border:none; box-shadow:0 0 15px rgba(0,191,255,0.4); cursor:pointer; font-size:0.95em;';
+        const inactiveStyle = 'background:transparent; color:#aaa; border-radius:20px; padding:10px 18px; font-weight:normal; border:none; cursor:pointer; transition:all 0.2s; font-size:0.95em;';
+
+        const btnHost   = document.createElement('button');
         const btnViewer = document.createElement('button');
+        const btnPlayer = document.createElement('button');
 
-        const activeStyle = 'background:linear-gradient(135deg, #00bfff 0%, #0077aa 100%); color:#fff; border-radius:20px; padding:10px 20px; font-weight:bold; border:none; box-shadow:0 0 15px rgba(0,191,255,0.4);';
-        const inactiveStyle = 'background:transparent; color:#aaa; border-radius:20px; padding:10px 20px; font-weight:normal; border:none; cursor:pointer; transition:all 0.2s;';
+        btnHost.dataset.role   = 'host';
+        btnViewer.dataset.role = 'viewer';
+        btnPlayer.dataset.role = 'player';
 
-        btnHost.textContent = "🎤 司会者";
-        btnHost.style.cssText = activeStyle;
-        
+        btnHost.textContent   = "🎤 司会者";
         btnViewer.textContent = "📺 モニター";
+        btnPlayer.textContent = "🙋 解答者";
+
+        btnHost.style.cssText   = activeStyle;
         btnViewer.style.cssText = inactiveStyle;
+        btnPlayer.style.cssText = inactiveStyle;
 
         const switchView = (target) => {
             if (container.dataset.view === target) return;
             container.dataset.view = target;
-            
+            container.querySelectorAll('button').forEach(btn => btn.style.cssText = inactiveStyle);
+
             if (target === 'host') {
                 btnHost.style.cssText = activeStyle;
-                btnViewer.style.cssText = inactiveStyle;
                 App.Ui.showView(App.Ui.views.hostControl);
-            } else {
+            } else if (target === 'viewer') {
                 btnViewer.style.cssText = activeStyle;
-                btnHost.style.cssText = inactiveStyle;
-                // Force sync Viewer styling/sizing if needed
                 App.Ui.showView(App.Ui.views.viewerMain);
+            } else {
+                btnPlayer.style.cssText = activeStyle;
+                // Show player game view if already in room, otherwise respondent entry
+                const pgView = document.getElementById('player-game-view');
+                if (pgView && !pgView.classList.contains('hidden')) {
+                    App.Ui.showView(App.Ui.views.playerGame);
+                } else {
+                    App.Ui.showView(App.Ui.views.respondent);
+                }
             }
         };
 
-        btnHost.onclick = () => switchView('host');
+        btnHost.onclick   = () => switchView('host');
         btnViewer.onclick = () => switchView('viewer');
+        btnPlayer.onclick = () => switchView('player');
 
-        // Allow dragging toggle if it covers UI
+        // Allow dragging toggle if it covers UI (touch drag)
         let isDragging = false;
-        let startY, startX, initialBottom, initialRight;
+        let startY, startX, initialBottom, initialLeft;
 
         container.addEventListener('touchstart', (e) => {
             if (e.touches.length > 1) return;
             isDragging = false;
             startY = e.touches[0].clientY;
             startX = e.touches[0].clientX;
-            const computed = window.getComputedStyle(container);
-            initialBottom = parseInt(computed.bottom);
-            initialRight = parseInt(computed.right);
+            const rect = container.getBoundingClientRect();
+            initialBottom = window.innerHeight - rect.bottom;
+            initialLeft = rect.left;
+            container.style.transform = 'none';
+            container.style.left = initialLeft + 'px';
             container.style.transition = 'none';
         }, {passive:true});
 
         container.addEventListener('touchmove', (e) => {
             if (e.touches.length > 1) return;
             const dy = startY - e.touches[0].clientY;
-            const dx = startX - e.touches[0].clientX;
+            const dx = e.touches[0].clientX - startX;
             if (Math.abs(dy) > 5 || Math.abs(dx) > 5) isDragging = true;
-            
+
             if (isDragging) {
                 let newBottom = initialBottom + dy;
-                let newRight = initialRight + dx;
-                // Boundaries
-                newBottom = Math.max(10, Math.min(newBottom, window.innerHeight - 60));
-                newRight = Math.max(10, Math.min(newRight, window.innerWidth - container.offsetWidth - 10));
-                
+                let newLeft   = initialLeft + dx;
+                newBottom = Math.max(10, Math.min(newBottom, window.innerHeight - 70));
+                newLeft   = Math.max(10, Math.min(newLeft, window.innerWidth - container.offsetWidth - 10));
                 container.style.bottom = newBottom + 'px';
-                container.style.right = newRight + 'px';
+                container.style.left   = newLeft + 'px';
             }
         }, {passive:true});
 
         container.addEventListener('touchend', () => {
-            container.style.transition = 'transform 0.3s cubic-bezier(0.175,0.885,0.32,1.275)';
+            container.style.transition = 'opacity 0.2s';
         });
 
-        // Fallback for cleanup (remove toggle when exiting host mode)
-        const observer = new MutationObserver(() => {
-            if (document.getElementById('host-control-view').classList.contains('hidden') && 
-                document.getElementById('viewer-main-view').classList.contains('hidden')) {
-                container.style.display = 'none';
-            } else {
-                container.style.display = 'flex';
-            }
+        // Show/hide based on whether any of the three views is active
+        const watchedIds = ['host-control-view', 'viewer-main-view', 'player-game-view', 'respondent-view'];
+        const updateVisibility = () => {
+            const anyVisible = watchedIds.some(id => !document.getElementById(id)?.classList.contains('hidden'));
+            container.style.display = anyVisible ? 'flex' : 'none';
+        };
+        watchedIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) new MutationObserver(updateVisibility).observe(el, {attributes: true, attributeFilter: ['class']});
         });
-        observer.observe(document.getElementById('host-control-view'), {attributes: true, attributeFilter: ['class']});
-        observer.observe(document.getElementById('viewer-main-view'), {attributes: true, attributeFilter: ['class']});
 
         container.appendChild(btnHost);
         container.appendChild(btnViewer);
+        container.appendChild(btnPlayer);
         document.body.appendChild(container);
     },
 
