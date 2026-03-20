@@ -734,6 +734,9 @@ window.App.Dashboard = {
         const delPath = isSet ? 'saved_sets' : 'saved_programs';
         const delAction = `window.App.Dashboard.del('${delPath}', '${key}')`;
 
+        // Test
+        const testAction = `window.App.Dashboard.testItem('${key}', '${type}')`;
+
         const html = `
             <div id="item-menu-modal" class="bottom-sheet-overlay" onclick="if(event.target===this)this.remove()">
                 <div class="bottom-sheet-content">
@@ -747,15 +750,18 @@ window.App.Dashboard = {
                         <button class="sheet-btn" onclick="${startAction}; document.getElementById('item-menu-modal').remove()">
                             <i class="fas fa-play" style="color:#00e5ff; font-size: 0.9em;"></i> スタート
                         </button>
+                        <button class="sheet-btn" onclick="${testAction}; document.getElementById('item-menu-modal').remove()">
+                            <i class="fas fa-flask" style="color:#f39c12; font-size: 0.9em;"></i> テスト
+                        </button>
                         <button class="sheet-btn" onclick="${editAction}">
                             <i class="fas fa-pen-fancy" style="color: #64b5f6; font-size: 0.9em;"></i> 編集
                         </button>
                         <button class="sheet-btn" onclick="${copyAction}; document.getElementById('item-menu-modal').remove()">
                             <i class="far fa-file-alt" style="color: #81c784; font-size: 0.9em;"></i> 複製
                         </button>
-                        
+
                         <div style="height: 1px; background: rgba(255,255,255,0.08); margin: 10px 0;"></div>
-                        
+
                         <button class="sheet-btn text-danger" onclick="${delAction}; document.getElementById('item-menu-modal').remove()">
                             <i class="fas fa-trash-alt" style="font-size: 0.9em;"></i> 削除
                         </button>
@@ -845,6 +851,28 @@ window.App.Dashboard = {
                 window.App.Ui.showToast("番組構成をコピーしました");
                 this.loadItems();
             });
+        });
+    },
+
+    testItem: function (key, type) {
+        const data = this.itemCache && this.itemCache[key];
+        if (!data) return;
+
+        const countStr = prompt("テストプレイのプレイヤー数を入力してください (1〜8)", "2");
+        if (countStr === null) return;
+        let count = parseInt(countStr);
+        if (isNaN(count) || count < 1) count = 1;
+        if (count > 8) count = 8;
+
+        const isSet = (type === 'set');
+        const testId = `TEST-${Math.floor(Math.random() * 9000) + 1000}`;
+        const baseUrl = window.location.origin + window.location.pathname;
+        const hostUrl = `${baseUrl}?${isSet ? 'testHost' : 'testProg'}=${testId}&tp=${count}`;
+        window.open(hostUrl, '_blank');
+
+        const dbPath = isSet ? `saved_sets/${testId}` : `saved_programs/${testId}`;
+        window.db.ref(dbPath).set(data).catch(err => {
+            alert("テスト準備エラー: " + err.message);
         });
     },
 
