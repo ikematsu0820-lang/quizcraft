@@ -1890,8 +1890,18 @@ App.Studio = {
                 const p = pSnap.val();
                 let isCor = false;
 
-                // Skip if no answer or already judged
-                if (p.lastAnswer === null || p.lastAnswer === undefined || p.lastResult) return;
+                // Skip if already judged
+                if (p.lastResult) return;
+                // Unanswered → treat as incorrect (fall through with isCor = false)
+                if (p.lastAnswer === null || p.lastAnswer === undefined) {
+                    const loss = q.loss || 0;
+                    pSnap.ref.update({
+                        periodScore: (p.periodScore || 0) - loss,
+                        totalScore: (p.totalScore || 0) - loss,
+                        lastResult: 'lose'
+                    });
+                    return;
+                }
 
                 if (q.type === 'choice') {
                     // Check both Q-specific mode and Global Config mode
@@ -2673,15 +2683,27 @@ App.Studio = {
     // Called when host clicks "正解表示" for free_written + normal + single attempt
     flushPendingResults: function () {
         const roomId = App.State.currentRoomId;
+        const q = App.Data.studioQuestions[App.State.currentQIndex];
         window.db.ref(`rooms/${roomId}/players`).once('value', snap => {
             snap.forEach(pSnap => {
                 const p = pSnap.val();
+                if (p.lastResult) return; // already judged
                 if (p.pendingResult) {
                     const pts = p.pendingScore || 0;
                     pSnap.ref.update({
                         periodScore: (p.periodScore || 0) + pts,
                         totalScore: (p.totalScore || 0) + pts,
                         lastResult: p.pendingResult,
+                        pendingResult: null,
+                        pendingScore: null
+                    });
+                } else {
+                    // No answer submitted → incorrect
+                    const loss = (q && q.loss) || 0;
+                    pSnap.ref.update({
+                        periodScore: (p.periodScore || 0) - loss,
+                        totalScore: (p.totalScore || 0) - loss,
+                        lastResult: 'lose',
                         pendingResult: null,
                         pendingScore: null
                     });
