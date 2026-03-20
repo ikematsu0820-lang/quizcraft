@@ -16,6 +16,8 @@ App.Studio = {
     turnAdvancedThisQ: false, // Flag to prevent double-advancing turn in normal mode
     timeLimitTimer: null,     // Timer ID for time limit countdown
     timeLimitEndTime: null,   // End time for current time limit
+    judgeQueue: [],           // [{id, name, answer}] — answer-submit order
+    judgeCurrentRevealed: false, // Whether current player's answer is revealed
 
     onMainAction: function () {
         // This is a fallback/dispatcher. Typically btnMain.onclick is overwritten by setStep.
@@ -1566,6 +1568,11 @@ App.Studio = {
         this.buzzWinner = null;
         this.selectedPlayerId = null;
 
+        // Reset judge queue
+        this.judgeQueue = [];
+        this.judgeCurrentRevealed = false;
+        this.renderJudgeQueue();
+
         if (document.getElementById('console-multi-controls')) {
             document.getElementById('console-multi-controls').innerHTML = '';
             document.getElementById('console-multi-controls').classList.add('hidden');
@@ -2255,6 +2262,121 @@ App.Studio = {
             chip.textContent = p.name;
             horizontalList.appendChild(chip);
         });
+
+        // Update judge queue: add new answerers who haven't been judged yet
+        const q = App.Data.studioQuestions[App.State.currentQIndex];
+        const needsManualJudge = q && (
+            q.type === 'free_written' ||
+            q.type === 'assoc_written' ||
+            q.type === 'multi_written' ||
+            q.type === 'ranking_written' ||
+            q.type === 'free_oral' ||
+            q.type === 'multi_oral'
+        );
+        if (needsManualJudge) {
+            const inQueue = new Set(this.judgeQueue.map(e => e.id));
+            sortedPlayers.forEach(p => {
+                if (
+                    (p.lastAnswer !== null && p.lastAnswer !== undefined) &&
+                    !p.lastResult &&
+                    !inQueue.has(p.id)
+                ) {
+                    this.judgeQueue.push({ id: p.id, name: p.name, answer: p.lastAnswer });
+                    inQueue.add(p.id);
+                }
+            });
+            this.renderJudgeQueue();
+        }
+    },
+
+    renderJudgeQueue: function () {
+        const area = document.getElementById('judge-queue-area');
+        if (!area) return;
+
+        const q = this.judgeQueue;
+        if (q.length === 0) {
+            area.classList.add('hidden');
+            area.innerHTML = '';
+            return;
+        }
+
+        area.classList.remove('hidden');
+
+        const current = q[0];
+        const next    = q[1] || null;
+
+        area.innerHTML = `
+            <div class="jq-label">判定キュー</div>
+            <div class="jq-row">
+                <div class="jq-panel jq-current" id="jq-current-panel">
+                    <div class="jq-tag">判定中</div>
+                    <div class="jq-name">${this._esc(current.name)}</div>
+                </div>
+                ${next ? `
+                <div class="jq-panel jq-next">
+                    <div class="jq-tag jq-tag-next">NEXT</div>
+                    <div class="jq-name jq-name-next">${this._esc(next.name)}</div>
+                </div>` : '<div class="jq-panel jq-next jq-empty"></div>'}
+                <div class="jq-panel jq-answer" id="jq-answer-panel">
+                    <div class="jq-tag">解答</div>
+                    <div class="jq-answer-text" id="jq-answer-text">
+                        ${this.judgeCurrentRevealed ? this._esc(String(current.answer)) : '<span class="jq-hidden">タップで開示</span>'}
+                    </div>
+                </div>
+                <div class="jq-panel jq-buttons">
+                    <div class="jq-tag">判定</div>
+                    <div class="jq-btn-row">
+                        <button class="jq-btn jq-btn-o ${this.judgeCurrentRevealed ? '' : 'jq-btn-disabled'}" id="jq-btn-o">〇</button>
+                        <button class="jq-btn jq-btn-x ${this.judgeCurrentRevealed ? '' : 'jq-btn-disabled'}" id="jq-btn-x">✕</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Tap current panel → reveal answer
+        const currentPanel = document.getElementById('jq-current-panel');
+        const answerPanel  = document.getElementById('jq-answer-panel');
+        const revealToggle = () => {
+            if (this.judgeCurrentRevealed) return;
+            this.judgeCurrentRevealed = true;
+            this.renderJudgeQueue();
+        };
+        if (currentPanel) currentPanel.addEventListener('click', revealToggle);
+        if (answerPanel)  answerPanel.addEventListener('click',  revealToggle);
+
+        // Judge buttons
+        const btnO = document.getElementById('jq-btn-o');
+        const btnX = document.getElementById('jq-btn-x');
+        if (btnO && !btnO.classList.contains('jq-btn-disabled')) {
+            btnO.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.advanceJudgeQueue(current.id, true);
+            });
+        }
+        if (btnX && !btnX.classList.contains('jq-btn-disabled')) {
+            btnX.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.advanceJudgeQueue(current.id, false);
+            });
+        }
+    },
+
+    advanceJudgeQueue: function (playerId, isCorrect) {
+        this.updatePlayerScore(playerId, isCorrect);
+        // Remove from head of queue after a short delay for visual feedback
+        setTimeout(() => {
+            this.judgeQueue = this.judgeQueue.filter(e => e.id !== playerId);
+            this.judgeCurrentRevealed = false;
+            this.renderJudgeQueue();
+        }, 300);
+    },
+
+    _esc: function (str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
     },
 
     updateStatsBar: function (answeredCount, total) {

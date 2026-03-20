@@ -4231,3 +4231,147 @@ input:checked+.pro-slider:before {
     cursor: grabbing !important;
     color: #00e5ff !important;
 }
+/* =========================================================
+ * Judge Queue Area
+ * ========================================================= */
+
+.judge-queue-area {
+    width: 100%;
+}
+
+.jq-label {
+    font-size: 11px;
+    color: #666;
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+}
+
+.jq-row {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+}
+
+/* Base panel */
+.jq-panel {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+/* 判定中 */
+.jq-current {
+    flex: 1.2;
+    border-color: #00bfff;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.jq-current:hover {
+    background: #1e2a30;
+}
+
+/* NEXT */
+.jq-next {
+    flex: 1;
+    opacity: 0.55;
+}
+.jq-next.jq-empty {
+    border-style: dashed;
+    opacity: 0.25;
+}
+
+/* 解答 */
+.jq-answer {
+    flex: 2;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.jq-answer:hover {
+    background: #1e2a30;
+}
+
+/* 判定ボタン */
+.jq-buttons {
+    flex: 0 0 auto;
+}
+
+.jq-tag {
+    font-size: 10px;
+    color: #888;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+.jq-tag-next {
+    color: #555;
+}
+
+.jq-name {
+    font-size: 1em;
+    font-weight: 800;
+    color: #eee;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.jq-name-next {
+    color: #888;
+}
+
+.jq-answer-text {
+    font-size: 0.95em;
+    font-weight: 700;
+    color: #fff;
+    word-break: break-all;
+    line-height: 1.4;
+}
+
+.jq-hidden {
+    color: #555;
+    font-size: 0.8em;
+    font-style: italic;
+    font-weight: 400;
+}
+
+.jq-btn-row {
+    display: flex;
+    gap: 6px;
+    margin-top: 2px;
+}
+
+.jq-btn {
+    flex: 1;
+    padding: 8px 6px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1em;
+    font-weight: 900;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.jq-btn-o {
+    background: #27ae60;
+    color: #fff;
+}
+.jq-btn-o:hover:not(.jq-btn-disabled) {
+    background: #2ecc71;
+    transform: scale(1.05);
+}
+.jq-btn-x {
+    background: #c0392b;
+    color: #fff;
+}
+.jq-btn-x:hover:not(.jq-btn-disabled) {
+    background: #e74c3c;
+    transform: scale(1.05);
+}
+.jq-btn-disabled {
+    opacity: 0.28;
+    cursor: not-allowed;
+    pointer-events: none;
+}
