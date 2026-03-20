@@ -825,17 +825,43 @@ App.Design = {
                     if (info.type === 'answer') {
                         const isMulti = qType && (qType.startsWith('multi') || qType.startsWith('ranking'));
                         const isDobon = qType === 'choice' && qData && (qData.mode === 'dobon' || qData.mode === 'multi' || qData.multi);
+                        const isSort = qType === 'sort';
                         if (isMulti || isDobon) {
                             // Suppress popup for multi-answer or dobon grid reveal
                             extraHtml = '';
+                        } else if (isSort && qData.c) {
+                            // Sort answer reveal: ordered list with letter badge circles
+                            const accent = d.qBorderColor || '#00bfff';
+                            const textColor = d.qTextColor || '#fff';
+                            const qBgColor = d.qBgColor || 'rgba(0,0,0,0.5)';
+                            const badgeColors = ['#3498db','#e74c3c','#2ecc71','#f39c12','#9b59b6','#e91e63','#1abc9c','#e67e22','#16a085','#c0392b'];
+                            let correctOrder = [];
+                            if (Array.isArray(qData.correct)) correctOrder = qData.correct.map(Number);
+                            else if (typeof qData.correct === 'string') correctOrder = qData.correct.split('').map(c => c.charCodeAt(0) - 65);
+                            const rows = correctOrder.map((origIdx) => {
+                                const label = String.fromCharCode(65 + origIdx);
+                                const text = qData.c[origIdx] !== undefined ? qData.c[origIdx] : label;
+                                const color = badgeColors[origIdx % badgeColors.length];
+                                return `<div style="display:flex;align-items:center;gap:1.5%;background:rgba(5,15,50,0.8);border-radius:8px;padding:0.6% 1.2%;border:1px solid rgba(255,255,255,0.12);">
+                                    <div style="width:4vh;height:4vh;min-width:4vh;border-radius:50%;background:${color};border:2px solid rgba(255,255,255,0.85);display:flex;align-items:center;justify-content:center;font-size:2vh;font-weight:900;color:#fff;flex-shrink:0;">${label}</div>
+                                    <div style="font-size:2.4vh;font-weight:700;color:#fff;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${text}</div>
+                                </div>`;
+                            }).join('');
+                            const commentary = qData.commentary || '';
+                            extraHtml = `
+                            <div style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:300;display:flex;flex-direction:column;align-items:center;padding:2% 3%;box-sizing:border-box;overflow:hidden;font-family:sans-serif;">
+                                <div style="font-size:2.8vh;font-weight:700;color:${textColor};text-align:center;padding:1% 2%;background:${qBgColor};border-radius:8px;border-left:5px solid ${accent};width:90%;margin-bottom:1.2%;line-height:1.4;">${qData.q}</div>
+                                <div style="font-size:2vh;color:#ffd700;font-weight:900;letter-spacing:0.25em;margin-bottom:1%;">正　解</div>
+                                <div style="width:90%;flex:1;display:flex;flex-direction:column;gap:0.5vh;background:rgba(0,0,0,0.35);border:3px solid ${accent};border-radius:12px;padding:1% 1%;box-shadow:0 0 20px ${accent}44;overflow:hidden;">
+                                    ${rows}
+                                </div>
+                                ${commentary ? `<div style="font-size:1.8vh;color:#aaa;margin-top:0.8%;text-align:center;max-width:90%;">${commentary}</div>` : ''}
+                            </div>`;
                         } else {
                             let ansStr = Array.isArray(qData.correct) ? qData.correct.join(' / ') : (qData.correct !== undefined ? qData.correct : "正解内容");
                             if (qType === 'choice' && qData.c) {
                                 if (Array.isArray(qData.correct)) ansStr = qData.correct.map(idx => qData.c[idx]).join(' / ');
                                 else ansStr = qData.c[qData.correct] || qData.c[qData.correctIndex] || ansStr;
-                            } else if (qType === 'sort' && qData.c) {
-                                if (Array.isArray(qData.correct)) ansStr = qData.correct.map(idx => qData.c[idx]).join(' → ');
-                                else if (typeof qData.correct === 'string') ansStr = qData.correct.split('').map(char => qData.c[char.charCodeAt(0) - 65]).join(' → ');
                             }
                             const accent = d.qBorderColor || '#00bfff';
                             extraHtml = `
