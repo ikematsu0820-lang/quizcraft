@@ -791,11 +791,23 @@ App.Design = {
                 const isDobonTrap = dobonTrapSet && dobonTrapSet.has(i);
                 const isDobonSafe = isAnswerPhase && isDobon && dobonTrapSet && !dobonTrapSet.has(i);
 
+                const isNormalChoice = qType === 'choice' && !isDobon && !isMulti;
+                const normalChoiceCorrectIdx = (isAnswerPhase && isNormalChoice && answerQData)
+                    ? parseInt(answerQData.correctIndex !== undefined ? answerQData.correctIndex : answerQData.correct)
+                    : -1;
+
                 let finalCStyle = cStyle;
                 if (isRevealed) finalCStyle += `background:#2ecc71 !important; border:3px solid #fff !important; color:#fff !important; transform:scale(1.05);`;
                 else if (isMissed) finalCStyle += `background:#ff5555 !important; border:3px solid #fff !important; color:#fff !important;`;
                 else if (isDobonTrap) finalCStyle += `background:#ff5555 !important; border:3px solid #fff !important; color:#fff !important;`;
                 else if (isDobonSafe) finalCStyle += `background:#2ecc71 !important; border:3px solid #fff !important; color:#fff !important; transform:scale(1.05);`;
+                else if (isAnswerPhase && isNormalChoice && normalChoiceCorrectIdx >= 0) {
+                    if (i === normalChoiceCorrectIdx) {
+                        finalCStyle += `background:linear-gradient(135deg,#ffd700 0%,#ffec3d 100%) !important; color:#1a1000 !important; border:3px solid #fff !important; box-shadow:0 0 24px rgba(255,215,0,0.95),0 0 60px rgba(255,215,0,0.55) !important; transform:scale(1.04); font-weight:900 !important; opacity:1;`;
+                    } else {
+                        finalCStyle += `opacity:0.32; background:rgba(20,20,20,0.85) !important; filter:grayscale(70%) brightness(0.5); border:1px solid rgba(255,255,255,0.08) !important; box-shadow:none !important;`;
+                    }
+                }
 
                 const isRanking = qType && qType.startsWith('ranking');
                 const labelHtml = isMulti ? (isRanking ? `<span style="${labelStyle}">${i + 1}位</span> ` : '') : `<span style="${labelStyle}">${String.fromCharCode(65 + i)}</span> `;
@@ -832,9 +844,10 @@ App.Design = {
                     if (info.type === 'answer') {
                         const isMulti = qType && (qType.startsWith('multi') || qType.startsWith('ranking'));
                         const isDobon = qType === 'choice' && qData && (qData.mode === 'dobon' || qData.mode === 'multi' || qData.multi);
+                        const isNormalChoice = qType === 'choice' && !isDobon;
                         const isSort = qType === 'sort';
-                        if (isMulti || isDobon) {
-                            // Suppress popup for multi-answer or dobon grid reveal
+                        if (isMulti || isDobon || isNormalChoice) {
+                            // Suppress popup: multi/dobon use grid coloring; normal choice uses glow/dim on panels
                             extraHtml = '';
                         } else if (isSort && qData.c) {
                             // Sort answer reveal: ordered list with letter badge circles

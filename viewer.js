@@ -262,6 +262,42 @@ window.App.Viewer = {
                 return;
             }
 
+            // Normal choice: TV-show style reveal — light up correct, dim others
+            if (q.type === 'choice' && Array.isArray(q.c) && q.c.length > 0) {
+                const correctIdx = parseInt(q.correctIndex !== undefined ? q.correctIndex : q.correct);
+                mainText.querySelectorAll('.choice-item').forEach((el, i) => {
+                    el.style.transition = 'all 0.35s ease';
+                    if (i === correctIdx) {
+                        el.style.background = 'linear-gradient(135deg, #ffd700 0%, #ffec3d 100%)';
+                        el.style.color = '#1a1000';
+                        el.style.border = '3px solid #fff';
+                        el.style.boxShadow = '0 0 24px rgba(255,215,0,0.95), 0 0 60px rgba(255,215,0,0.55), 0 0 100px rgba(255,200,0,0.25)';
+                        el.style.transform = 'scale(1.04)';
+                        el.style.zIndex = '10';
+                        el.style.fontWeight = '900';
+                        el.style.opacity = '1';
+                        el.style.filter = '';
+                        const prefix = el.querySelector('.choice-prefix');
+                        if (prefix) { prefix.style.color = '#1a1000'; prefix.style.display = ''; }
+                    } else {
+                        el.style.opacity = '0.32';
+                        el.style.background = 'rgba(20,20,20,0.85)';
+                        el.style.filter = 'grayscale(70%) brightness(0.5)';
+                        el.style.border = '1px solid rgba(255,255,255,0.08)';
+                        el.style.boxShadow = 'none';
+                        el.style.transform = 'scale(1)';
+                    }
+                });
+                const commentary = st.commentary || q.commentary || '';
+                if (commentary) {
+                    const cd = document.createElement('div');
+                    cd.style.cssText = 'position:absolute;bottom:2.5vh;left:50%;transform:translateX(-50%);font-size:2.2vh;color:#aaa;text-align:center;max-width:85%;font-family:sans-serif;pointer-events:none;';
+                    cd.textContent = commentary;
+                    mainText.appendChild(cd);
+                }
+                return;
+            }
+
             const accent = q.design?.qBorderColor || '#00bfff';
             const answerBox = document.createElement('div');
             Object.assign(answerBox.style, {
