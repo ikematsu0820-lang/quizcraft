@@ -231,6 +231,15 @@ window.App.Viewer = {
                 return;
             }
 
+            // Sort answer reveal: replace entire content with ordered list (no choice grid behind it)
+            if (q.type === 'sort') {
+                mainText.style.flexDirection = '';
+                mainText.style.justifyContent = '';
+                mainText.style.alignItems = '';
+                this.renderSortReveal(mainText, q, st);
+                return;
+            }
+
             this.renderQuestionLayout(viewContainer, mainText, q, st, st.revealedMulti);
 
             // Suppress popup for ANY multi type that has a grid layout (q.c)
@@ -250,12 +259,6 @@ window.App.Viewer = {
                     const prefix = el.querySelector('.choice-prefix');
                     if (prefix) { prefix.style.display = ''; prefix.style.color = '#fff'; }
                 });
-                return;
-            }
-
-            // Sort answer reveal: ordered list with letter badge circles
-            if (q.type === 'sort') {
-                this.renderSortReveal(mainText, q, st);
                 return;
             }
 

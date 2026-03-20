@@ -848,8 +848,11 @@ App.Design = {
                                 </div>`;
                             }).join('');
                             const commentary = qData.commentary || '';
+                            const bgFill = d.mainBgColor && d.mainBgColor !== '#0a0a0a'
+                                ? d.mainBgColor
+                                : 'radial-gradient(circle at center, #1a1a1a 0%, #000000 100%)';
                             extraHtml = `
-                            <div style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:300;display:flex;flex-direction:column;align-items:center;padding:2% 3%;box-sizing:border-box;overflow:hidden;font-family:sans-serif;">
+                            <div style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:300;background:${bgFill};display:flex;flex-direction:column;align-items:center;padding:2% 3%;box-sizing:border-box;overflow:hidden;font-family:sans-serif;">
                                 <div style="font-size:2.8vh;font-weight:700;color:${textColor};text-align:center;padding:1% 2%;background:${qBgColor};border-radius:8px;border-left:5px solid ${accent};width:90%;margin-bottom:1.2%;line-height:1.4;">${qData.q}</div>
                                 <div style="font-size:2vh;color:#ffd700;font-weight:900;letter-spacing:0.25em;margin-bottom:1%;">正　解</div>
                                 <div style="width:90%;flex:1;display:flex;flex-direction:column;gap:0.5vh;background:rgba(0,0,0,0.35);border:3px solid ${accent};border-radius:12px;padding:1% 1%;box-shadow:0 0 20px ${accent}44;overflow:hidden;">
