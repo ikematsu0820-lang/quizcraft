@@ -579,24 +579,33 @@ function updateUI() {
     }
     else if (st.step === 'reveal_correct') {
         if (currentQuestion && currentQuestion.type === 'blackjack') {
-            // Show blackjack result: who picked what card and new total
             const container = document.getElementById('player-input-container');
             if (container) {
                 const myNewTotal = p.bjTotal || 0;
                 const target = st.bjTarget || 21;
                 const isBusted = myNewTotal > target;
+                const isPerfect = myNewTotal === target;
+                const isStand = st.bjIsStand;
+                let totalColor = '#16a34a';
+                if (isPerfect) totalColor = '#d97706';
+                else if (isBusted) totalColor = '#dc2626';
+                else if (target - myNewTotal <= 3) totalColor = '#ea580c';
                 container.innerHTML = `
-                    <div style="text-align:center; padding:16px;">
-                        <div style="font-size:0.9em; color:#aaa; margin-bottom:4px;">${st.bjPickedPlayerName || ''} が選んだカード</div>
-                        <div style="font-size:2.5em; font-weight:900; color:#ffd700;">${st.bjPickedCard || '?'}</div>
-                        <div style="font-size:0.9em; color:#aaa; margin-top:6px;">+${st.bjPickedValue || 0}</div>
-                        <hr style="border:0; border-top:1px solid #333; margin:12px 0;">
-                        <div style="font-size:0.85em; color:#aaa;">あなたの合計</div>
-                        <div style="font-size:2em; font-weight:900; color:${isBusted ? '#e74c3c' : '#2ecc71'};">${myNewTotal}</div>
-                        ${isBusted ? '<div style="color:#e74c3c; font-weight:bold;">BUST!</div>' : ''}
-                        <div style="font-size:0.8em; color:#aaa; margin-top:4px;">目標: ${target}</div>
-                    </div>
-                `;
+                    <div style="padding:16px 14px;font-family:sans-serif;display:flex;flex-direction:column;gap:12px;">
+                        <div style="text-align:center;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:14px;padding:14px;">
+                            <div style="font-size:0.8em;color:#94a3b8;margin-bottom:6px;">${st.bjPickedPlayerName || ''} ${isStand ? 'がスタンド' : 'が引いたパネル'}</div>
+                            ${isStand
+                                ? `<div style="font-size:1.6em;font-weight:900;color:#7c3aed;">✋ STAND</div>`
+                                : `<div style="font-size:2.5em;font-weight:900;color:#d97706;">${st.bjPickedCard || '?'}</div>
+                                   <div style="font-size:0.85em;color:#94a3b8;margin-top:4px;">+${st.bjPickedValue || 0}pt</div>`}
+                        </div>
+                        <div style="text-align:center;background:#fefce8;border:1.5px solid #fde68a;border-radius:14px;padding:14px;">
+                            <div style="font-size:0.78em;font-weight:700;letter-spacing:0.1em;color:#a16207;margin-bottom:6px;">YOUR TOTAL</div>
+                            <div style="font-size:2.8em;font-weight:900;color:${totalColor};line-height:1;">${myNewTotal}</div>
+                            <div style="font-size:0.78em;color:#94a3b8;margin-top:4px;">目標: ${target}</div>
+                            ${isBusted ? '<div style="color:#dc2626;font-weight:700;margin-top:4px;">💥 BUST!</div>' : isPerfect ? '<div style="color:#d97706;font-weight:700;margin-top:4px;">🎯 ピタリ！</div>' : ''}
+                        </div>
+                    </div>`;
             }
             quizArea.classList.remove('hidden');
         } else if (currentQuestion) {
@@ -604,17 +613,21 @@ function updateUI() {
         }
     }
     else if (st.step === 'bj_result') {
-        // Blackjack final result
         const container = document.getElementById('player-input-container');
         if (container) {
+            const isPerfect = (st.bjWinnerTotal === (st.bjTarget || 21));
+            const isWinner = (st.bjWinner === (p.name || ''));
             container.innerHTML = `
-                <div style="text-align:center; padding:20px;">
-                    <div style="font-size:1.2em; font-weight:bold; color:#ffd700; margin-bottom:10px;">🃏 ブラックジャック結果</div>
-                    <div style="color:#aaa; font-size:0.9em;">優勝</div>
-                    <div style="font-size:1.8em; font-weight:900; color:#2ecc71;">${st.bjWinner || '---'}</div>
-                    <div style="color:#aaa; font-size:0.9em; margin-top:4px;">合計: ${st.bjWinnerTotal || 0} / 目標: ${st.bjTarget || 21}</div>
-                </div>
-            `;
+                <div style="padding:20px 14px;font-family:sans-serif;text-align:center;display:flex;flex-direction:column;gap:14px;align-items:center;">
+                    <div style="font-size:0.75em;font-weight:700;letter-spacing:0.15em;color:#94a3b8;">🃏 NUMBER GAME — RESULT</div>
+                    <div style="background:${isWinner ? '#fefce8' : '#f8fafc'};border:2px solid ${isWinner ? '#fde68a' : '#e2e8f0'};border-radius:18px;padding:18px 28px;width:100%;max-width:280px;box-sizing:border-box;">
+                        <div style="font-size:0.78em;color:#94a3b8;margin-bottom:6px;">WINNER</div>
+                        <div style="font-size:1.8em;font-weight:900;color:${isWinner ? '#d97706' : '#1e293b'};">${st.bjWinner || '---'}</div>
+                        <div style="font-size:0.8em;color:#94a3b8;margin-top:8px;">合計 <strong style="color:${isPerfect ? '#d97706' : '#475569'};">${st.bjWinnerTotal || 0}</strong> / 目標 ${st.bjTarget || 21}</div>
+                        ${isPerfect ? '<div style="color:#d97706;font-weight:700;margin-top:6px;">🎯 ピタリ！</div>' : ''}
+                    </div>
+                    ${isWinner ? '<div style="font-size:1em;font-weight:700;color:#16a34a;">🎉 おめでとうございます！</div>' : ''}
+                </div>`;
         }
         quizArea.classList.remove('hidden');
     }
@@ -792,57 +805,114 @@ function renderBlackjackCards(st, p) {
     const container = document.getElementById('player-input-container');
     if (!container) return;
 
-    // If already answered this turn, show waiting message
+    const cards = st.bjCards || [];
+    const usedCards = st.bjUsedCards || [];
+    const myTotal = p.bjTotal || 0;
+    const target = st.bjTarget || 21;
+    const myCardHistory = Array.isArray(p.bjCardHistory) ? p.bjCardHistory : [];
+    const isMyTurn = (st.currentAnswerer === myPlayerId);
+
+    // Score color
+    const diff = target - myTotal;
+    let scoreColor = '#16a34a';
+    if (myTotal > target) scoreColor = '#dc2626';
+    else if (myTotal === target) scoreColor = '#d97706';
+    else if (diff <= 3) scoreColor = '#ea580c';
+
+    // Already answered this turn
     if (p.lastAnswer !== null && p.lastAnswer !== undefined) {
-        const cards = st.bjCards || [];
+        const isStandAnswer = (p.lastAnswer === 'stand');
         const pickedIdx = parseInt(p.lastAnswer);
-        const pickedName = (pickedIdx >= 0 && pickedIdx < cards.length) ? cards[pickedIdx] : '?';
+        const pickedName = (!isStandAnswer && pickedIdx >= 0 && pickedIdx < cards.length) ? cards[pickedIdx] : null;
         container.innerHTML = `
-            <div style="text-align:center; padding:20px;">
-                <div style="color:#00b894; font-size:1.1em; font-weight:bold; margin-bottom:8px;">カードを選びました</div>
-                <div style="font-size:2em; font-weight:900; color:#ffd700;">${pickedName}</div>
-                <div style="color:#aaa; margin-top:8px; font-size:0.9em;">発表を待っています...</div>
-            </div>
-        `;
+            <div style="padding:20px 16px;font-family:sans-serif;display:flex;flex-direction:column;gap:14px;">
+                <div style="background:${isStandAnswer ? 'rgba(124,58,237,0.08)' : 'rgba(22,163,74,0.08)'};border:1.5px solid ${isStandAnswer ? 'rgba(124,58,237,0.3)' : 'rgba(22,163,74,0.3)'};border-radius:16px;padding:16px;text-align:center;">
+                    <div style="font-size:0.8em;font-weight:700;letter-spacing:0.1em;color:${isStandAnswer ? '#7c3aed' : '#16a34a'};margin-bottom:8px;">${isStandAnswer ? '✋ スタンドしました' : '✓ パネルを選択しました'}</div>
+                    ${pickedName ? `<div style="font-size:2em;font-weight:900;color:#d97706;">${pickedName}</div>` : ''}
+                </div>
+                <div style="text-align:center;color:#9ca3af;font-size:0.85em;">発表を待っています...</div>
+            </div>`;
         return;
     }
 
-    const cards = st.bjCards || [];
-    const usedCards = st.bjUsedCards || [];
-    const myTotal = (p.bjTotal || 0);
-    const target = st.bjTarget || 21;
+    const progress = Math.min((myTotal / target) * 100, 100);
 
-    let html = `
-        <div style="text-align:center; margin-bottom:12px;">
-            <span style="color:#aaa; font-size:0.85em;">あなたの合計: </span>
-            <span style="color:#ffd700; font-size:1.4em; font-weight:900;">${myTotal}</span>
-            <span style="color:#aaa; font-size:0.85em;"> / 目標: ${target}</span>
-        </div>
-        <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap:8px; padding:4px;">
-    `;
+    container.innerHTML = `
+        <div style="padding:16px 14px;font-family:sans-serif;display:flex;flex-direction:column;gap:14px;">
 
-    cards.forEach((cardName, idx) => {
-        const isUsed = usedCards.includes(idx);
-        html += `
-            <button class="bj-card-btn" data-idx="${idx}" ${isUsed ? 'disabled' : ''}
-                style="padding:14px 8px; border-radius:8px; border:2px solid ${isUsed ? '#333' : '#ffd700'};
-                background:${isUsed ? '#1a1a1a' : '#2a2400'}; color:${isUsed ? '#444' : '#ffd700'};
-                font-size:1.1em; font-weight:bold; cursor:${isUsed ? 'not-allowed' : 'pointer'};
-                opacity:${isUsed ? '0.4' : '1'}; transition:all 0.15s;">
-                ${cardName}
+            <!-- Score display -->
+            <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:16px;padding:14px 16px;">
+                <div style="display:flex;justify-content:center;align-items:baseline;gap:8px;margin-bottom:10px;">
+                    <span style="font-size:2.8em;font-weight:900;color:${scoreColor};line-height:1;">${myTotal}</span>
+                    <span style="color:#94a3b8;font-size:1.2em;">/</span>
+                    <span style="font-size:1.5em;font-weight:700;color:#d97706;">${target}</span>
+                </div>
+                <div style="background:#e2e8f0;border-radius:999px;height:8px;overflow:hidden;margin-bottom:6px;">
+                    <div style="height:100%;width:${progress}%;background:${scoreColor};border-radius:999px;transition:width 0.6s ease;box-shadow:0 0 6px ${scoreColor}66;"></div>
+                </div>
+                <div style="text-align:center;font-size:0.78em;color:#94a3b8;font-weight:600;">
+                    ${myTotal > target ? '⚠️ BUST!' : myTotal === target ? '🎯 ピタリ！' : `あと ${diff} pt`}
+                </div>
+            </div>
+
+            <!-- My hand -->
+            ${myCardHistory.length > 0 ? `
+            <div style="background:#fefce8;border:1.5px solid #fef08a;border-radius:12px;padding:10px 12px;">
+                <div style="font-size:0.72em;font-weight:700;letter-spacing:0.1em;color:#a16207;margin-bottom:8px;">MY HAND</div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                    ${myCardHistory.map(c => `
+                        <div style="background:#fff;border:1.5px solid #fde68a;border-radius:8px;padding:4px 10px;display:flex;align-items:center;gap:5px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+                            <span style="color:#92400e;font-weight:700;font-size:0.9em;">${c.name}</span>
+                            <span style="color:#d97706;font-size:0.75em;font-weight:600;">+${c.value}</span>
+                        </div>`).join('')}
+                </div>
+            </div>` : ''}
+
+            <!-- Panels grid (only on my turn) -->
+            ${isMyTurn ? `
+            <div>
+                <div style="font-size:0.72em;font-weight:700;letter-spacing:0.1em;color:#64748b;margin-bottom:8px;">PANELS — タップして選択</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    ${cards.map((cardName, idx) => {
+                        const isUsed = usedCards.includes(idx);
+                        const val = currentQuestion && currentQuestion.values ? (currentQuestion.values[idx] !== undefined ? currentQuestion.values[idx] : '') : '';
+                        return `
+                            <button class="bj-card-btn" data-idx="${idx}" ${isUsed ? 'disabled' : ''}
+                                style="padding:18px 10px;border-radius:14px;border:2px solid ${isUsed ? '#e2e8f0' : '#d97706'};background:${isUsed ? '#f1f5f9' : '#fffbeb'};color:${isUsed ? '#cbd5e1' : '#92400e'};font-weight:800;cursor:${isUsed ? 'not-allowed' : 'pointer'};opacity:${isUsed ? '0.5' : '1'};box-shadow:${isUsed ? 'none' : '0 4px 12px rgba(217,119,6,0.12)'};transition:all 0.15s;text-align:center;width:100%;">
+                                <div style="font-size:1.1em;font-weight:900;">${cardName}</div>
+                                ${val !== '' ? `<div style="font-size:0.75em;margin-top:4px;color:${isUsed ? '#cbd5e1' : '#d97706'};">${val}pt</div>` : ''}
+                            </button>`;
+                    }).join('')}
+                </div>
+            </div>
+
+            <!-- Stand button -->
+            <button id="bj-stand-btn" style="width:100%;padding:16px;border-radius:14px;border:2px solid rgba(124,58,237,0.3);background:rgba(124,58,237,0.06);color:#7c3aed;font-size:1em;font-weight:700;cursor:pointer;letter-spacing:0.04em;transition:all 0.2s;">
+                ✋ スタンド（このまま勝負）
             </button>
-        `;
-    });
+            ` : `
+            <!-- Not my turn -->
+            <div style="text-align:center;padding:24px;color:#94a3b8;font-size:0.9em;background:#f8fafc;border-radius:14px;border:1.5px solid #e2e8f0;">
+                <div style="font-size:1.6em;margin-bottom:8px;">⏳</div>
+                ${st.currentAnswererName ? `<strong style="color:#64748b;">${st.currentAnswererName}</strong> さんのターンです` : '他のプレイヤーのターンです'}
+            </div>`}
+        </div>`;
 
-    html += `</div>`;
-    container.innerHTML = html;
-
+    // Event listeners
     container.querySelectorAll('.bj-card-btn:not([disabled])').forEach(btn => {
+        btn.addEventListener('touchstart', () => { btn.style.transform = 'scale(0.96)'; btn.style.boxShadow = '0 0 0 3px rgba(217,119,6,0.25)'; }, { passive: true });
+        btn.addEventListener('touchend', () => { btn.style.transform = ''; btn.style.boxShadow = ''; });
         btn.onclick = () => {
             const idx = parseInt(btn.getAttribute('data-idx'));
             submitAnswer(myRoomId, myPlayerId, idx);
         };
     });
+    const standBtn = container.querySelector('#bj-stand-btn');
+    if (standBtn) {
+        standBtn.addEventListener('touchstart', () => { standBtn.style.background = 'rgba(124,58,237,0.15)'; }, { passive: true });
+        standBtn.addEventListener('touchend', () => { standBtn.style.background = 'rgba(124,58,237,0.06)'; });
+        standBtn.onclick = () => submitAnswer(myRoomId, myPlayerId, 'stand');
+    }
 }
 
 function renderResultScreen(p) {

@@ -236,6 +236,23 @@ window.App.Viewer = {
             // Suppress popup for ANY multi type that has a grid layout (q.c)
             if (q.type && (q.type.startsWith('multi') || q.type.startsWith('ranking')) && Array.isArray(q.c) && q.c.length > 0) return;
 
+            // Dobon answer reveal: color-code choice grid (trap=red, safe=green) like multi-answer
+            const isDobon = (q.mode === 'dobon' || q.mode === 'multi' || q.multi);
+            if (isDobon && Array.isArray(q.c) && q.c.length > 0) {
+                const trapSet = new Set(Array.isArray(q.correct) ? q.correct.map(Number) : (q.correct !== undefined ? [Number(q.correct)] : []));
+                mainText.querySelectorAll('.choice-item').forEach((el, i) => {
+                    const isTrap = trapSet.has(i);
+                    el.style.background = isTrap ? '#ff5555' : '#2ecc71';
+                    el.style.border = '3px solid #fff';
+                    el.style.color = '#fff';
+                    el.style.transform = isTrap ? 'scale(1.0)' : 'scale(1.05)';
+                    el.style.transition = 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                    const prefix = el.querySelector('.choice-prefix');
+                    if (prefix) { prefix.style.display = ''; prefix.style.color = '#fff'; }
+                });
+                return;
+            }
+
             const accent = q.design?.qBorderColor || '#00bfff';
             const answerBox = document.createElement('div');
             Object.assign(answerBox.style, {
@@ -249,9 +266,8 @@ window.App.Viewer = {
             const ansStr = st.correct || this.getAnswerString(q);
             const fontSize = ansStr.length > 20 ? '4vh' : ansStr.length > 10 ? '6vh' : '8vh';
 
-            const isDobon = (q.mode === 'dobon' || q.mode === 'multi' || q.multi);
-            const labelText = isDobon ? "TRAP ANSWERS (不正解)" : "CORRECT ANSWER";
-            const labelColor = isDobon ? "#ff5555" : accent;
+            const labelText = "CORRECT ANSWER";
+            const labelColor = accent;
 
             answerBox.innerHTML = `
                 <div style="font-size:3vh; color:${labelColor}; font-weight:800; margin-bottom:15px; letter-spacing:2px;">${labelText}</div>
@@ -296,12 +312,24 @@ window.App.Viewer = {
         else if (st.step === 'bj_result') {
             statusDiv.textContent = "RESULT";
             this.applyDefaultDesign(viewContainer, null);
+            const isPerfect = (st.bjWinnerTotal === (st.bjTarget || 21));
             mainText.innerHTML = `
-                <div style="text-align:center; padding:5vh 0;">
-                    <div style="font-size:5vh; font-weight:900; color:#ffd700; margin-bottom:2vh;">🃏 ブラックジャック</div>
-                    <div style="font-size:3vh; color:#aaa; margin-bottom:1vh;">優勝</div>
-                    <div style="font-size:10vh; font-weight:900; color:#2ecc71; text-shadow:0 0 40px #2ecc71aa;">${st.bjWinner || '---'}</div>
-                    <div style="font-size:3vh; color:#aaa; margin-top:2vh;">合計: <span style="color:#fff; font-weight:bold;">${st.bjWinnerTotal || 0}</span> / 目標: ${st.bjTarget || 21}</div>
+                <div style="text-align:center;padding:4vh 2vw;font-family:sans-serif;">
+                    <div style="font-size:2.5vh;color:#888;letter-spacing:0.2em;margin-bottom:1.5vh;">🃏 NUMBER GAME — RESULT</div>
+                    <div style="font-size:2.2vh;color:#888;margin-bottom:1vh;">WINNER</div>
+                    <div style="font-size:9vh;font-weight:900;color:#2ecc71;text-shadow:0 0 50px #2ecc71aa;line-height:1.1;animation:popInCenter 0.6s cubic-bezier(0.175,0.885,0.32,1.275);">${st.bjWinner || '---'}</div>
+                    <div style="margin-top:2.5vh;display:inline-flex;align-items:center;gap:2vw;background:rgba(255,255,255,0.04);border:2px solid rgba(255,255,255,0.1);border-radius:16px;padding:1.5vh 3vw;">
+                        <div style="text-align:center;">
+                            <div style="font-size:1.4vh;color:#666;letter-spacing:0.1em;">SCORE</div>
+                            <div style="font-size:5vh;font-weight:900;color:${isPerfect ? '#ffd700' : '#fff'};text-shadow:${isPerfect ? '0 0 30px #ffd700aa' : 'none'};">${st.bjWinnerTotal || 0}</div>
+                        </div>
+                        <div style="color:#444;font-size:3vh;">/</div>
+                        <div style="text-align:center;">
+                            <div style="font-size:1.4vh;color:#666;letter-spacing:0.1em;">TARGET</div>
+                            <div style="font-size:5vh;font-weight:900;color:#ffd700;">${st.bjTarget || 21}</div>
+                        </div>
+                    </div>
+                    ${isPerfect ? '<div style="font-size:2.5vh;color:#ffd700;font-weight:900;margin-top:2vh;letter-spacing:0.15em;text-shadow:0 0 20px #ffd700aa;">🎯 PERFECT SCORE!</div>' : ''}
                 </div>
             `;
         }
@@ -448,52 +476,135 @@ window.App.Viewer = {
 
     renderBlackjackQuestion: function (container, q, st) {
         const cards = st.bjCards || q.c || [];
+        const values = q.values || [];
         const usedCards = st.bjUsedCards || [];
         const target = st.bjTarget || q.target || 21;
         const currentTotal = st.bjCurrentTotal || 0;
         const answererName = st.currentAnswererName || '';
+        const pickedHistory = st.bjPickedHistory || [];
 
-        let cardsHtml = '';
-        cards.forEach((name, idx) => {
+        const diff = target - currentTotal;
+        let scoreColor = '#2ecc71', scoreGlow = 'none';
+        if (currentTotal === target) { scoreColor = '#ffd700'; scoreGlow = '0 0 30px #ffd700aa'; }
+        else if (currentTotal > target) { scoreColor = '#e74c3c'; scoreGlow = '0 0 30px #e74c3caa'; }
+        else if (diff <= 3) { scoreColor = '#f39c12'; scoreGlow = '0 0 20px #f39c12aa'; }
+
+        const cols = cards.length <= 6 ? 3 : cards.length <= 12 ? 4 : 5;
+
+        let cardsHtml = cards.map((name, idx) => {
             const isUsed = usedCards.includes(idx);
-            cardsHtml += `
+            const val = values[idx] !== undefined ? values[idx] : '';
+            return `
                 <div style="
-                    padding:3vh 2vw; border-radius:12px;
-                    border:3px solid ${isUsed ? '#333' : '#ffd700'};
-                    background:${isUsed ? '#1a1a1a' : '#2a2400'};
-                    color:${isUsed ? '#444' : '#ffd700'};
-                    font-size:4vh; font-weight:900;
-                    opacity:${isUsed ? '0.35' : '1'};
+                    border-radius:14px;
+                    border:2px solid ${isUsed ? '#252525' : '#ffd700'};
+                    background:${isUsed ? 'rgba(255,255,255,0.02)' : 'linear-gradient(145deg,#2a2000,#1a1500)'};
+                    color:${isUsed ? '#2a2a2a' : '#ffd700'};
+                    opacity:${isUsed ? '0.3' : '1'};
+                    padding:1.8vh 1vw;
                     text-align:center;
-                ">${name}</div>
-            `;
-        });
+                    box-shadow:${isUsed ? 'none' : '0 4px 16px rgba(255,215,0,0.12),inset 0 1px 0 rgba(255,255,255,0.05)'};
+                    transition:all 0.3s;
+                    position:relative;
+                ">
+                    <div style="font-size:2.8vh; font-weight:900;">${name}</div>
+                    ${val !== '' ? `<div style="font-size:1.6vh; margin-top:0.4vh; font-weight:700; color:${isUsed ? '#2a2a2a' : '#ffcc00'};">${val}pt</div>` : ''}
+                    ${isUsed ? '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:2.5vh;color:#333;">✓</div>' : ''}
+                </div>`;
+        }).join('');
+
+        let historyHtml = pickedHistory.map(h => `
+            <div style="display:flex;align-items:center;gap:1vw;background:rgba(255,215,0,0.05);border:1px solid rgba(255,215,0,0.15);border-radius:10px;padding:1vh 1.2vw;font-size:1.7vh;">
+                <span style="color:#777;min-width:7vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${h.playerName}</span>
+                <span style="color:#ffd700;font-weight:900;font-size:2vh;">${h.name}</span>
+                <span style="color:#f39c12;font-weight:700;margin-left:auto;">+${h.value}</span>
+            </div>`).join('');
 
         container.innerHTML = `
-            <div style="padding:3vh; width:100%; box-sizing:border-box;">
-                <div style="font-size:3vh; color:#aaa; text-align:center; margin-bottom:1.5vh;">
-                    目標: <span style="color:#ffd700; font-weight:900;">${target}</span>
-                    ${answererName ? ` ／ 解答者: <span style="color:#fff;">${answererName}</span>` : ''}
-                    ${answererName ? ` ／ 現在の合計: <span style="color:#2ecc71;">${currentTotal}</span>` : ''}
+            <div style="width:100%;height:100%;display:flex;flex-direction:column;box-sizing:border-box;padding:2vh 2vw;gap:1.5vh;font-family:sans-serif;">
+
+                <!-- Question -->
+                <div style="text-align:center;color:#fff;font-size:3vh;font-weight:900;padding:1.2vh 2vw;border:2px solid rgba(0,191,255,0.25);border-radius:12px;background:rgba(0,191,255,0.04);letter-spacing:0.04em;">${q.q || ''}</div>
+
+                <!-- Score bar -->
+                <div style="display:flex;gap:1.5vw;justify-content:center;">
+                    <div style="flex:1;text-align:center;padding:1.2vh 1vw;background:rgba(255,215,0,0.05);border:2px solid rgba(255,215,0,0.25);border-radius:14px;">
+                        <div style="font-size:1.3vh;color:#666;letter-spacing:0.12em;font-weight:700;margin-bottom:0.3vh;">TARGET</div>
+                        <div style="font-size:5.5vh;font-weight:900;color:#ffd700;text-shadow:0 0 20px #ffd700aa;line-height:1;">${target}</div>
+                    </div>
+                    <div style="flex:1;text-align:center;padding:1.2vh 1vw;background:rgba(${currentTotal > target ? '231,76,60' : '46,204,113'},0.05);border:2px solid rgba(${currentTotal > target ? '231,76,60' : '46,204,113'},0.25);border-radius:14px;${answererName ? '' : 'opacity:0.35;'}">
+                        <div style="font-size:1.3vh;color:#666;letter-spacing:0.12em;font-weight:700;margin-bottom:0.3vh;">${answererName ? answererName : 'CURRENT'}</div>
+                        <div style="font-size:5.5vh;font-weight:900;color:${scoreColor};text-shadow:${scoreGlow};line-height:1;">${currentTotal}</div>
+                        ${currentTotal > target ? '<div style="font-size:1.2vh;color:#e74c3c;font-weight:700;">BUST</div>' : ''}
+                    </div>
+                    ${answererName ? `<div style="flex:1;text-align:center;padding:1.2vh 1vw;background:rgba(155,89,182,0.05);border:2px solid rgba(155,89,182,0.25);border-radius:14px;">
+                        <div style="font-size:1.3vh;color:#666;letter-spacing:0.12em;font-weight:700;margin-bottom:0.3vh;">REMAINING</div>
+                        <div style="font-size:5.5vh;font-weight:900;color:#9b59b6;line-height:1;">${Math.max(0, diff)}</div>
+                    </div>` : ''}
                 </div>
-                <div style="font-size:3.5vh; font-weight:900; color:#fff; text-align:center; margin-bottom:2vh;">${q.q || ''}</div>
-                <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(100px, 1fr)); gap:12px;">
-                    ${cardsHtml}
+
+                <!-- Panels + History -->
+                <div style="flex:1;display:flex;gap:2vw;overflow:hidden;min-height:0;">
+                    <!-- Available panels -->
+                    <div style="flex:2;overflow:auto;">
+                        <div style="font-size:1.3vh;color:#555;letter-spacing:0.12em;font-weight:700;margin-bottom:1vh;">AVAILABLE PANELS</div>
+                        <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:1.2vh;">${cardsHtml}</div>
+                    </div>
+                    ${pickedHistory.length > 0 ? `
+                    <!-- Picked history -->
+                    <div style="flex:1;overflow:auto;min-width:0;">
+                        <div style="font-size:1.3vh;color:#555;letter-spacing:0.12em;font-weight:700;margin-bottom:1vh;">PICKED HISTORY</div>
+                        <div style="display:flex;flex-direction:column;gap:0.7vh;">${historyHtml}</div>
+                    </div>` : ''}
                 </div>
             </div>
         `;
     },
 
     renderBlackjackReveal: function (container, st) {
+        const target = st.bjTarget || 21;
+        const newTotal = st.bjNewTotal || 0;
+        const isBusted = newTotal > target;
+        const isPerfect = newTotal === target;
+        const isStand = st.bjIsStand;
+
+        let totalColor = '#2ecc71', totalGlow = '0 0 30px #2ecc71aa';
+        if (isPerfect) { totalColor = '#ffd700'; totalGlow = '0 0 60px #ffd700aa'; }
+        else if (isBusted) { totalColor = '#e74c3c'; totalGlow = '0 0 60px #e74c3caa'; }
+        else if (target - newTotal <= 3) { totalColor = '#f39c12'; totalGlow = '0 0 40px #f39c12aa'; }
+
+        if (isStand) {
+            container.innerHTML = `
+                <div style="text-align:center;padding:5vh 2vw;font-family:sans-serif;">
+                    <div style="font-size:2.5vh;color:#888;margin-bottom:2vh;">${st.bjPickedPlayerName || ''}</div>
+                    <div style="font-size:9vh;font-weight:900;color:#9b59b6;text-shadow:0 0 40px #9b59b6aa;animation:popInCenter 0.5s cubic-bezier(0.175,0.885,0.32,1.275);letter-spacing:0.05em;">STAND</div>
+                    <div style="font-size:2.2vh;color:#777;margin-top:2vh;">カードを引かずに勝負に出ました</div>
+                    <div style="font-size:3.5vh;color:${totalColor};font-weight:900;margin-top:2.5vh;text-shadow:${totalGlow};">合計 ${newTotal} / 目標 ${target}</div>
+                </div>`;
+            return;
+        }
+
         container.innerHTML = `
-            <div style="text-align:center; padding:5vh 0;">
-                <div style="font-size:2.5vh; color:#aaa; margin-bottom:1vh;">${st.bjPickedPlayerName || ''} のカード</div>
-                <div style="font-size:12vh; font-weight:900; color:#ffd700; text-shadow:0 0 40px #ffd700aa;
-                    animation:popInCenter 0.5s cubic-bezier(0.175,0.885,0.32,1.275);">
-                    ${st.bjPickedCard || '?'}
+            <div style="text-align:center;padding:3vh 2vw;font-family:sans-serif;">
+                <div style="font-size:2.2vh;color:#888;margin-bottom:1.5vh;">${st.bjPickedPlayerName || ''} が引いたパネル</div>
+                <!-- Card -->
+                <div style="display:inline-block;background:linear-gradient(145deg,#2a2000,#1a1200);border:3px solid #ffd700;border-radius:24px;padding:2.5vh 5vw;box-shadow:0 0 60px rgba(255,215,0,0.25),inset 0 1px 0 rgba(255,255,255,0.08);animation:popInCenter 0.5s cubic-bezier(0.175,0.885,0.32,1.275);margin-bottom:2.5vh;">
+                    <div style="font-size:9vh;font-weight:900;color:#ffd700;text-shadow:0 0 40px #ffd700aa;line-height:1.1;">${st.bjPickedCard || '?'}</div>
+                    <div style="font-size:3.2vh;color:#ffcc00;font-weight:700;margin-top:0.8vh;">+${st.bjPickedValue || 0}pt</div>
                 </div>
-                <div style="font-size:3vh; color:#aaa; margin-top:2vh;">+${st.bjPickedValue || 0} → 合計 <span style="color:#2ecc71; font-weight:900;">${st.bjNewTotal || 0}</span></div>
-                <div style="font-size:2.5vh; color:#888; margin-top:1vh;">目標: ${st.bjTarget || 21}</div>
+                <!-- New total -->
+                <div style="display:flex;justify-content:center;align-items:center;gap:3vw;">
+                    <div style="text-align:center;">
+                        <div style="font-size:1.5vh;color:#555;letter-spacing:0.12em;margin-bottom:0.5vh;">NEW TOTAL</div>
+                        <div style="font-size:8vh;font-weight:900;color:${totalColor};text-shadow:${totalGlow};line-height:1;">${newTotal}</div>
+                        ${isBusted ? '<div style="font-size:2vh;color:#e74c3c;font-weight:900;letter-spacing:0.15em;margin-top:0.5vh;">💥 BUST</div>' : isPerfect ? '<div style="font-size:2vh;color:#ffd700;font-weight:900;letter-spacing:0.15em;margin-top:0.5vh;">🎯 PERFECT!</div>' : ''}
+                    </div>
+                    <div style="color:#444;font-size:4vh;">/</div>
+                    <div style="text-align:center;">
+                        <div style="font-size:1.5vh;color:#555;letter-spacing:0.12em;margin-bottom:0.5vh;">TARGET</div>
+                        <div style="font-size:8vh;font-weight:900;color:#ffd700;line-height:1;">${target}</div>
+                    </div>
+                </div>
             </div>
         `;
     },

@@ -6,6 +6,8 @@ App.Design = {
     currentTarget: null,
     activeQuickEdit: null, // Track which area is being edited ('q' or 'c')
     previewQIndex: 0, // Current question being previewed in the set
+    _eventsBound: false,
+    _resizeHandler: null,
 
     defaults: {
         mainBgColor: "#0a0a0a",
@@ -24,6 +26,15 @@ App.Design = {
     init: function (targetKey = null, targetData = null) {
         App.Ui.showView(App.Ui.views.design);
 
+        // Reset state
+        this.currentTarget = null;
+        this.previewQIndex = 0;
+        this.setDefaultUI();
+
+        // Reset dropdown to placeholder before loading
+        const sel = document.getElementById('design-target-select');
+        if (sel) sel.value = '';
+
         this.bindEvents();
         this.loadTargetList();
 
@@ -33,19 +44,22 @@ App.Design = {
             const q = targetData.questions?.[0] || {};
             this.applyToUI(q.design || {}, q.layout || 'standard', q.align || 'center');
             App.Ui.showToast(`Auto-Loaded: ${targetData.title}`);
-        } else {
-            this.currentTarget = null;
-            this.previewQIndex = 0;
-            this.setDefaultUI();
         }
+
+        // resize リスナーの重複登録を防ぐ
+        if (this._resizeHandler) window.removeEventListener('resize', this._resizeHandler);
+        this._resizeHandler = () => this.renderPreview();
+        window.addEventListener('resize', this._resizeHandler);
 
         // 初回描画（スマホ対策で少し遅らせて再実行）
         this.renderPreview();
         setTimeout(() => this.renderPreview(), 100);
-        window.addEventListener('resize', () => this.renderPreview());
     },
 
     bindEvents: function () {
+        if (this._eventsBound) return;
+        this._eventsBound = true;
+
         document.getElementById('design-target-load-btn').onclick = () => this.loadTarget();
 
         // Auto-refresh list on dropdown click (since refresh btn is hidden)
@@ -345,6 +359,9 @@ App.Design = {
                 opt.textContent = "保存されたデータがありません";
                 select.appendChild(opt);
             }
+
+            // ブラウザによる前回値の復元を防ぐため、明示的にプレースホルダーに戻す
+            select.value = '';
         }).catch(err => {
             console.error("[Design] Failed to load target list:", err);
             select.innerHTML = '<option value="">Error Loading</option>';
@@ -755,13 +772,23 @@ App.Design = {
                 const isMulti = qType && (qType.startsWith('multi') || qType.startsWith('ranking'));
                 const info = (this.currentTarget && this.currentTarget.data) ? this.getStepInfo(this.previewQIndex, this.getQuestionsFromTarget() || []) : null;
                 const isAnswerPhase = info && info.type === 'answer';
+                const answerQData = (isAnswerPhase && info.qIdx >= 0) ? (this.getQuestionsFromTarget() || [])[info.qIdx] : null;
+                const isDobon = qType === 'choice' && answerQData && (answerQData.mode === 'dobon' || answerQData.mode === 'multi' || answerQData.multi);
 
                 const isRevealed = isAnswerPhase && isMulti && (i % 3 === 0);
                 const isMissed = isAnswerPhase && isMulti && !isRevealed;
 
+                const dobonTrapSet = (isAnswerPhase && isDobon && answerQData.correct !== undefined)
+                    ? new Set(Array.isArray(answerQData.correct) ? answerQData.correct.map(Number) : [Number(answerQData.correct)])
+                    : null;
+                const isDobonTrap = dobonTrapSet && dobonTrapSet.has(i);
+                const isDobonSafe = isAnswerPhase && isDobon && dobonTrapSet && !dobonTrapSet.has(i);
+
                 let finalCStyle = cStyle;
                 if (isRevealed) finalCStyle += `background:#2ecc71 !important; border:3px solid #fff !important; color:#fff !important; transform:scale(1.05);`;
                 else if (isMissed) finalCStyle += `background:#ff5555 !important; border:3px solid #fff !important; color:#fff !important;`;
+                else if (isDobonTrap) finalCStyle += `background:#ff5555 !important; border:3px solid #fff !important; color:#fff !important;`;
+                else if (isDobonSafe) finalCStyle += `background:#2ecc71 !important; border:3px solid #fff !important; color:#fff !important; transform:scale(1.05);`;
 
                 const isRanking = qType && qType.startsWith('ranking');
                 const labelHtml = isMulti ? (isRanking ? `<span style="${labelStyle}">${i + 1}位</span> ` : '') : `<span style="${labelStyle}">${String.fromCharCode(65 + i)}</span> `;
@@ -797,8 +824,9 @@ App.Design = {
                 if (qData) {
                     if (info.type === 'answer') {
                         const isMulti = qType && (qType.startsWith('multi') || qType.startsWith('ranking'));
-                        if (isMulti) {
-                            // Suppress popup for multi-answer grid reveal
+                        const isDobon = qType === 'choice' && qData && (qData.mode === 'dobon' || qData.mode === 'multi' || qData.multi);
+                        if (isMulti || isDobon) {
+                            // Suppress popup for multi-answer or dobon grid reveal
                             extraHtml = '';
                         } else {
                             let ansStr = Array.isArray(qData.correct) ? qData.correct.join(' / ') : (qData.correct !== undefined ? qData.correct : "正解内容");

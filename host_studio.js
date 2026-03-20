@@ -164,10 +164,6 @@ App.Studio = {
 
         if (isStandalone) {
             window.App.isUnifiedMode = true;
-            if (!keepPlayers && window.App.Viewer && window.App.Viewer.connect) {
-                window.App.Viewer.connect(code);
-                this.setupUnifiedToggle();
-            }
         } else {
             if (!keepPlayers) window.open(viewerUrl, '_blank');
         }
@@ -186,6 +182,12 @@ App.Studio = {
             }
             App.Ui.showView(App.Ui.views.hostControl);
             this.enterHostMode();
+
+            // ★ Unified Mode: ルーム作成完了後にビューアを接続し、トグルUIを表示
+            if (window.App.isUnifiedMode && window.App.Viewer && window.App.Viewer.connect) {
+                window.App.Viewer.connect(code);
+                this.setupUnifiedToggle();
+            }
 
             // Check Quick Start trigger
             if (this.isQuick && App.Data.periodPlaylist && App.Data.periodPlaylist.length > 0) {
@@ -667,15 +669,19 @@ App.Studio = {
         this.isTurnOrderConfirmed = false;
         this.turnSetupDismissed = false;
         this.bjUsedCards = []; // Reset blackjack used cards for new set
+        this.bjPickedHistory = []; // Reset blackjack picked history for new set
         this.clearTimeLimit();
 
-        // Reset bjTotal for all players if this is a blackjack set
+        // Reset bjTotal and bjCardHistory for all players if this is a blackjack set
         const hasBlackjack = (App.Data.studioQuestions || []).some(q => q.type === 'blackjack');
         if (hasBlackjack && roomId) {
             window.db.ref(`rooms/${roomId}/players`).once('value', snap => {
                 const players = snap.val() || {};
                 const updates = {};
-                Object.keys(players).forEach(pid => { updates[`${pid}/bjTotal`] = 0; });
+                Object.keys(players).forEach(pid => {
+                    updates[`${pid}/bjTotal`] = 0;
+                    updates[`${pid}/bjCardHistory`] = [];
+                });
                 if (Object.keys(updates).length) window.db.ref(`rooms/${roomId}/players`).update(updates);
             });
         }
@@ -942,6 +948,7 @@ App.Studio = {
                         bjUpdate.bjTarget = currentQ.target || 21;
                         bjUpdate.bjUsedCards = this.bjUsedCards || [];
                         bjUpdate.bjCurrentTotal = curTotal;
+                        bjUpdate.bjPickedHistory = this.bjPickedHistory || [];
                     }
                     window.db.ref(`rooms/${roomId}/status`).update({
                         step: 'reveal_q',
@@ -1041,40 +1048,55 @@ App.Studio = {
                 syncBadge.textContent = "ANSWER";
                 syncBadge.style.background = "#2ecc71";
 
-                // Blackjack: process picked card and update bjTotal
+                // Blackjack: process picked card (or stand) and update bjTotal
                 if (q.type === 'blackjack') {
                     const turnPlayerId = this.turnOrder[this.turnIndex];
                     const player = App.Data.players && App.Data.players[turnPlayerId];
-                    const cardIdx = player ? parseInt(player.lastAnswer) : NaN;
+                    const rawAnswer = player ? player.lastAnswer : null;
+                    const isStand = (rawAnswer === 'stand');
+                    const cardIdx = isStand ? NaN : (player ? parseInt(rawAnswer) : NaN);
                     let pickedCardName = '---', pickedCardValue = 0, newTotal = player ? (player.bjTotal || 0) : 0;
 
-                    if (!isNaN(cardIdx) && cardIdx >= 0 && cardIdx < (q.c || []).length) {
+                    if (!isStand && !isNaN(cardIdx) && cardIdx >= 0 && cardIdx < (q.c || []).length) {
                         pickedCardName = q.c[cardIdx];
                         pickedCardValue = (q.values || [])[cardIdx] || 0;
                         newTotal = (player.bjTotal || 0) + pickedCardValue;
                         if (!this.bjUsedCards) this.bjUsedCards = [];
                         if (!this.bjUsedCards.includes(cardIdx)) this.bjUsedCards.push(cardIdx);
-                        window.db.ref(`rooms/${roomId}/players/${turnPlayerId}/bjTotal`).set(newTotal);
+                        const prevHistory = Array.isArray(player.bjCardHistory) ? player.bjCardHistory : [];
+                        window.db.ref(`rooms/${roomId}/players/${turnPlayerId}`).update({
+                            bjTotal: newTotal,
+                            bjCardHistory: [...prevHistory, { name: pickedCardName, value: pickedCardValue }]
+                        });
                     }
 
-                    const turnPlayerName = player ? (App.Data.players[turnPlayerId].name || '---') : '---';
+                    const turnPlayerName = player ? (player.name || '---') : '---';
+                    if (!this.bjPickedHistory) this.bjPickedHistory = [];
+                    if (!isStand) {
+                        this.bjPickedHistory.push({ name: pickedCardName, value: pickedCardValue, playerName: turnPlayerName });
+                    }
+
                     window.db.ref(`rooms/${roomId}/status`).update({
                         step: 'reveal_correct',
                         qIndex: App.State.currentQIndex,
-                        correct: `${pickedCardName} (+${pickedCardValue})`,
+                        correct: isStand ? `${turnPlayerName}: スタンド` : `${pickedCardName} (+${pickedCardValue})`,
                         commentary: q.commentary || "",
-                        bjPickedCard: pickedCardName,
+                        bjPickedCard: isStand ? null : pickedCardName,
                         bjPickedValue: pickedCardValue,
                         bjPickedPlayerName: turnPlayerName,
                         bjNewTotal: newTotal,
                         bjTarget: q.target || 21,
-                        bjUsedCards: this.bjUsedCards || []
+                        bjUsedCards: this.bjUsedCards || [],
+                        bjPickedHistory: this.bjPickedHistory,
+                        bjIsStand: isStand || false
                     });
 
                     // Show on monitor
                     const corrDisp = document.getElementById('studio-correct-display');
                     if (corrDisp) corrDisp.classList.remove('hidden');
-                    document.getElementById('studio-correct-text').textContent = `${turnPlayerName}: ${pickedCardName} (+${pickedCardValue}) → 合計 ${newTotal}`;
+                    document.getElementById('studio-correct-text').textContent = isStand
+                        ? `${turnPlayerName}: スタンド`
+                        : `${turnPlayerName}: ${pickedCardName} (+${pickedCardValue}) → 合計 ${newTotal}`;
                     document.getElementById('studio-commentary-text').textContent = `目標: ${q.target || 21}`;
                     break;
                 }

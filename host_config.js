@@ -14,6 +14,10 @@ App.Config = {
         const container = document.getElementById('config-builder-ui');
         const actionArea = document.getElementById('config-action-area');
 
+        // ビルダーUIと操作エリアを初期状態にリセット
+        if (container) container.innerHTML = '<p class="text-center text-gray p-20">セットを選択してください</p>';
+        if (actionArea) actionArea.classList.add('hidden');
+
         if (setSelect) {
             setSelect.innerHTML = `<option value="">-- セットを選択 --</option>`;
             const newSelect = setSelect.cloneNode(true);
