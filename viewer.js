@@ -253,6 +253,12 @@ window.App.Viewer = {
                 return;
             }
 
+            // Sort answer reveal: ordered list with letter badge circles
+            if (q.type === 'sort') {
+                this.renderSortReveal(mainText, q, st);
+                return;
+            }
+
             const accent = q.design?.qBorderColor || '#00bfff';
             const answerBox = document.createElement('div');
             Object.assign(answerBox.style, {
@@ -924,6 +930,49 @@ window.App.Viewer = {
             if (typeof q.correct === 'string') return q.correct.split('').map(char => q.c[char.charCodeAt(0) - 65]).join(' → ');
         }
         return Array.isArray(q.correct) ? q.correct.join(' / ') : q.correct;
+    },
+
+    renderSortReveal: function (contentBox, q, st) {
+        const d = q.design || {};
+        const textColor = d.qTextColor || '#fff';
+        const borderColor = d.qBorderColor || '#00bfff';
+        const qBgColor = d.qBgColor || 'rgba(0,0,0,0.5)';
+
+        // Parse correct order (array of original indices, e.g. [3,0,2,1])
+        let correctOrder = [];
+        if (Array.isArray(q.correct)) {
+            correctOrder = q.correct.map(Number);
+        } else if (typeof q.correct === 'string') {
+            correctOrder = q.correct.split('').map(c => c.charCodeAt(0) - 65);
+        }
+
+        // Badge colors per letter (A=blue, B=red, C=green, D=yellow, E=purple, F=pink, G=teal, H=orange)
+        const badgeColors = ['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6', '#e91e63', '#1abc9c', '#e67e22', '#16a085', '#c0392b'];
+
+        const rows = correctOrder.map((origIdx, rank) => {
+            const label = String.fromCharCode(65 + origIdx);
+            const text = (q.c && q.c[origIdx] !== undefined) ? q.c[origIdx] : label;
+            const color = badgeColors[origIdx % badgeColors.length];
+            const delay = rank * 0.07;
+            return `<div style="display:flex;align-items:center;gap:1.5vw;background:rgba(5,15,50,0.8);border-radius:10px;padding:1vh 1.5vw;border:1px solid rgba(255,255,255,0.12);animation:slideInLeft ${0.2 + delay}s ease-out both;">
+                <div style="width:5vh;height:5vh;min-width:5vh;border-radius:50%;background:${color};border:3px solid rgba(255,255,255,0.85);display:flex;align-items:center;justify-content:center;font-size:2.4vh;font-weight:900;color:#fff;flex-shrink:0;box-shadow:0 2px 10px ${color}88;">${label}</div>
+                <div style="font-size:2.8vh;font-weight:700;color:#fff;line-height:1.3;">${text}</div>
+            </div>`;
+        }).join('');
+
+        const commentary = st.commentary || q.commentary || '';
+
+        contentBox.innerHTML = `
+            <style>@keyframes slideInLeft { from { opacity:0; transform:translateX(-40px); } to { opacity:1; transform:translateX(0); } }</style>
+            <div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;padding:2vh 3vw;box-sizing:border-box;overflow:hidden;">
+                <div style="font-size:3vh;font-weight:700;color:${textColor};text-align:center;padding:1.2vh 2.5vw;background:${qBgColor};border-radius:10px;border-left:5px solid ${borderColor};width:90%;max-width:90vw;margin-bottom:1.5vh;line-height:1.4;">${q.q}</div>
+                <div style="font-size:2.2vh;color:#ffd700;font-weight:900;letter-spacing:0.25em;margin-bottom:1.2vh;text-shadow:0 0 15px #ffd70066;">正　解</div>
+                <div style="width:90%;max-width:90vw;flex:1;display:flex;flex-direction:column;gap:0.7vh;background:rgba(0,0,0,0.35);border:3px solid ${borderColor};border-radius:14px;padding:1.2vh 1.2vw;box-shadow:0 0 30px ${borderColor}44;overflow:hidden;">
+                    ${rows}
+                </div>
+                ${commentary ? `<div style="font-size:2vh;color:#aaa;margin-top:1vh;text-align:center;max-width:90vw;">${commentary}</div>` : ''}
+            </div>
+        `;
     },
 
     applyDefaultDesign: function (container, design) {
