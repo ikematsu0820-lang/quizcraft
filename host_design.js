@@ -1,5 +1,5 @@
 /* =========================================================
- * host_design.js (v89: Mobile Center Scaling Fix)
+ * host_design.js (v90: WYSIWYG Preview Calibration)
  * =======================================================*/
 
 App.Design = {
@@ -14,11 +14,11 @@ App.Design = {
         qTextColor: "#ffffff",
         qBgColor: "rgba(255, 255, 255, 0.05)",
         qBorderColor: "#00bfff",
-        qFontSize: "48px",
+        qFontSize: "36px",
         cTextColor: "#a0a0a0",
         cBgColor: "transparent",
         cBorderColor: "#333333",
-        cFontSize: "32px",
+        cFontSize: "25px",
         align: "center",
         layout: "standard"
     },
@@ -684,12 +684,13 @@ App.Design = {
 
         let qStyle = '';
         const baseQStyle = `
-            color:${d.qTextColor}; 
-            font-weight:bold; 
-            font-size:${fontSizeVal(d.qFontSize, layout.startsWith('split') ? '42px' : '48px')};
-            display:flex; 
-            align-items:center; 
-            justify-content:${s.align === 'center' ? 'center' : (s.align === 'right' ? 'flex-end' : 'flex-start')}; 
+            color:${d.qTextColor};
+            font-weight:800;
+            line-height:1.5;
+            font-size:${fontSizeVal(d.qFontSize, layout.startsWith('split') ? '30px' : '36px')};
+            display:flex;
+            align-items:center;
+            justify-content:${s.align === 'center' ? 'center' : (s.align === 'right' ? 'flex-end' : 'flex-start')};
             text-align:${s.align};
         `;
 
@@ -697,41 +698,45 @@ App.Design = {
         if (layout.startsWith('split')) {
             qStyle = `
                 ${baseQStyle}
-                writing-mode: vertical-rl; 
+                writing-mode: vertical-rl;
                 text-orientation: upright;
                 height: 85%;
                 width: 20%;
                 margin-left: 5%;
                 border: 6px solid ${d.qBorderColor};
                 background-color: ${d.qBgColor || 'rgba(0,0,0,0.5)'};
-                padding: 30px;
+                padding: 36px;
                 box-sizing: border-box;
+                border-radius: 16px;
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
             `;
         } else {
             qStyle = `
                 ${baseQStyle}
-                width: 90%; 
-                margin-bottom: 40px; 
-                padding: 30px;
+                width: 90%;
+                margin-bottom: 36px;
+                padding: 36px;
                 box-sizing: border-box;
                 border: 6px solid ${d.qBorderColor};
                 background-color: ${d.qBgColor || 'rgba(0,0,0,0.5)'};
+                border-radius: 16px;
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
             `;
         }
 
         const cAlign = s.cAlign || 'left';
         const cStyle = `
-            color:${d.cTextColor}; 
-            background: ${d.cBgColor || 'linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0%, transparent 100%)'};
-            border: 1px solid ${d.cBorderColor || 'rgba(255, 255, 255, 0.1)'};
-            padding: 15px 30px;
-            border-radius: 12px;
-            font-size:${fontSizeVal(d.cFontSize, '32px')};
-            display:flex; 
+            color:${d.cTextColor};
+            background: ${d.cBgColor || 'linear-gradient(90deg, rgba(255, 255, 255, 0.02) 0%, transparent 100%)'};
+            border-bottom: 1px solid ${d.cBorderColor || 'rgba(255, 255, 255, 0.1)'};
+            padding: 14px 22px;
+            border-radius: 8px;
+            font-size:${fontSizeVal(d.cFontSize, '25px')};
+            display:flex;
             align-items:center;
             justify-content:${cAlign === 'center' ? 'center' : (cAlign === 'right' ? 'flex-end' : 'flex-start')};
             text-align:${cAlign};
-            gap: 25px;
+            gap: 22px;
             pointer-events: none; /* Let parent catch click */
         `;
 
@@ -766,9 +771,9 @@ App.Design = {
             let cBlockStyle = '';
 
             if (rows > 0 && cols > 0) {
-                cBlockStyle = `display:grid; grid-template-columns: repeat(${cols}, 1fr); gap:20px; width:${cWidth};`;
+                cBlockStyle = `display:grid; grid-template-columns: repeat(${cols}, 1fr); gap:14px; width:${cWidth};`;
             } else {
-                cBlockStyle = `display:flex; flex-direction:column; justify-content:center; gap:20px; width:${cWidth};`;
+                cBlockStyle = `display:flex; flex-direction:column; justify-content:center; gap:14px; width:${cWidth};`;
             }
 
             layoutHtml = `

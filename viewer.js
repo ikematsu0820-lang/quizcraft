@@ -1,5 +1,5 @@
 /* =========================================================
- * viewer.js (v200: Professional 8-Phase Support)
+ * viewer.js (v201: Apply design font sizes)
  * =======================================================*/
 
 window.App = window.App || {};
@@ -843,7 +843,7 @@ window.App.Viewer = {
             contentBox.style.alignItems = 'center';
 
             // Reusing q-area for consistent look
-            html += `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align}; font-size:6vh; width:80%;">
+            html += `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align}; font-size:${d.qFontSize || '6vh'}; width:80%;">
                 ${q.q}
             </div>`;
 
@@ -854,7 +854,7 @@ window.App.Viewer = {
                 contentBox.style.justifyContent = 'center';
                 contentBox.style.alignItems = 'center';
 
-                html += `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align};">
+                html += `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align};${d.qFontSize ? ` font-size:${d.qFontSize};` : ''}">
                     ${q.q}
                 </div>`;
 
@@ -890,8 +890,8 @@ window.App.Viewer = {
 
                         const prefixLabel = q.type.startsWith('ranking') ? `${i + 1}位` : String.fromCharCode(65 + i);
 
-                        html += `<div class="choice-item" style="${colorStyle} ${bgStyle} ${bStyle} ${transformStyle} transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-                            <span class="choice-prefix" style="color:${isRevealed || isMissed ? '#fff' : borderColor}; ${isMultiType && !q.type.startsWith('ranking') && !isAssoc ? 'display:none;' : ''}">${prefixLabel}</span> 
+                        html += `<div class="choice-item" style="${colorStyle} ${bgStyle} ${bStyle} ${transformStyle}${d.cFontSize ? ` font-size:${d.cFontSize};` : ''} transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+                            <span class="choice-prefix" style="color:${isRevealed || isMissed ? '#fff' : borderColor}; ${isMultiType && !q.type.startsWith('ranking') && !isAssoc ? 'display:none;' : ''}">${prefixLabel}</span>
                             <span style="${isHidden ? 'visibility:hidden;' : ''}">${c}</span>
                         </div>`;
                     });
@@ -911,7 +911,7 @@ window.App.Viewer = {
                 // Let's create a wrapper.
 
                 html += `<div class="viewer-layout-container layout-split-list" style="width:100%; height:85%; display:flex; flex-direction:row-reverse; justify-content:center; align-items:center;">
-                    <div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align}; width:25vw; height:80vh; margin:0 0 0 5vw;">
+                    <div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align};${d.qFontSize ? ` font-size:${d.qFontSize};` : ''} width:25vw; height:80vh; margin:0 0 0 5vw;">
                         ${q.q}
                     </div>
                     <div class="c-area" style="width:50vw; box-sizing:border-box; ${(parseInt(d.gridRows) > 0 && parseInt(d.gridCols) > 0)
@@ -944,8 +944,8 @@ window.App.Viewer = {
 
                         const prefixLabel = q.type.startsWith('ranking') ? `${i + 1}位` : String.fromCharCode(65 + i);
 
-                        html += `<div class="choice-item" style="${colorStyle} ${bgStyle} ${bStyle} ${transformStyle} transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-                            <span class="choice-prefix" style="color:${isRevealed || isMissed ? '#fff' : borderColor}; ${isMultiType && !q.type.startsWith('ranking') && !isAssoc ? 'display:none;' : ''}">${prefixLabel}</span> 
+                        html += `<div class="choice-item" style="${colorStyle} ${bgStyle} ${bStyle} ${transformStyle}${d.cFontSize ? ` font-size:${d.cFontSize};` : ''} transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+                            <span class="choice-prefix" style="color:${isRevealed || isMissed ? '#fff' : borderColor}; ${isMultiType && !q.type.startsWith('ranking') && !isAssoc ? 'display:none;' : ''}">${prefixLabel}</span>
                             <span style="${isHidden ? 'visibility:hidden;' : ''}">${c}</span>
                         </div>`;
                     });
