@@ -3816,29 +3816,47 @@ input:checked+.pro-slider:before {
 
 /* Hide Button in Pager */
 .pager-hide-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: #fff;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    margin-left: 15px;
+    background: rgba(40, 180, 100, 0.18);
+    border: 1px solid rgba(40, 200, 100, 0.55);
+    color: #5ddf8a;
+    height: 34px;
+    padding: 0 12px;
+    border-radius: 17px;
+    margin-left: 12px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
-    font-size: 1.1em;
+    gap: 5px;
+    font-size: 1em;
+    font-weight: 700;
+    white-space: nowrap;
+    transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.pager-hide-btn .hide-label {
+    font-size: 0.75em;
+    letter-spacing: 0.03em;
 }
 
 .pager-hide-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: scale(1.1);
+    background: rgba(40, 200, 100, 0.28);
+    transform: scale(1.05);
+}
+
+.pager-hide-btn:active {
+    transform: scale(0.93);
+    transition: transform 0.08s ease;
 }
 
 .pager-hide-btn.is-hidden {
-    background: rgba(255, 65, 108, 0.2);
+    background: rgba(255, 65, 108, 0.22);
     border-color: #ff416c;
+    color: #ff6b8a;
+}
+
+.pager-hide-btn.is-hidden:hover {
+    background: rgba(255, 65, 108, 0.35);
 }
 
 .pager-hide-btn .icon-hide {

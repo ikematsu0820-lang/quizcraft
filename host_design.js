@@ -923,42 +923,22 @@ App.Design = {
             }
         }
 
+        const hiddenOverlayHtml = this.currentStepIsHidden
+            ? `<div class="preview-hidden-overlay"><div class="msg">非表示設定中</div></div>`
+            : '';
+
         content.innerHTML = `
-            <div class="preview-bg-block ${this.activeQuickEdit === 'bg' ? 'is-editing' : ''}" 
+            <div class="preview-bg-block ${this.activeQuickEdit === 'bg' ? 'is-editing' : ''}"
                  onclick="App.Design.openQuickEdit('bg', event)"
                  style="width:100%; height:100%; ${bgStyle} font-family:sans-serif; overflow:hidden; cursor:pointer; position:relative;">
                 ${layoutHtml}
                 ${extraHtml}
+                ${hiddenOverlayHtml}
             </div>
         `;
 
         // Player Preview Rendering
         this.renderPlayerPreview(qText, choices, qType, d, this.statusLabelForPlayer);
-
-        this.applyHiddenOverlay();
-    },
-
-    applyHiddenOverlay: function () {
-        const isHidden = this.currentStepIsHidden;
-        const addOverlay = (target) => {
-            if (!target) return;
-            const existing = target.querySelector('.preview-hidden-overlay');
-            if (isHidden) {
-                if (!existing) {
-                    const ov = document.createElement('div');
-                    ov.className = 'preview-hidden-overlay';
-                    ov.innerHTML = '<div class="msg">非表示設定中</div>';
-                    target.appendChild(ov);
-                }
-            } else if (existing) {
-                existing.remove();
-            }
-        };
-
-        const content = document.getElementById('design-monitor-preview-content');
-        const playerContent = document.getElementById('design-player-preview-content');
-        addOverlay(content);
-        addOverlay(playerContent);
     },
 
     renderPlayerPreview: function (qText, choices, qType, design, statusLabel = "") {
@@ -976,21 +956,26 @@ App.Design = {
             ansHtml = `<div style="text-align:center; color:#888; border:1px dashed #444; padding:20px; border-radius:10px;">自由解答入力エリア</div>`;
         }
 
+        const playerHiddenHtml = this.currentStepIsHidden
+            ? `<div class="preview-hidden-overlay"><div class="msg">非表示設定中</div></div>`
+            : '';
+
         playerContent.innerHTML = `
-            <div class="player-preview-mock" style="pointer-events:auto;">
+            <div class="player-preview-mock" style="pointer-events:auto; position:relative; overflow:hidden;">
                 <div class="p-status-bar" style="border-color:${design.qBorderColor}44;">
                     ${statusLabel || 'READY'}
                 </div>
-                <div class="p-q-text preview-q-block ${this.activeQuickEdit === 'q' ? 'is-editing' : ''}" 
+                <div class="p-q-text preview-q-block ${this.activeQuickEdit === 'q' ? 'is-editing' : ''}"
                      onclick="App.Design.openQuickEdit('q', event)"
                      style="background:${design.qBgColor}; border:1px solid ${design.qBorderColor}88; color:${design.qTextColor}; cursor:pointer;">
                     ${qText.replace(/\\n/g, '<br>')}
                 </div>
-                <div class="p-answers preview-c-block ${this.activeQuickEdit === 'c' ? 'is-editing' : ''}" 
+                <div class="p-answers preview-c-block ${this.activeQuickEdit === 'c' ? 'is-editing' : ''}"
                      onclick="App.Design.openQuickEdit('c', event)"
                      style="cursor:pointer; border-radius:10px;">
                     ${ansHtml}
                 </div>
+                ${playerHiddenHtml}
             </div>
         `;
     },

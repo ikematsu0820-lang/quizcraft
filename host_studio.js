@@ -181,20 +181,12 @@ App.Studio = {
                 setTimeout(() => box.classList.remove('new-room'), 600);
             }
             App.Ui.showView(App.Ui.views.hostControl);
-            this.enterHostMode();
+            this.enterHostMode(this.isQuick);
 
             // ★ Unified Mode: ルーム作成完了後にビューアを接続し、トグルUIを表示
             if (window.App.isUnifiedMode && window.App.Viewer && window.App.Viewer.connect) {
                 window.App.Viewer.connect(code);
                 this.setupUnifiedToggle();
-            }
-
-            // Check Quick Start trigger
-            if (this.isQuick && App.Data.periodPlaylist && App.Data.periodPlaylist.length > 0) {
-                console.log("Quick Start: Auto-loading set...");
-                this.setupPeriod(0);
-            } else {
-                this.loadProgramList();
             }
         };
 

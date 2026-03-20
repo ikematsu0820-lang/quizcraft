@@ -93,22 +93,34 @@ window.App.init = function () {
     }
 
     if (testHost) {
+        const tp = parseInt(urlParams.get('tp') || '2');
         this.Ui.showView(this.Ui.views.hostControl);
-        window.App.State.currentRoomId = testHost; // Use the same ID for the room
-        window.db.ref(`saved_sets/${testHost}`).once('value', snap => {
-            if (snap.exists() && window.App.Studio && window.App.Studio.quickStart) {
-                window.App.Studio.quickStart(snap.val());
+        window.App.State.reuseRoomId = testHost;
+        this._showTestNavBar(testHost, tp);
+        const ref = window.db.ref(`saved_sets/${testHost}`);
+        const handler = ref.on('value', snap => {
+            if (snap.exists()) {
+                ref.off('value', handler);
+                if (window.App.Studio && window.App.Studio.quickStart) {
+                    window.App.Studio.quickStart(snap.val());
+                }
             }
         });
         return;
     }
 
     if (testProg) {
+        const tp = parseInt(urlParams.get('tp') || '2');
         this.Ui.showView(this.Ui.views.hostControl);
-        window.App.State.currentRoomId = testProg;
-        window.db.ref(`saved_programs/${testProg}`).once('value', snap => {
-            if (snap.exists() && window.App.Studio && window.App.Studio.quickStartProg) {
-                window.App.Studio.quickStartProg(snap.val());
+        window.App.State.reuseRoomId = testProg;
+        this._showTestNavBar(testProg, tp);
+        const ref = window.db.ref(`saved_programs/${testProg}`);
+        const handler = ref.on('value', snap => {
+            if (snap.exists()) {
+                ref.off('value', handler);
+                if (window.App.Studio && window.App.Studio.quickStartProg) {
+                    window.App.Studio.quickStartProg(snap.val());
+                }
             }
         });
         return;
@@ -238,7 +250,9 @@ window.App.bindEvents = function () {
             }
             // If in Config view
             else if (!document.getElementById('config-view').classList.contains('hidden')) {
-                if (window.App.Config) {
+                if (window.App.Config && window.App.Config.selectedSetData) {
+                    workingSet = JSON.parse(JSON.stringify(window.App.Config.selectedSetData));
+                    workingSet.key = window.App.Config.selectedSetKey;
                     const mode = document.getElementById('config-mode-select')?.value || 'normal';
                     const gType = document.getElementById('config-game-type')?.value || 'score';
                     workingSet.config = {
@@ -251,6 +265,10 @@ window.App.bindEvents = function () {
             }
             // If in Design view
             else if (!document.getElementById('design-view').classList.contains('hidden')) {
+                if (window.App.Design && window.App.Design.currentTarget && window.App.Design.currentTarget.data) {
+                    workingSet = JSON.parse(JSON.stringify(window.App.Design.currentTarget.data));
+                    workingSet.key = window.App.Design.currentTarget.key;
+                }
                 if (window.App.Design && window.App.Design.collectSettings) {
                     const s = window.App.Design.collectSettings();
                     if (workingSet.questions) {
@@ -278,33 +296,121 @@ window.App.bindEvents = function () {
             return;
         }
 
-        // 2. Prepare test room directly
-        const testId = `TEST-${Math.floor(Math.random() * 9000) + 1000}`; // TEST-1234
+        // 2. Generate test ID and open host tab synchronously (before async Firebase)
+        const testId = `TEST-${Math.floor(Math.random() * 9000) + 1000}`;
+        const baseUrl = window.location.origin + window.location.pathname;
+        const hostUrl = `${baseUrl}?${isProg ? 'testProg' : 'testHost'}=${testId}&tp=${count}`;
+        window.open(hostUrl, '_blank');
+
+        // 3. Save test data to Firebase (host tab will wait for this to arrive)
         const dbPath = isProg ? `saved_programs/${testId}` : `saved_sets/${testId}`;
-
-        window.db.ref(dbPath).set(uploadData).then(() => {
-            // 3. Open tabs
-            const baseUrl = window.location.origin + window.location.pathname;
-
-            // Open Host
-            const hostUrl = `${baseUrl}?${isProg ? 'testProg' : 'testHost'}=${testId}`;
-            window.open(hostUrl, '_blank');
-
-            // Open Viewer (Monitor)
-            const viewerUrl = `${baseUrl}?vcode=${testId}`;
-            window.open(viewerUrl, '_blank');
-
-            // Open Players
-            for (let i = 1; i <= count; i++) {
-                const playerUrl = `${baseUrl}?room=${testId}&autoName=Player${i}`;
-                window.open(playerUrl, '_blank');
-            }
-
-            window.App.Ui.showToast("テストプレイを開始しました");
-        }).catch(err => {
+        window.db.ref(dbPath).set(uploadData).catch(err => {
             alert("テスト準備エラー: " + err.message);
         });
     });
+};
+
+window.App._showTestNavBar = function (testId, playerCount) {
+    playerCount = Math.max(1, Math.min(8, playerCount || 2));
+    const NAV_H = 38;
+    const baseUrl = window.location.origin + window.location.pathname;
+
+    // Hide ROOM ID header (not needed in test mode), but keep ダッシュボード accessible via nav bar
+    const studioHeader = document.querySelector('.simple-studio-header');
+    if (studioHeader) studioHeader.style.display = 'none';
+
+    // Shift the sticky controls container down so it doesn't hide behind test nav bar
+    const stickyUnit = document.querySelector('#host-control-view > div[style*="position:sticky"]');
+    if (stickyUnit) stickyUnit.style.top = NAV_H + 'px';
+
+    // --- Global fixed nav bar (persists across all view switches) ---
+    const nav = document.createElement('div');
+    nav.id = 'global-test-nav';
+    nav.style.cssText = `position:fixed;top:0;left:0;width:100%;height:${NAV_H}px;z-index:99999;display:flex;align-items:center;gap:4px;padding:0 10px;background:#1a0800;border-bottom:2px solid #ff6600;box-sizing:border-box;overflow-x:auto;`;
+    nav.innerHTML = `<span style="color:#ff6600;font-size:10px;font-weight:900;letter-spacing:1px;flex-shrink:0;margin-right:6px;">🧪 TEST</span>`;
+    document.body.appendChild(nav);
+
+    // --- Full-screen iframe overlay (covers content below nav bar) ---
+    const iframeOverlay = document.createElement('div');
+    iframeOverlay.id = 'test-iframe-overlay';
+    iframeOverlay.style.cssText = `position:fixed;top:${NAV_H}px;left:0;width:100%;height:calc(100vh - ${NAV_H}px);z-index:99998;display:none;background:#000;`;
+    document.body.appendChild(iframeOverlay);
+
+    // Push host control content down to clear nav bar
+    const hostView = document.getElementById('host-control-view');
+    if (hostView) hostView.style.paddingTop = NAV_H + 'px';
+
+    // Create all iframes (lazy: src set only when first activated)
+    const makeIframe = () => {
+        const f = document.createElement('iframe');
+        f.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:none;';
+        iframeOverlay.appendChild(f);
+        return f;
+    };
+    const viewerIframe = makeIframe();
+    const playerIframes = Array.from({ length: playerCount }, () => makeIframe());
+
+    let viewerLoaded = false;
+    const playerLoaded = Array(playerCount).fill(false);
+
+    // --- Tab switching (iframe show/hide only — no showView calls) ---
+    const switchTo = (tabId) => {
+        nav.querySelectorAll('.test-tab').forEach(b => {
+            b.style.background = b.dataset.tab === tabId ? '#ff6600' : 'rgba(255,255,255,0.13)';
+        });
+
+        // Hide iframe overlay for host tab
+        if (tabId === 'host') {
+            iframeOverlay.style.display = 'none';
+            return;
+        }
+
+        // Show iframe overlay
+        iframeOverlay.style.display = 'block';
+        viewerIframe.style.display = 'none';
+        playerIframes.forEach(f => f.style.display = 'none');
+
+        if (tabId === 'viewer') {
+            if (!viewerLoaded) { viewerIframe.src = `${baseUrl}?vcode=${testId}`; viewerLoaded = true; }
+            viewerIframe.style.display = 'block';
+        } else if (tabId.startsWith('player-')) {
+            const idx = parseInt(tabId.split('-')[1]) - 1;
+            if (!playerLoaded[idx]) {
+                playerIframes[idx].src = `${baseUrl}?room=${testId}&autoName=${encodeURIComponent('テスト' + (idx + 1))}`;
+                playerLoaded[idx] = true;
+            }
+            if (playerIframes[idx]) playerIframes[idx].style.display = 'block';
+        }
+    };
+
+    const addTab = (tabId, label, active) => {
+        const btn = document.createElement('button');
+        btn.className = 'test-tab';
+        btn.dataset.tab = tabId;
+        btn.textContent = label;
+        btn.style.cssText = `padding:4px 12px;border-radius:14px;font-size:11px;font-weight:700;cursor:pointer;border:none;color:#fff;white-space:nowrap;flex-shrink:0;background:${active ? '#ff6600' : 'rgba(255,255,255,0.13)'};`;
+        btn.onclick = () => switchTo(tabId);
+        nav.appendChild(btn);
+    };
+
+    addTab('viewer', '📺 モニター', false);
+    addTab('host', '🎤 出題者', true);
+    for (let i = 1; i <= playerCount; i++) {
+        addTab(`player-${i}`, `👤 テスト${i}`, false);
+    }
+
+    // ダッシュボードボタン（右端に配置）
+    const dashBtn = document.createElement('button');
+    dashBtn.textContent = 'ダッシュボード';
+    dashBtn.style.cssText = 'margin-left:auto;padding:4px 12px;border-radius:14px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid #555;color:#ccc;background:rgba(255,255,255,0.08);white-space:nowrap;flex-shrink:0;';
+    dashBtn.onclick = () => {
+        if (confirm('ダッシュボードに戻りますか？テストセッションが終了します。')) {
+            document.getElementById('global-test-nav')?.remove();
+            document.getElementById('test-iframe-overlay')?.remove();
+            if (window.App.Dashboard) window.App.Dashboard.enter();
+        }
+    };
+    nav.appendChild(dashBtn);
 };
 
 window.App.Dashboard = {
@@ -661,17 +767,11 @@ window.App.Dashboard = {
     },
 
     // Quick Start: セットを直接スタジオに送る
-    // Quick Start: セットを直接スタジオに送る
     quick: function (key) {
-        // window.App.Ui.showToast("クイックスタート機能は現在再設計中です（実装待ち）");
-
         window.db.ref(`saved_sets/${window.App.State.currentShowId}/${key}`).once('value', snap => {
             const data = snap.val();
-            if (data && confirm(`「${data.title}」をすぐに開始しますか？`)) {
-                window.App.Studio.quickStart(data);
-            }
+            if (data) window.App.Studio.quickStart(data);
         });
-
     },
 
     quickProg: function (key) {
