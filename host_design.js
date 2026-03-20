@@ -168,18 +168,25 @@ App.Design = {
                 const qs = this.getQuestionsFromTarget();
                 if (!qs || qs.length === 0) return;
                 const info = this.getStepInfo(this.previewQIndex, qs);
+                // title: only first question (shown once per set)
+                // qnumber / result: apply globally to ALL questions (set-level setting)
                 if (info.type === 'title') {
                     qs[0].isTitleHidden = !qs[0].isTitleHidden;
                 } else if (info.type === 'qnumber') {
-                    qs[info.qIdx].isQNumHidden = !qs[info.qIdx].isQNumHidden;
+                    const newVal = !qs[info.qIdx].isQNumHidden;
+                    qs.forEach(q => { q.isQNumHidden = newVal; });
                 } else if (info.type === 'question') {
-                    qs[info.qIdx].isHidden = !qs[info.qIdx].isHidden;
+                    const newVal = !qs[info.qIdx].isHidden;
+                    qs.forEach(q => { q.isHidden = newVal; });
                 } else if (info.type === 'answer') {
-                    qs[info.qIdx].isAnsHidden = !qs[info.qIdx].isAnsHidden;
+                    const newVal = !qs[info.qIdx].isAnsHidden;
+                    qs.forEach(q => { q.isAnsHidden = newVal; });
                 } else if (info.type === 'result') {
-                    qs[info.qIdx].isResHidden = !qs[info.qIdx].isResHidden;
+                    const newVal = !qs[info.qIdx].isResHidden;
+                    qs.forEach(q => { q.isResHidden = newVal; });
                 }
                 this.renderPreview();
+                this.save(); // Auto-save immediately so studio picks up the change
             };
         }
         const resetBtn = document.getElementById('design-reset-btn');

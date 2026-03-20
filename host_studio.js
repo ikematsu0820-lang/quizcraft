@@ -535,40 +535,56 @@ App.Studio = {
             const val = select.value;
             if (!val) return;
 
+            const showId = App.State.currentShowId;
+
+            // Always fetch fresh from Firebase so eye-toggle / design changes are reflected
+            // even if the studio cache was loaded before the user saved in セットデザイン
+            const applyAndFinalize = () => {
+                document.getElementById('studio-loader-ui').classList.add('hidden');
+                this.renderTimeline();
+                const btnMain = document.getElementById('btn-phase-main');
+                btnMain.textContent = "番組を開始";
+                btnMain.classList.remove('hidden');
+                btnMain.className = 'btn-block btn-large-action action-ready';
+                btnMain.onclick = null;
+                btnMain.onclick = () => {
+                    try { this.setupPeriod(0); } catch (e) { alert("開始エラー: " + e.message); }
+                };
+                this.syncMainButton();
+            };
+
             if (val.startsWith('set:')) {
                 const key = val.slice(4);
-                const set = this.localSetsCache[key];
-                if (!set) return;
-                App.Data.periodPlaylist = [set];
+                btn.disabled = true;
+                btn.textContent = '読込中...';
+                window.db.ref(`saved_sets/${showId}/${key}`).once('value').then(snap => {
+                    btn.disabled = false;
+                    btn.textContent = '読み込む';
+                    const freshSet = snap.val();
+                    if (!freshSet) { alert('セットデータが見つかりません'); return; }
+                    freshSet.key = key;
+                    this.localSetsCache[key] = freshSet;
+                    App.Data.periodPlaylist = [freshSet];
+                    applyAndFinalize();
+                });
             } else if (val.startsWith('prog:')) {
                 const key = val.slice(5);
-                const prog = this.localProgramsCache[key];
-                if (!prog) return;
-                App.Data.periodPlaylist = prog.playlist || [];
-                if (App.Data.periodPlaylist.length === 0) {
-                    alert("⚠️ このプログラムにはセットが登録されていません。");
-                    return;
-                }
-            } else {
-                return;
+                btn.disabled = true;
+                btn.textContent = '読込中...';
+                window.db.ref(`saved_programs/${showId}/${key}`).once('value').then(snap => {
+                    btn.disabled = false;
+                    btn.textContent = '読み込む';
+                    const freshProg = snap.val();
+                    if (!freshProg) { alert('プログラムデータが見つかりません'); return; }
+                    this.localProgramsCache[key] = freshProg;
+                    App.Data.periodPlaylist = freshProg.playlist || [];
+                    if (App.Data.periodPlaylist.length === 0) {
+                        alert("⚠️ このプログラムにはセットが登録されていません。");
+                        return;
+                    }
+                    applyAndFinalize();
+                });
             }
-
-            document.getElementById('studio-loader-ui').classList.add('hidden');
-            this.renderTimeline();
-
-            const btnMain = document.getElementById('btn-phase-main');
-            btnMain.textContent = "番組を開始";
-            btnMain.classList.remove('hidden');
-            btnMain.className = 'btn-block btn-large-action action-ready';
-            btnMain.onclick = null;
-            btnMain.onclick = () => {
-                try {
-                    this.setupPeriod(0);
-                } catch (e) {
-                    alert("開始エラー: " + e.message);
-                }
-            };
-            this.syncMainButton();
         };
     },
 
