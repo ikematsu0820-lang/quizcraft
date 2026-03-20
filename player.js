@@ -1187,7 +1187,7 @@ function renderPlayerQuestion(q, roomId, playerId) {
         choices.forEach((item, i) => {
             const btn = document.createElement('button');
             btn.className = 'answer-btn';
-            btn.style.cssText = 'border:4px solid transparent;transition:all 0.15s;opacity:1;';
+            btn.style.cssText = 'transition:all 0.15s;opacity:1;';
 
             // Check if taken
             if (isDobonMode && takenChoices.includes(item.originalIndex)) {
@@ -1196,16 +1196,14 @@ function renderPlayerQuestion(q, roomId, playerId) {
             }
 
             // Alphabet label based on display order (i), not originalIndex
-            btn.innerHTML = `<span style="font-weight:900;margin-right:10px;opacity:0.75;font-family:monospace;">${String.fromCharCode(65 + i)}</span>${item.text}`;
+            btn.innerHTML = `<span class="choice-prefix" style="font-weight:900;margin-right:10px;font-family:monospace;font-size:0.95em;">${String.fromCharCode(65 + i)}</span>${item.text}`;
             btn.dataset.ans = item.originalIndex;
 
+            const colorClasses = ['btn-blue', 'btn-red', 'btn-green', 'btn-yellow', 'btn-purple', 'btn-teal'];
             if (isDobonMode) {
                 btn.classList.add('btn-neutral');
             } else {
-                if (i === 0) btn.classList.add('btn-blue');
-                else if (i === 1) btn.classList.add('btn-red');
-                else if (i === 2) btn.classList.add('btn-green');
-                else btn.classList.add('btn-yellow');
+                btn.classList.add(colorClasses[i % colorClasses.length]);
             }
 
             btn.onclick = () => {
@@ -1376,14 +1374,19 @@ function renderPlayerQuestion(q, roomId, playerId) {
                 btn.style.display = 'flex';
                 btn.style.justifyContent = 'space-between';
                 btn.style.alignItems = 'center';
-                btn.style.border = '1px solid #ccc';
+                btn.style.border = '2.5px solid #d4d8e0';
+                btn.style.borderLeft = '6px solid #2979ff';
                 btn.style.background = '#ffffff';
-                btn.style.color = '#333333';
-                btn.style.borderRadius = '8px';
+                btn.style.color = '#1a1a2e';
+                btn.style.borderRadius = '12px';
                 btn.style.width = '100%';
                 btn.style.marginBottom = '0';
-                btn.style.fontSize = '1.1em';
-                btn.style.boxShadow = '0 2px 5px rgba(0,0,0,0.3)';
+                btn.style.fontSize = '1.05em';
+                btn.style.fontWeight = '700';
+                btn.style.padding = '14px 16px';
+                btn.style.boxShadow = '0 2px 6px rgba(0,0,0,0.07)';
+                btn.style.transition = 'all 0.15s ease';
+                btn.style.cursor = 'pointer';
 
                 btn.innerHTML = `<span>${itemData.txt}</span>`;
 
