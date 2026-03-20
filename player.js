@@ -1051,12 +1051,16 @@ function showFinalResult(roomId, myId) {
 }
 
 function lockChoices(selectedIndex) {
+    const footer = document.getElementById('choice-submit-footer');
+    if (footer) footer.remove();
     const btns = document.querySelectorAll('.answer-btn');
     btns.forEach(btn => {
         btn.disabled = true;
+        btn.style.filter = '';
         if (btn.dataset.ans == selectedIndex) {
             btn.classList.add('btn-selected');
             btn.classList.remove('btn-dimmed');
+            btn.style.opacity = '1';
         } else {
             btn.classList.add('btn-dimmed');
             btn.classList.remove('btn-selected');
@@ -1103,6 +1107,10 @@ function renderPlayerQuestion(q, roomId, playerId) {
     const inputCont = document.getElementById('player-input-container');
     const qText = document.getElementById('question-text-disp');
 
+    // Clean up fixed submit footer from previous question
+    const existingFooter = document.getElementById('choice-submit-footer');
+    if (existingFooter) existingFooter.remove();
+
     const changeArea = document.getElementById('change-btn-area');
     if (changeArea) changeArea.innerHTML = '';
 
@@ -1124,8 +1132,6 @@ function renderPlayerQuestion(q, roomId, playerId) {
 
     if (q.type === 'choice') {
         let choices = q.c.map((text, i) => ({ text: text, originalIndex: i }));
-        // Shuffle is now handled server-side (host_studio.js shuffleQuestions).
-        // All players receive the same pre-shuffled order. No client-side shuffle needed.
 
         // Forced Single Selection for Dobon/Turn mode even if q.multi is true
         const isDobonMode = (q.mode === 'dobon' || q.mode === 'multi');
@@ -1137,12 +1143,51 @@ function renderPlayerQuestion(q, roomId, playerId) {
         // Retrieve taken choices for Dobon/Turn
         const takenChoices = (localStatus && localStatus.takenChoices) ? localStatus.takenChoices : [];
 
+        // --- Fixed sticky submit footer ---
+        const submitFooter = document.createElement('div');
+        submitFooter.id = 'choice-submit-footer';
+        submitFooter.style.cssText = [
+            'position:fixed', 'bottom:0', 'left:50%', 'transform:translateX(-50%)',
+            'width:100%', 'max-width:600px', 'box-sizing:border-box',
+            'padding:10px 16px', 'padding-bottom:calc(10px + env(safe-area-inset-bottom, 0px))',
+            'background:rgba(248,250,255,0.97)',
+            'backdrop-filter:blur(12px)', '-webkit-backdrop-filter:blur(12px)',
+            'border-top:1px solid rgba(0,0,0,0.1)',
+            'box-shadow:0 -4px 20px rgba(0,0,0,0.1)', 'z-index:1000'
+        ].join(';');
+
+        const submitBtn = document.createElement('button');
+        submitBtn.className = 'btn-primary btn-block';
+        submitBtn.textContent = '決定';
+        submitBtn.disabled = true;
+        submitBtn.style.cssText = 'opacity:0.38;cursor:not-allowed;transition:opacity 0.2s,background 0.2s;';
+        submitBtn.onclick = () => {
+            if (selected.size === 0) return;
+            const ansArray = Array.from(selected).sort((a, b) => a - b);
+            const f = document.getElementById('choice-submit-footer');
+            if (f) f.remove();
+            if (isMulti) submitAnswer(roomId, playerId, ansArray);
+            else submitAnswer(roomId, playerId, ansArray[0]);
+        };
+        submitFooter.appendChild(submitBtn);
+        document.body.appendChild(submitFooter);
+
+        // Helper: refresh submit button enabled state
+        const refreshSubmit = () => {
+            const hasSelection = selected.size > 0;
+            submitBtn.disabled = !hasSelection;
+            submitBtn.style.opacity = hasSelection ? '1' : '0.38';
+            submitBtn.style.cursor = hasSelection ? 'pointer' : 'not-allowed';
+        };
+
+        // Scrollable choice list — bottom padding so last item clears the fixed footer
+        const choiceList = document.createElement('div');
+        choiceList.style.paddingBottom = 'calc(72px + env(safe-area-inset-bottom, 0px))';
+
         choices.forEach((item, i) => {
             const btn = document.createElement('button');
-
             btn.className = 'answer-btn';
-            btn.style.border = '4px solid transparent'; // Prepare for highlight
-            btn.style.transition = 'all 0.1s';
+            btn.style.cssText = 'border:4px solid transparent;transition:all 0.15s;opacity:1;';
 
             // Check if taken
             if (isDobonMode && takenChoices.includes(item.originalIndex)) {
@@ -1150,14 +1195,10 @@ function renderPlayerQuestion(q, roomId, playerId) {
                 btn.disabled = true;
             }
 
-            // Add visual indicator (Radio or Check)
-            const icon = isMulti ? (selected.has(item.originalIndex) ? '☑ ' : '☐ ') : (selected.has(item.originalIndex) ? '◉ ' : '○ ');
-
             // Alphabet label based on display order (i), not originalIndex
-            btn.innerHTML = `<span style="font-weight:900; margin-right:10px; opacity:0.8; font-family:monospace;">${String.fromCharCode(65 + i)}</span> ${item.text}`;
+            btn.innerHTML = `<span style="font-weight:900;margin-right:10px;opacity:0.75;font-family:monospace;">${String.fromCharCode(65 + i)}</span>${item.text}`;
             btn.dataset.ans = item.originalIndex;
 
-            // Color logic:
             if (isDobonMode) {
                 btn.classList.add('btn-neutral');
             } else {
@@ -1167,51 +1208,40 @@ function renderPlayerQuestion(q, roomId, playerId) {
                 else btn.classList.add('btn-yellow');
             }
 
-            btn.style.opacity = '0.8';
-
             btn.onclick = () => {
                 const val = item.originalIndex;
                 if (isMulti) {
                     if (selected.has(val)) {
                         selected.delete(val);
-                        btn.style.opacity = '0.8';
-                        btn.style.borderColor = 'transparent';
-                        btn.style.transform = 'scale(1)';
+                        btn.classList.remove('btn-selected');
+                        btn.style.opacity = '1';
+                        btn.style.filter = '';
                     } else {
                         selected.add(val);
+                        btn.classList.add('btn-selected');
                         btn.style.opacity = '1';
-                        btn.style.borderColor = 'var(--color-primary)';
-                        btn.style.transform = 'scale(1.02)';
+                        btn.style.filter = '';
                     }
                 } else {
-                    // Single mode
+                    // Single mode: highlight selected, dim others
                     selected.clear();
                     selected.add(val);
                     btns.forEach(b => {
-                        b.style.opacity = '0.6';
-                        b.style.borderColor = 'transparent';
-                        b.style.transform = 'scale(1)';
+                        b.classList.remove('btn-selected');
+                        b.style.opacity = '0.45';
+                        b.style.filter = 'brightness(0.65)';
                     });
+                    btn.classList.add('btn-selected');
                     btn.style.opacity = '1';
-                    btn.style.borderColor = 'var(--color-primary)';
-                    btn.style.transform = 'scale(1.02)';
+                    btn.style.filter = '';
                 }
+                refreshSubmit();
             };
             btns.push(btn);
-            inputCont.appendChild(btn);
+            choiceList.appendChild(btn);
         });
 
-        const submitBtn = document.createElement('button');
-        submitBtn.className = 'btn-primary btn-block';
-        submitBtn.textContent = '決定';
-        submitBtn.style.marginTop = '15px';
-        submitBtn.onclick = () => {
-            if (selected.size === 0) return;
-            const ansArray = Array.from(selected).sort((a, b) => a - b);
-            if (isMulti) submitAnswer(roomId, playerId, ansArray);
-            else submitAnswer(roomId, playerId, ansArray[0]);
-        };
-        inputCont.appendChild(submitBtn);
+        inputCont.appendChild(choiceList);
     }
     else if (q.type === 'letter_select') {
         let pool = [];

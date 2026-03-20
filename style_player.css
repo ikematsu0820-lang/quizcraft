@@ -417,10 +417,11 @@
 }
 
 .answer-btn.btn-selected {
-    opacity: 1;
+    opacity: 1 !important;
     transform: scale(1.03);
-    border: 2px solid #fff;
-    box-shadow: 0 0 30px rgba(255, 255, 255, 0.4);
+    border: 4px solid #fff !important;
+    box-shadow: 0 0 0 3px var(--color-primary), 0 6px 24px rgba(0, 114, 255, 0.35) !important;
+    filter: brightness(1.1) !important;
     z-index: 10;
 }
 
