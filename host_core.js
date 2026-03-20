@@ -312,33 +312,33 @@ window.App.bindEvents = function () {
 
 window.App._showTestNavBar = function (testId, playerCount) {
     playerCount = Math.max(1, Math.min(8, playerCount || 2));
-    const NAV_H = 38;
+    const NAV_H = 54;
     const baseUrl = window.location.origin + window.location.pathname;
 
     // Hide ROOM ID header (not needed in test mode), but keep ダッシュボード accessible via nav bar
     const studioHeader = document.querySelector('.simple-studio-header');
     if (studioHeader) studioHeader.style.display = 'none';
 
-    // Shift the sticky controls container down so it doesn't hide behind test nav bar
-    const stickyUnit = document.querySelector('#host-control-view > div[style*="position:sticky"]');
-    if (stickyUnit) stickyUnit.style.top = NAV_H + 'px';
+    // Hide unified toggle while test nav is active (test nav replaces it)
+    const unifiedToggle = document.getElementById('unified-toggle-container');
+    if (unifiedToggle) unifiedToggle.style.display = 'none';
 
-    // --- Global fixed nav bar (persists across all view switches) ---
+    // --- Global fixed nav bar at BOTTOM (persists across all view switches) ---
     const nav = document.createElement('div');
     nav.id = 'global-test-nav';
-    nav.style.cssText = `position:fixed;top:0;left:0;width:100%;height:${NAV_H}px;z-index:99999;display:flex;align-items:center;gap:4px;padding:0 10px;background:#1a0800;border-bottom:2px solid #ff6600;box-sizing:border-box;overflow-x:auto;`;
+    nav.style.cssText = `position:fixed;bottom:0;left:0;width:100%;height:${NAV_H}px;z-index:99999;display:flex;align-items:center;gap:4px;padding:0 10px;background:#1a0800;border-top:2px solid #ff6600;box-sizing:border-box;overflow-x:auto;`;
     nav.innerHTML = `<span style="color:#ff6600;font-size:10px;font-weight:900;letter-spacing:1px;flex-shrink:0;margin-right:6px;">🧪 TEST</span>`;
     document.body.appendChild(nav);
 
-    // --- Full-screen iframe overlay (covers content below nav bar) ---
+    // --- Full-screen iframe overlay (leaves bottom nav bar visible) ---
     const iframeOverlay = document.createElement('div');
     iframeOverlay.id = 'test-iframe-overlay';
-    iframeOverlay.style.cssText = `position:fixed;top:${NAV_H}px;left:0;width:100%;height:calc(100vh - ${NAV_H}px);z-index:99998;display:none;background:#000;`;
+    iframeOverlay.style.cssText = `position:fixed;top:0;left:0;width:100%;height:calc(100vh - ${NAV_H}px);z-index:99998;display:none;background:#000;`;
     document.body.appendChild(iframeOverlay);
 
-    // Push host control content down to clear nav bar
+    // Push host control content up to clear bottom nav bar
     const hostView = document.getElementById('host-control-view');
-    if (hostView) hostView.style.paddingTop = NAV_H + 'px';
+    if (hostView) hostView.style.paddingBottom = NAV_H + 'px';
 
     // Create all iframes (lazy: src set only when first activated)
     const makeIframe = () => {
@@ -407,6 +407,12 @@ window.App._showTestNavBar = function (testId, playerCount) {
         if (confirm('ダッシュボードに戻りますか？テストセッションが終了します。')) {
             document.getElementById('global-test-nav')?.remove();
             document.getElementById('test-iframe-overlay')?.remove();
+            // Restore host-control-view padding
+            const hv = document.getElementById('host-control-view');
+            if (hv) hv.style.paddingBottom = '';
+            // Restore unified toggle if present
+            const tog = document.getElementById('unified-toggle-container');
+            if (tog) tog.style.display = 'flex';
             if (window.App.Dashboard) window.App.Dashboard.enter();
         }
     };
