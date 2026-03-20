@@ -1,5 +1,5 @@
 /* =========================================================
- * host_studio.js (v144: Fix Buzz Reset Logic)
+ * host_studio.js (v145: Pre-setup screen for turn/solo modes)
  * =======================================================*/
 
 App.Studio = {
@@ -7,6 +7,7 @@ App.Studio = {
     buzzWinner: null,
     isQuick: false,
     currentStepId: 0,
+    inPreSetup: false,        // True while showing the pre-quiz player selection screen
     panelState: Array(25).fill(0),
     selectedPanelColor: 1,
     selectedPlayerId: null,
@@ -246,10 +247,12 @@ App.Studio = {
             document.getElementById('studio-player-count-display').textContent = count;
             this.updatePlayerList(players);
 
-            // ★ Turn/Solo Mode: Update UI on player join/leave in Step 0
-            if ((App.Data.currentConfig?.mode === 'turn' || App.Data.currentConfig?.mode === 'solo') && this.currentStepId === 0) {
-                const btnMain = document.getElementById('btn-phase-main');
-                if (btnMain) this.renderTurnOrderSetup(btnMain);
+            // ★ Turn/Solo Mode: Update UI on player join/leave in pre-setup or Step 0
+            if (App.Data.currentConfig?.mode === 'turn' || App.Data.currentConfig?.mode === 'solo') {
+                if (this.inPreSetup || this.currentStepId === 0) {
+                    const btnMain = document.getElementById('btn-phase-main');
+                    if (btnMain) this.renderTurnOrderSetup(btnMain);
+                }
             }
 
             if (this.currentStepId === 2 || this.currentStepId === 3 || this.currentStepId === 4 || this.currentStepId === 5) {
@@ -676,6 +679,7 @@ App.Studio = {
         this.revealedMultiIndices = {};
         this.isTurnOrderConfirmed = false;
         this.turnSetupDismissed = false;
+        this.inPreSetup = false;
         this.bjUsedCards = []; // Reset blackjack used cards for new set
         this.bjPickedHistory = []; // Reset blackjack picked history for new set
         this.clearTimeLimit();
@@ -694,7 +698,12 @@ App.Studio = {
             });
         }
 
-        this.setStep(0);
+        // Turn/Solo: show player selection screen BEFORE the title/quiz starts
+        if (App.Data.currentConfig.mode === 'turn' || App.Data.currentConfig.mode === 'solo') {
+            this.showPreQuizSetup();
+        } else {
+            this.setStep(0);
+        }
     },
 
     setStep: function (stepId) {
@@ -1428,8 +1437,14 @@ App.Studio = {
         this.revealedMultiIndices = {};
         this.isTurnOrderConfirmed = false;
         this.turnSetupDismissed = false;
+        this.inPreSetup = false;
         this.clearTimeLimit();
-        this.setStep(0);
+
+        if (App.Data.currentConfig.mode === 'turn' || App.Data.currentConfig.mode === 'solo') {
+            this.showPreQuizSetup();
+        } else {
+            this.setStep(0);
+        }
     },
 
     performElimination: function (settings) {
@@ -3022,6 +3037,63 @@ App.Studio = {
     updateMonitorScaling: function () {
         // Disabled: User requested simple text display instead of scaled frame.
         // This function is kept empty to prevent errors if called.
+    },
+
+    // ★ Turn/Solo: Show player selection screen BEFORE quiz starts
+    showPreQuizSetup: function () {
+        this.inPreSetup = true;
+
+        // Show execution grid, hide standby panel
+        document.getElementById('studio-standby-panel')?.classList.add('hidden');
+        document.getElementById('studio-execution-grid')?.classList.remove('hidden');
+
+        const mode = App.Data.currentConfig?.mode;
+
+        // Solo info bar
+        if (mode === 'solo') {
+            document.getElementById('studio-solo-info')?.classList.remove('hidden');
+        }
+
+        // Step display
+        const stepDisplay = document.getElementById('studio-step-display');
+        if (stepDisplay) stepDisplay.textContent = '参加者を設定中';
+
+        // Set up main button (disabled until order confirmed)
+        const btnMain = document.getElementById('btn-phase-main');
+        if (btnMain) {
+            btnMain.classList.remove('hidden');
+            btnMain.textContent = '第1問 開始';
+            btnMain.disabled = true;
+            btnMain.style.opacity = '0.4';
+            btnMain.style.pointerEvents = 'none';
+            btnMain.classList.remove('action-next', 'action-ready');
+            // After confirmation this onclick will be triggered
+            btnMain.onclick = () => {
+                this.inPreSetup = false;
+                this.setStep(0);
+            };
+        }
+
+        // Firebase: standby state
+        const roomId = App.State.currentRoomId;
+        if (roomId) {
+            const pTitle = App.Data.currentConfig?.periodTitle || '';
+            window.db.ref(`rooms/${roomId}/status`).update({
+                step: 'standby',
+                qIndex: 0,
+                programTitle: pTitle,
+                turnIndex: null,
+                isTurnMode: true
+            });
+        }
+
+        // Render player selection UI (disables btnMain until user confirms)
+        this.renderTurnOrderSetup(btnMain);
+
+        this.renderTimeline();
+        this.updateMonitorScaling();
+        this.updateNextPreview();
+        this.resetPlayerStatus();
     },
 
     // ★ Turn Mode: Render order setup UI
