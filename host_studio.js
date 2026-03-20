@@ -1182,7 +1182,19 @@ App.Studio = {
                 // Q1 checked Title in Step 0.
                 const nextStep = (App.State.currentQIndex === 0) ? 0 : 1;
                 this.currentStepId = null; // Force re-render
-                this.setStep(nextStep);
+
+                // Turn/Solo: show player selection screen before each question
+                const mode = App.Data.currentConfig?.mode;
+                if (mode === 'turn' || mode === 'solo') {
+                    this.isTurnOrderConfirmed = false;
+                    this.turnSetupDismissed = false;
+                    if (mode === 'solo') {
+                        this.turnOrder = [];
+                    }
+                    this.showPreQuizSetup(nextStep);
+                } else {
+                    this.setStep(nextStep);
+                }
                 return;
             }
             nextIdx++;
@@ -3040,7 +3052,8 @@ App.Studio = {
     },
 
     // ★ Turn/Solo: Show player selection screen BEFORE quiz starts
-    showPreQuizSetup: function () {
+    showPreQuizSetup: function (nextStep) {
+        if (nextStep === undefined) nextStep = 0;
         this.inPreSetup = true;
 
         // Show execution grid, hide standby panel
@@ -3058,11 +3071,13 @@ App.Studio = {
         const stepDisplay = document.getElementById('studio-step-display');
         if (stepDisplay) stepDisplay.textContent = '参加者を設定中';
 
+        const qLabel = `第${(App.State.currentQIndex || 0) + 1}問 開始`;
+
         // Set up main button (disabled until order confirmed)
         const btnMain = document.getElementById('btn-phase-main');
         if (btnMain) {
             btnMain.classList.remove('hidden');
-            btnMain.textContent = '第1問 開始';
+            btnMain.textContent = qLabel;
             btnMain.disabled = true;
             btnMain.style.opacity = '0.4';
             btnMain.style.pointerEvents = 'none';
@@ -3070,7 +3085,7 @@ App.Studio = {
             // After confirmation this onclick will be triggered
             btnMain.onclick = () => {
                 this.inPreSetup = false;
-                this.setStep(0);
+                this.setStep(nextStep);
             };
         }
 
