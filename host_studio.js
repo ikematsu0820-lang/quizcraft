@@ -209,13 +209,18 @@ App.Studio = {
             }
         };
 
+        const onRoomError = (err) => {
+            console.error("startRoom: Firebase write failed", err);
+            App.Ui.showToast(`部屋の作成に失敗しました: ${err.message || err.code || 'Firebase error'}`);
+        };
+
         if (keepPlayers) {
             // Update existing room, preserve players
-            window.db.ref(`rooms/${code}`).update(roomData).then(onRoomReady);
+            window.db.ref(`rooms/${code}`).update(roomData).then(onRoomReady).catch(onRoomError);
         } else {
             // New room, reset players
             roomData.players = {};
-            window.db.ref(`rooms/${code}`).set(roomData).then(onRoomReady);
+            window.db.ref(`rooms/${code}`).set(roomData).then(onRoomReady).catch(onRoomError);
         }
     },
 
