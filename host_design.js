@@ -1396,15 +1396,30 @@ App.Design = {
 
         if (type === 'title') {
             const displayTitle = document.getElementById('design-title-text-value')?.value || this.currentTarget?.data?.title || 'Program Title';
-            html = `
-                <div class="preview-bg-block ${this.activeQuickEdit === 'title' ? 'is-editing' : ''}" 
-                     onclick="App.Design.openQuickEdit('title', event)" 
-                     style="width:100%; height:100%; background:${s.titleBgColor}; display:flex; align-items:center; justify-content:center; font-family:${s.titleFont}; cursor:pointer;">
-                    <div style="color:${s.titleTextColor}; font-size:${fontSize(s.titleSize || '80px')}; font-weight:900; text-align:center; padding: 0 50px; line-height:1.2;">
-                        ${displayTitle.replace(/\\n/g, '<br>')}
+            const hasProdDesign = !!(this.currentTarget?.data?.questions?.[0]?.prodDesign);
+            if (hasProdDesign) {
+                // Use saved production design
+                html = `
+                    <div class="preview-bg-block ${this.activeQuickEdit === 'title' ? 'is-editing' : ''}"
+                         onclick="App.Design.openQuickEdit('title', event)"
+                         style="width:100%; height:100%; background:${s.titleBgColor}; display:flex; align-items:center; justify-content:center; font-family:${s.titleFont}; cursor:pointer;">
+                        <div style="color:${s.titleTextColor}; font-size:${fontSize(s.titleSize || '80px')}; font-weight:900; text-align:center; padding: 0 50px; line-height:1.2;">
+                            ${displayTitle.replace(/\\n/g, '<br>')}
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
+            } else {
+                // Mirror viewer's default title display (viewer.js standby default styling)
+                html = `
+                    <div style="width:100%; height:100%; background:radial-gradient(circle at center, #1a1a1a 0%, #0a0a0a 100%); display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                        <div style="font-size:64px; font-weight:900; color:#ffd700; text-shadow:0 0 30px rgba(255,215,0,0.5); margin-bottom:20px; text-align:center; padding:0 50px; line-height:1.2;">
+                            ${displayTitle.replace(/\\n/g, '<br>')}
+                        </div>
+                        <div style="font-size:26px; color:#fff; font-family:monospace; letter-spacing:5px;">ROOM ID: PREVIEW</div>
+                        <div style="margin-top:50px; font-size:20px; color:#00bfff;">READY TO START...</div>
+                    </div>
+                `;
+            }
         } else if (type === 'qnumber') {
             const displayQNum = document.getElementById('design-qnum-text-value')?.value || `第${qIdx + 1}問`;
             const pos = {
