@@ -790,9 +790,16 @@ window.App.Dashboard = {
 
     // Quick Start: セットを直接スタジオに送る
     quick: function (key) {
-        window.db.ref(`saved_sets/${window.App.State.currentShowId}/${key}`).once('value', snap => {
+        const showId = window.App.State.currentShowId;
+        if (!showId) { window.App.Ui.showToast('エラー: IDが未設定です。ページを再読み込みしてください。'); return; }
+        window.App.Ui.showToast('スタート準備中...');
+        window.db.ref(`saved_sets/${showId}/${key}`).once('value', snap => {
             const data = snap.val();
-            if (data) window.App.Studio.quickStart(data);
+            if (!data) { window.App.Ui.showToast('エラー: セットデータが見つかりません'); return; }
+            if (!window.App.Studio || !window.App.Studio.quickStart) { window.App.Ui.showToast('エラー: Studio未初期化'); return; }
+            window.App.Studio.quickStart(data);
+        }).catch(err => {
+            window.App.Ui.showToast('Firebase読み込みエラー: ' + (err.message || err.code));
         });
     },
 
