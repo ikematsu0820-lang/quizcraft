@@ -1148,9 +1148,7 @@ App.Design = {
             }
         };
 
-        const doneBtn = `<div class="inspector-row" style="height:auto; padding:15px 0 5px;">
-            <button class="btn-block btn-dark btn-mini" onclick="document.getElementById('modal-design-quick').classList.add('hidden')">完了</button>
-        </div>`;
+        const doneBtn = ``;
 
         if (type === 'title' || type === 'qnumber') {
             const isTitle = (type === 'title');
