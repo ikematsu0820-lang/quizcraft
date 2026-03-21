@@ -96,6 +96,10 @@ window.App.init = function () {
         const tp = parseInt(urlParams.get('tp') || '2');
         this.Ui.showView(this.Ui.views.hostControl);
         window.App.State.reuseRoomId = testHost;
+        // Ensure currentShowId is set for cross-browser compatibility (sessionStorage not always inherited in new tabs)
+        if (!window.App.State.currentShowId) {
+            window.App.State.currentShowId = urlParams.get('sid') || 'TEST';
+        }
         this._showTestNavBar(testHost, tp);
         const ref = window.db.ref(`saved_sets/${testHost}`);
         const handler = ref.on('value', snap => {
@@ -113,6 +117,10 @@ window.App.init = function () {
         const tp = parseInt(urlParams.get('tp') || '2');
         this.Ui.showView(this.Ui.views.hostControl);
         window.App.State.reuseRoomId = testProg;
+        // Ensure currentShowId is set for cross-browser compatibility
+        if (!window.App.State.currentShowId) {
+            window.App.State.currentShowId = urlParams.get('sid') || 'TEST';
+        }
         this._showTestNavBar(testProg, tp);
         const ref = window.db.ref(`saved_programs/${testProg}`);
         const handler = ref.on('value', snap => {
@@ -299,7 +307,8 @@ window.App.bindEvents = function () {
         // 2. Generate test ID and open host tab synchronously (before async Firebase)
         const testId = `TEST-${Math.floor(Math.random() * 9000) + 1000}`;
         const baseUrl = window.location.origin + window.location.pathname;
-        const hostUrl = `${baseUrl}?${isProg ? 'testProg' : 'testHost'}=${testId}&tp=${count}`;
+        const sid = encodeURIComponent(window.App.State.currentShowId || '');
+        const hostUrl = `${baseUrl}?${isProg ? 'testProg' : 'testHost'}=${testId}&tp=${count}&sid=${sid}`;
         window.open(hostUrl, '_blank');
 
         // 3. Save test data to Firebase (host tab will wait for this to arrive)
@@ -312,7 +321,8 @@ window.App.bindEvents = function () {
 
 window.App._showTestNavBar = function (testId, playerCount) {
     playerCount = Math.max(1, Math.min(8, playerCount || 2));
-    const NAV_H = 54;
+    // Estimate nav height: 3 rows of ~28px buttons + padding
+    const NAV_H = 100;
     const baseUrl = window.location.origin + window.location.pathname;
 
     // Hide ROOM ID header (not needed in test mode), but keep ダッシュボード accessible via nav bar
@@ -326,7 +336,7 @@ window.App._showTestNavBar = function (testId, playerCount) {
     // --- Global fixed nav bar at BOTTOM (persists across all view switches) ---
     const nav = document.createElement('div');
     nav.id = 'global-test-nav';
-    nav.style.cssText = `position:fixed;bottom:0;left:0;width:100%;height:${NAV_H}px;z-index:99999;display:flex;align-items:center;gap:4px;padding:0 10px;background:#1a0800;border-top:2px solid #ff6600;box-sizing:border-box;overflow-x:auto;`;
+    nav.style.cssText = `position:fixed;bottom:0;left:0;width:100%;min-height:${NAV_H}px;z-index:99999;display:flex;align-items:center;flex-wrap:wrap;gap:4px;padding:6px 10px;background:#1a0800;border-top:2px solid #ff6600;box-sizing:border-box;`;
     nav.innerHTML = `<span style="color:#ff6600;font-size:10px;font-weight:900;letter-spacing:1px;flex-shrink:0;margin-right:6px;">🧪 TEST</span>`;
     document.body.appendChild(nav);
 
@@ -867,7 +877,8 @@ window.App.Dashboard = {
         const isSet = (type === 'set');
         const testId = `TEST-${Math.floor(Math.random() * 9000) + 1000}`;
         const baseUrl = window.location.origin + window.location.pathname;
-        const hostUrl = `${baseUrl}?${isSet ? 'testHost' : 'testProg'}=${testId}&tp=${count}`;
+        const sid = encodeURIComponent(window.App.State.currentShowId || '');
+        const hostUrl = `${baseUrl}?${isSet ? 'testHost' : 'testProg'}=${testId}&tp=${count}&sid=${sid}`;
         window.open(hostUrl, '_blank');
 
         const dbPath = isSet ? `saved_sets/${testId}` : `saved_programs/${testId}`;

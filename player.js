@@ -33,10 +33,23 @@ document.addEventListener('DOMContentLoaded', () => {
             const nameInput = document.getElementById('player-name-input');
             if (nameInput) {
                 nameInput.value = autoNameParam.trim();
-                // Delay auto-join slightly to let UI render
-                setTimeout(() => {
-                    joinRoom();
-                }, 500);
+                // Auto-join with retry: wait up to 10s for the room to be created
+                let retries = 0;
+                const tryJoin = () => {
+                    const code = document.getElementById('room-code-input').value.trim().toUpperCase();
+                    if (!code) return;
+                    window.db.ref(`rooms/${code}`).once('value', snap => {
+                        if (snap.exists()) {
+                            joinRoom();
+                        } else if (retries < 10) {
+                            retries++;
+                            setTimeout(tryJoin, 1000);
+                        } else {
+                            joinRoom(); // Final attempt — will show error if still not found
+                        }
+                    });
+                };
+                setTimeout(tryJoin, 500);
             }
         }
     }
