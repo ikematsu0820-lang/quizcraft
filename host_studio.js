@@ -2269,14 +2269,14 @@ App.Studio = {
         });
 
         // Update judge queue: add new answerers who haven't been judged yet
-        const q = App.Data.studioQuestions[App.State.currentQIndex];
-        const needsManualJudge = q && (
-            q.type === 'free_written' ||
-            q.type === 'assoc_written' ||
-            q.type === 'multi_written' ||
-            q.type === 'ranking_written' ||
-            q.type === 'free_oral' ||
-            q.type === 'multi_oral'
+        const currentQ = App.Data.studioQuestions[App.State.currentQIndex];
+        const needsManualJudge = currentQ && (
+            currentQ.type === 'free_written' ||
+            currentQ.type === 'assoc_written' ||
+            currentQ.type === 'multi_written' ||
+            currentQ.type === 'ranking_written' ||
+            currentQ.type === 'free_oral' ||
+            currentQ.type === 'multi_oral'
         );
         if (needsManualJudge) {
             const inQueue = new Set(this.judgeQueue.map(e => e.id));
