@@ -271,8 +271,13 @@ window.App.Creator = {
 
     renderForm: function (type, data = null) {
         const container = document.getElementById('creator-form-container');
+        const optionsExtra = document.getElementById('creator-options-extra');
+        const optSubArea = document.getElementById('creator-opt-subtype-area');
+        const optSubSel = document.getElementById('creator-opt-subtype');
         if (!container) return;
         container.innerHTML = '';
+        if (optionsExtra) optionsExtra.innerHTML = '';
+        if (optSubArea) optSubArea.classList.add('hidden');
 
         // Handle Choice Subtypes
         if (type === 'choice_single') {
@@ -283,88 +288,70 @@ window.App.Creator = {
             type = 'choice';
         }
 
+        // Setup sub-type dropdown in options for applicable types
+        const setupOptSubtype = (items, currentVal) => {
+            if (!optSubArea || !optSubSel) return;
+            optSubSel.innerHTML = '';
+            items.forEach(o => {
+                const el = document.createElement('option');
+                el.value = o.v; el.textContent = o.t;
+                optSubSel.appendChild(el);
+            });
+            if (currentVal) optSubSel.value = currentVal;
+            optSubArea.classList.remove('hidden');
+            optSubSel.onchange = (e) => {
+                this.renderForm(e.target.value);
+            };
+        };
+
         if (type === 'choice') {
             const subtype = this.choiceSubtype || 'single';
-
             const isDobon = (this.choiceSubtype === 'multi');
-            const msg = isDobon ? "不正解を選択してください。" : "正解を選択してください。";
+            const msg = isDobon ? "不正解をタップして選択" : "正解をタップして選択";
+
+            // Sub-type in options
+            setupOptSubtype([
+                { v: 'choice_single', t: '単一解答' },
+                { v: 'choice_multi', t: 'ダウト問題' }
+            ], isDobon ? 'choice_multi' : 'choice_single');
 
             container.innerHTML = `
-                <div class="flex-between mb-5">
-                    <p class="text-sm text-gray mb-0">${msg}</p>
-                </div>
+                <div style="text-align:center; color:#64748b; font-size:0.8rem; margin-bottom:10px;">${msg}</div>
             `;
 
             const choicesDiv = document.createElement('div');
             choicesDiv.id = 'creator-choices-list';
-            choicesDiv.className = 'grid-gap-5';
+            choicesDiv.style.cssText = 'display:grid; grid-template-columns:1fr 1fr; gap:10px;';
             container.appendChild(choicesDiv);
 
-
-            // Bind Radio Change
-            container.querySelectorAll('input[name="choice-subtype"]').forEach(r => {
-                r.onchange = (e) => {
-                    this.choiceSubtype = e.target.value;
-                    // Re-render inputs to update click behavior and visuals
-                    // To preserve text, we might want to read current values first?
-                    // For simplicity, we just update the *behavior* of existing inputs if possible,
-                    // or re-render using current data.
-                    // Let's grab current data and re-render.
-                    const currentData = [];
-                    choicesDiv.querySelectorAll('.choice-row').forEach(row => {
-                        currentData.push({
-                            text: row.querySelector('.choice-text-input').value,
-                            checked: row.querySelector('.choice-correct-chk').checked
-                        });
-                    });
-
-                    choicesDiv.innerHTML = '';
-                    currentData.forEach((d, i) => {
-                        // If switching to Single, clear checks except maybe first? 
-                        // Or just let addChoiceInput handle it (it respects checked param).
-                        // If user switches Multi->Single, valid to have multiple checked initially?
-                        // No, validation will catch it. Or we can force clear.
-                        // Let's enforce single check if Single mode.
-                        let isChecked = d.checked;
-                        if (this.choiceSubtype === 'single' && isChecked) {
-                            // Only allow one? Loop logic difficult here.
-                            // Simplest: Uncheck all if switching to Single? Or keep inputs.
-                        }
-                        this.addChoiceInput(choicesDiv, i, d.text, d.checked);
-                    });
-                    // Ensure at least 4 inputs if empty (though logic above handles existing)
-                    if (currentData.length === 0) for (let i = 0; i < 4; i++) this.addChoiceInput(choicesDiv, i);
-
-                    // Update shuffle box visibility? No, shuffle applies to both.
-                };
-            });
-
             if (data) {
-                // If editing, determine subtype from data
                 if (data.multi) this.choiceSubtype = 'multi';
                 else this.choiceSubtype = 'single';
-
-                // Update radio
-                const r = container.querySelector(`input[name="choice-subtype"][value="${this.choiceSubtype}"]`);
-                if (r) r.checked = true;
-
                 data.c.forEach((txt, i) => this.addChoiceInput(choicesDiv, i, txt, data.correct.includes(i)));
             }
             else for (let i = 0; i < 4; i++) this.addChoiceInput(choicesDiv, i);
 
-            this.createAddBtn(container, APP_TEXT.Creator.BtnAddChoice, () => this.addChoiceInput(choicesDiv));
+            // Add choice button
+            const addBtnWrap = document.createElement('div');
+            addBtnWrap.style.cssText = 'text-align:center; margin-top:10px;';
+            const addBtn = document.createElement('button');
+            addBtn.textContent = '＋ 選択肢を追加';
+            addBtn.style.cssText = 'background:rgba(0,229,255,0.1); border:1px dashed rgba(0,229,255,0.4); border-radius:8px; color:#00e5ff; padding:8px 20px; cursor:pointer; font-size:0.9rem;';
+            addBtn.onclick = () => this.addChoiceInput(choicesDiv);
+            addBtnWrap.appendChild(addBtn);
+            container.appendChild(addBtnWrap);
 
-            // Shuffle option
-            const shuffleDiv = document.createElement('div');
-            shuffleDiv.className = 'config-group mt-10';
-            shuffleDiv.innerHTML = `
-                <label class="config-label" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                    <input type="checkbox" id="choice-shuffle-chk" ${data?.shuffle !== false ? 'checked' : ''}>
-                    <span>選択肢をシャッフルする</span>
-                </label>
-                <p class="text-sm text-gray" style="margin:5px 0 0 0;">※チェックを外すと、選択肢が常に同じ順序で表示されます</p>
-            `;
-            container.appendChild(shuffleDiv);
+            // Shuffle option in options panel
+            if (optionsExtra) {
+                optionsExtra.innerHTML += `
+                    <div style="margin-bottom:12px;">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:#94a3b8; font-size:0.9rem;">
+                            <input type="checkbox" id="choice-shuffle-chk" ${data?.shuffle !== false ? 'checked' : ''}>
+                            <span>選択肢をシャッフルする</span>
+                        </label>
+                    </div>
+                `;
+            }
         }
 
         // --- 文字選択式 ---
@@ -376,25 +363,28 @@ window.App.Creator = {
             }
 
             container.innerHTML = `
-                <div class="mb-10">
-                    <label class="config-label">解答ステップ作成</label>
-                    <p class="text-sm text-gray mb-5">1文字ずつ正解とダミーを設定してください。</p>
-                    <div id="letter-step-container" class="letter-step-list">
-                        </div>
-                </div>
+                <div style="text-align:center; color:#64748b; font-size:0.8rem; margin-bottom:10px;">1文字ずつ正解とダミーを設定</div>
+                <div id="letter-step-container" class="letter-step-list"></div>
             `;
             this.renderLetterStepList();
+
+            // Sub-type
+            setupOptSubtype([
+                { v: 'free_written', t: '記述式（自由入力・自動判定）' },
+                { v: 'free_oral', t: '口頭解答（口頭・司会判定）' },
+                { v: 'letter_select', t: '文字パネル（自由入力・自動判定）' }
+            ], 'letter_select');
         }
 
         else if (type === 'sort') {
             container.innerHTML = `
-                <div class="flex-between mb-5">
-                    <p class="text-sm text-gray mb-0">${APP_TEXT.Creator.DescSort}</p>
-                    <button id="btn-reset-sort-ranks" class="btn-mini btn-dark">順序をリセット</button>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <span style="color:#64748b; font-size:0.8rem;">順番をタップして設定</span>
+                    <button id="btn-reset-sort-ranks" style="background:rgba(255,255,255,0.1); border:1px solid #555; border-radius:6px; color:#aaa; padding:4px 12px; font-size:0.8rem; cursor:pointer;">順序リセット</button>
                 </div>
             `;
             const sortDiv = document.createElement('div');
-            sortDiv.className = 'flex-col gap-5';
+            sortDiv.style.cssText = 'display:grid; grid-template-columns:1fr 1fr; gap:10px;';
             container.appendChild(sortDiv);
 
             document.getElementById('btn-reset-sort-ranks').onclick = () => this.resetSortRanks(sortDiv);
@@ -415,40 +405,59 @@ window.App.Creator = {
                 for (let i = 0; i < 4; i++) this.addSortInput(sortDiv, i);
             }
 
-            this.createAddBtn(container, APP_TEXT.Creator.BtnAddSort, () => this.addSortInput(sortDiv));
+            const addBtnWrap = document.createElement('div');
+            addBtnWrap.style.cssText = 'text-align:center; margin-top:10px;';
+            const addBtn = document.createElement('button');
+            addBtn.textContent = '＋ 項目を追加';
+            addBtn.style.cssText = 'background:rgba(0,229,255,0.1); border:1px dashed rgba(0,229,255,0.4); border-radius:8px; color:#00e5ff; padding:8px 20px; cursor:pointer; font-size:0.9rem;';
+            addBtn.onclick = () => this.addSortInput(sortDiv);
+            addBtnWrap.appendChild(addBtn);
+            container.appendChild(addBtnWrap);
 
-            // Shuffle option for Sort
-            const shuffleDiv = document.createElement('div');
-            shuffleDiv.className = 'config-group mt-10';
-            shuffleDiv.innerHTML = `
-                <label class="config-label" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                    <input type="checkbox" id="sort-shuffle-chk" ${data?.shuffle !== false ? 'checked' : ''}>
-                    <span>選択肢をシャッフルする</span>
-                </label>
-                <p class="text-sm text-gray" style="margin:5px 0 0 0;">※チェックを外すと、初期表示が固定されます（作成順）</p>
-            `;
-            container.appendChild(shuffleDiv);
+            // Shuffle option in options panel
+            if (optionsExtra) {
+                optionsExtra.innerHTML += `
+                    <div style="margin-bottom:12px;">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:#94a3b8; font-size:0.9rem;">
+                            <input type="checkbox" id="sort-shuffle-chk" ${data?.shuffle !== false ? 'checked' : ''}>
+                            <span>選択肢をシャッフルする</span>
+                        </label>
+                    </div>
+                `;
+            }
         }
         else if (type.startsWith('free')) {
-            const row = document.createElement('div');
-            row.className = 'creator-row';
-            row.innerHTML = `
-                <label class="config-label">正解キーワード</label>
-                <input type="text" id="creator-text-answer" class="btn-block flex-1" placeholder="キーワード（複数ある場合はカンマ区切り）" style="margin-bottom:0;">
+            container.innerHTML = `
+                <div style="padding:10px;">
+                    <div style="text-align:center; color:#64748b; font-size:0.8rem; margin-bottom:10px;">正解キーワードを入力</div>
+                    <input type="text" id="creator-text-answer" placeholder="キーワード（複数ある場合はカンマ区切り）" style="
+                        width:100%; padding:12px; background:#0d1b2a; border:1px dashed rgba(255,255,255,0.25);
+                        border-radius:8px; color:#fff; font-size:1rem; text-align:center; outline:none; box-sizing:border-box;
+                    ">
+                </div>
             `;
-            const input = row.querySelector('input');
+            const input = container.querySelector('#creator-text-answer');
             if (data && data.correct) {
                 input.value = Array.isArray(data.correct) ? data.correct.join(', ') : data.correct;
             }
-            container.appendChild(row);
+
+            // Sub-type
+            setupOptSubtype([
+                { v: 'free_written', t: '記述式（自由入力・自動判定）' },
+                { v: 'free_oral', t: '口頭解答（口頭・司会判定）' },
+                { v: 'letter_select', t: '文字パネル（自由入力・自動判定）' }
+            ], type);
         }
         else if (type.startsWith('assoc')) {
             container.innerHTML = `
-                <div class="creator-row">
-                    <label class="config-label">正解キーワード</label>
-                    <input type="text" id="creator-assoc-answer" class="btn-block flex-1" placeholder="キーワード（複数ある場合はカンマ区切り）" style="margin-bottom:10px;">
+                <div style="padding:10px;">
+                    <div style="text-align:center; color:#64748b; font-size:0.8rem; margin-bottom:10px;">正解キーワード</div>
+                    <input type="text" id="creator-assoc-answer" placeholder="キーワード（複数ある場合はカンマ区切り）" style="
+                        width:100%; padding:12px; background:#0d1b2a; border:1px dashed rgba(255,255,255,0.25);
+                        border-radius:8px; color:#fff; font-size:1rem; text-align:center; outline:none; box-sizing:border-box; margin-bottom:14px;
+                    ">
+                    <div style="text-align:center; color:#64748b; font-size:0.8rem; margin-bottom:8px;">ヒントを入力（順番に開示）</div>
                 </div>
-                <p class="text-sm text-gray mb-5">${APP_TEXT.Creator.DescAssoc}</p>
             `;
 
             const assocAnsInput = container.querySelector('#creator-assoc-answer');
@@ -457,42 +466,79 @@ window.App.Creator = {
             }
 
             const assocDiv = document.createElement('div');
-            assocDiv.className = 'grid-gap-5';
+            assocDiv.style.cssText = 'display:flex; flex-direction:column; gap:8px; padding:0 10px;';
             container.appendChild(assocDiv);
 
             if (data && data.c) {
                 data.c.forEach((txt, i) => this.addAssocInput(assocDiv, i, txt));
             } else {
-                for (let i = 0; i < 5; i++) Object.assign(this, { addAssocInput: this.addAssocInput }) && this.addAssocInput(assocDiv, i, '');
+                for (let i = 0; i < 5; i++) this.addAssocInput(assocDiv, i, '');
             }
-            this.createAddBtn(container, APP_TEXT.Creator.BtnAddAssoc, () => this.addAssocInput(assocDiv, undefined, ''));
+
+            const addBtnWrap = document.createElement('div');
+            addBtnWrap.style.cssText = 'text-align:center; margin-top:10px;';
+            const addBtn = document.createElement('button');
+            addBtn.textContent = '＋ ヒントを追加';
+            addBtn.style.cssText = 'background:rgba(0,229,255,0.1); border:1px dashed rgba(0,229,255,0.4); border-radius:8px; color:#00e5ff; padding:8px 20px; cursor:pointer; font-size:0.9rem;';
+            addBtn.onclick = () => this.addAssocInput(assocDiv, undefined, '');
+            addBtnWrap.appendChild(addBtn);
+            container.appendChild(addBtnWrap);
+
+            // Sub-type
+            setupOptSubtype([
+                { v: 'assoc_written', t: '連想記述式（自由入力・司会判定）' },
+                { v: 'assoc_oral', t: '連想口頭式（口頭・司会判定）' }
+            ], type);
         }
         else if (type.startsWith('multi') || type.startsWith('ranking')) {
             const isRanking = type.startsWith('ranking');
-            const descText = isRanking ? APP_TEXT.Creator.DescRanking : APP_TEXT.Creator.DescMulti;
-            const addBtnText = isRanking ? APP_TEXT.Creator.BtnAddRanking : APP_TEXT.Creator.BtnAddMulti;
-            container.innerHTML = `<p class="text-sm text-gray mb-5">${descText}</p>`;
+            const descText = isRanking ? '1位から順番に入力' : '全ての正解を入力';
+
+            container.innerHTML = `
+                <div style="text-align:center; color:#64748b; font-size:0.8rem; margin-bottom:10px; padding-top:6px;">${descText}</div>
+            `;
             const multiDiv = document.createElement('div');
-            multiDiv.className = 'grid-gap-5';
+            multiDiv.style.cssText = 'display:flex; flex-direction:column; gap:8px; padding:0 10px;';
             container.appendChild(multiDiv);
 
             if (data) data.c.forEach((txt, i) => this.addMultiInput(multiDiv, i, txt, isRanking));
             else for (let i = 0; i < 5; i++) this.addMultiInput(multiDiv, i, '', isRanking);
 
-            this.createAddBtn(container, addBtnText, () => this.addMultiInput(multiDiv, undefined, '', isRanking));
+            const addBtnWrap = document.createElement('div');
+            addBtnWrap.style.cssText = 'text-align:center; margin-top:10px;';
+            const addBtnText = isRanking ? '＋ ランキングを追加' : '＋ 正解を追加';
+            const addBtn = document.createElement('button');
+            addBtn.textContent = addBtnText;
+            addBtn.style.cssText = 'background:rgba(0,229,255,0.1); border:1px dashed rgba(0,229,255,0.4); border-radius:8px; color:#00e5ff; padding:8px 20px; cursor:pointer; font-size:0.9rem;';
+            addBtn.onclick = () => this.addMultiInput(multiDiv, undefined, '', isRanking);
+            addBtnWrap.appendChild(addBtn);
+            container.appendChild(addBtnWrap);
+
+            // Sub-type
+            setupOptSubtype([
+                { v: 'multi_written', t: '記述式（自由入力・司会判定）' },
+                { v: 'multi_oral', t: '口頭解答（口頭・司会判定）' },
+                { v: 'ranking_written', t: 'ランキング記述式（自由入力・司会判定）' },
+                { v: 'ranking_oral', t: 'ランキング口頭式（口頭・司会判定）' }
+            ], type);
         }
         else if (type === 'blackjack') {
             const targetVal = data ? data.target : 21;
             container.innerHTML = `
-                <div class="creator-row mb-10">
-                    <label class="config-label">目標数字（ターゲット）</label>
-                    <input type="number" id="bj-target" class="btn-block" value="${targetVal}" min="1" max="999" style="width:120px;">
+                <div style="padding:10px;">
+                    <div style="text-align:center; color:#64748b; font-size:0.8rem; margin-bottom:10px;">目標数字を設定してカードを追加</div>
+                    <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:14px;">
+                        <span style="color:#94a3b8;">ターゲット:</span>
+                        <input type="number" id="bj-target" value="${targetVal}" min="1" max="999" style="
+                            width:80px; padding:8px; background:#0d1b2a; border:1px solid #475569;
+                            border-radius:8px; color:#ffd700; font-size:1.2rem; font-weight:bold; text-align:center;
+                        ">
+                    </div>
                 </div>
-                <p class="text-sm text-gray mb-5">カードを追加してください（テキストと数値のペア）</p>
             `;
             const bjDiv = document.createElement('div');
             bjDiv.id = 'bj-cards-list';
-            bjDiv.className = 'grid-gap-5';
+            bjDiv.style.cssText = 'display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:0 10px;';
             container.appendChild(bjDiv);
 
             if (data && data.c) {
@@ -501,171 +547,99 @@ window.App.Creator = {
                 for (let i = 0; i < 4; i++) this.addBjCardInput(bjDiv, i, '', '');
             }
 
-            this.createAddBtn(container, '＋ カードを追加', () => this.addBjCardInput(bjDiv, undefined, '', ''));
+            const addBtnWrap = document.createElement('div');
+            addBtnWrap.style.cssText = 'text-align:center; margin-top:10px;';
+            const addBtn = document.createElement('button');
+            addBtn.textContent = '＋ カードを追加';
+            addBtn.style.cssText = 'background:rgba(0,229,255,0.1); border:1px dashed rgba(0,229,255,0.4); border-radius:8px; color:#00e5ff; padding:8px 20px; cursor:pointer; font-size:0.9rem;';
+            addBtn.onclick = () => this.addBjCardInput(bjDiv, undefined, '', '');
+            addBtnWrap.appendChild(addBtn);
+            container.appendChild(addBtnWrap);
         }
     },
 
-    // ★ ステップ一覧描画
-    renderLetterStepList: function () {
-        const list = document.getElementById('letter-step-container');
-        if (!list) return;
-        list.innerHTML = '';
-
-        this.currentLetterSteps.forEach((step, i) => {
-            const btn = document.createElement('div');
-            btn.className = 'letter-step-item';
-            btn.innerHTML = `
-                <span class="step-badge">${i + 1}</span>
-                ${step.correct || '?'}
-            `;
-            btn.onclick = () => this.openLetterModal(i);
-            list.appendChild(btn);
-        });
-
-        const addBtn = document.createElement('div');
-        addBtn.className = 'letter-step-add-btn';
-        addBtn.textContent = '+';
-        addBtn.onclick = () => this.openLetterModal(this.currentLetterSteps.length);
-        list.appendChild(addBtn);
-    },
-
-    // ★ 編集モーダル (画像のUIを再現)
-    openLetterModal: function (index) {
-        const isNew = (index >= this.currentLetterSteps.length);
-        // ダミー文字は画像に合わせて3つに固定
-        const data = isNew ? { correct: '', dummies: ['', '', ''] } : this.currentLetterSteps[index];
-        const dummies = data.dummies || ['', '', ''];
-        while (dummies.length < 3) dummies.push('');
-
-        const modalHtml = `
-            <div id="letter-modal" class="letter-modal-overlay">
-                <div class="letter-modal-window">
-                    <div class="letter-modal-header">
-                        <span>解答選択肢 ${index + 1}/${isNew ? index + 1 : this.currentLetterSteps.length}</span>
-                        <button class="letter-modal-close" onclick="document.getElementById('letter-modal').remove()">×</button>
-                    </div>
-                    <div class="letter-modal-body">
-                        <div class="tag-label tag-correct">正解</div>
-                        <div style="margin-bottom:10px;">
-                            <input type="text" id="modal-input-correct" class="char-input-box" value="${data.correct}" maxlength="1" placeholder="あ" onfocus="this.select()">
-                        </div>
-
-                        <div class="tag-label tag-wrong">不正解</div>
-                        <div class="dummy-grid">
-                            <input type="text" class="char-input-box modal-input-dummy" value="${dummies[0]}" maxlength="1" placeholder="い" onfocus="this.select()">
-                            <input type="text" class="char-input-box modal-input-dummy" value="${dummies[1]}" maxlength="1" placeholder="う" onfocus="this.select()">
-                            <input type="text" class="char-input-box modal-input-dummy" value="${dummies[2]}" maxlength="1" placeholder="え" onfocus="this.select()">
-                        </div>
-                    </div>
-                    <div class="letter-modal-footer">
-                        ${!isNew ? '<button id="modal-btn-delete" class="btn-delete-modal">削除</button>' : ''}
-                        <button id="modal-btn-save" class="btn-save-modal">保存</button>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-        // 最初の入力欄にフォーカス
-        setTimeout(() => {
-            const firstInput = document.getElementById('modal-input-correct');
-            if (firstInput) firstInput.focus();
-        }, 100);
-
-        // ボタンイベント
-        document.getElementById('modal-btn-save').onclick = () => {
-            const correct = document.getElementById('modal-input-correct').value.trim();
-            const dummyInputs = document.querySelectorAll('.modal-input-dummy');
-            const newDummies = [];
-            dummyInputs.forEach(inp => { if (inp.value.trim()) newDummies.push(inp.value.trim()); });
-
-            if (!correct) return alert("正解文字は必須です");
-
-            const stepData = { correct: correct, dummies: newDummies };
-
-            if (isNew) this.currentLetterSteps.push(stepData);
-            else this.currentLetterSteps[index] = stepData;
-
-            this.renderLetterStepList();
-            document.getElementById('letter-modal').remove();
-        };
-
-        if (!isNew) {
-            document.getElementById('modal-btn-delete').onclick = () => {
-                if (confirm("このステップを削除しますか？")) {
-                    this.currentLetterSteps.splice(index, 1);
-                    this.renderLetterStepList();
-                    document.getElementById('letter-modal').remove();
-                }
-            };
-        }
-    },
-
-    // --- 以下、既存ロジック ---
+    // --- Choice Input as Monitor-style Card ---
     addChoiceInput: function (parent, index, text = "", checked = false) {
         const limit = (this.choiceSubtype === 'multi') ? 36 : 20;
         if (parent.children.length >= limit) { alert(`選択肢の上限は${limit}個までです`); return; }
-        const row = document.createElement('div');
-        row.className = 'choice-row flex-center gap-5 p-5';
 
-        // Use radio or checkbox input based on subtype
-        // Note: For Single, we need 'name' to be shared across rows to enforce single selection.
-        // But dynamically added rows make 'name' handling tricky if grouping isn't handled.
-        // If we use standard Radio buttons, they handle mutual exclusion automatically if 'name' matches.
+        const idx = (index !== undefined) ? index : parent.children.length;
+        const labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T'];
+        const colors = [
+            'rgba(239,68,68,0.25)',   // A - red
+            'rgba(59,130,246,0.25)',   // B - blue
+            'rgba(234,179,8,0.25)',    // C - yellow
+            'rgba(34,197,94,0.25)',    // D - green
+            'rgba(168,85,247,0.25)',   // E - purple
+            'rgba(249,115,22,0.25)',   // F - orange
+        ];
+        const borderColors = [
+            'rgba(239,68,68,0.5)',
+            'rgba(59,130,246,0.5)',
+            'rgba(234,179,8,0.5)',
+            'rgba(34,197,94,0.5)',
+            'rgba(168,85,247,0.5)',
+            'rgba(249,115,22,0.5)',
+        ];
+
+        const colorIdx = idx % colors.length;
+        const label = labels[idx] || String(idx + 1);
+
+        const card = document.createElement('div');
+        card.className = 'choice-row';
+        card.style.cssText = `
+            position:relative; background:${colors[colorIdx]};
+            border:2px solid ${checked ? '#00e5ff' : borderColors[colorIdx]};
+            border-radius:12px; padding:12px; min-height:60px;
+            display:flex; flex-direction:column; align-items:center; justify-content:center;
+            cursor:pointer; transition:all 0.2s;
+            ${checked ? 'box-shadow:0 0 15px rgba(0,229,255,0.3);' : ''}
+        `;
 
         const inputType = (this.choiceSubtype === 'single') ? 'radio' : 'checkbox';
         const chk = document.createElement('input');
         chk.type = inputType;
-        chk.name = 'creator-choice-correct-group'; // Shared name for radios
+        chk.name = 'creator-choice-correct-group';
         chk.className = 'choice-correct-chk';
         chk.checked = checked;
-
-        // Visually, we might want to keep the labelBtn style but update it?
-        // Or just use the native input + label?
-        // The user asked for "Radio buttons".
-        // Let's use visible inputs + Label A/B/C.
-
-        // Remove labelBtn toggle logic, rely on browser input behavior?
-        // But we want A/B/C styling.
-
-        const labelText = String.fromCharCode(65 + index);
-
-        // Use a wrapper label for clickability
-        const wrapper = document.createElement('label');
-        wrapper.className = 'choice-label-wrapper flex-center';
-        wrapper.style.cursor = 'pointer';
-        wrapper.style.gap = '5px';
-
-        // Style the input slightly bigger
-        chk.style.transform = 'scale(1.2)';
-        chk.style.cursor = 'pointer';
+        chk.style.cssText = 'position:absolute; top:8px; right:8px; transform:scale(1.3); cursor:pointer;';
 
         const labelSpan = document.createElement('span');
-        labelSpan.className = 'choice-label-text bold cyan text-lg w-20 text-center';
-        labelSpan.textContent = `${index + 1}`;
-
-        wrapper.appendChild(chk);
-        wrapper.appendChild(labelSpan);
-
-        // If Single mode, ensure only one is checked? 
-        // Browser handles it via 'name'.
+        labelSpan.className = 'choice-label-text';
+        labelSpan.style.cssText = 'font-size:0.85rem; font-weight:bold; color:rgba(255,255,255,0.5); margin-bottom:4px;';
+        labelSpan.textContent = label;
 
         const inp = document.createElement('input');
         inp.type = 'text';
-        inp.className = 'choice-text-input flex-1';
-        inp.placeholder = 'Choice';
+        inp.className = 'choice-text-input';
+        inp.placeholder = `選択肢${label}`;
         inp.value = text;
+        inp.style.cssText = 'width:100%; background:transparent; border:none; color:#fff; font-size:1rem; font-weight:bold; text-align:center; outline:none; padding:4px;';
+
         const delBtn = document.createElement('button');
         delBtn.textContent = '×';
-        delBtn.className = 'btn-mini btn-dark w-30';
-        delBtn.onclick = () => { row.remove(); this.updateLabels(parent); };
+        delBtn.style.cssText = 'position:absolute; top:4px; left:8px; background:none; border:none; color:rgba(255,255,255,0.3); font-size:1rem; cursor:pointer; padding:2px;';
+        delBtn.onclick = (e) => { e.stopPropagation(); card.remove(); this.updateLabels(parent); };
 
-        row.appendChild(wrapper);
-        row.appendChild(inp);
-        row.appendChild(delBtn);
+        // Click card to toggle correct
+        card.onclick = (e) => {
+            if (e.target === inp || e.target === delBtn) return;
+            chk.checked = !chk.checked;
+            chk.dispatchEvent(new Event('change'));
+        };
 
-        parent.appendChild(row);
+        chk.onchange = () => {
+            // Update card border
+            card.style.borderColor = chk.checked ? '#00e5ff' : borderColors[colorIdx];
+            card.style.boxShadow = chk.checked ? '0 0 15px rgba(0,229,255,0.3)' : 'none';
+        };
+
+        card.appendChild(chk);
+        card.appendChild(delBtn);
+        card.appendChild(labelSpan);
+        card.appendChild(inp);
+
+        parent.appendChild(card);
         this.updateLabels(parent);
     },
 
@@ -790,7 +764,13 @@ window.App.Creator = {
     },
 
     updateLabels: function (parent) {
-        parent.querySelectorAll('.choice-label-text').forEach((el, i) => el.textContent = `${i + 1}`);
+        const labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T'];
+        parent.querySelectorAll('.choice-label-text').forEach((el, i) => el.textContent = labels[i] || String(i + 1));
+        // Update placeholder text too
+        parent.querySelectorAll('.choice-text-input').forEach((inp, i) => {
+            const label = labels[i] || String(i + 1);
+            inp.placeholder = `選択肢${label}`;
+        });
     },
 
 

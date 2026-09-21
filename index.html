@@ -432,42 +432,103 @@
     </div>
 
     <div id="creator-view" class="view hidden">
-        <div class="view-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #333; padding-bottom:12px; margin-bottom:20px;">
+        <div class="view-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #333; padding-bottom:12px; margin-bottom:16px;">
             <div>
-                <h2 style="margin:0; font-size:1.5rem;">問題作成</h2>
-                <div style="font-size:0.85rem; color:#aaa; margin-top:2px;">ID: <span id="creator-show-id" style="color:#00e5ff; font-weight:bold;">---</span></div>
+                <h2 style="margin:0; font-size:1.3rem;">問題作成</h2>
+                <div style="font-size:0.8rem; color:#aaa; margin-top:2px;">ID: <span id="creator-show-id" style="color:#00e5ff; font-weight:bold;">---</span></div>
             </div>
             <button id="creator-back-btn" class="header-back-btn back-to-select-type" style="background:rgba(255,255,255,0.1); border:1px solid #555; color:#fff; padding:8px 16px; border-radius:8px; cursor:pointer;">← 形式選択に戻る</button>
         </div>
-        <div class="panel-section section-blue mb-20">
-            <div class="creator-row">
-                <label class="config-label">作りたい問題を選んでください</label>
-                <select id="creator-q-type" class="btn-block bold-select"></select>
-            </div>
+
+        <!-- Hidden selectors (managed by JS, not visible to user) -->
+        <div style="display:none;">
+            <select id="creator-q-type" class="btn-block bold-select"></select>
             <div id="creator-q-subtype-area" class="mt-10 hidden">
-                <div class="creator-row">
-                    <label class="config-label">回答形式を選択</label>
-                    <select id="creator-q-subtype" class="btn-block bold-select"></select>
-                </div>
+                <select id="creator-q-subtype" class="btn-block bold-select"></select>
             </div>
             <p id="creator-type-locked-msg" class="locked-msg hidden" data-text="Creator.MsgTypeLocked">Locked</p>
         </div>
-        <div class="panel-section section-pink mb-20">
-            <h3 id="creator-form-title" class="panel-title-large" data-text="Creator.HeadingNewQ">問題の入力</h3>
-            <div class="mb-10">
-                <label class="config-label q-label-prominent">問題文</label>
-                <input type="text" id="question-text" class="btn-block mb-0" placeholder="例：世界の首都は？">
-            </div>
-            <div id="creator-form-container" class="mb-10"></div>
+        <h3 id="creator-form-title" style="display:none;" data-text="Creator.HeadingNewQ"></h3>
 
-            <div class="panel-section section-gray mb-10">
-                <div class="creator-row" style="align-items: flex-start;">
-                    <label class="config-label" style="padding-top: 8px;">解説設定</label>
-                    <textarea id="creator-commentary" class="btn-block" placeholder="解説を入力して下さい" rows="2"
-                        style="flex:1; margin-bottom:0;"></textarea>
-                </div>
+        <!-- ===== WYSIWYG Monitor Preview ===== -->
+        <div id="creator-monitor-preview" style="
+            width:100%; max-width:700px; margin:0 auto;
+            background:#1a1a2e; border:2px solid #333;
+            border-radius:14px; overflow:hidden;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        ">
+            <!-- Question Area -->
+            <div id="creator-monitor-q-area" style="
+                background: linear-gradient(180deg, #0d1b2a 0%, #1b2838 100%);
+                padding: 20px; min-height: 80px;
+                display:flex; align-items:center; justify-content:center;
+                border-bottom: 2px solid rgba(0,229,255,0.2);
+            ">
+                <textarea id="question-text" placeholder="ここに問題文を入力" style="
+                    width:100%; background:transparent; border:1px dashed rgba(255,255,255,0.25);
+                    border-radius:8px; color:#fff; font-size:1.2rem; font-weight:bold;
+                    text-align:center; padding:14px; resize:none; outline:none;
+                    min-height:60px; line-height:1.6;
+                    transition: border-color 0.2s;
+                " onfocus="this.style.borderColor='#00e5ff'" onblur="this.style.borderColor='rgba(255,255,255,0.25)'"></textarea>
             </div>
-            <button id="add-question-btn" class="btn-primary btn-block mt-10" data-text="Creator.BtnAdd">Add</button>
+
+            <!-- Dynamic Form Area (choices / answers rendered here by JS) -->
+            <div id="creator-form-container" style="padding:16px;"></div>
+        </div>
+
+        <!-- ===== Action Button ===== -->
+        <div style="max-width:700px; margin:16px auto;">
+            <button id="add-question-btn" class="btn-primary btn-block" style="
+                padding:14px; font-size:1.1rem; font-weight:bold;
+                background:linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+                border:none; border-radius:12px; color:#fff; cursor:pointer;
+                box-shadow: 0 4px 15px rgba(0,114,255,0.3);
+            " data-text="Creator.BtnAdd">リストに追加</button>
+        </div>
+
+        <!-- ===== Options Section (collapsible) ===== -->
+        <div style="max-width:700px; margin:0 auto 20px;">
+            <button id="creator-options-toggle" onclick="
+                const body = document.getElementById('creator-options-body');
+                const arrow = document.getElementById('creator-options-arrow');
+                if (body.style.display === 'none') { body.style.display = 'block'; arrow.textContent = '▼'; }
+                else { body.style.display = 'none'; arrow.textContent = '▶'; }
+            " style="
+                width:100%; display:flex; align-items:center; justify-content:space-between;
+                padding:14px 18px; background:#1e293b; border:1px solid #334155;
+                border-radius:12px; color:#94a3b8; font-size:1rem; font-weight:bold;
+                cursor:pointer; margin-bottom:0;
+            ">
+                <span>⚙️ オプション設定</span>
+                <span id="creator-options-arrow">▶</span>
+            </button>
+            <div id="creator-options-body" style="
+                display:none; background:#0f172a; border:1px solid #334155;
+                border-top:none; border-radius:0 0 12px 12px; padding:16px;
+            ">
+                <!-- Sub-type selector (shown for types that have sub-types) -->
+                <div id="creator-opt-subtype-area" class="hidden" style="margin-bottom:16px;">
+                    <label style="color:#94a3b8; font-size:0.85rem; display:block; margin-bottom:6px;">回答形式</label>
+                    <select id="creator-opt-subtype" style="
+                        width:100%; padding:10px; background:#1e293b; border:1px solid #475569;
+                        border-radius:8px; color:#fff; font-size:0.95rem;
+                    "></select>
+                </div>
+
+                <!-- Commentary -->
+                <div style="margin-bottom:16px;">
+                    <label style="color:#94a3b8; font-size:0.85rem; display:block; margin-bottom:6px;">解説（正解表示後に表示）</label>
+                    <textarea id="creator-commentary" placeholder="解説を入力してください" rows="2" style="
+                        width:100%; padding:10px; background:#1e293b; border:1px solid #475569;
+                        border-radius:8px; color:#fff; font-size:0.9rem; resize:vertical; outline:none;
+                        box-sizing:border-box;
+                    "></textarea>
+                </div>
+
+                <!-- Additional options rendered by JS per type -->
+                <div id="creator-options-extra"></div>
+            </div>
         </div>
         <!-- Cart Floating Button (Right Bottom) -->
         <button id="creator-cart-btn" class="fab-btn" title="作成中のリストを見る"
