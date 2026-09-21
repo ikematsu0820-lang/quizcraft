@@ -46,6 +46,15 @@ window.App.Creator = {
         window.App.Ui.showView(window.App.Ui.views.creator);
     },
 
+    initWithType: function (type) {
+        this.init();
+        const sel = document.getElementById('creator-q-type');
+        if (sel && type) {
+            sel.value = type;
+            this.renderForm(type);
+        }
+    },
+
     setupTypeSelect: function () {
         const sel = document.getElementById('creator-q-type');
         const subArea = document.getElementById('creator-q-subtype-area');

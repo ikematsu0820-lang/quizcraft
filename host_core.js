@@ -41,6 +41,7 @@ window.App.Ui = {
             design: document.getElementById('design-view'),
             productionDesign: document.getElementById('production-design-view'),
             creator: document.getElementById('creator-view'),
+            selectType: document.getElementById('select-type-view'),
             config: document.getElementById('config-view'),
             progConfig: document.getElementById('prog-config-view'),
             hostControl: document.getElementById('host-control-view'),
@@ -157,13 +158,29 @@ window.App.bindEvents = function () {
         window.App.Dashboard.enter();
     });
 
-    // メインメニューの各ボタン
+    // メインメニューの「問題を作る」 -> 問題形式選択画面へ
     document.getElementById('menu-btn-create')?.addEventListener('click', () => {
-        if (window.App.Creator && window.App.Creator.init) {
-            window.App.Creator.init();
-        } else {
-            U.showView(V.creator);
-        }
+        const idEl = document.getElementById('select-type-show-id');
+        if (idEl) idEl.textContent = window.App.State.currentShowId || '---';
+        U.showView(V.selectType || V.creator);
+    });
+
+    // 問題形式選択画面のカード選択
+    document.querySelectorAll('#select-type-view .type-select-card').forEach(card => {
+        card.addEventListener('click', () => {
+            if (card.classList.contains('disabled')) {
+                window.App.Ui.showToast("この問題形式は準備中です");
+                return;
+            }
+            const type = card.getAttribute('data-type');
+            if (window.App.Creator && window.App.Creator.initWithType) {
+                window.App.Creator.initWithType(type);
+            } else if (window.App.Creator && window.App.Creator.init) {
+                window.App.Creator.init();
+            } else {
+                U.showView(V.creator);
+            }
+        });
     });
 
     document.getElementById('menu-btn-host')?.addEventListener('click', () => {
@@ -183,6 +200,8 @@ window.App.bindEvents = function () {
                 const inputEl = document.getElementById('show-id-input');
                 if (inputEl) inputEl.value = '';
                 U.showView(V.hostLogin);
+            } else if (btn.classList.contains('back-to-select-type')) {
+                U.showView(V.selectType);
             } else if (btn.classList.contains('back-to-menu')) {
                 window.App.Dashboard.enter();
             } else {
