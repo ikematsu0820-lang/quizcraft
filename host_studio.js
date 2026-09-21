@@ -54,19 +54,15 @@ App.Studio = {
 
         const btnHost   = document.createElement('button');
         const btnViewer = document.createElement('button');
-        const btnPlayer = document.createElement('button');
 
         btnHost.dataset.role   = 'host';
         btnViewer.dataset.role = 'viewer';
-        btnPlayer.dataset.role = 'player';
 
         btnHost.textContent   = "🎤 司会者";
         btnViewer.textContent = "📺 モニター";
-        btnPlayer.textContent = "🙋 解答者";
 
         btnHost.style.cssText   = activeStyle;
         btnViewer.style.cssText = inactiveStyle;
-        btnPlayer.style.cssText = inactiveStyle;
 
         const switchView = (target) => {
             if (container.dataset.view === target) return;
@@ -79,21 +75,11 @@ App.Studio = {
             } else if (target === 'viewer') {
                 btnViewer.style.cssText = activeStyle;
                 App.Ui.showView(App.Ui.views.viewerMain);
-            } else {
-                btnPlayer.style.cssText = activeStyle;
-                // Show player game view if already in room, otherwise respondent entry
-                const pgView = document.getElementById('player-game-view');
-                if (pgView && !pgView.classList.contains('hidden')) {
-                    App.Ui.showView(App.Ui.views.playerGame);
-                } else {
-                    App.Ui.showView(App.Ui.views.respondent);
-                }
             }
         };
 
         btnHost.onclick   = () => switchView('host');
         btnViewer.onclick = () => switchView('viewer');
-        btnPlayer.onclick = () => switchView('player');
 
         // Allow dragging toggle if it covers UI (touch drag)
         let isDragging = false;
@@ -132,8 +118,8 @@ App.Studio = {
             container.style.transition = 'opacity 0.2s';
         });
 
-        // Show/hide based on whether any of the three views is active
-        const watchedIds = ['host-control-view', 'viewer-main-view', 'player-game-view', 'respondent-view'];
+        // Show/hide based on whether any of the watched views is active
+        const watchedIds = ['host-control-view', 'viewer-main-view'];
         const updateVisibility = () => {
             const anyVisible = watchedIds.some(id => !document.getElementById(id)?.classList.contains('hidden'));
             container.style.display = anyVisible ? 'flex' : 'none';
@@ -145,8 +131,28 @@ App.Studio = {
 
         container.appendChild(btnHost);
         container.appendChild(btnViewer);
-        container.appendChild(btnPlayer);
         document.body.appendChild(container);
+
+        // Mobile-only back-to-host button inside viewer, injected once
+        if (window.innerWidth <= 800) {
+            const viewerView = document.getElementById('viewer-main-view');
+            if (viewerView && !document.getElementById('viewer-back-to-host-btn')) {
+                const backBtn = document.createElement('button');
+                backBtn.id = 'viewer-back-to-host-btn';
+                backBtn.textContent = '🎤 出題者画面へ';
+                backBtn.style.cssText = 'position:fixed; bottom:80px; left:50%; transform:translateX(-50%); z-index:10000; background:linear-gradient(135deg,#00bfff 0%,#0077aa 100%); color:#fff; border:none; border-radius:24px; padding:12px 28px; font-size:1em; font-weight:bold; box-shadow:0 4px 16px rgba(0,0,0,0.4); cursor:pointer; white-space:nowrap;';
+                backBtn.onclick = () => switchView('host');
+
+                // Show only when viewer-main-view is visible
+                const toggleBackBtn = () => {
+                    backBtn.style.display = viewerView.classList.contains('hidden') ? 'none' : 'block';
+                };
+                new MutationObserver(toggleBackBtn).observe(viewerView, {attributes: true, attributeFilter: ['class']});
+                toggleBackBtn();
+
+                document.body.appendChild(backBtn);
+            }
+        }
     },
 
     startRoom: function (isQuick = false) {

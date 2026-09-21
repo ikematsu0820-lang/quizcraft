@@ -16,35 +16,14 @@
 
     <div id="toast-container"></div>
 
-    <div id="main-view" class="view landing-view">
+    <div id="host-login-view" class="view landing-view">
         <div class="landing-content">
             <div class="landing-logo-area">
-                <!-- Emoji removed -->
                 <h1 class="landing-title">Quiz Studio</h1>
-            </div>
-            <div class="landing-btn-area">
-                <button id="main-player-btn" class="landing-btn btn-player-hero">
-                    クイズに参加する
-                </button>
-                <button id="main-host-btn" class="landing-btn-secondary">
-                    主催者（クイズを作る）
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <div id="host-login-view" class="view landing-view hidden">
-        <div class="view-header" style="border:none; margin-bottom:0; justify-content:flex-end;">
-            <button class="header-back-btn back-to-main" data-text="Login.BackBtn">ホームに戻る</button>
-        </div>
-        <div class="landing-content">
-            <div class="landing-logo-area">
-                <!-- Emoji removed -->
-                <h1 class="landing-title">Host Login</h1>
                 <p class="landing-subtitle">番組IDを入力してください</p>
             </div>
             <div class="login-form-area" style="margin: 0 auto;">
-                <input type="text" id="show-id-input" class="modern-input" placeholder="ID">
+                <input type="text" id="show-id-input" class="modern-input" placeholder="番組ID">
                 <button id="host-login-submit-btn" class="landing-btn btn-host-modern">ログイン / 新規作成</button>
             </div>
         </div>
@@ -396,9 +375,12 @@
     </div>
 
     <div id="creator-view" class="view hidden">
-        <div class="view-header">
-            <h2 data-text="Creator.Title">Creator</h2>
-            <button id="creator-back-btn" class="header-back-btn">ダッシュボード</button>
+        <div class="view-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <h2 style="margin:0; font-size:1.5rem;">問題作成</h2>
+                <div style="font-size:0.85rem; color:#aaa; margin-top:2px;">ID: <span id="creator-show-id" style="color:#00e5ff; font-weight:bold;">---</span></div>
+            </div>
+            <button id="creator-back-btn" class="header-back-btn btn-logout" style="background:rgba(255, 68, 68, 0.15); border:1px solid rgba(255, 68, 68, 0.4); color:#ff6666;">ログアウト</button>
         </div>
         <div class="panel-section section-blue mb-20">
             <div class="creator-row">
@@ -839,38 +821,7 @@
         </div>
     </div>
 </body>
-<!-- Global FAB Save Actions -->
-<div class="fab-save-container">
-    <!-- Rule Config Save -->
-    <button id="fab-config-save" class="fab-btn fab-only-visible" title="ルールを保存">
-        <span class="fab-icon">⚙️</span>
-        <span class="fab-label">RULES</span>
-    </button>
-    <!-- Set Design Save -->
-    <button id="fab-design-save" class="fab-btn fab-only-visible" title="デザインを保存">
-        <span class="fab-icon">🎨</span>
-        <span class="fab-label">DESIGN</span>
-    </button>
-    <!-- Production Design Save -->
-    <button id="fab-prod-save" class="fab-btn fab-only-visible" title="演出設定を保存">
-        <span class="fab-icon">🎬</span>
-        <span class="fab-label">SCENE</span>
-    </button>
-    <!-- Program Config Save -->
-    <button id="fab-prog-save" class="fab-btn fab-only-visible" title="番組構成を保存">
-        <span class="fab-icon">📺</span>
-        <span class="fab-label">PLAN</span>
-    </button>
-</div>
 
-<!-- Global FAB Test Actions -->
-<div class="fab-test-container" style="position:fixed; left:calc(50% - 72px); bottom:25px; z-index:1000;">
-    <button id="fab-test-play" class="fab-test-btn" title="テストプレイ"
-        style="width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg, #1fa2ff 0%, #12d8fa 100%); border:none; box-shadow:0 10px 30px rgba(0,229,255,0.4); display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; color:#000; transition:all 0.3s;">
-        <span class="fab-icon" style="font-size:24px; line-height:1;">🚀</span>
-        <span class="fab-label" style="font-size:10px; font-weight:800; margin-top:2px;">TEST</span>
-    </button>
-</div>
 </body>
 
 </html>

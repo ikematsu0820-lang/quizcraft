@@ -18,6 +18,9 @@ window.App.Creator = {
         window.App.State.editingSetId = null;
         this.currentLetterSteps = [];
 
+        const showIdEl = document.getElementById('creator-show-id');
+        if (showIdEl) showIdEl.textContent = window.App.State.currentShowId || '---';
+
         const btnSave = document.getElementById('save-to-cloud-btn');
         if (btnSave) btnSave.textContent = APP_TEXT.Creator.BtnSave;
 
@@ -1083,11 +1086,21 @@ window.App.Creator = {
         op.then(() => {
             console.log("Save successful");
             window.App.Ui.showToast("保存しました");
-            if (window.App.Dashboard && window.App.Dashboard.enter) {
-                window.App.Dashboard.enter();
-            } else {
-                window.location.reload(); // Fallback
+            window.App.State.editingSetId = null;
+            this.editingTitle = "";
+            window.App.Data.createdQuestions = [];
+            const sel = document.getElementById('creator-q-type');
+            if (sel) {
+                sel.value = "";
+                sel.disabled = false;
             }
+            const subSel = document.getElementById('creator-q-subtype');
+            if (subSel) subSel.disabled = false;
+            document.getElementById('creator-q-subtype-area')?.classList.add('hidden');
+            document.getElementById('creator-type-locked-msg')?.classList.add('hidden');
+            document.getElementById('creator-form-container').innerHTML = '';
+            this.resetForm();
+            this.renderList();
         }).catch(err => {
             console.error("Save error:", err);
             let msg = "保存エラーが発生しました。\n\n";

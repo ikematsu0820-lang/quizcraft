@@ -134,21 +134,22 @@ window.App.init = function () {
         return;
     }
 
-    // ★ IDがあれば即ダッシュボードへ（復帰）
+    // ★ IDがあれば即問題作成画面へ
     if (window.App.State.currentShowId) {
         console.log("Session restored:", window.App.State.currentShowId);
-        window.App.Dashboard.enter();
+        if (window.App.Creator && window.App.Creator.init) {
+            window.App.Creator.init();
+        } else {
+            this.Ui.showView(this.Ui.views.creator);
+        }
     } else {
-        this.Ui.showView(this.Ui.views.main);
+        this.Ui.showView(this.Ui.views.hostLogin);
     }
 };
 
 window.App.bindEvents = function () {
     const U = this.Ui;
     const V = this.Ui.views;
-
-    document.getElementById('main-host-btn')?.addEventListener('click', () => U.showView(V.hostLogin));
-    document.getElementById('main-player-btn')?.addEventListener('click', () => U.showView(V.respondent));
 
     // ログイン処理
     document.getElementById('host-login-submit-btn')?.addEventListener('click', () => {
@@ -159,20 +160,24 @@ window.App.bindEvents = function () {
         window.App.State.currentShowId = input;
         sessionStorage.setItem('qs_show_id', input);
 
-        window.App.Dashboard.enter();
+        if (window.App.Creator && window.App.Creator.init) {
+            window.App.Creator.init();
+        } else {
+            U.showView(V.creator);
+        }
     });
 
-    // 戻るボタン
+    // ログアウト / 戻るボタン
     document.querySelectorAll('.header-back-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            if (btn.classList.contains('btn-logout')) {
+            if (btn.classList.contains('btn-logout') || btn.id === 'creator-back-btn') {
                 sessionStorage.removeItem('qs_show_id');
                 window.App.State.currentShowId = null;
-                U.showView(V.main);
-            } else if (btn.classList.contains('back-to-main')) {
-                U.showView(V.main);
+                const inputEl = document.getElementById('show-id-input');
+                if (inputEl) inputEl.value = '';
+                U.showView(V.hostLogin);
             } else {
-                window.App.Dashboard.enter();
+                U.showView(V.hostLogin);
             }
         });
     });
