@@ -29,36 +29,23 @@
         </div>
     </div>
 
-    <div id="host-dashboard-view" class="view hidden">
-        <div class="view-header">
-            <h3>ID: <span id="dashboard-show-id" class="accent-text">---</span></h3>
-            <button class="header-back-btn btn-logout back-to-main" data-text="Dashboard.Logout">Logout</button>
+    <div id="host-main-menu-view" class="view hidden">
+        <div class="view-header" style="display:flex; justify-content:space-between; align-items:center; width:100%; border-bottom:1px solid #333; padding-bottom:12px; margin-bottom:30px;">
+            <h3 style="margin:0; font-size:1.2rem;">ID: <span id="dashboard-show-id" class="accent-text" style="color:#00e5ff; font-weight:bold;">---</span></h3>
+            <button class="header-back-btn btn-logout" style="background:rgba(255, 68, 68, 0.15); border:1px solid rgba(255, 68, 68, 0.4); color:#ff6666; padding:8px 16px; border-radius:8px; cursor:pointer;">ログアウト</button>
         </div>
 
-
-
-        <div class="dashboard-menu-container">
-            <div class="dashboard-hero-area">
-                <button id="dash-create-btn" class="dash-btn dash-btn-hero"
-                    data-text="Dashboard.BtnCreate">問題作成</button>
-            </div>
-
-            <div class="dashboard-grid-secondary">
-                <button id="dash-config-btn" class="dash-btn" data-text="Dashboard.BtnConfig">ルール設定</button>
-                <button id="dash-question-design-btn" class="dash-btn">セットデザイン</button>
-                <button id="dash-prog-config-btn" class="dash-btn" data-text="Dashboard.BtnProgConfig">番組構成</button>
-                <button id="dash-production-design-btn" class="dash-btn">シーンデザイン</button>
-                <!-- Sound merge planned later, hidden for now -->
-                <button id="dash-sound-btn" class="dash-btn hidden" data-text="Dashboard.BtnSound">サウンド</button>
-            </div>
-
-            <div class="dashboard-footer-area">
-                <button id="dash-viewer-btn" class="dash-btn dash-btn-footer"
-                    data-text="Dashboard.BtnViewer">モニター</button>
-            </div>
-            <div class="dashboard-footer-area" style="margin-top:15px;">
-                <button id="dash-saved-items-btn" class="dash-btn dash-btn-footer"
-                    onclick="App.Dashboard.openSavedItems()">保存済みデータ</button>
+        <div class="landing-content" style="max-width:550px; margin:0 auto; width:100%; padding:20px; box-sizing:border-box;">
+            <h2 style="text-align:center; font-size:1.5rem; margin-bottom:30px; color:#fff;">ホストメニュー</h2>
+            <div style="display:flex; flex-direction:column; gap:25px;">
+                <button id="menu-btn-create" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:35px 20px; font-size:1.4rem; font-weight:bold; background:linear-gradient(135deg, #00c6ff 0%, #0072ff 100%); border:none; border-radius:18px; box-shadow:0 8px 25px rgba(0,114,255,0.35); color:#fff; cursor:pointer; transition:transform 0.2s;">
+                    <span style="font-size:2.2rem; margin-bottom:8px;">📝</span>
+                    <span>問題を作る</span>
+                </button>
+                <button id="menu-btn-host" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:35px 20px; font-size:1.4rem; font-weight:bold; background:linear-gradient(135deg, #11998e 0%, #38ef7d 100%); border:none; border-radius:18px; box-shadow:0 8px 25px rgba(56,239,125,0.35); color:#fff; cursor:pointer; transition:transform 0.2s;">
+                    <span style="font-size:2.2rem; margin-bottom:8px;">📺</span>
+                    <span>問題を出す</span>
+                </button>
             </div>
         </div>
     </div>
@@ -375,16 +362,16 @@
     </div>
 
     <div id="creator-view" class="view hidden">
-        <div class="view-header" style="display:flex; justify-content:space-between; align-items:center;">
+        <div class="view-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #333; padding-bottom:12px; margin-bottom:20px;">
             <div>
                 <h2 style="margin:0; font-size:1.5rem;">問題作成</h2>
                 <div style="font-size:0.85rem; color:#aaa; margin-top:2px;">ID: <span id="creator-show-id" style="color:#00e5ff; font-weight:bold;">---</span></div>
             </div>
-            <button id="creator-back-btn" class="header-back-btn btn-logout" style="background:rgba(255, 68, 68, 0.15); border:1px solid rgba(255, 68, 68, 0.4); color:#ff6666;">ログアウト</button>
+            <button id="creator-back-btn" class="header-back-btn back-to-menu" style="background:rgba(255,255,255,0.1); border:1px solid #555; color:#fff; padding:8px 16px; border-radius:8px; cursor:pointer;">← メニューに戻る</button>
         </div>
         <div class="panel-section section-blue mb-20">
             <div class="creator-row">
-                <label class="config-label" data-text="Creator.LabelTypeFixed">Fixed Type</label>
+                <label class="config-label">作りたい問題を選んでください</label>
                 <select id="creator-q-type" class="btn-block bold-select"></select>
             </div>
             <div id="creator-q-subtype-area" class="mt-10 hidden">
@@ -396,10 +383,10 @@
             <p id="creator-type-locked-msg" class="locked-msg hidden" data-text="Creator.MsgTypeLocked">Locked</p>
         </div>
         <div class="panel-section section-pink mb-20">
-            <h3 id="creator-form-title" class="panel-title-large" data-text="Creator.HeadingNewQ">New Question</h3>
+            <h3 id="creator-form-title" class="panel-title-large" data-text="Creator.HeadingNewQ">問題の入力</h3>
             <div class="mb-10">
                 <label class="config-label q-label-prominent">問題文</label>
-                <input type="text" id="question-text" class="btn-block mb-0" placeholder="問題を入力してください">
+                <input type="text" id="question-text" class="btn-block mb-0" placeholder="例：世界の首都は？">
             </div>
             <div id="creator-form-container" class="mb-10"></div>
 
@@ -516,7 +503,7 @@
                             style="color:#fff; font-size:24px; font-weight:bold;">0</span>
                     </div>
                 </div>
-                <button id="host-close-studio-btn-simple" class="header-back-btn">ダッシュボード</button>
+                <button id="host-close-studio-btn-simple" class="header-back-btn back-to-menu">← メニューに戻る</button>
             </div>
 
             <!-- Fixed Top Controls Area -->

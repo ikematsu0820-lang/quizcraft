@@ -3,6 +3,14 @@
  * =======================================================*/
 
 App.Studio = {
+    open: function () {
+        if (!App.State.currentRoomId) {
+            this.startRoom(false);
+        } else {
+            App.Ui.showView(App.Ui.views.hostControl);
+            this.enterHostMode(this.isQuick);
+        }
+    },
     timer: null,
     buzzWinner: null,
     isQuick: false,

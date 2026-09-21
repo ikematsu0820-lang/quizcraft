@@ -37,7 +37,7 @@ window.App.Ui = {
         this.views = {
             main: document.getElementById('main-view'),
             hostLogin: document.getElementById('host-login-view'),
-            dashboard: document.getElementById('host-dashboard-view'),
+            dashboard: document.getElementById('host-main-menu-view') || document.getElementById('host-dashboard-view'),
             design: document.getElementById('design-view'),
             productionDesign: document.getElementById('production-design-view'),
             creator: document.getElementById('creator-view'),
@@ -134,14 +134,10 @@ window.App.init = function () {
         return;
     }
 
-    // ★ IDがあれば即問題作成画面へ
+    // ★ IDがあれば即メインメニューへ
     if (window.App.State.currentShowId) {
         console.log("Session restored:", window.App.State.currentShowId);
-        if (window.App.Creator && window.App.Creator.init) {
-            window.App.Creator.init();
-        } else {
-            this.Ui.showView(this.Ui.views.creator);
-        }
+        window.App.Dashboard.enter();
     } else {
         this.Ui.showView(this.Ui.views.hostLogin);
     }
@@ -154,12 +150,15 @@ window.App.bindEvents = function () {
     // ログイン処理
     document.getElementById('host-login-submit-btn')?.addEventListener('click', () => {
         const input = document.getElementById('show-id-input').value.trim().toUpperCase();
-        if (!input) { alert("IDを入力してください"); return; }
+        if (!input) { alert("番組IDを入力してください"); return; }
 
-        // ★ IDを保存
         window.App.State.currentShowId = input;
         sessionStorage.setItem('qs_show_id', input);
+        window.App.Dashboard.enter();
+    });
 
+    // メインメニューの各ボタン
+    document.getElementById('menu-btn-create')?.addEventListener('click', () => {
         if (window.App.Creator && window.App.Creator.init) {
             window.App.Creator.init();
         } else {
@@ -167,17 +166,27 @@ window.App.bindEvents = function () {
         }
     });
 
+    document.getElementById('menu-btn-host')?.addEventListener('click', () => {
+        if (window.App.Studio && window.App.Studio.open) {
+            window.App.Studio.open();
+        } else {
+            U.showView(V.hostControl);
+        }
+    });
+
     // ログアウト / 戻るボタン
     document.querySelectorAll('.header-back-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            if (btn.classList.contains('btn-logout') || btn.id === 'creator-back-btn') {
+            if (btn.classList.contains('btn-logout')) {
                 sessionStorage.removeItem('qs_show_id');
                 window.App.State.currentShowId = null;
                 const inputEl = document.getElementById('show-id-input');
                 if (inputEl) inputEl.value = '';
                 U.showView(V.hostLogin);
+            } else if (btn.classList.contains('back-to-menu')) {
+                window.App.Dashboard.enter();
             } else {
-                U.showView(V.hostLogin);
+                window.App.Dashboard.enter();
             }
         });
     });
