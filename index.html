@@ -374,16 +374,7 @@
             <h3 style="text-align:center; font-size:1.3rem; margin-bottom:25px; color:#fff;">作りたい問題形式を選んでください</h3>
             
             <div style="display:flex; flex-direction:column; gap:16px;">
-                <!-- 択問題 (選択式) -->
-                <button class="type-select-card" data-type="choice" style="display:flex; align-items:center; justify-content:space-between; padding:20px 24px; background:linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border:1px solid rgba(0,229,255,0.3); border-radius:14px; color:#fff; cursor:pointer; text-align:left; transition:all 0.2s;">
-                    <div>
-                        <div style="font-size:1.25rem; font-weight:bold; color:#00e5ff;">② 択問題（選択式）</div>
-                        <div style="font-size:0.85rem; color:#94a3b8; margin-top:4px;">A・B・C・Dの選択肢から選ぶ基本問題</div>
-                    </div>
-                    <span style="font-size:1.5rem;">➔</span>
-                </button>
-
-                <!-- 一問一答 -->
+                <!-- ① 一問一答 -->
                 <button class="type-select-card" data-type="free" style="display:flex; align-items:center; justify-content:space-between; padding:20px 24px; background:linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border:1px solid rgba(255,255,255,0.15); border-radius:14px; color:#fff; cursor:pointer; text-align:left; transition:all 0.2s;">
                     <div>
                         <div style="font-size:1.25rem; font-weight:bold; color:#fff;">① 一問一答</div>
@@ -392,7 +383,16 @@
                     <span style="font-size:1.5rem;">➔</span>
                 </button>
 
-                <!-- 並べ替え -->
+                <!-- ② 選択式 -->
+                <button class="type-select-card" data-type="choice" style="display:flex; align-items:center; justify-content:space-between; padding:20px 24px; background:linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border:1px solid rgba(0,229,255,0.3); border-radius:14px; color:#fff; cursor:pointer; text-align:left; transition:all 0.2s;">
+                    <div>
+                        <div style="font-size:1.25rem; font-weight:bold; color:#00e5ff;">② 選択式</div>
+                        <div style="font-size:0.85rem; color:#94a3b8; margin-top:4px;">A・B・C・Dの選択肢から選ぶ基本問題</div>
+                    </div>
+                    <span style="font-size:1.5rem;">➔</span>
+                </button>
+
+                <!-- ③ 並べ替え -->
                 <button class="type-select-card" data-type="sort" style="display:flex; align-items:center; justify-content:space-between; padding:20px 24px; background:linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border:1px solid rgba(255,255,255,0.15); border-radius:14px; color:#fff; cursor:pointer; text-align:left; transition:all 0.2s;">
                     <div>
                         <div style="font-size:1.25rem; font-weight:bold; color:#fff;">③ 並べ替え</div>
@@ -401,8 +401,8 @@
                     <span style="font-size:1.5rem;">➔</span>
                 </button>
 
-                <!-- 多答クイズ -->
-                <button class="type-select-card" data-type="multi" style="display:flex; align-items:center; justify-content:space-between; padding:20px 24px; background:linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border:1px solid rgba(255,255,255,0.15); border-radius:14px; color:#fff; cursor:pointer; text-align:left; transition:all 0.2s;">
+                <!-- ④ 多答クイズ -->
+                <button class="type-select-card" data-type="multi_group" style="display:flex; align-items:center; justify-content:space-between; padding:20px 24px; background:linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border:1px solid rgba(255,255,255,0.15); border-radius:14px; color:#fff; cursor:pointer; text-align:left; transition:all 0.2s;">
                     <div>
                         <div style="font-size:1.25rem; font-weight:bold; color:#fff;">④ 多答クイズ</div>
                         <div style="font-size:0.85rem; color:#94a3b8; margin-top:4px;">複数の正解を答える問題</div>
@@ -410,13 +410,22 @@
                     <span style="font-size:1.5rem;">➔</span>
                 </button>
 
-                <!-- 早押しクイズ (未実装) -->
-                <button class="type-select-card disabled" data-type="buzz" style="display:flex; align-items:center; justify-content:space-between; padding:20px 24px; background:rgba(30, 41, 59, 0.4); border:1px dashed #475569; border-radius:14px; color:#64748b; cursor:not-allowed; text-align:left; opacity:0.6;">
+                <!-- ⑤ 連想クイズ -->
+                <button class="type-select-card" data-type="assoc_group" style="display:flex; align-items:center; justify-content:space-between; padding:20px 24px; background:linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border:1px solid rgba(255,255,255,0.15); border-radius:14px; color:#fff; cursor:pointer; text-align:left; transition:all 0.2s;">
                     <div>
-                        <div style="font-size:1.25rem; font-weight:bold;">⚡️ 早押しクイズ <span style="font-size:0.75rem; background:#475569; color:#fff; padding:2px 8px; border-radius:10px; margin-left:8px;">未実装</span></div>
-                        <div style="font-size:0.85rem; color:#64748b; margin-top:4px;">ボタンを素早く押して回答権を獲得する問題</div>
+                        <div style="font-size:1.25rem; font-weight:bold; color:#fff;">⑤ 連想クイズ</div>
+                        <div style="font-size:0.85rem; color:#94a3b8; margin-top:4px;">段階的にヒントが開示されるクイズ</div>
                     </div>
-                    <span style="font-size:1.2rem;">🔒</span>
+                    <span style="font-size:1.5rem;">➔</span>
+                </button>
+
+                <!-- ⑥ 数字予想 -->
+                <button class="type-select-card" data-type="num_group" style="display:flex; align-items:center; justify-content:space-between; padding:20px 24px; background:linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border:1px solid rgba(255,255,255,0.15); border-radius:14px; color:#fff; cursor:pointer; text-align:left; transition:all 0.2s;">
+                    <div>
+                        <div style="font-size:1.25rem; font-weight:bold; color:#fff;">⑥ 数字予想</div>
+                        <div style="font-size:0.85rem; color:#94a3b8; margin-top:4px;">数値を予想して答える問題</div>
+                    </div>
+                    <span style="font-size:1.5rem;">➔</span>
                 </button>
             </div>
         </div>
