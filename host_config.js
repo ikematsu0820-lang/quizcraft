@@ -1343,38 +1343,18 @@ App.Config = {
         overlay.querySelector('#save-opt-cancel').onclick = () => overlay.remove();
     },
 
-    executeSave: function (targetKey, newTitle = null) {
-        const mode = document.getElementById('config-mode-select').value;
-        const gameType = document.getElementById('config-game-type').value;
-        const qs = JSON.parse(JSON.stringify(this.selectedSetData.questions));
+    // Builds the full config object from the currently-rendered builder UI
+    // (#config-mode-select, #config-game-type, the detail sheets' hidden
+    // inputs, plus whatever the sheets already wrote directly onto
+    // `currentConf` — see openGameTypeDetailSheet/openModeDetailSheet).
+    // Shared by the standalone rule-settings screen's executeSave() and by
+    // the Creator's options-panel rules section (renderBuilderForm renders
+    // into the same #config-* ids regardless of caller).
+    buildConfigFromUI: function (currentConf = {}) {
+        const mode = document.getElementById('config-mode-select')?.value || 'normal';
+        const gameType = document.getElementById('config-game-type')?.value || 'score';
 
-        // UIから最新の値を収集
-        document.querySelectorAll('.q-text-input').forEach(inp => {
-            const idx = inp.dataset.index;
-            if (qs[idx]) qs[idx].q = inp.value;
-        });
-        document.querySelectorAll('.q-point-input').forEach(inp => {
-            const idx = inp.dataset.index;
-            if (qs[idx]) qs[idx].points = parseInt(inp.value) || 0;
-        });
-        document.querySelectorAll('.q-loss-input').forEach(inp => {
-            const idx = inp.dataset.index;
-            if (qs[idx]) qs[idx].loss = parseInt(inp.value) || 0;
-        });
-        document.querySelectorAll('.q-time-toggle').forEach(chk => {
-            const idx = chk.dataset.index;
-            if (qs[idx]) {
-                const inp = document.querySelector(`.q-time-input[data-index="${idx}"]`);
-                if (inp) {
-                    qs[idx].timeLimit = chk.checked ? (parseInt(inp.value) || 10) : 0;
-                }
-            }
-        });
-
-        // conf オブジェクトにはボトムシートで確定した値が保存されている
-        const currentConf = this.selectedSetData?.config || {};
-
-        const newConfig = {
+        return {
             mode: mode,
             gameType: gameType,
             answerAttempts: document.getElementById('config-answer-attempts')?.value || 'single',
@@ -1407,6 +1387,37 @@ App.Config = {
             timeLimitSeconds: parseInt(document.getElementById('config-time-limit-seconds-input')?.value ||
                 document.getElementById('config-time-limit-seconds')?.value || '30') || 30
         };
+    },
+
+    executeSave: function (targetKey, newTitle = null) {
+        const qs = JSON.parse(JSON.stringify(this.selectedSetData.questions));
+
+        // UIから最新の値を収集
+        document.querySelectorAll('.q-text-input').forEach(inp => {
+            const idx = inp.dataset.index;
+            if (qs[idx]) qs[idx].q = inp.value;
+        });
+        document.querySelectorAll('.q-point-input').forEach(inp => {
+            const idx = inp.dataset.index;
+            if (qs[idx]) qs[idx].points = parseInt(inp.value) || 0;
+        });
+        document.querySelectorAll('.q-loss-input').forEach(inp => {
+            const idx = inp.dataset.index;
+            if (qs[idx]) qs[idx].loss = parseInt(inp.value) || 0;
+        });
+        document.querySelectorAll('.q-time-toggle').forEach(chk => {
+            const idx = chk.dataset.index;
+            if (qs[idx]) {
+                const inp = document.querySelector(`.q-time-input[data-index="${idx}"]`);
+                if (inp) {
+                    qs[idx].timeLimit = chk.checked ? (parseInt(inp.value) || 10) : 0;
+                }
+            }
+        });
+
+        // conf オブジェクトにはボトムシートで確定した値が保存されている
+        const currentConf = this.selectedSetData?.config || {};
+        const newConfig = this.buildConfigFromUI(currentConf);
 
         let showId = App.State.currentShowId;
         if (showId) showId = showId.trim();

@@ -972,9 +972,6 @@ window.App.Dashboard = {
                 <button class="sheet-btn" onclick="window.App.Dashboard.transitionToCreator('${key}'); document.getElementById('item-menu-modal').remove()">
                     <i class="fas fa-edit" style="color: #64b5f6; font-size: 0.9em;"></i> 問題作成
                 </button>
-                <button class="sheet-btn" onclick="window.App.Dashboard.transitionToRules('${key}'); document.getElementById('item-menu-modal').remove()">
-                    <i class="fas fa-cog" style="color: #ffd54f; font-size: 0.9em;"></i> ルール設定
-                </button>
                 <button class="sheet-btn" onclick="window.App.Dashboard.transitionToDesign('${key}'); document.getElementById('item-menu-modal').remove()">
                     <i class="fas fa-paint-brush" style="color: #81c784; font-size: 0.9em;"></i> 問題デザイン
                 </button>
@@ -986,19 +983,6 @@ window.App.Dashboard = {
         const data = this.itemCache ? this.itemCache[key] : null;
         if (window.App.Creator && window.App.Creator.loadSet) {
             window.App.Creator.loadSet(key, data);
-        }
-    },
-
-    transitionToRules: function (key) {
-        if (window.App.Config && window.App.Config.init) {
-            window.App.Config.init();
-            setTimeout(() => {
-                const sel = document.getElementById('config-set-select');
-                if (sel) {
-                    sel.value = key;
-                    sel.dispatchEvent(new Event('change'));
-                }
-            }, 500);
         }
     },
 

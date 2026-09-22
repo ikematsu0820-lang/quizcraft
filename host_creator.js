@@ -15,6 +15,7 @@ window.App.Creator = {
         this.editingIndex = null;
         this.editingTitle = "";
         window.App.Data.createdQuestions = [];
+        window.App.Data.currentConfig = {};
         window.App.State.editingSetId = null;
         this.currentLetterSteps = [];
 
@@ -163,6 +164,7 @@ window.App.Creator = {
         window.App.State.editingSetId = key;
         this.editingTitle = item.title || "";
         window.App.Data.createdQuestions = item.questions || [];
+        window.App.Data.currentConfig = item.config || {};
 
         const btnSave = document.getElementById('save-to-cloud-btn');
         if (btnSave) btnSave.textContent = APP_TEXT.Creator.BtnUpdate;
@@ -597,6 +599,22 @@ window.App.Creator = {
             addBtnWrap.appendChild(addBtn);
             container.appendChild(addBtnWrap);
         }
+
+        this.renderRulesSection();
+    },
+
+    // Rules (win condition / answer format / time limit / scoring etc.) used
+    // to live on a separate, standalone "ルール設定" screen (App.Config) that
+    // set-level settings independent of question creation. That screen's
+    // save button was broken (dead #config-action-area ids), so it never
+    // actually persisted anything. Its render functions already take the
+    // config object and question list as plain parameters and mutate the
+    // config object in place — no dependency on that screen's own state —
+    // so we reuse them here directly against the Creator's own live data.
+    renderRulesSection: function () {
+        if (!document.getElementById('config-builder-ui')) return;
+        if (!window.App.Config || !window.App.Config.renderBuilderForm) return;
+        window.App.Config.renderBuilderForm(window.App.Data.currentConfig, window.App.Data.createdQuestions);
     },
 
     // --- Choice Input: viewer .choice-item style (full-width horizontal row) ---
@@ -1178,9 +1196,17 @@ window.App.Creator = {
             q.specialMode = q.specialMode || 'none';
         });
 
+        // Make sure the rules section (mode/gameType/time-limit auto-restrictions
+        // based on the questions just finalized above) is up to date before
+        // reading its UI state back out.
+        this.renderRulesSection();
+
         const data = {
             title: title,
             questions: window.App.Data.createdQuestions,
+            config: window.App.Config && window.App.Config.buildConfigFromUI
+                ? window.App.Config.buildConfigFromUI(window.App.Data.currentConfig)
+                : window.App.Data.currentConfig,
             updatedAt: firebase.database.ServerValue.TIMESTAMP
         };
 
@@ -1189,19 +1215,6 @@ window.App.Creator = {
         const ref = setId ? baseRef.child(setId) : baseRef.push();
 
         if (!setId) {
-            // Check if any question is Dobon/Multi/Blackjack -> Default to 'turn'
-            const hasDobon = window.App.Data.createdQuestions.some(q => q.mode === 'dobon' || q.mode === 'multi');
-            const hasBlackjack = window.App.Data.createdQuestions.some(q => q.type === 'blackjack');
-            const hasOneOnOne = window.App.Data.createdQuestions.some(q => ['free_oral', 'free_written', 'letter_select'].includes(q.type));
-
-            let defaultMode = 'normal';
-            if (hasDobon || hasBlackjack) {
-                defaultMode = 'turn';
-            } else if (hasOneOnOne) {
-                defaultMode = 'buzz';
-            }
-
-            data.config = { mode: defaultMode, gameType: 'score', theme: 'light' };
             data.createdAt = firebase.database.ServerValue.TIMESTAMP;
         }
 
