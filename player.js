@@ -18,6 +18,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('join-room-btn');
     if (btn) btn.onclick = joinRoom;
 
+    document.getElementById('room-code-input')?.addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') joinRoom();
+    });
+    document.getElementById('player-name-input')?.addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') joinRoom();
+    });
+
     // Auto-fill room code from URL ?room=CODE
     const urlParams = new URLSearchParams(window.location.search);
     const roomParam = urlParams.get('room');

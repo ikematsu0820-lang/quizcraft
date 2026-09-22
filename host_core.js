@@ -149,13 +149,49 @@ window.App.bindEvents = function () {
     const V = this.Ui.views;
 
     // ログイン処理
-    document.getElementById('host-login-submit-btn')?.addEventListener('click', () => {
+    const handleHostLogin = () => {
         const input = document.getElementById('show-id-input').value.trim().toUpperCase();
         if (!input) { alert("番組IDを入力してください"); return; }
 
         window.App.State.currentShowId = input;
         sessionStorage.setItem('qs_show_id', input);
         window.App.Dashboard.enter();
+    };
+
+    document.getElementById('host-login-submit-btn')?.addEventListener('click', handleHostLogin);
+    document.getElementById('show-id-input')?.addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') handleHostLogin();
+    });
+
+    // クイズに参加する処理 (Top Login View)
+    const handleJoinQuiz = () => {
+        const roomIdInput = document.getElementById('room-id-input');
+        const code = roomIdInput ? roomIdInput.value.trim().toUpperCase() : '';
+        if (!code) {
+            alert("ルームIDを入力してください");
+            return;
+        }
+
+        const roomCodeInput = document.getElementById('room-code-input');
+        if (roomCodeInput) {
+            roomCodeInput.value = code;
+        }
+
+        U.showView(V.respondent);
+
+        const nameInput = document.getElementById('player-name-input');
+        if (nameInput) {
+            if (nameInput.value.trim()) {
+                document.getElementById('join-room-btn')?.focus();
+            } else {
+                nameInput.focus();
+            }
+        }
+    };
+
+    document.getElementById('join-quiz-btn')?.addEventListener('click', handleJoinQuiz);
+    document.getElementById('room-id-input')?.addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') handleJoinQuiz();
     });
 
     // メインメニューの「問題を作る」 -> 問題形式選択画面へ
@@ -207,9 +243,23 @@ window.App.bindEvents = function () {
             } else if (btn.classList.contains('back-to-select-type')) {
                 U.showView(V.selectType);
             } else if (btn.classList.contains('back-to-menu')) {
-                window.App.Dashboard.enter();
+                if (!window.App.State.currentShowId) {
+                    U.showView(V.hostLogin);
+                } else {
+                    window.App.Dashboard.enter();
+                }
+            } else if (btn.classList.contains('back-to-main')) {
+                if (!window.App.State.currentShowId) {
+                    U.showView(V.hostLogin);
+                } else {
+                    window.App.Dashboard.enter();
+                }
             } else {
-                window.App.Dashboard.enter();
+                if (!window.App.State.currentShowId) {
+                    U.showView(V.hostLogin);
+                } else {
+                    window.App.Dashboard.enter();
+                }
             }
         });
     });
