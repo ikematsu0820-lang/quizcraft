@@ -278,8 +278,16 @@ window.App.Creator = {
         document.getElementById('creator-commentary').value = '';
 
         const sel = document.getElementById('creator-q-type');
-        const subSel = document.getElementById('creator-q-subtype');
-        const type = (sel && (['free', 'multi_group', 'choice', 'assoc_group', 'num_group'].includes(sel.value))) ? subSel.value : (sel ? sel.value : 'choice');
+        // Same fix as getData(): #creator-q-subtype is a dead legacy element
+        // the card-based picker never updates. Read the subtype that's
+        // actually in effect (#creator-opt-subtype, still holding the value
+        // from the question just added) so the next question keeps the same
+        // style instead of falling through to a blank/default form.
+        const subSel = document.getElementById('creator-opt-subtype') || document.getElementById('creator-q-subtype');
+        const groupDefaults = { num_group: 'blackjack' };
+        const type = (sel && (['free', 'multi_group', 'choice', 'assoc_group', 'num_group'].includes(sel.value)))
+            ? (subSel.value || groupDefaults[sel.value] || sel.value)
+            : (sel ? sel.value : 'choice');
         this.renderForm(type);
     },
 
