@@ -459,39 +459,46 @@ window.App.Creator = {
         }
         else if (type.startsWith('assoc')) {
             container.innerHTML = `
-                <div style="padding:10px;">
-                    <div style="text-align:center; color:#64748b; font-size:0.8rem; margin-bottom:10px;">正解キーワード</div>
-                    <input type="text" id="creator-assoc-answer" placeholder="キーワード（複数ある場合はカンマ区切り）" style="
-                        width:100%; padding:12px; background:#0d1b2a; border:1px dashed rgba(255,255,255,0.25);
-                        border-radius:8px; color:#fff; font-size:1rem; text-align:center; outline:none; box-sizing:border-box; margin-bottom:14px;
-                    ">
-                    <div style="text-align:center; color:#64748b; font-size:0.8rem; margin-bottom:8px;">ヒントを入力（順番に開示）</div>
-                </div>
+                <div style="text-align:center; color:rgba(255,255,255,0.25); font-size:0.7rem; margin-bottom:4px;">ヒントを入力（順番に開示）</div>
             `;
 
-            const assocAnsInput = container.querySelector('#creator-assoc-answer');
-            if (data && data.correct) {
-                assocAnsInput.value = Array.isArray(data.correct) ? data.correct.join(', ') : data.correct;
-            }
-
             const assocDiv = document.createElement('div');
-            assocDiv.style.cssText = 'display:flex; flex-direction:column; gap:8px; padding:0 10px;';
+            assocDiv.style.cssText = 'display:flex; flex-direction:column; gap:1%; flex:1; min-height:0; width:100%;';
             container.appendChild(assocDiv);
 
             if (data && data.c) {
                 data.c.forEach((txt, i) => this.addAssocInput(assocDiv, i, txt));
             } else {
-                for (let i = 0; i < 5; i++) this.addAssocInput(assocDiv, i, '');
+                for (let i = 0; i < 4; i++) this.addAssocInput(assocDiv, i, '');
             }
 
-            const addBtnWrap = document.createElement('div');
-            addBtnWrap.style.cssText = 'text-align:center; margin-top:10px;';
-            const addBtn = document.createElement('button');
-            addBtn.textContent = '＋ ヒントを追加';
-            addBtn.style.cssText = 'background:rgba(0,229,255,0.1); border:1px dashed rgba(0,229,255,0.4); border-radius:8px; color:#00e5ff; padding:8px 20px; cursor:pointer; font-size:0.9rem;';
-            addBtn.onclick = () => this.addAssocInput(assocDiv, undefined, '');
-            addBtnWrap.appendChild(addBtn);
-            container.appendChild(addBtnWrap);
+            // Add hint button + answer input in options panel
+            if (optionsExtra) {
+                // Answer input at top of options
+                optionsExtra.innerHTML = `
+                    <div style="margin-bottom:14px;">
+                        <label style="color:#94a3b8; font-size:0.85rem; display:block; margin-bottom:6px;">正解キーワード</label>
+                        <input type="text" id="creator-assoc-answer" placeholder="キーワード（複数ある場合はカンマ区切り）" style="
+                            width:100%; padding:10px; background:#1e293b; border:1px solid #475569;
+                            border-radius:8px; color:#fff; font-size:0.95rem; text-align:center; outline:none; box-sizing:border-box;
+                        ">
+                    </div>
+                `;
+                if (data && data.correct) {
+                    optionsExtra.querySelector('#creator-assoc-answer').value =
+                        Array.isArray(data.correct) ? data.correct.join(', ') : data.correct;
+                }
+
+                // Add-hint button
+                const addBtnDiv = document.createElement('div');
+                addBtnDiv.style.cssText = 'margin-bottom:14px;';
+                const addBtn = document.createElement('button');
+                addBtn.textContent = '＋ ヒントを追加';
+                addBtn.style.cssText = 'background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4); border-radius:8px; color:#00e5ff; padding:8px 20px; cursor:pointer; font-size:0.9rem; width:100%;';
+                addBtn.onclick = () => this.addAssocInput(assocDiv, undefined, '');
+                addBtnDiv.appendChild(addBtn);
+                optionsExtra.appendChild(addBtnDiv);
+            }
 
             // Sub-type
             setupOptSubtype([
@@ -767,20 +774,30 @@ window.App.Creator = {
     addAssocInput: function (parent, index, text = "") {
         const idx = (index !== undefined) ? index : parent.children.length;
         const row = document.createElement('div');
-        row.className = 'flex-center gap-5';
-        row.innerHTML = `
-            <span class="bold cyan text-lg" style="min-width:45px; text-align:center;">ヒント${idx + 1}</span>
-            <input type="text" class="assoc-text-input flex-1" placeholder="ヒント内容" value="${text}">
-            <button class="btn-mini btn-dark w-30">×</button>
+        row.className = 'assoc-row';
+        row.style.cssText = `
+            display:flex; align-items:center;
+            background:linear-gradient(90deg,rgba(255,255,255,0.04) 0%,transparent 100%);
+            border-bottom:1px solid rgba(255,255,255,0.1);
+            border-radius:6px;
+            cursor:pointer; transition:background 0.2s;
+            flex:1; min-height:0; overflow:hidden;
         `;
-        row.querySelector('button').onclick = () => {
+        row.innerHTML = `
+            <span class="assoc-label row-label" style="color:#00e5ff;font-weight:900;font-family:'Arial Black',sans-serif;margin-right:min(16px,3vw);font-size:min(1.1rem,3vw);min-width:min(22px,4vw);text-shadow:0 0 8px rgba(0,229,255,0.4);">ヒント${idx + 1}</span>
+            <input type="text" class="assoc-text-input row-input" placeholder="ヒント内容" value="${text}" style="flex:1;background:transparent;border:none;color:#ddd;font-size:min(1rem,2.8vw);outline:none;padding:2px 0;">
+            <button class="btn-remove-assoc" style="background:none;border:none;color:rgba(255,255,255,0.25);font-size:0.9rem;cursor:pointer;padding:2px 4px;margin-left:4px;flex-shrink:0;">×</button>
+        `;
+        row.querySelector('.btn-remove-assoc').onclick = () => {
             row.remove();
-            // Re-index remaining association inputs
-            Array.from(parent.children).forEach((r, i) => {
-                r.querySelector('span').textContent = `ヒント${i + 1}`;
+            parent.querySelectorAll('.assoc-row').forEach((r, i) => {
+                const lbl = r.querySelector('.assoc-label');
+                if (lbl) lbl.textContent = `ヒント${i + 1}`;
             });
+            this.updateRowSizes(parent);
         };
         parent.appendChild(row);
+        this.updateRowSizes(parent);
     },
 
     addBjCardInput: function (parent, index, text = "", value = "") {
@@ -825,7 +842,7 @@ window.App.Creator = {
     // Works for .choice-row, .sort-row, .multi-row
     updateRowSizes: function (parent) {
         if (!parent) return;
-        const rows = parent.querySelectorAll('.choice-row, .sort-row, .multi-row');
+        const rows = parent.querySelectorAll('.choice-row, .sort-row, .multi-row, .assoc-row');
         const n = rows.length;
         if (n === 0) return;
 
