@@ -3443,7 +3443,23 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-judge-wrong')?.addEventListener('click', () => App.Studio.judgeBuzz(false));
     document.getElementById('btn-toggle-ans')?.addEventListener('click', () => App.Studio.toggleAns());
     document.getElementById('btn-force-next')?.addEventListener('click', () => App.Studio.goNext());
-    document.getElementById('host-close-studio-btn-simple')?.addEventListener('click', () => App.Dashboard.enter());
+    document.getElementById('host-close-studio-btn-simple')?.addEventListener('click', () => {
+        // App.Studio.open() reuses the existing room/session whenever
+        // App.State.currentRoomId is still set, silently skipping the
+        // program/set selection screen. Confirm before leaving an active
+        // session, and reset that state on OK so the next "問題を出す"
+        // starts fresh and shows the selection screen again.
+        if (App.State.currentRoomId) {
+            const ok = confirm('進行中のクイズを終了してメニューに戻りますか？\n（戻ると今回のセッションは終了し、次回は問題セットを選び直せます）');
+            if (!ok) return;
+            App.State.currentRoomId = null;
+            App.State.currentQIndex = 0;
+            App.State.currentPeriodIndex = 0;
+            App.Data.studioQuestions = [];
+            App.Studio.isQuick = false;
+        }
+        App.Dashboard.enter();
+    });
     document.getElementById('btn-phase-main')?.addEventListener('click', () => {
         if (App.Studio.onMainAction) App.Studio.onMainAction();
     });

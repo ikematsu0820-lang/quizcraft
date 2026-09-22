@@ -153,16 +153,16 @@ App.Config = {
     _modeDetailFieldsHtml: function (mode, conf, qType, isDobon) {
         if (mode === 'normal') {
             return `
-                <label class="config-label" style="margin:0;">解答権</label>
-                <div style="display:flex; gap:6px; margin:8px 0 12px;">
-                    <button type="button" class="mode-segmented-btn ans-attempt-btn ${(conf.answerAttempts || 'single') === 'single' ? 'active' : ''}" data-val="single" style="flex:1; padding:10px 4px;">
-                        <span class="icon">1️⃣</span><span class="label">1回のみ</span>
+                <label class="config-label" style="margin:0; font-size:0.8em;">解答権</label>
+                <div style="display:flex; gap:6px; margin:6px 0 6px;">
+                    <button type="button" class="mode-segmented-btn ans-attempt-btn ${(conf.answerAttempts || 'single') === 'single' ? 'active' : ''}" data-val="single" style="flex:1; padding:6px 4px; font-size:0.8em;">
+                        <span class="label">1回のみ</span>
                     </button>
-                    <button type="button" class="mode-segmented-btn ans-attempt-btn ${conf.answerAttempts === 'multiple' ? 'active' : ''}" data-val="multiple" style="flex:1; padding:10px 4px;">
-                        <span class="icon">🔄</span><span class="label">複数解答可</span>
+                    <button type="button" class="mode-segmented-btn ans-attempt-btn ${conf.answerAttempts === 'multiple' ? 'active' : ''}" data-val="multiple" style="flex:1; padding:6px 4px; font-size:0.8em;">
+                        <span class="label">複数解答可</span>
                     </button>
                 </div>
-                <p style="color:#888; font-size:0.8em; line-height:1.5;" id="ans-attempt-desc">
+                <p style="color:#888; font-size:0.72em; margin:0; line-height:1.3;" id="ans-attempt-desc">
                     ${(conf.answerAttempts || 'single') === 'single' ? '正解表示ボタンを押した時に全員に結果が一斉に届きます' : '採点の都度結果が届き、不正解でも再解答できます'}
                 </p>
             `;
@@ -170,26 +170,26 @@ App.Config = {
             const buzzAction = conf.buzzWrongAction || 'next';
             const buzzPenalty = conf.buzzPenalty || 'none';
             return `
-                <label class="config-label" style="font-size:0.85em; color:#aaa;">❌ 誤答時：問題の処理</label>
-                <select id="config-buzz-wrong-action" class="btn-block config-select" style="margin-bottom:4px;">
+                <label class="config-label" style="font-size:0.8em; color:#aaa;">誤答時：問題の処理</label>
+                <select id="config-buzz-wrong-action" class="btn-block config-select" style="margin-bottom:2px; padding:4px;">
                     <option value="next" ${buzzAction === 'next' ? 'selected' : ''}>問題継続</option>
                     <option value="end" ${buzzAction === 'end' ? 'selected' : ''}>次の問題</option>
                 </select>
-                <p style="color:#666; font-size:0.72em; margin:0 0 12px;" id="buzz-action-desc">${buzzAction === 'next' ? '他のプレイヤーが引き続き解答できます' : '誤答時にその問題を終了します'}</p>
-                <label class="config-label" style="font-size:0.85em; color:#aaa;">誤答者の処理</label>
-                <select id="config-buzz-penalty" class="btn-block config-select" style="margin-bottom:4px;">
+                <p style="color:#666; font-size:0.68em; margin:0 0 8px; line-height:1.3;" id="buzz-action-desc">${buzzAction === 'next' ? '他のプレイヤーが引き続き解答できます' : '誤答時にその問題を終了します'}</p>
+                <label class="config-label" style="font-size:0.8em; color:#aaa;">誤答者の処理</label>
+                <select id="config-buzz-penalty" class="btn-block config-select" style="margin-bottom:2px; padding:4px;">
                     <option value="none" ${buzzPenalty === 'none' ? 'selected' : ''}>解答継続</option>
                     <option value="otetski" ${buzzPenalty === 'otetski' ? 'selected' : ''}>その問題の解答権なし</option>
                 </select>
-                <p style="color:#666; font-size:0.72em; margin:0;" id="buzz-penalty-desc">${buzzPenalty === 'none' ? '誤答しても再度早押しできます' : '誤答したプレイヤーはその問題で解答できません'}</p>
+                <p style="color:#666; font-size:0.68em; margin:0; line-height:1.3;" id="buzz-penalty-desc">${buzzPenalty === 'none' ? '誤答しても再度早押しできます' : '誤答したプレイヤーはその問題で解答できません'}</p>
             `;
         } else if (mode === 'turn') {
             const showRotateMode = isDobon || (qType && (qType.startsWith('multi') || qType.startsWith('ranking')));
             if (!showRotateMode) return '<p style="color:#666; font-size:0.8em;">追加の設定はありません</p>';
             const currentRotate = conf.turnRotateMode || 'per_q';
             return `
-                <label class="config-label">🔄 解答者の回し方</label>
-                <select id="config-turn-rotate-mode" class="btn-block config-select" style="margin-top:6px;">
+                <label class="config-label" style="font-size:0.8em;">解答者の回し方</label>
+                <select id="config-turn-rotate-mode" class="btn-block config-select" style="margin-top:4px; padding:4px;">
                     <option value="per_q" ${currentRotate === 'per_q' ? 'selected' : ''}>問題ごとに変える（毎問、次の人が最初）</option>
                     <option value="until_end" ${currentRotate === 'until_end' ? 'selected' : ''}>ダウトが出るまで回す（全員解答まで繰り返し）</option>
                 </select>
@@ -257,19 +257,19 @@ App.Config = {
         if (soloRecoverySel) soloRecoverySel.onchange = () => { conf.soloRecovery = soloRecoverySel.value === 'none' ? 0 : parseInt(soloRecoverySel.value) || 0; };
     },
 
+    // Compact checkbox-style row (no icon, single line) used for the
+    // 解答権/正解ボーナス pickers — kept short so more options fit inside
+    // the fixed-height inline panel without scrolling.
     _renderRadioRow: function (rows, current) {
         return rows.map(r => `
             <label class="compact-radio-row" data-val="${r.value}" style="
-                display:flex; align-items:center; gap:10px; padding:10px 12px; margin-bottom:6px;
-                border-radius:10px; border:2px solid ${r.value === current ? '#00e5ff' : '#333'};
+                display:flex; align-items:center; gap:8px; padding:6px 10px; margin-bottom:4px;
+                border-radius:8px; border:1px solid ${r.value === current ? '#00e5ff' : '#333'};
                 background:${r.value === current ? 'rgba(0,229,255,0.08)' : (r.disabled ? '#161616' : '#1a1a1a')};
                 cursor:${r.disabled ? 'not-allowed' : 'pointer'}; opacity:${r.disabled ? '0.45' : '1'};
             ">
-                <span style="font-size:1.2em;">${r.icon}</span>
-                <div style="flex:1;">
-                    <div class="compact-radio-label" style="font-weight:bold; color:${r.value === current ? '#00e5ff' : (r.disabled ? '#444' : '#ccc')}; font-size:0.9em;">${r.label}</div>
-                    <div style="font-size:0.72em; color:${r.disabled ? '#333' : '#666'};">${r.desc}</div>
-                </div>
+                <span style="font-size:0.95em; color:${r.value === current ? '#00e5ff' : (r.disabled ? '#444' : '#888')}; flex-shrink:0;">${r.value === current ? '☑' : '☐'}</span>
+                <span class="compact-radio-label" style="font-weight:bold; color:${r.value === current ? '#00e5ff' : (r.disabled ? '#444' : '#ccc')}; font-size:0.85em;">${r.label}</span>
             </label>
         `).join('');
     },
@@ -284,10 +284,10 @@ App.Config = {
     renderInlineModeChooser: function (container, conf, questions, onChange) {
         const { qType, isDobon, isBlackjack } = this.deriveTypeInfo(questions);
         const modes = [
-            { value: 'normal', icon: '⚡', label: '一斉解答', desc: '全員同時に解答', disabled: isBlackjack || isDobon || (qType && (qType.startsWith('multi') || qType.startsWith('ranking'))) },
-            { value: 'buzz', icon: '🚨', label: '早押し', desc: '最初に押した人が解答', disabled: isBlackjack || isDobon },
-            { value: 'turn', icon: '🔄', label: '順番解答', desc: 'プレイヤーが順番に解答', disabled: false },
-            { value: 'solo', icon: '🏆', label: 'ソロ対戦', desc: '個人タイムアタック', disabled: isBlackjack }
+            { value: 'normal', label: '一斉解答', disabled: isBlackjack || isDobon || (qType && (qType.startsWith('multi') || qType.startsWith('ranking'))) },
+            { value: 'buzz', label: '早押し', disabled: isBlackjack || isDobon },
+            { value: 'turn', label: '順番解答', disabled: false },
+            { value: 'solo', label: 'ソロ対戦', disabled: isBlackjack }
         ];
         let current = conf.mode || 'normal';
         if (modes.find(m => m.value === current)?.disabled) current = modes.find(m => !m.disabled).value;
@@ -318,44 +318,42 @@ App.Config = {
     // 正解ボーナス — pick gameType (score/panel/slot) + its detail fields.
     renderInlineGameTypeChooser: function (container, conf, onChange) {
         const types = [
-            { value: 'score', icon: '🏅', label: '得点制', desc: '正解ボーナス方式を選んで加点', disabled: false },
-            { value: 'panel', icon: '🧩', label: 'パネル', desc: 'パネル獲得で対戦', disabled: false },
-            { value: 'slot', icon: '🎰', label: '変動得点制', desc: '正解時にスロットを回して得点', disabled: false }
+            { value: 'score', label: '得点制', disabled: false },
+            { value: 'panel', label: 'パネル', disabled: false },
+            { value: 'slot', label: '変動得点制', disabled: false }
         ];
         let current = conf.gameType || 'score';
 
         const scoreDetailHtml = () => {
             const scoreType = conf.scoreType || 'uniform';
             const optionRows = [
-                { value: 'uniform', label: '① 全員一律', desc: '正解した全員に同じ点数を加算' },
-                { value: 'ranked', label: '② 順位ボーナス', desc: '正解順位に応じて異なる点数を加算' },
-                { value: 'first_come', label: '③ 先着のみ', desc: '指定した先着人数のみ得点' }
+                { value: 'uniform', label: '全員一律' },
+                { value: 'ranked', label: '順位ボーナス' },
+                { value: 'first_come', label: '先着のみ' }
             ];
             return `
                 <div id="score-type-radio-group">${optionRows.map(o => `
-                    <label style="display:flex; align-items:center; gap:10px; padding:8px 10px; margin-bottom:4px; border-radius:8px;
+                    <label style="display:flex; align-items:center; gap:8px; padding:5px 8px; margin-bottom:3px; border-radius:6px;
                         border:1px solid ${scoreType === o.value ? '#00bfff' : '#333'};
                         background:${scoreType === o.value ? 'rgba(0,191,255,0.08)' : '#111'}; cursor:pointer;">
                         <input type="radio" name="score-type-radio" value="${o.value}" ${scoreType === o.value ? 'checked' : ''} style="display:none;">
-                        <div>
-                            <div style="font-weight:bold; color:${scoreType === o.value ? '#00bfff' : '#ccc'}; font-size:0.85em;">${o.label}</div>
-                            <div style="font-size:0.68em; color:#666;">${o.desc}</div>
-                        </div>
+                        <span style="font-size:0.85em; color:${scoreType === o.value ? '#00bfff' : '#888'};">${scoreType === o.value ? '☑' : '☐'}</span>
+                        <span style="font-weight:bold; color:${scoreType === o.value ? '#00bfff' : '#ccc'}; font-size:0.8em;">${o.label}</span>
                     </label>
                 `).join('')}</div>
-                <div id="score-type-sheet-detail" style="background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.06); margin-top:8px; min-height:50px;"></div>
+                <div id="score-type-sheet-detail" style="background:rgba(0,0,0,0.3); padding:8px; border-radius:6px; border:1px solid rgba(255,255,255,0.06); margin-top:6px; min-height:40px;"></div>
             `;
         };
         const slotDetailHtml = () => `
-            <div style="display:flex; gap:12px; align-items:center;">
+            <div style="display:flex; gap:10px; align-items:center;">
                 <div style="flex:1;">
-                    <label style="font-size:0.75em; color:#888; display:block; margin-bottom:4px;">最小値</label>
-                    <input type="number" id="conf-slot-min" value="${conf.slotMin || 1}" min="0" style="width:100%; padding:10px; background:#111; border:1px solid #444; color:#fff; border-radius:6px; font-size:1em; text-align:center;">
+                    <label style="font-size:0.7em; color:#888; display:block; margin-bottom:2px;">最小値</label>
+                    <input type="number" id="conf-slot-min" value="${conf.slotMin || 1}" min="0" style="width:100%; padding:6px; background:#111; border:1px solid #444; color:#fff; border-radius:6px; font-size:0.9em; text-align:center;">
                 </div>
-                <div style="color:#555; margin-top:16px;">〜</div>
+                <div style="color:#555; margin-top:14px;">〜</div>
                 <div style="flex:1;">
-                    <label style="font-size:0.75em; color:#888; display:block; margin-bottom:4px;">最大値</label>
-                    <input type="number" id="conf-slot-max" value="${conf.slotMax || 10}" min="1" style="width:100%; padding:10px; background:#111; border:1px solid #444; color:#fff; border-radius:6px; font-size:1em; text-align:center;">
+                    <label style="font-size:0.7em; color:#888; display:block; margin-bottom:2px;">最大値</label>
+                    <input type="number" id="conf-slot-max" value="${conf.slotMax || 10}" min="1" style="width:100%; padding:6px; background:#111; border:1px solid #444; color:#fff; border-radius:6px; font-size:0.9em; text-align:center;">
                 </div>
             </div>
         `;

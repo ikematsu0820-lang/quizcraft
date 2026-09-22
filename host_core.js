@@ -194,6 +194,10 @@ window.App.bindEvents = function () {
     // ログアウト / 戻るボタン
     document.querySelectorAll('.header-back-btn').forEach(btn => {
         btn.addEventListener('click', () => {
+            // host-close-studio-btn-simple has its own listener (host_studio.js)
+            // that confirms before ending an in-progress quiz — don't also
+            // navigate away here unconditionally.
+            if (btn.id === 'host-close-studio-btn-simple') return;
             if (btn.classList.contains('btn-logout')) {
                 sessionStorage.removeItem('qs_show_id');
                 window.App.State.currentShowId = null;

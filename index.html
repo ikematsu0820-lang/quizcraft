@@ -565,37 +565,15 @@
             ">制限時間</button>
         </div>
 
-        <!-- ===== Options Section (collapsible) ===== -->
+        <!-- ===== Commentary (was inside a collapsible オプション設定 that
+             only ever held this one field) ===== -->
         <div style="max-width:700px; margin:0 auto 20px;">
-            <button id="creator-options-toggle" onclick="
-                const body = document.getElementById('creator-options-body');
-                const arrow = document.getElementById('creator-options-arrow');
-                if (body.style.display === 'none') { body.style.display = 'block'; arrow.textContent = '▼'; }
-                else { body.style.display = 'none'; arrow.textContent = '▶'; }
-            " style="
-                width:100%; display:flex; align-items:center; justify-content:space-between;
-                padding:14px 18px; background:#1e293b; border:1px solid #334155;
-                border-radius:12px; color:#94a3b8; font-size:1rem; font-weight:bold;
-                cursor:pointer; margin-bottom:0;
-            ">
-                <span>⚙️ オプション設定</span>
-                <span id="creator-options-arrow">▶</span>
-            </button>
-            <div id="creator-options-body" style="
-                display:none; background:#0f172a; border:1px solid #334155;
-                border-top:none; border-radius:0 0 12px 12px; padding:16px;
-                max-height:45vh; overflow-y:auto; box-sizing:border-box;
-            ">
-                <!-- Commentary -->
-                <div style="margin-bottom:16px;">
-                    <label style="color:#94a3b8; font-size:0.85rem; display:block; margin-bottom:6px;">解説（正解表示後に表示）</label>
-                    <textarea id="creator-commentary" placeholder="解説を入力してください" rows="2" style="
-                        width:100%; padding:10px; background:#1e293b; border:1px solid #475569;
-                        border-radius:8px; color:#fff; font-size:0.9rem; resize:vertical; outline:none;
-                        box-sizing:border-box;
-                    "></textarea>
-                </div>
-            </div>
+            <label style="color:#94a3b8; font-size:0.8rem; display:block; margin-bottom:4px;">解説（正解表示後に表示）</label>
+            <textarea id="creator-commentary" placeholder="解説を入力してください" rows="2" style="
+                width:100%; padding:8px 10px; background:#1e293b; border:1px solid #334155;
+                border-radius:8px; color:#fff; font-size:0.85rem; resize:vertical; outline:none;
+                box-sizing:border-box;
+            "></textarea>
         </div>
         <!-- Cart Floating Button (Right Bottom) -->
         <button id="creator-cart-btn" class="fab-btn" title="作成中のリストを見る"
