@@ -383,62 +383,46 @@
             <button class="header-back-btn back-to-menu" style="background:rgba(255,255,255,0.1); border:1px solid #555; color:#fff; padding:8px 16px; border-radius:8px; cursor:pointer;">← メニューに戻る</button>
         </div>
 
+        <div style="max-width:100%; padding:0 10px; margin-bottom:20px;">
+            <button id="select-type-edit-past-btn" style="
+                width:100%; padding:10px 16px; background:rgba(0,229,255,0.06);
+                border:1px dashed rgba(0,229,255,0.4); border-radius:10px;
+                color:#00e5ff; font-size:0.9rem; font-weight:bold; cursor:pointer;
+            ">📂 過去に作成した問題を編集</button>
+        </div>
+
         <div class="landing-content" style="max-width:100%; margin:0 auto; width:100%; padding:10px; box-sizing:border-box;">
             <h3 style="text-align:center; font-size:1.3rem; margin-bottom:25px; color:#fff;">作りたい問題形式を選んでください</h3>
             
             <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:16px;">
                 <!-- 一問一答 -->
                 <button class="type-select-card" data-type="free" style="display:flex; align-items:center; justify-content:space-between; padding:20px 24px; background:linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border:1px solid rgba(255,255,255,0.15); border-radius:14px; color:#fff; cursor:pointer; text-align:left; transition:all 0.2s;">
-                    <div>
-                        <div style="font-size:1.25rem; font-weight:bold; color:#fff;">一問一答</div>
-                        <div style="font-size:0.85rem; color:#94a3b8; margin-top:4px;">早押しクイズや一斉回答オープンといったクイズ形式はこちら</div>
-                    </div>
-                    <span style="font-size:1.5rem;">➔</span>
+                    <div style="font-size:1.25rem; font-weight:bold; color:#fff;">一問一答</div>
                 </button>
 
                 <!-- 選択式 -->
                 <button class="type-select-card" data-type="choice" style="display:flex; align-items:center; justify-content:space-between; padding:20px 24px; background:linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border:1px solid rgba(255,255,255,0.15); border-radius:14px; color:#fff; cursor:pointer; text-align:left; transition:all 0.2s;">
-                    <div>
-                        <div style="font-size:1.25rem; font-weight:bold; color:#fff;">選択式</div>
-                        <div style="font-size:0.85rem; color:#94a3b8; margin-top:4px;">選択式問題やまるばつ問題、ドボン問題も作成可能</div>
-                    </div>
-                    <span style="font-size:1.5rem;">➔</span>
+                    <div style="font-size:1.25rem; font-weight:bold; color:#fff;">選択式</div>
                 </button>
 
                 <!-- 並べ替え -->
                 <button class="type-select-card" data-type="sort" style="display:flex; align-items:center; justify-content:space-between; padding:20px 24px; background:linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border:1px solid rgba(255,255,255,0.15); border-radius:14px; color:#fff; cursor:pointer; text-align:left; transition:all 0.2s;">
-                    <div>
-                        <div style="font-size:1.25rem; font-weight:bold; color:#fff;">並べ替え</div>
-                        <div style="font-size:0.85rem; color:#94a3b8; margin-top:4px;">正しい順番に選択肢を並べる問題</div>
-                    </div>
-                    <span style="font-size:1.5rem;">➔</span>
+                    <div style="font-size:1.25rem; font-weight:bold; color:#fff;">並べ替え</div>
                 </button>
 
                 <!-- 多答クイズ -->
                 <button class="type-select-card" data-type="multi_group" style="display:flex; align-items:center; justify-content:space-between; padding:20px 24px; background:linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border:1px solid rgba(255,255,255,0.15); border-radius:14px; color:#fff; cursor:pointer; text-align:left; transition:all 0.2s;">
-                    <div>
-                        <div style="font-size:1.25rem; font-weight:bold; color:#fff;">多答クイズ</div>
-                        <div style="font-size:0.85rem; color:#94a3b8; margin-top:4px;">複数の正解を答える問題</div>
-                    </div>
-                    <span style="font-size:1.5rem;">➔</span>
+                    <div style="font-size:1.25rem; font-weight:bold; color:#fff;">多答クイズ</div>
                 </button>
 
                 <!-- 連想クイズ -->
                 <button class="type-select-card" data-type="assoc_group" style="display:flex; align-items:center; justify-content:space-between; padding:20px 24px; background:linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border:1px solid rgba(255,255,255,0.15); border-radius:14px; color:#fff; cursor:pointer; text-align:left; transition:all 0.2s;">
-                    <div>
-                        <div style="font-size:1.25rem; font-weight:bold; color:#fff;">連想クイズ</div>
-                        <div style="font-size:0.85rem; color:#94a3b8; margin-top:4px;">段階的にヒントが開示されるクイズ</div>
-                    </div>
-                    <span style="font-size:1.5rem;">➔</span>
+                    <div style="font-size:1.25rem; font-weight:bold; color:#fff;">連想クイズ</div>
                 </button>
 
                 <!-- 数字予想 -->
                 <button class="type-select-card" data-type="num_group" style="display:flex; align-items:center; justify-content:space-between; padding:20px 24px; background:linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border:1px solid rgba(255,255,255,0.15); border-radius:14px; color:#fff; cursor:pointer; text-align:left; transition:all 0.2s;">
-                    <div>
-                        <div style="font-size:1.25rem; font-weight:bold; color:#fff;">数字予想</div>
-                        <div style="font-size:0.85rem; color:#94a3b8; margin-top:4px;">数値を予想して答える問題</div>
-                    </div>
-                    <span style="font-size:1.5rem;">➔</span>
+                    <div style="font-size:1.25rem; font-weight:bold; color:#fff;">数字予想</div>
                 </button>
             </div>
         </div>
@@ -545,6 +529,9 @@
                             border-radius:8px; color:#fff; cursor:pointer;
                         ">💾 リストを保存する</button>
                     </div>
+                    <!-- Already-added questions — click one to edit it. Only
+                         shown alongside 問題編集 (populated by renderList()). -->
+                    <div id="creator-inline-qlist" class="hidden" style="margin-top:10px; padding-top:10px; border-top:1px dashed #333;"></div>
                     <div id="creator-inline-design" class="hidden"></div>
                     <div id="creator-inline-mode" class="hidden">
                         <!-- 回答形式 (subtype, e.g. 単一解答/ダウト問題) lives here now -->
@@ -593,38 +580,6 @@
             </div>
         </div>
 
-        <!-- Cart Floating Button (Right Bottom) -->
-        <button id="creator-cart-btn" class="fab-btn" title="作成中のリストを見る"
-            style="position: fixed; bottom: 25px; right: 25px; z-index: 1000; display: none;">
-            <span class="fab-icon">📝</span>
-            <span id="creator-cart-badge" class="cart-badge hidden">0</span>
-        </button>
-
-        <!-- Cart List Modal -->
-        <div id="creator-list-modal" class="design-modal-overlay hidden" style="z-index: 2000;">
-            <div class="design-modal-content"
-                style="max-width: 600px; display: flex; flex-direction: column; max-height: 85vh; padding: 20px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3 class="modal-title" style="margin: 0;" data-text="Creator.ListHeading">作成中のリスト</h3>
-                    <button id="creator-list-close-icon" class="modal-close-icon"
-                        style="background: transparent; border: none; font-size: 28px; cursor: pointer; color: #aaa; padding: 0 10px;">&times;</button>
-                </div>
-
-                <div class="creator-set-settings"
-                    style="flex: 1; overflow-y: auto; padding-right: 5px; margin-bottom: 15px;">
-                    <div id="q-list" class="scroll-list mb-15"></div>
-                </div>
-
-                <div class="modal-footer" style="margin-top: auto; border-top: 1px solid #444; padding-top: 15px;">
-                    <button id="fab-creator-save" class="btn-primary btn-block"
-                        style="padding: 15px; font-size: 1.1em; font-weight: bold; margin-bottom: 15px;" title="セットを保存">
-                        <span class="icon-save">💾</span> 保存する
-                    </button>
-                    <button id="creator-list-close-btn" class="btn-dark btn-block"
-                        style="padding: 12px; font-size: 1em;">閉じる</button>
-                </div>
-            </div>
-        </div>
     </div>
 
     <div id="config-view" class="view hidden">

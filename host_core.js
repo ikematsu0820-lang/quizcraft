@@ -201,6 +201,11 @@ window.App.bindEvents = function () {
         U.showView(V.selectType || V.creator);
     });
 
+    // 問題形式選択画面 → 過去に作成した問題（保存済みセット）を編集
+    document.getElementById('select-type-edit-past-btn')?.addEventListener('click', () => {
+        window.App.Dashboard.openSavedItems();
+    });
+
     // 問題形式選択画面のカード選択
     document.querySelectorAll('#select-type-view .type-select-card').forEach(card => {
         card.addEventListener('click', () => {

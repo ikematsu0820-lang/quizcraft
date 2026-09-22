@@ -189,16 +189,16 @@ App.Studio = {
         }
 
         App.State.currentRoomId = code;
+        this._monitorTabOpened = false;
 
-        // ★ モニター画面を別タブで自動起動 (新規時のみ、または常にConfirm?)
-        // 常に開いておくと安全（閉じてしまった場合のため）
-        const viewerUrl = window.location.origin + window.location.pathname + `?vcode=${code}`;
+        // モニター画面はここでは開かない — セット/プログラムを読み込むまで
+        // 映すものが何もないので、開くのは setupPeriod() 初回実行時
+        // (「読み込む」ボタン経由) に遅らせる。isUnifiedMode の判定だけ
+        // ここで済ませておく (タッチ端末はタブを開かず統一トグルUIを使う)。
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone || /Mobi|Android|iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) || window.innerWidth <= 800;
 
         if (isStandalone) {
             window.App.isUnifiedMode = true;
-        } else {
-            if (!keepPlayers) window.open(viewerUrl, '_blank');
         }
 
         const roomData = {
@@ -236,6 +236,29 @@ App.Studio = {
             roomData.players = {};
             window.db.ref(`rooms/${code}`).set(roomData).then(onRoomReady).catch(onRoomError);
         }
+    },
+
+    // Opens the monitor/viewer screen in a background tab the first time a
+    // set/program is loaded in this session (there's nothing to show on the
+    // monitor before that). Best-effort keeps focus on the host tab —
+    // browsers don't guarantee a script can open a background tab, so we
+    // open it, then explicitly blur it and re-focus the host tab — and a
+    // toast confirms it either way since focus can still jump on some
+    // browsers.
+    openMonitorTab: function () {
+        if (this._monitorTabOpened) return;
+        if (window.App.isUnifiedMode) return; // touch devices use the in-page toggle instead
+        const code = App.State.currentRoomId;
+        if (!code) return;
+        this._monitorTabOpened = true;
+
+        const viewerUrl = window.location.origin + window.location.pathname + `?vcode=${code}`;
+        const monitorWin = window.open(viewerUrl, '_blank');
+        if (monitorWin) {
+            monitorWin.blur();
+            window.focus();
+        }
+        App.Ui.showToast('🖥️ モニター画面を新しいタブで開きました');
     },
 
     enterHostMode: function (isQuick) {
@@ -583,6 +606,7 @@ App.Studio = {
                     try { this.setupPeriod(0); } catch (e) { alert("開始エラー: " + e.message); }
                 };
                 this.syncMainButton();
+                this.openMonitorTab();
             };
 
             if (val.startsWith('set:')) {

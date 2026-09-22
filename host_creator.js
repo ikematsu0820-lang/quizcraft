@@ -73,6 +73,9 @@ window.App.Creator = {
                 num_group: 'blackjack'
             };
             this.renderForm(groupDefaults[type] || type);
+            // Open with 問題編集 already active — no extra tap needed to
+            // start adding choices/etc.
+            this.toggleInlinePanel('edit');
         }
     },
 
@@ -190,97 +193,53 @@ window.App.Creator = {
 
         this.setupTypeSelect();
 
+        // Resolve to the same leaf-type strings renderForm()/initWithType()
+        // use, and render through renderForm() directly — this used to only
+        // populate the legacy #creator-q-subtype select (dead since the
+        // card-based picker/getData() switched to #creator-opt-subtype
+        // earlier this session) and rely on resetForm() to figure the type
+        // out from it, which left #creator-opt-subtype unpopulated and made
+        // editing a saved set render the wrong (or a blank/default) form.
         const sel = document.getElementById('creator-q-type');
-        const subArea = document.getElementById('creator-q-subtype-area');
-        const subSel = document.getElementById('creator-q-subtype');
+        let resolvedType = 'choice_single';
 
         if (window.App.Data.createdQuestions.length > 0) {
             const firstQ = window.App.Data.createdQuestions[0];
             const type = firstQ.type;
 
-            const updateSubTypesShared = (mainVal) => {
-                subSel.innerHTML = '';
-                let subItems = [];
-                if (mainVal === 'free') {
-                    subItems = [
-                        { v: 'free_written', t: APP_TEXT.Creator.TypeFreeWritten },
-                        { v: 'free_oral', t: APP_TEXT.Creator.TypeFreeOral },
-                        { v: 'letter_select', t: APP_TEXT.Creator.TypeLetterSelect }
-                    ];
-                } else if (mainVal === 'multi_group') {
-                    subItems = [
-                        { v: 'multi_written', t: APP_TEXT.Creator.TypeMultiWritten },
-                        { v: 'multi_oral', t: APP_TEXT.Creator.TypeMultiOral },
-                        { v: 'ranking_written', t: APP_TEXT.Creator.TypeRankingWritten },
-                        { v: 'ranking_oral', t: APP_TEXT.Creator.TypeRankingOral }
-                    ];
-                } else if (mainVal === 'choice') {
-                    subItems = [
-                        { v: 'choice_single', t: "2-1) 単一解答" },
-                        { v: 'choice_multi', t: "2-2) ダウト問題" }
-                    ];
-                } else if (mainVal === 'assoc_group') {
-                    subItems = [
-                        { v: 'assoc_written', t: APP_TEXT.Creator.TypeAssocWritten },
-                        { v: 'assoc_oral', t: APP_TEXT.Creator.TypeAssocOral }
-                    ];
-                }
-                subItems.forEach(o => {
-                    const el = document.createElement('option');
-                    el.value = o.v;
-                    el.textContent = o.t;
-                    subSel.appendChild(el);
-                });
-            };
-
-            if (type.startsWith('free') || type === 'letter_select') {
+            if (type.startsWith('choice')) {
+                sel.value = 'choice';
+                resolvedType = (firstQ.multi || firstQ.mode === 'multi') ? 'choice_multi' : 'choice_single';
+            } else if (type.startsWith('free') || type === 'letter_select') {
                 sel.value = 'free';
-                updateSubTypesShared('free');
-                subArea.classList.remove('hidden');
-                subSel.value = type;
+                resolvedType = type;
             } else if (type.startsWith('multi') || type.startsWith('ranking')) {
                 sel.value = 'multi_group';
-                updateSubTypesShared('multi_group');
-                subArea.classList.remove('hidden');
-                subSel.value = type;
+                resolvedType = type;
             } else if (type.startsWith('assoc')) {
                 sel.value = 'assoc_group';
-                updateSubTypesShared('assoc_group');
-                subArea.classList.remove('hidden');
-                subSel.value = type;
-            } else if (type.startsWith('choice')) {
-                sel.value = 'choice';
-                updateSubTypesShared('choice');
-                subArea.classList.remove('hidden');
-                const isMulti = firstQ.multi || firstQ.mode === 'multi';
-                subSel.value = isMulti ? 'choice_multi' : 'choice_single';
+                resolvedType = type;
             } else if (type === 'blackjack') {
                 sel.value = 'num_group';
-                subSel.innerHTML = '';
-                const bjOpt = document.createElement('option');
-                bjOpt.value = 'blackjack'; bjOpt.textContent = '6-1) ブラックジャック';
-                subSel.appendChild(bjOpt);
-                subArea.classList.remove('hidden');
-                subSel.value = 'blackjack';
+                resolvedType = 'blackjack';
             } else {
-                sel.value = type;
-                subArea.classList.add('hidden');
+                sel.value = type; // e.g. 'sort' — no subtype of its own
+                resolvedType = type;
             }
 
             sel.disabled = true;
-            subSel.disabled = true;
             document.getElementById('creator-type-locked-msg').classList.remove('hidden');
-
         } else {
             sel.disabled = false;
-            subSel.disabled = false;
-            subArea.classList.add('hidden');
             document.getElementById('creator-type-locked-msg').classList.add('hidden');
         }
 
-        this.resetForm();
+        this.editingIndex = null;
+        this.renderForm(resolvedType);
         this.renderList();
         window.App.Ui.showView(window.App.Ui.views.creator);
+        this.activeInlinePanel = null;
+        this.toggleInlinePanel('edit');
     },
 
     resetForm: function () {
@@ -728,10 +687,12 @@ window.App.Creator = {
         };
         // Shown only alongside the 'edit' panel, not the rule pickers.
         const listActions = document.getElementById('creator-inline-listactions');
+        const qList = document.getElementById('creator-inline-qlist');
         if (!area || !panels[key]) return;
 
         Object.values(panels).forEach(p => p.classList.add('hidden'));
         if (listActions) listActions.classList.add('hidden');
+        if (qList) qList.classList.add('hidden');
 
         if (this.activeInlinePanel === key) {
             area.classList.add('hidden');
@@ -744,6 +705,7 @@ window.App.Creator = {
         area.classList.remove('hidden');
         panels[key].classList.remove('hidden');
         if (key === 'edit' && listActions) listActions.classList.remove('hidden');
+        if (key === 'edit' && qList) { qList.classList.remove('hidden'); this.renderList(); }
 
         this.renderActivePanelContent(key);
 
@@ -1292,7 +1254,7 @@ window.App.Creator = {
         if (inlineAddBtn) inlineAddBtn.textContent = APP_TEXT.Creator.BtnUpdateQ;
         document.getElementById('question-text').value = q.q;
         this.renderForm(q.type, q);
-        document.getElementById('creator-list-modal')?.classList.add('hidden');
+        this.renderList(); // refresh row highlight to the one now being edited
         document.getElementById('creator-view').scrollIntoView({ behavior: "smooth" });
     },
 
@@ -1317,37 +1279,51 @@ window.App.Creator = {
         }
     },
 
+    // Populates the clickable question list inside 問題編集 (creator-inline-qlist)
+    // — click a row to edit that question, per user request. Only touches
+    // the DOM when that list container actually exists/is visible.
     renderList: function () {
-        const list = document.getElementById('q-list');
-        list.innerHTML = '';
-        window.App.Data.createdQuestions.forEach((q, i) => {
-            const div = document.createElement('div');
-            div.className = 'q-list-item flex-between';
-            const displayQ = q.q.length > 15 ? q.q.substring(0, 15) + "..." : q.q;
+        const list = document.getElementById('creator-inline-qlist');
+        if (!list) return;
+        const questions = window.App.Data.createdQuestions;
+        if (questions.length === 0) { list.innerHTML = ''; return; }
+
+        const rows = questions.map((q, i) => {
+            const displayQ = q.q.length > 20 ? q.q.substring(0, 20) + "..." : q.q;
             const shuffleIcon = (q.type === 'choice' || q.type === 'sort') && q.shuffle !== false ? ' 🔀' : '';
-            div.innerHTML = `
-                <div class="text-sm bold">Q${i + 1}. ${displayQ}${shuffleIcon}</div>
-                <div class="flex gap-5">
-                    <button class="btn-mini btn-dark" onclick="window.App.Creator.move(${i}, -1)">↑</button>
-                    <button class="btn-mini btn-dark" onclick="window.App.Creator.move(${i}, 1)">↓</button>
-                    <button class="btn-mini btn-info" onclick="window.App.Creator.edit(${i})">Edit</button>
-                    <button class="btn-mini btn-danger" onclick="window.App.Creator.delete(${i})">×</button>
+            const isEditing = this.editingIndex === i;
+            return `
+                <div class="creator-qlist-row" data-idx="${i}" style="
+                    display:flex; align-items:center; gap:8px; padding:6px 8px; margin-bottom:4px;
+                    border-radius:8px; cursor:pointer;
+                    border:1px solid ${isEditing ? '#00e5ff' : '#333'};
+                    background:${isEditing ? 'rgba(0,229,255,0.08)' : '#1a1a1a'};
+                ">
+                    <span style="flex:1; font-size:0.8rem; color:${isEditing ? '#00e5ff' : '#ddd'};">Q${i + 1}. ${displayQ}${shuffleIcon}</span>
+                    <button class="creator-qlist-del" data-idx="${i}" title="削除" style="
+                        background:none; border:none; color:rgba(255,255,255,0.35); font-size:0.9rem; cursor:pointer; padding:2px 6px; flex-shrink:0;
+                    ">×</button>
                 </div>
             `;
-            list.appendChild(div);
-        });
+        }).join('');
 
-        // Update badge
-        const badge = document.getElementById('creator-cart-badge');
-        if (badge) {
-            const count = window.App.Data.createdQuestions.length;
-            if (count > 0) {
-                badge.textContent = count;
-                badge.classList.remove('hidden');
-            } else {
-                badge.classList.add('hidden');
-            }
-        }
+        list.innerHTML = `
+            <div style="color:#94a3b8; font-size:0.75rem; font-weight:bold; margin-bottom:6px;">📋 作成済みの問題（クリックで編集） (${questions.length})</div>
+            ${rows}
+        `;
+
+        list.querySelectorAll('.creator-qlist-row').forEach(row => {
+            row.onclick = (e) => {
+                if (e.target.closest('.creator-qlist-del')) return;
+                this.edit(parseInt(row.dataset.idx));
+            };
+        });
+        list.querySelectorAll('.creator-qlist-del').forEach(btn => {
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                this.delete(parseInt(btn.dataset.idx));
+            };
+        });
     },
 
     save: function () {
@@ -1465,24 +1441,6 @@ document.addEventListener('DOMContentLoaded', () => {
         else window.App.Creator.add();
     });
     document.getElementById('creator-inline-save-btn')?.addEventListener('click', () => window.App.Creator.save());
-    // Setup modal toggles
-    document.getElementById('creator-cart-btn')?.addEventListener('click', () => {
-        if (window.App.Creator.editingIndex !== null) {
-            const currentQ = window.App.Creator.getData();
-            if (currentQ) {
-                window.App.Data.createdQuestions[window.App.Creator.editingIndex] = { ...window.App.Data.createdQuestions[window.App.Creator.editingIndex], ...currentQ };
-                window.App.Creator.renderList();
-            }
-            window.App.Creator.resetForm();
-        }
-        document.getElementById('creator-list-modal').classList.remove('hidden');
-    });
-    document.getElementById('creator-list-close-btn')?.addEventListener('click', () => {
-        document.getElementById('creator-list-modal').classList.add('hidden');
-    });
-    document.getElementById('creator-list-close-icon')?.addEventListener('click', () => {
-        document.getElementById('creator-list-modal').classList.add('hidden');
-    });
 
     document.getElementById('cancel-update-btn')?.addEventListener('click', () => window.App.Creator.resetForm());
     document.getElementById('save-to-cloud-btn')?.addEventListener('click', () => window.App.Creator.save());
