@@ -391,7 +391,7 @@ window.App.Creator = {
                 </div>
             `;
             const sortDiv = document.createElement('div');
-            sortDiv.style.cssText = 'display:flex; flex-direction:column; gap:min(8px,1.5vw); width:100%;';
+            sortDiv.style.cssText = 'display:flex; flex-direction:column; gap:1%; flex:1; min-height:0; width:100%;';
             container.appendChild(sortDiv);
 
             document.getElementById('btn-reset-sort-ranks').onclick = () => this.resetSortRanks(sortDiv);
@@ -507,7 +507,7 @@ window.App.Creator = {
                 <div style="text-align:center; color:#64748b; font-size:0.8rem; margin-bottom:10px; padding-top:6px;">${descText}</div>
             `;
             const multiDiv = document.createElement('div');
-            multiDiv.style.cssText = 'display:flex; flex-direction:column; gap:8px; padding:0 10px;';
+            multiDiv.style.cssText = 'display:flex; flex-direction:column; gap:1%; flex:1; min-height:0; width:100%;';
             container.appendChild(multiDiv);
 
             if (data) data.c.forEach((txt, i) => this.addMultiInput(multiDiv, i, txt, isRanking));
@@ -655,7 +655,7 @@ window.App.Creator = {
         delBtn.textContent = '×';
         delBtn.style.cssText = 'background:none; border:none; color:rgba(255,255,255,0.25); font-size:0.9rem; cursor:pointer; padding:2px 4px; margin-left:4px; flex-shrink:0;';
         delBtn.title = '削除';
-        delBtn.onclick = (e) => { e.stopPropagation(); row.remove(); this.updateLabels(parent); this.updateChoiceSizes(parent); };
+        delBtn.onclick = (e) => { e.stopPropagation(); row.remove(); this.updateLabels(parent); this.updateRowSizes(parent); };
 
         row.appendChild(labelSpan);
         row.appendChild(inp);
@@ -664,25 +664,25 @@ window.App.Creator = {
 
         parent.appendChild(row);
         this.updateLabels(parent);
-        this.updateChoiceSizes(parent);
+        this.updateRowSizes(parent);
     },
 
     addSortInput: function (parent, index, text = "", rank = "") {
         if (parent.children.length >= 20) { alert("並べ替え問題の上限は20個までです"); return; }
         const row = document.createElement('div');
         row.className = 'sort-row';
-        // Same viewer-style horizontal row
         row.style.cssText = `
             display:flex; align-items:center;
             background:linear-gradient(90deg,rgba(255,255,255,0.04) 0%,transparent 100%);
             border-bottom:1px solid rgba(255,255,255,0.1);
             border-radius:6px;
-            padding:min(8px,1.8vw) min(10px,2vw);
+            cursor:pointer; transition:background 0.2s;
+            flex:1; min-height:0; overflow:hidden;
         `;
 
         row.innerHTML = `
-            <span class="sort-label" style="color:#00e5ff;font-weight:900;font-family:'Arial Black',sans-serif;margin-right:min(16px,3vw);font-size:min(1.1rem,3vw);min-width:min(22px,4vw);text-shadow:0 0 8px rgba(0,229,255,0.4);">${String.fromCharCode(65 + index)}</span>
-            <input type="text" class="sort-text-input" placeholder="項目を入力" value="${text}" style="flex:1;background:transparent;border:none;color:#ddd;font-size:min(1rem,2.8vw);outline:none;padding:2px 0;">
+            <span class="sort-label row-label" style="color:#00e5ff;font-weight:900;font-family:'Arial Black',sans-serif;margin-right:min(16px,3vw);font-size:min(1.1rem,3vw);min-width:min(22px,4vw);text-shadow:0 0 8px rgba(0,229,255,0.4);">${String.fromCharCode(65 + index)}</span>
+            <input type="text" class="sort-text-input row-input" placeholder="項目を入力" value="${text}" style="flex:1;background:transparent;border:none;color:#ddd;font-size:min(1rem,2.8vw);outline:none;padding:2px 0;">
             <div class="sort-rank-box" style="width:min(36px,5vw);height:min(36px,5vw);border:2px solid #444;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:900;font-size:min(1rem,2.5vw);color:#00e5ff;background:rgba(0,0,0,0.3);margin-left:8px;flex-shrink:0;">
                 ${rank || ''}
             </div>
@@ -705,9 +705,11 @@ window.App.Creator = {
             row.remove();
             this.updateSortLabels(parent);
             this.resetSortRanks(parent);
+            this.updateRowSizes(parent);
         };
         parent.appendChild(row);
         this.updateSortLabels(parent);
+        this.updateRowSizes(parent);
     },
 
     updateSortLabels: function (parent) {
@@ -733,16 +735,33 @@ window.App.Creator = {
     addMultiInput: function (parent, index, text = "", isRanking = false) {
         const idx = (index !== undefined) ? index : parent.children.length;
         const row = document.createElement('div');
-        row.className = 'flex-center gap-5';
+        row.className = 'multi-row';
+        row.style.cssText = `
+            display:flex; align-items:center;
+            background:linear-gradient(90deg,rgba(255,255,255,0.04) 0%,transparent 100%);
+            border-bottom:1px solid rgba(255,255,255,0.1);
+            border-radius:6px;
+            cursor:pointer; transition:background 0.2s;
+            flex:1; min-height:0; overflow:hidden;
+        `;
         const labelText = isRanking ? `${idx + 1}位` : `${idx + 1}`;
         const placeholder = isRanking ? `${idx + 1}位の答え` : 'Answer';
         row.innerHTML = `
-            <span class="bold cyan text-lg" style="min-width:35px; text-align:center;">${labelText}</span>
-            <input type="text" class="multi-text-input flex-1" placeholder="${placeholder}" value="${text}">
-            <button class="btn-mini btn-dark w-30">×</button>
+            <span class="multi-label row-label" style="color:#00e5ff;font-weight:900;font-family:'Arial Black',sans-serif;margin-right:min(16px,3vw);font-size:min(1.1rem,3vw);min-width:min(22px,4vw);text-shadow:0 0 8px rgba(0,229,255,0.4);">${labelText}</span>
+            <input type="text" class="multi-text-input row-input" placeholder="${placeholder}" value="${text}" style="flex:1;background:transparent;border:none;color:#ddd;font-size:min(1rem,2.8vw);outline:none;padding:2px 0;">
+            <button class="btn-remove-multi" style="background:none;border:none;color:rgba(255,255,255,0.25);font-size:0.9rem;cursor:pointer;padding:2px 4px;margin-left:4px;flex-shrink:0;">×</button>
         `;
-        row.querySelector('button').onclick = () => row.remove();
+        row.querySelector('.btn-remove-multi').onclick = () => {
+            row.remove();
+            // Re-index labels
+            parent.querySelectorAll('.multi-row').forEach((r, i) => {
+                const lbl = r.querySelector('.multi-label');
+                if (lbl) lbl.textContent = isRanking ? `${i + 1}位` : `${i + 1}`;
+            });
+            this.updateRowSizes(parent);
+        };
         parent.appendChild(row);
+        this.updateRowSizes(parent);
     },
 
     addAssocInput: function (parent, index, text = "") {
@@ -799,13 +818,14 @@ window.App.Creator = {
             const label = labels[i] || String(i + 1);
             inp.placeholder = `選択肢${label}`;
         });
-        this.updateChoiceSizes(parent);
+        this.updateRowSizes(parent);
     },
 
-    // Dynamically scale row padding & font so N choices always fit inside the 16:9 frame
-    updateChoiceSizes: function (parent) {
+    // Dynamically scale row padding & font so N rows always fit inside the 16:9 frame
+    // Works for .choice-row, .sort-row, .multi-row
+    updateRowSizes: function (parent) {
         if (!parent) return;
-        const rows = parent.querySelectorAll('.choice-row');
+        const rows = parent.querySelectorAll('.choice-row, .sort-row, .multi-row');
         const n = rows.length;
         if (n === 0) return;
 
@@ -813,9 +833,9 @@ window.App.Creator = {
         const frame = document.getElementById('creator-monitor-preview');
         const frameH = frame ? frame.offsetHeight : 400;
 
-        // Reserve ~24% for question box + label + gaps (question box was shrunk to give choices more room)
-        const choicesAreaH = frameH * 0.70;
-        const rowH = Math.max(20, (choicesAreaH / n) - 2); // 2px gap
+        // Reserve ~30% for question box + label + gaps
+        const choicesAreaH = frameH * 0.65;
+        const rowH = Math.max(20, (choicesAreaH / n) - 2);
 
         // Vertical padding: at most 12% of rowH each side
         const vPad = Math.min(8, rowH * 0.12);
@@ -824,11 +844,19 @@ window.App.Creator = {
 
         rows.forEach(row => {
             row.style.padding = `${vPad}px 10px`;
-            // Scale label and input fonts
-            const label = row.querySelector('.choice-label-text');
-            const inp   = row.querySelector('.choice-text-input');
+            // Scale label and input fonts — use generic selectors
+            const label = row.querySelector('.choice-label-text, .row-label');
+            const inp   = row.querySelector('.choice-text-input, .row-input');
             if (label) label.style.fontSize = `${Math.max(10, fs)}px`;
             if (inp)   inp.style.fontSize   = `${Math.max(9, fs - 1)}px`;
+            // Scale rank boxes for sort
+            const rankBox = row.querySelector('.sort-rank-box');
+            if (rankBox) {
+                const boxSize = Math.max(16, rowH * 0.6);
+                rankBox.style.width = `${boxSize}px`;
+                rankBox.style.height = `${boxSize}px`;
+                rankBox.style.fontSize = `${Math.max(8, fs - 2)}px`;
+            }
         });
     },
 
