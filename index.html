@@ -437,7 +437,16 @@
                 <h2 style="margin:0; font-size:1.3rem;">問題作成</h2>
                 <div style="font-size:0.8rem; color:#aaa; margin-top:2px;">ID: <span id="creator-show-id" style="color:#00e5ff; font-weight:bold;">---</span></div>
             </div>
-            <button id="creator-back-btn" class="header-back-btn back-to-select-type" style="background:rgba(255,255,255,0.1); border:1px solid #555; color:#fff; padding:8px 16px; border-radius:8px; cursor:pointer;">← 形式選択に戻る</button>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <!-- Sub-type selector (回答形式), shown for types that have sub-types -->
+                <div id="creator-opt-subtype-area" class="hidden">
+                    <select id="creator-opt-subtype" style="
+                        padding:8px 10px; background:#1e293b; border:1px solid #475569;
+                        border-radius:8px; color:#fff; font-size:0.85rem;
+                    "></select>
+                </div>
+                <button id="creator-back-btn" class="header-back-btn back-to-select-type" style="background:rgba(255,255,255,0.1); border:1px solid #555; color:#fff; padding:8px 16px; border-radius:8px; cursor:pointer;">← 形式選択に戻る</button>
+            </div>
         </div>
 
         <!-- Hidden selectors (managed by JS, not visible to user) -->
@@ -511,6 +520,14 @@
 
                     </div>
                 </div>
+
+                <!-- Inline edit controls (shuffle / add-item etc.) — hidden until
+                     「問題編集」 is checked in the action bar below -->
+                <div id="creator-inline-edit-area" class="hidden" style="
+                    padding:12px 16px; background:#111; border-top:1px solid #2a2a2a;
+                ">
+                    <div id="creator-options-extra"></div>
+                </div>
             </div>
         </div>
 
@@ -521,6 +538,20 @@
                 background:linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
                 border:none; color:#fff; cursor:pointer;
             " data-text="Creator.BtnAdd">リストに追加</button>
+            <button id="creator-inline-edit-toggle" style="
+                flex:0.9; padding:14px 4px; font-size:0.75rem; font-weight:bold; line-height:1.3;
+                background:#1e293b; border:none; border-left:1px solid rgba(255,255,255,0.15);
+                color:#fff; cursor:pointer;
+                display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+            " onclick="
+                const checked = this.dataset.checked !== 'true';
+                this.dataset.checked = checked;
+                this.querySelector('.inline-edit-checkbox').textContent = checked ? '☑' : '☐';
+                document.getElementById('creator-inline-edit-area').classList.toggle('hidden', !checked);
+            " data-checked="false">
+                <span class="inline-edit-checkbox" style="font-size:1.1rem; line-height:1;">☐</span>
+                <span>問題編集</span>
+            </button>
             <button id="creator-rule-mode-btn" class="creator-rule-btn" style="
                 flex:1; padding:14px 4px; font-size:0.8rem; font-weight:bold; line-height:1.3;
                 background:#0e6b8f; border:none; border-left:1px solid rgba(255,255,255,0.15);
@@ -559,15 +590,6 @@
                 border-top:none; border-radius:0 0 12px 12px; padding:16px;
                 max-height:45vh; overflow-y:auto; box-sizing:border-box;
             ">
-                <!-- Sub-type selector (shown for types that have sub-types) -->
-                <div id="creator-opt-subtype-area" class="hidden" style="margin-bottom:16px;">
-                    <label style="color:#94a3b8; font-size:0.85rem; display:block; margin-bottom:6px;">回答形式</label>
-                    <select id="creator-opt-subtype" style="
-                        width:100%; padding:10px; background:#1e293b; border:1px solid #475569;
-                        border-radius:8px; color:#fff; font-size:0.95rem;
-                    "></select>
-                </div>
-
                 <!-- Commentary -->
                 <div style="margin-bottom:16px;">
                     <label style="color:#94a3b8; font-size:0.85rem; display:block; margin-bottom:6px;">解説（正解表示後に表示）</label>
@@ -577,9 +599,6 @@
                         box-sizing:border-box;
                     "></textarea>
                 </div>
-
-                <!-- Additional options rendered by JS per type -->
-                <div id="creator-options-extra"></div>
             </div>
         </div>
         <!-- Cart Floating Button (Right Bottom) -->
