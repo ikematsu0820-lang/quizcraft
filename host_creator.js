@@ -673,7 +673,7 @@ window.App.Creator = {
         Object.entries(buttons).forEach(([key, btn]) => {
             if (!btn) return;
             const isActive = this.activeInlinePanel === key;
-            btn.style.background = isActive ? '#00a8cc' : (key === 'edit' ? '#1e293b' : '#0e6b8f');
+            btn.style.background = isActive ? '#00a8cc' : '#0e6b8f';
         });
     },
 
