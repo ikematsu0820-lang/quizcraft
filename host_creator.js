@@ -488,6 +488,31 @@ window.App.Creator = {
                 input.value = Array.isArray(data.correct) ? data.correct.join(', ') : data.correct;
             }
 
+            // Bulk paste-in (問題編集 panel) — free_written only, per request.
+            // 1列目=問題文 / 2列目=答え, one question per line, so pasting
+            // straight from a spreadsheet (tab-separated cells) works as-is.
+            if (optionsExtra && type === 'free_written') {
+                const bulkWrap = document.createElement('div');
+                bulkWrap.style.cssText = 'margin-top:12px; padding-top:12px; border-top:1px dashed #333;';
+                bulkWrap.innerHTML = `
+                    <div style="color:#94a3b8; font-size:0.75rem; font-weight:bold; margin-bottom:4px;">📋 表形式で一括追加（1行1問／問題文<span style="color:#00e5ff;">[タブ]</span>答え）</div>
+                    <textarea id="creator-bulk-free-input" rows="4" placeholder="表計算ソフトからそのままコピペできます。例:
+日本の首都は？	東京
+富士山の標高は？	3776" style="
+                        width:100%; padding:8px; background:#0d1b2a; border:1px dashed rgba(255,255,255,0.25);
+                        border-radius:8px; color:#fff; font-size:0.8rem; resize:vertical; box-sizing:border-box;
+                        font-family:monospace; outline:none;
+                    "></textarea>
+                    <button id="creator-bulk-free-add-btn" style="
+                        margin-top:6px; width:100%; padding:8px; font-size:0.85rem; font-weight:bold;
+                        background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4);
+                        border-radius:8px; color:#00e5ff; cursor:pointer;
+                    ">＋ 一括追加</button>
+                `;
+                optionsExtra.appendChild(bulkWrap);
+                bulkWrap.querySelector('#creator-bulk-free-add-btn').onclick = () => this.addBulkFreeWritten();
+            }
+
             // Sub-type
             setupOptSubtype([
                 { v: 'free_written', t: '記述式（自由入力・自動判定）' },
@@ -1161,6 +1186,49 @@ window.App.Creator = {
             document.getElementById('creator-q-subtype').disabled = true;
             document.getElementById('creator-type-locked-msg').classList.remove('hidden');
         }
+    },
+
+    // 表形式で一括追加 (問題編集 panel, free_written only). Each line is
+    // "問題文<TAB>答え" — pasted straight from a spreadsheet, so columns
+    // arrive tab-separated. Answers may themselves be comma-separated for
+    // multiple accepted keywords, matching the single-question form.
+    addBulkFreeWritten: function () {
+        const textarea = document.getElementById('creator-bulk-free-input');
+        if (!textarea) return;
+        const lines = textarea.value.split('\n').map(l => l.trim()).filter(l => l);
+        if (lines.length === 0) return;
+
+        let added = 0;
+        let skipped = 0;
+        lines.forEach(line => {
+            const [qPart, ansPart] = line.split('\t');
+            const qText = (qPart || '').trim();
+            const ans = (ansPart || '').trim();
+            if (!qText || !ans) { skipped++; return; }
+
+            window.App.Data.createdQuestions.push({
+                q: qText,
+                type: 'free_written',
+                correct: ans.split(',').map(s => s.trim()).filter(s => s),
+                points: 1,
+                loss: 0,
+                timeLimit: 0,
+                layout: 'standard',
+                align: 'center'
+            });
+            added++;
+        });
+
+        if (added > 0) {
+            textarea.value = '';
+            this.renderList();
+            document.getElementById('creator-q-type').disabled = true;
+            document.getElementById('creator-q-subtype').disabled = true;
+            document.getElementById('creator-type-locked-msg').classList.remove('hidden');
+        }
+
+        const msg = skipped > 0 ? `${added}件追加しました（${skipped}件は形式不正のためスキップ）` : `${added}件追加しました`;
+        window.App.Ui.showToast(msg);
     },
 
     update: function () {

@@ -29,6 +29,13 @@ App.Design = {
     // step). Only the core per-question visual fields — title/qnumber
     // reveal-card styling (prodDesign) is intentionally left out, per the
     // request to drop that entirely.
+    // Native <input type=color> only accepts strict #rrggbb — fall back to
+    // a neutral swatch color for values like "transparent"/rgba(...)/"" so
+    // opening the picker doesn't silently coerce those to black.
+    _toHexOrDefault: function (value, fallback = '#000000') {
+        return /^#[0-9a-fA-F]{6}$/.test(value || '') ? value : fallback;
+    },
+
     renderInlineChooser: function (container, design, onChange) {
         if (!container) return;
 
@@ -36,8 +43,8 @@ App.Design = {
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
                 <label style="flex:0 0 84px; color:#94a3b8; font-size:0.75rem;">${label}</label>
                 ${type === 'color'
-                ? `<input type="text" data-key="${key}" value="${design[key] ?? ''}" style="flex:1; padding:5px 7px; background:#1e293b; border:1px solid #475569; border-radius:6px; color:#fff; font-size:0.78rem;">
-                   <span data-swatch="${key}" style="width:22px; height:22px; border-radius:5px; border:1px solid #475569; background:${design[key] || 'transparent'}; flex-shrink:0;"></span>`
+                ? `<input type="color" data-color-key="${key}" value="${this._toHexOrDefault(design[key])}" style="width:30px; height:30px; padding:0; border:1px solid #475569; border-radius:6px; background:none; flex-shrink:0; cursor:pointer;">
+                   <input type="text" data-key="${key}" value="${design[key] ?? ''}" style="flex:1; padding:5px 7px; background:#1e293b; border:1px solid #475569; border-radius:6px; color:#fff; font-size:0.78rem;">`
                 : `<input type="text" data-key="${key}" value="${design[key] ?? ''}" style="flex:1; padding:5px 7px; background:#1e293b; border:1px solid #475569; border-radius:6px; color:#fff; font-size:0.78rem;" ${extra}>`
             }
             </div>
@@ -49,6 +56,13 @@ App.Design = {
                 <select data-key="${key}" style="flex:1; padding:5px 7px; background:#1e293b; border:1px solid #475569; border-radius:6px; color:#fff; font-size:0.78rem;">
                     ${options.map(o => `<option value="${o.v}" ${design[key] === o.v ? 'selected' : ''}>${o.t}</option>`).join('')}
                 </select>
+            </div>
+        `;
+
+        const numberField = (label, key, min, max) => `
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                <label style="flex:0 0 84px; color:#94a3b8; font-size:0.75rem;">${label}</label>
+                <input type="number" data-key="${key}" value="${design[key] ?? ''}" min="${min}" max="${max}" placeholder="自動" style="flex:1; padding:5px 7px; background:#1e293b; border:1px solid #475569; border-radius:6px; color:#fff; font-size:0.78rem;">
             </div>
         `;
 
@@ -64,16 +78,28 @@ App.Design = {
             ${field('背景色', 'cBgColor', 'color')}
             ${field('枠色', 'cBorderColor', 'color')}
             ${field('文字サイズ', 'cFontSize', 'text')}
+            <div style="color:#666; font-size:0.7rem; margin:8px 0 4px; border-top:1px dashed #333; padding-top:6px;">選択肢の配置（選択式のみ）</div>
+            ${numberField('行数', 'gridRows', 1, 10)}
+            ${numberField('列数', 'gridCols', 1, 10)}
             <div style="color:#666; font-size:0.7rem; margin:8px 0 4px; border-top:1px dashed #333; padding-top:6px;">レイアウト</div>
             ${selectField('配置', 'align', [{ v: 'left', t: '左寄せ' }, { v: 'center', t: '中央' }, { v: 'right', t: '右寄せ' }])}
             ${selectField('画面分割', 'layout', [{ v: 'standard', t: '上下分割 (標準)' }, { v: 'split', t: '左右分割' }])}
         `;
 
-        container.querySelectorAll('input[data-key]').forEach(inp => {
+        container.querySelectorAll('input[type="text"][data-key], input[type="number"][data-key]').forEach(inp => {
             inp.oninput = () => {
                 design[inp.dataset.key] = inp.value;
-                const swatch = container.querySelector(`[data-swatch="${inp.dataset.key}"]`);
-                if (swatch) swatch.style.background = inp.value || 'transparent';
+                const picker = container.querySelector(`input[type="color"][data-color-key="${inp.dataset.key}"]`);
+                if (picker) picker.value = this._toHexOrDefault(inp.value, picker.value);
+                if (onChange) onChange();
+            };
+        });
+        container.querySelectorAll('input[type="color"][data-color-key]').forEach(picker => {
+            picker.oninput = () => {
+                const key = picker.dataset.colorKey;
+                design[key] = picker.value;
+                const textInp = container.querySelector(`input[type="text"][data-key="${key}"]`);
+                if (textInp) textInp.value = picker.value;
                 if (onChange) onChange();
             };
         });
