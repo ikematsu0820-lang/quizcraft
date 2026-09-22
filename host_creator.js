@@ -338,6 +338,18 @@ window.App.Creator = {
 
             // Add choice button + Shuffle option in options panel
             if (optionsExtra) {
+                // Shuffle checkbox (set via innerHTML first, before any appendChild
+                // with JS-attached listeners — innerHTML += re-serializes existing
+                // children and strips their event listeners)
+                optionsExtra.innerHTML = `
+                    <div style="margin-bottom:12px;">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:#94a3b8; font-size:0.9rem;">
+                            <input type="checkbox" id="choice-shuffle-chk" ${data?.shuffle !== false ? 'checked' : ''}>
+                            <span>選択肢をシャッフルする</span>
+                        </label>
+                    </div>
+                `;
+
                 // Add-choice button at the top of options
                 const addBtnDiv = document.createElement('div');
                 addBtnDiv.style.cssText = 'margin-bottom:14px;';
@@ -346,17 +358,7 @@ window.App.Creator = {
                 addBtn.style.cssText = 'background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4); border-radius:8px; color:#00e5ff; padding:8px 20px; cursor:pointer; font-size:0.9rem; width:100%;';
                 addBtn.onclick = () => this.addChoiceInput(choicesDiv);
                 addBtnDiv.appendChild(addBtn);
-                optionsExtra.appendChild(addBtnDiv);
-
-                // Shuffle checkbox
-                optionsExtra.innerHTML += `
-                    <div style="margin-bottom:12px;">
-                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:#94a3b8; font-size:0.9rem;">
-                            <input type="checkbox" id="choice-shuffle-chk" ${data?.shuffle !== false ? 'checked' : ''}>
-                            <span>選択肢をシャッフルする</span>
-                        </label>
-                    </div>
-                `;
+                optionsExtra.insertBefore(addBtnDiv, optionsExtra.firstChild);
             }
         }
 
@@ -410,18 +412,11 @@ window.App.Creator = {
                 for (let i = 0; i < 4; i++) this.addSortInput(sortDiv, i);
             }
 
-            const addBtnWrap = document.createElement('div');
-            addBtnWrap.style.cssText = 'text-align:center; margin-top:10px;';
-            const addBtn = document.createElement('button');
-            addBtn.textContent = '＋ 項目を追加';
-            addBtn.style.cssText = 'background:rgba(0,229,255,0.1); border:1px dashed rgba(0,229,255,0.4); border-radius:8px; color:#00e5ff; padding:8px 20px; cursor:pointer; font-size:0.9rem;';
-            addBtn.onclick = () => this.addSortInput(sortDiv);
-            addBtnWrap.appendChild(addBtn);
-            container.appendChild(addBtnWrap);
-
-            // Shuffle option in options panel
+            // Add-item button + Shuffle option in options panel
             if (optionsExtra) {
-                optionsExtra.innerHTML += `
+                // Shuffle checkbox (set via innerHTML first — innerHTML += after an
+                // appendChild would strip that element's JS-attached listeners)
+                optionsExtra.innerHTML = `
                     <div style="margin-bottom:12px;">
                         <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:#94a3b8; font-size:0.9rem;">
                             <input type="checkbox" id="sort-shuffle-chk" ${data?.shuffle !== false ? 'checked' : ''}>
@@ -429,6 +424,15 @@ window.App.Creator = {
                         </label>
                     </div>
                 `;
+
+                const addBtnDiv = document.createElement('div');
+                addBtnDiv.style.cssText = 'margin-bottom:14px;';
+                const addBtn = document.createElement('button');
+                addBtn.textContent = '＋ 項目を追加';
+                addBtn.style.cssText = 'background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4); border-radius:8px; color:#00e5ff; padding:8px 20px; cursor:pointer; font-size:0.9rem; width:100%;';
+                addBtn.onclick = () => this.addSortInput(sortDiv);
+                addBtnDiv.appendChild(addBtn);
+                optionsExtra.insertBefore(addBtnDiv, optionsExtra.firstChild);
             }
         }
         else if (type.startsWith('free')) {
@@ -509,15 +513,18 @@ window.App.Creator = {
             if (data) data.c.forEach((txt, i) => this.addMultiInput(multiDiv, i, txt, isRanking));
             else for (let i = 0; i < 5; i++) this.addMultiInput(multiDiv, i, '', isRanking);
 
-            const addBtnWrap = document.createElement('div');
-            addBtnWrap.style.cssText = 'text-align:center; margin-top:10px;';
-            const addBtnText = isRanking ? '＋ ランキングを追加' : '＋ 正解を追加';
-            const addBtn = document.createElement('button');
-            addBtn.textContent = addBtnText;
-            addBtn.style.cssText = 'background:rgba(0,229,255,0.1); border:1px dashed rgba(0,229,255,0.4); border-radius:8px; color:#00e5ff; padding:8px 20px; cursor:pointer; font-size:0.9rem;';
-            addBtn.onclick = () => this.addMultiInput(multiDiv, undefined, '', isRanking);
-            addBtnWrap.appendChild(addBtn);
-            container.appendChild(addBtnWrap);
+            // Add-item button in options panel
+            if (optionsExtra) {
+                const addBtnDiv = document.createElement('div');
+                addBtnDiv.style.cssText = 'margin-bottom:14px;';
+                const addBtnText = isRanking ? '＋ ランキングを追加' : '＋ 正解を追加';
+                const addBtn = document.createElement('button');
+                addBtn.textContent = addBtnText;
+                addBtn.style.cssText = 'background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4); border-radius:8px; color:#00e5ff; padding:8px 20px; cursor:pointer; font-size:0.9rem; width:100%;';
+                addBtn.onclick = () => this.addMultiInput(multiDiv, undefined, '', isRanking);
+                addBtnDiv.appendChild(addBtn);
+                optionsExtra.appendChild(addBtnDiv);
+            }
 
             // Sub-type
             setupOptSubtype([
@@ -806,8 +813,8 @@ window.App.Creator = {
         const frame = document.getElementById('creator-monitor-preview');
         const frameH = frame ? frame.offsetHeight : 400;
 
-        // Reserve ~32% for question box + label + add-btn + gaps
-        const choicesAreaH = frameH * 0.60;
+        // Reserve ~24% for question box + label + gaps (question box was shrunk to give choices more room)
+        const choicesAreaH = frameH * 0.70;
         const rowH = Math.max(20, (choicesAreaH / n) - 2); // 2px gap
 
         // Vertical padding: at most 12% of rowH each side
