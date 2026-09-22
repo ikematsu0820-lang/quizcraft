@@ -757,11 +757,35 @@ window.App.Creator = {
             qText.style.setProperty('text-align', d.align || 'center', 'important');
         }
 
-        document.querySelectorAll('#creator-form-container .choice-label-text, #creator-form-container .row-label').forEach(el => {
-            if (d.qBorderColor) el.style.color = d.qBorderColor;
-        });
+        // A/B/C/D labels stay the app's fixed cyan accent — they're an editor
+        // affordance, not part of the on-air 問題文/選択肢 design, so they
+        // don't track any design color (previously wrongly tied to
+        // qBorderColor, which looked like an unrelated color was "linked").
+
+        // input/select/textarea get a global "color:#fff !important" reset
+        // (style_host.css), so a plain .style.color assignment loses to it —
+        // use setProperty('color', v, 'important') to win the cascade. Also
+        // set it as a CSS var so the ::placeholder text (shown before the
+        // user types anything) visibly reflects the color too — ::placeholder
+        // can't be reached via .style, only via a stylesheet rule.
         document.querySelectorAll('#creator-form-container .choice-text-input, #creator-form-container .row-input').forEach(el => {
-            if (d.cTextColor) el.style.setProperty('color', d.cTextColor, 'important');
+            if (d.cTextColor) {
+                el.style.setProperty('color', d.cTextColor, 'important');
+                el.style.setProperty('--creator-choice-text-color', d.cTextColor);
+            }
+        });
+
+        // 選択背景/選択枠 — applied to each row (the editor's own
+        // correct-answer highlight is layered on top for .choice-row, so it
+        // stays visible while editing).
+        document.querySelectorAll('#creator-form-container .choice-row').forEach(row => {
+            const chk = row.querySelector('input[type="checkbox"], input[type="radio"]');
+            row.style.background = this.rowBackground(chk && chk.checked);
+            if (d.cBorderColor) row.style.borderBottomColor = d.cBorderColor;
+        });
+        document.querySelectorAll('#creator-form-container .sort-row, #creator-form-container .multi-row, #creator-form-container .assoc-row').forEach(row => {
+            if (d.cBgColor) row.style.background = d.cBgColor;
+            if (d.cBorderColor) row.style.borderBottomColor = d.cBorderColor;
         });
 
         // 選択肢の配置（行数/列数）: mirrors viewer.js's .c-area grid — only
@@ -783,6 +807,20 @@ window.App.Creator = {
         }
     },
 
+    // Background for a .choice-row, reflecting 選択背景 (cBgColor) as the
+    // base tint while keeping the correct-answer highlight visible on top
+    // (an editor-only affordance — the real viewer has no "checked" state).
+    rowBackground: function (checked) {
+        const c = (window.App.Data.currentDesign || {}).cBgColor;
+        if (checked) return c ? `linear-gradient(90deg, rgba(0,229,255,0.35) 0%, ${c} 100%)` : 'linear-gradient(90deg,rgba(0,229,255,0.12) 0%,transparent 100%)';
+        return c || 'linear-gradient(90deg, rgba(255,255,255,0.04) 0%, transparent 100%)';
+    },
+    rowHoverBackground: function (checked) {
+        if (checked) return this.rowBackground(true);
+        const c = (window.App.Data.currentDesign || {}).cBgColor;
+        return c ? `linear-gradient(90deg, rgba(255,255,255,0.15) 0%, ${c} 100%)` : 'linear-gradient(90deg,rgba(255,255,255,0.08) 0%,transparent 100%)';
+    },
+
     // --- Choice Input: viewer .choice-item style (full-width horizontal row) ---
     addChoiceInput: function (parent, index, text = "", checked = false) {
         const limit = (this.choiceSubtype === 'multi') ? 36 : 20;
@@ -794,23 +832,20 @@ window.App.Creator = {
 
         const row = document.createElement('div');
         row.className = 'choice-row';
-        // Mirrors viewer .choice-item: semi-transparent background, slight bottom border
+        const borderC = (window.App.Data.currentDesign || {}).cBorderColor;
         row.style.cssText = `
             display:flex; align-items:center;
-            background:linear-gradient(90deg, rgba(255,255,255,0.04) 0%, transparent 100%);
-            border-bottom:1px solid rgba(255,255,255,0.1);
+            background:${this.rowBackground(checked)};
+            border-bottom:1px solid ${borderC || 'rgba(255,255,255,0.1)'};
             border-radius:6px;
             cursor:pointer; transition:background 0.2s;
             flex:1; min-height:0; overflow:hidden;
-            ${checked ? 'background:linear-gradient(90deg,rgba(0,229,255,0.12) 0%,transparent 100%);' : ''}
         `;
         row.onmouseenter = () => {
-            if (!chk.checked) row.style.background = 'linear-gradient(90deg,rgba(255,255,255,0.08) 0%,transparent 100%)';
+            if (!chk.checked) row.style.background = this.rowHoverBackground(false);
         };
         row.onmouseleave = () => {
-            row.style.background = chk.checked
-                ? 'linear-gradient(90deg,rgba(0,229,255,0.12) 0%,transparent 100%)'
-                : 'linear-gradient(90deg,rgba(255,255,255,0.04) 0%,transparent 100%)';
+            row.style.background = this.rowBackground(chk.checked);
         };
 
         // Label badge — mirrors viewer .choice-prefix
@@ -832,11 +867,13 @@ window.App.Creator = {
         inp.className = 'choice-text-input';
         inp.placeholder = `選択肢 ${label}`;
         inp.value = text;
+        const cTextC = (window.App.Data.currentDesign || {}).cTextColor;
         inp.style.cssText = `
             flex:1; background:transparent; border:none;
-            color:#ddd; font-size:min(1rem,2.8vw);
+            color:${cTextC || '#ddd'}; font-size:min(1rem,2.8vw);
             outline:none; padding:2px 0;
         `;
+        if (cTextC) inp.style.setProperty('--creator-choice-text-color', cTextC);
         inp.onfocus = () => inp.style.setProperty('color', '#fff', 'important');
         inp.onblur  = () => inp.style.setProperty('color', (window.App.Data.currentDesign && window.App.Data.currentDesign.cTextColor) || '#ddd', 'important');
 

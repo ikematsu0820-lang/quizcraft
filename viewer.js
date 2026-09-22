@@ -907,7 +907,7 @@ window.App.Viewer = {
                         const prefixLabel = q.type.startsWith('ranking') ? `${i + 1}位` : String.fromCharCode(65 + i);
 
                         html += `<div class="choice-item" style="${colorStyle} ${bgStyle} ${bStyle} ${transformStyle}${d.cFontSize ? ` font-size:${d.cFontSize};` : ''} transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-                            <span class="choice-prefix" style="color:${isRevealed || isMissed ? '#fff' : borderColor}; ${isMultiType && !q.type.startsWith('ranking') && !isAssoc ? 'display:none;' : ''}">${prefixLabel}</span>
+                            <span class="choice-prefix" style="color:${isRevealed || isMissed ? '#fff' : '#00e5ff'}; ${isMultiType && !q.type.startsWith('ranking') && !isAssoc ? 'display:none;' : ''}">${prefixLabel}</span>
                             <span style="${isHidden ? 'visibility:hidden;' : ''}">${c}</span>
                         </div>`;
                     });
@@ -961,7 +961,7 @@ window.App.Viewer = {
                         const prefixLabel = q.type.startsWith('ranking') ? `${i + 1}位` : String.fromCharCode(65 + i);
 
                         html += `<div class="choice-item" style="${colorStyle} ${bgStyle} ${bStyle} ${transformStyle}${d.cFontSize ? ` font-size:${d.cFontSize};` : ''} transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-                            <span class="choice-prefix" style="color:${isRevealed || isMissed ? '#fff' : borderColor}; ${isMultiType && !q.type.startsWith('ranking') && !isAssoc ? 'display:none;' : ''}">${prefixLabel}</span>
+                            <span class="choice-prefix" style="color:${isRevealed || isMissed ? '#fff' : '#00e5ff'}; ${isMultiType && !q.type.startsWith('ranking') && !isAssoc ? 'display:none;' : ''}">${prefixLabel}</span>
                             <span style="${isHidden ? 'visibility:hidden;' : ''}">${c}</span>
                         </div>`;
                     });

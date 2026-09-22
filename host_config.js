@@ -257,23 +257,6 @@ App.Config = {
         if (soloRecoverySel) soloRecoverySel.onchange = () => { conf.soloRecovery = soloRecoverySel.value === 'none' ? 0 : parseInt(soloRecoverySel.value) || 0; };
     },
 
-    // Compact checkbox-style row (no icon, single line) used for the
-    // 解答権/正解ボーナス pickers — kept short so more options fit inside
-    // the fixed-height inline panel without scrolling.
-    _renderRadioRow: function (rows, current) {
-        return rows.map(r => `
-            <label class="compact-radio-row" data-val="${r.value}" style="
-                display:flex; align-items:center; gap:8px; padding:6px 10px; margin-bottom:4px;
-                border-radius:8px; border:1px solid ${r.value === current ? '#00e5ff' : '#333'};
-                background:${r.value === current ? 'rgba(0,229,255,0.08)' : (r.disabled ? '#161616' : '#1a1a1a')};
-                cursor:${r.disabled ? 'not-allowed' : 'pointer'}; opacity:${r.disabled ? '0.45' : '1'};
-            ">
-                <span style="font-size:0.95em; color:${r.value === current ? '#00e5ff' : (r.disabled ? '#444' : '#888')}; flex-shrink:0;">${r.value === current ? '☑' : '☐'}</span>
-                <span class="compact-radio-label" style="font-weight:bold; color:${r.value === current ? '#00e5ff' : (r.disabled ? '#444' : '#ccc')}; font-size:0.85em;">${r.label}</span>
-            </label>
-        `).join('');
-    },
-
     // 解答権 — pick mode + edit that mode's fields, in one compact modal.
     // All three renderInlineXxx functions below render directly into a
     // given container (no modal/backdrop) and apply every change to `conf`
@@ -387,17 +370,20 @@ App.Config = {
 
         const render = () => {
             container.innerHTML = `
-                <div id="gametype-chooser-radios">${this._renderRadioRow(types, current)}</div>
-                <div id="gametype-chooser-detail" style="margin-top:12px; padding-top:12px; border-top:1px dashed #333;"></div>
+                <select id="gametype-chooser-select" style="
+                    width:100%; padding:6px 8px; background:#1e293b; border:1px solid #475569;
+                    border-radius:8px; color:#fff; font-size:0.85rem; margin-bottom:10px;
+                ">
+                    ${types.map(t => `<option value="${t.value}" ${t.value === current ? 'selected' : ''}>${t.label}</option>`).join('')}
+                </select>
+                <div id="gametype-chooser-detail"></div>
             `;
-            container.querySelectorAll('.compact-radio-row').forEach(row => {
-                row.onclick = () => {
-                    current = row.dataset.val;
-                    conf.gameType = current;
-                    render();
-                    if (onChange) onChange();
-                };
-            });
+            container.querySelector('#gametype-chooser-select').onchange = (e) => {
+                current = e.target.value;
+                conf.gameType = current;
+                render();
+                if (onChange) onChange();
+            };
             renderDetail();
         };
         conf.gameType = current;

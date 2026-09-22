@@ -69,6 +69,16 @@ select option {
     box-shadow: none !important;
 }
 
+/* 選択文字 (cTextColor) also needs to show on the placeholder text (before
+   the user types anything) — ::placeholder can't be reached via .style,
+   only via a stylesheet rule, so applyDesignToPreview() writes the color
+   into this custom property instead. */
+#creator-form-container .choice-text-input::placeholder,
+#creator-form-container .row-input::placeholder {
+    color: var(--creator-choice-text-color, rgba(255, 255, 255, 0.35));
+    opacity: 1;
+}
+
 ::placeholder {
     color: rgba(255, 255, 255, 0.4);
 }
