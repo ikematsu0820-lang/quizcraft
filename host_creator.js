@@ -82,7 +82,7 @@ window.App.Creator = {
             { v: 'sort', t: APP_TEXT.Creator.TypeSort },
             { v: 'multi_group', t: APP_TEXT.Creator.TypeMulti },
             { v: 'assoc_group', t: APP_TEXT.Creator.TypeAssoc },
-            { v: 'num_group', t: '⑥ 数字予想' }
+            { v: 'num_group', t: '数字予想' }
         ];
 
         const placeholder = document.createElement('option');
