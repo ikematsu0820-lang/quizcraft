@@ -607,6 +607,7 @@ window.App.Creator = {
         }
 
         this.renderRulesSection();
+        this.applyDesignToPreview();
     },
 
     // Rules (win condition / time limit / scoring etc.) used to live on a
@@ -727,9 +728,67 @@ window.App.Creator = {
             window.App.Config.renderInlineGameTypeChooser(document.getElementById('creator-inline-gametype'), conf, onChange);
             window.App.Config.renderInlineTimeLimitChooser(document.getElementById('creator-inline-timelimit'), conf, onChange);
         } else if (key === 'design' && window.App.Design && window.App.Design.renderInlineChooser) {
-            window.App.Design.renderInlineChooser(document.getElementById('creator-inline-design'), window.App.Data.currentDesign, onChange);
+            window.App.Design.renderInlineChooser(document.getElementById('creator-inline-design'), window.App.Data.currentDesign, () => {
+                this.applyDesignToPreview();
+                onChange();
+            });
         }
         // 'edit' panel content is already kept current by renderForm().
+    },
+
+    // Reflects the current デザイン colors onto the live 16:9 preview, so
+    // changing a color shows up immediately instead of only after hosting.
+    // Only touches colors — row backgrounds used for the correct-answer
+    // highlight/hover states are left alone so this can't fight with that.
+    applyDesignToPreview: function () {
+        const d = window.App.Data.currentDesign || {};
+
+        const screen = document.getElementById('creator-monitor-preview');
+        if (screen && d.mainBgColor) {
+            screen.style.backgroundColor = d.mainBgColor;
+            screen.style.backgroundImage = (d.mainBgColor === '#0a0a0a')
+                ? 'radial-gradient(circle at center, #1a1a1a 0%, #000000 100%)'
+                : 'none';
+        }
+
+        const qArea = document.getElementById('creator-monitor-q-area');
+        if (qArea) {
+            if (d.qBorderColor) qArea.style.borderColor = d.qBorderColor;
+            if (d.qBgColor) qArea.style.backgroundColor = d.qBgColor;
+        }
+        // input/select/textarea get a global "color:#fff !important" reset
+        // (style_host.css), so a plain .style.color assignment loses to it —
+        // use setProperty('color', v, 'important') to win the cascade.
+        const qText = document.getElementById('question-text');
+        if (qText) {
+            if (d.qTextColor) qText.style.setProperty('color', d.qTextColor, 'important');
+            qText.style.setProperty('text-align', d.align || 'center', 'important');
+        }
+
+        document.querySelectorAll('#creator-form-container .choice-label-text, #creator-form-container .row-label').forEach(el => {
+            if (d.qBorderColor) el.style.color = d.qBorderColor;
+        });
+        document.querySelectorAll('#creator-form-container .choice-text-input, #creator-form-container .row-input').forEach(el => {
+            if (d.cTextColor) el.style.setProperty('color', d.cTextColor, 'important');
+        });
+
+        // 選択肢の配置（行数/列数）: mirrors viewer.js's .c-area grid — only
+        // meaningful for choice questions, and only when both are set.
+        const formContainer = document.getElementById('creator-form-container');
+        if (formContainer && (this.currentType || '').startsWith('choice')) {
+            const rows = parseInt(d.gridRows) || 0;
+            const cols = parseInt(d.gridCols) || 0;
+            if (rows > 0 && cols > 0) {
+                formContainer.style.display = 'grid';
+                formContainer.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+                formContainer.style.gridTemplateRows = '';
+                formContainer.style.flexDirection = '';
+            } else {
+                formContainer.style.display = 'flex';
+                formContainer.style.flexDirection = 'column';
+                formContainer.style.gridTemplateColumns = '';
+            }
+        }
     },
 
     // --- Choice Input: viewer .choice-item style (full-width horizontal row) ---
@@ -786,8 +845,8 @@ window.App.Creator = {
             color:#ddd; font-size:min(1rem,2.8vw);
             outline:none; padding:2px 0;
         `;
-        inp.onfocus = () => inp.style.color = '#fff';
-        inp.onblur  = () => inp.style.color = '#ddd';
+        inp.onfocus = () => inp.style.setProperty('color', '#fff', 'important');
+        inp.onblur  = () => inp.style.setProperty('color', (window.App.Data.currentDesign && window.App.Data.currentDesign.cTextColor) || '#ddd', 'important');
 
         // Correct-answer toggle
         const inputType = (this.choiceSubtype === 'single') ? 'radio' : 'checkbox';
@@ -827,6 +886,7 @@ window.App.Creator = {
         parent.appendChild(row);
         this.updateLabels(parent);
         this.updateRowSizes(parent);
+        this.applyDesignToPreview();
     },
 
     addSortInput: function (parent, index, text = "", rank = "") {
@@ -872,6 +932,7 @@ window.App.Creator = {
         parent.appendChild(row);
         this.updateSortLabels(parent);
         this.updateRowSizes(parent);
+        this.applyDesignToPreview();
     },
 
     updateSortLabels: function (parent) {
@@ -924,6 +985,7 @@ window.App.Creator = {
         };
         parent.appendChild(row);
         this.updateRowSizes(parent);
+        this.applyDesignToPreview();
     },
 
     addAssocInput: function (parent, index, text = "") {
@@ -953,6 +1015,7 @@ window.App.Creator = {
         };
         parent.appendChild(row);
         this.updateRowSizes(parent);
+        this.applyDesignToPreview();
     },
 
     addBjCardInput: function (parent, index, text = "", value = "") {

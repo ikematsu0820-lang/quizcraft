@@ -44,6 +44,31 @@ select option {
     color: #fff;
 }
 
+/* The 問題作成 live preview edits question/choice text via real
+   <textarea>/<input> elements, but they must LOOK like the plain text
+   the real monitor (viewer.js .q-area / .choice-item) renders — a
+   single frame, not a form control boxed inside it. Without this,
+   the global input/select/textarea reset above (background + border,
+   both !important) draws its own nested box, creating a "double
+   frame" that doesn't match what actually airs. */
+#creator-monitor-q-area textarea,
+#creator-form-container .choice-text-input,
+#creator-form-container .row-input {
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    display: block !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}
+
+#creator-monitor-q-area textarea:focus {
+    box-shadow: none !important;
+}
+
 ::placeholder {
     color: rgba(255, 255, 255, 0.4);
 }

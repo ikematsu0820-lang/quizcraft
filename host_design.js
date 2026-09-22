@@ -42,11 +42,23 @@ App.Design = {
         const field = (label, key, type, extra = '') => `
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
                 <label style="flex:0 0 84px; color:#94a3b8; font-size:0.75rem;">${label}</label>
-                ${type === 'color'
-                ? `<input type="color" data-color-key="${key}" value="${this._toHexOrDefault(design[key])}" style="width:30px; height:30px; padding:0; border:1px solid #475569; border-radius:6px; background:none; flex-shrink:0; cursor:pointer;">
-                   <input type="text" data-key="${key}" value="${design[key] ?? ''}" style="flex:1; padding:5px 7px; background:#1e293b; border:1px solid #475569; border-radius:6px; color:#fff; font-size:0.78rem;">`
-                : `<input type="text" data-key="${key}" value="${design[key] ?? ''}" style="flex:1; padding:5px 7px; background:#1e293b; border:1px solid #475569; border-radius:6px; color:#fff; font-size:0.78rem;" ${extra}>`
-            }
+                <input type="text" data-key="${key}" value="${design[key] ?? ''}" style="flex:1; padding:5px 7px; background:#1e293b; border:1px solid #475569; border-radius:6px; color:#fff; font-size:0.78rem;" ${extra}>
+            </div>
+        `;
+
+        // Compact color swatches, 3 per row (no hex text field taking up
+        // room — the current value is still available as a hover tooltip).
+        const colorSwatch = (label, key) => `
+            <div style="display:flex; flex-direction:column; align-items:center; gap:3px; flex:1;">
+                <input type="color" data-color-key="${key}" value="${this._toHexOrDefault(design[key])}" title="${design[key] ?? ''}" style="
+                    width:100%; height:32px; padding:0; border:1px solid #475569; border-radius:6px; background:none; cursor:pointer;
+                ">
+                <span style="font-size:0.65rem; color:#94a3b8;">${label}</span>
+            </div>
+        `;
+        const colorRow = (items) => `
+            <div style="display:flex; gap:8px; margin-bottom:8px;">
+                ${items.map(([label, key]) => colorSwatch(label, key)).join('')}
             </div>
         `;
 
@@ -67,16 +79,12 @@ App.Design = {
         `;
 
         container.innerHTML = `
-            ${field('背景色', 'mainBgColor', 'color')}
+            ${colorRow([['全体背景', 'mainBgColor']])}
             <div style="color:#666; font-size:0.7rem; margin:8px 0 4px; border-top:1px dashed #333; padding-top:6px;">問題文</div>
-            ${field('文字色', 'qTextColor', 'color')}
-            ${field('背景色', 'qBgColor', 'color')}
-            ${field('枠色', 'qBorderColor', 'color')}
+            ${colorRow([['文字', 'qTextColor'], ['背景', 'qBgColor'], ['枠', 'qBorderColor']])}
             ${field('文字サイズ', 'qFontSize', 'text')}
             <div style="color:#666; font-size:0.7rem; margin:8px 0 4px; border-top:1px dashed #333; padding-top:6px;">選択肢</div>
-            ${field('文字色', 'cTextColor', 'color')}
-            ${field('背景色', 'cBgColor', 'color')}
-            ${field('枠色', 'cBorderColor', 'color')}
+            ${colorRow([['文字', 'cTextColor'], ['背景', 'cBgColor'], ['枠', 'cBorderColor']])}
             ${field('文字サイズ', 'cFontSize', 'text')}
             <div style="color:#666; font-size:0.7rem; margin:8px 0 4px; border-top:1px dashed #333; padding-top:6px;">選択肢の配置（選択式のみ）</div>
             ${numberField('行数', 'gridRows', 1, 10)}
@@ -89,8 +97,6 @@ App.Design = {
         container.querySelectorAll('input[type="text"][data-key], input[type="number"][data-key]').forEach(inp => {
             inp.oninput = () => {
                 design[inp.dataset.key] = inp.value;
-                const picker = container.querySelector(`input[type="color"][data-color-key="${inp.dataset.key}"]`);
-                if (picker) picker.value = this._toHexOrDefault(inp.value, picker.value);
                 if (onChange) onChange();
             };
         });
@@ -98,8 +104,7 @@ App.Design = {
             picker.oninput = () => {
                 const key = picker.dataset.colorKey;
                 design[key] = picker.value;
-                const textInp = container.querySelector(`input[type="text"][data-key="${key}"]`);
-                if (textInp) textInp.value = picker.value;
+                picker.title = picker.value;
                 if (onChange) onChange();
             };
         });
