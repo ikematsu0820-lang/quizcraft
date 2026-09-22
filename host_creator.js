@@ -15,7 +15,9 @@ window.App.Creator = {
         this.editingIndex = null;
         this.editingTitle = "";
         window.App.Data.createdQuestions = [];
-        window.App.Data.currentConfig = {};
+        window.App.Data.currentConfig = window.App.Config
+            ? JSON.parse(JSON.stringify(window.App.Config.DEFAULT_CONFIG))
+            : {};
         window.App.State.editingSetId = null;
         this.currentLetterSteps = [];
 
@@ -164,7 +166,9 @@ window.App.Creator = {
         window.App.State.editingSetId = key;
         this.editingTitle = item.title || "";
         window.App.Data.createdQuestions = item.questions || [];
-        window.App.Data.currentConfig = item.config || {};
+        window.App.Data.currentConfig = window.App.Config
+            ? { ...JSON.parse(JSON.stringify(window.App.Config.DEFAULT_CONFIG)), ...(item.config || {}) }
+            : (item.config || {});
 
         const btnSave = document.getElementById('save-to-cloud-btn');
         if (btnSave) btnSave.textContent = APP_TEXT.Creator.BtnUpdate;
@@ -604,17 +608,33 @@ window.App.Creator = {
     },
 
     // Rules (win condition / answer format / time limit / scoring etc.) used
-    // to live on a separate, standalone "ルール設定" screen (App.Config) that
-    // set-level settings independent of question creation. That screen's
+    // to live on a separate, standalone "ルール設定" screen (App.Config) whose
     // save button was broken (dead #config-action-area ids), so it never
-    // actually persisted anything. Its render functions already take the
-    // config object and question list as plain parameters and mutate the
-    // config object in place — no dependency on that screen's own state —
-    // so we reuse them here directly against the Creator's own live data.
+    // actually persisted anything. Rebuilt here as three compact quick-access
+    // buttons in the action bar (each opens a small modal, not a full sheet),
+    // reusing App.Config's modal logic which mutates App.Data.currentConfig
+    // directly — no dependency on that old screen's own state.
     renderRulesSection: function () {
-        if (!document.getElementById('config-builder-ui')) return;
-        if (!window.App.Config || !window.App.Config.renderBuilderForm) return;
-        window.App.Config.renderBuilderForm(window.App.Data.currentConfig, window.App.Data.createdQuestions);
+        const modeBtn = document.getElementById('creator-rule-mode-btn');
+        const gameTypeBtn = document.getElementById('creator-rule-gametype-btn');
+        const timeLimitBtn = document.getElementById('creator-rule-timelimit-btn');
+        if (!modeBtn || !gameTypeBtn || !timeLimitBtn) return;
+        if (!window.App.Config) return;
+
+        const conf = window.App.Data.currentConfig;
+        const questions = window.App.Data.createdQuestions;
+        window.App.Config.applyModeRestrictions(conf, questions);
+
+        const modeLabels = { normal: '一斉解答', buzz: '早押し', turn: '順番解答', solo: 'ソロ対戦' };
+        const gameTypeLabels = { score: '得点制', panel: 'パネル', slot: '変動得点制' };
+
+        modeBtn.innerHTML = `解答権<br><span style="font-size:0.75em; font-weight:normal; opacity:0.85;">${modeLabels[conf.mode] || conf.mode}</span>`;
+        gameTypeBtn.innerHTML = `正解ボーナス<br><span style="font-size:0.75em; font-weight:normal; opacity:0.85;">${gameTypeLabels[conf.gameType] || conf.gameType}</span>`;
+        timeLimitBtn.innerHTML = `制限時間<br><span style="font-size:0.75em; font-weight:normal; opacity:0.85;">${conf.timeLimitEnabled === 'on' ? conf.timeLimitSeconds + '秒' : 'OFF'}</span>`;
+
+        modeBtn.onclick = () => window.App.Config.openModeChooser(conf, questions, () => this.renderRulesSection());
+        gameTypeBtn.onclick = () => window.App.Config.openGameTypeChooser(conf, () => this.renderRulesSection());
+        timeLimitBtn.onclick = () => window.App.Config.openTimeLimitChooser(conf, () => this.renderRulesSection());
     },
 
     // --- Choice Input: viewer .choice-item style (full-width horizontal row) ---
@@ -1196,17 +1216,15 @@ window.App.Creator = {
             q.specialMode = q.specialMode || 'none';
         });
 
-        // Make sure the rules section (mode/gameType/time-limit auto-restrictions
-        // based on the questions just finalized above) is up to date before
-        // reading its UI state back out.
-        this.renderRulesSection();
+        // Re-apply mode restrictions based on the questions just finalized
+        // above (e.g. a blackjack question added last should still force
+        // turn-only mode even if the rules buttons were touched earlier).
+        if (window.App.Config) window.App.Config.applyModeRestrictions(window.App.Data.currentConfig, window.App.Data.createdQuestions);
 
         const data = {
             title: title,
             questions: window.App.Data.createdQuestions,
-            config: window.App.Config && window.App.Config.buildConfigFromUI
-                ? window.App.Config.buildConfigFromUI(window.App.Data.currentConfig)
-                : window.App.Data.currentConfig,
+            config: window.App.Data.currentConfig,
             updatedAt: firebase.database.ServerValue.TIMESTAMP
         };
 
