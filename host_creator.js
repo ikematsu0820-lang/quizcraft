@@ -51,7 +51,21 @@ window.App.Creator = {
         const sel = document.getElementById('creator-q-type');
         if (sel && type) {
             sel.value = type;
-            this.renderForm(type);
+            // Group types ('free', 'choice', 'multi_group', 'assoc_group',
+            // 'num_group') aren't renderable on their own — they need a
+            // resolved leaf subtype. renderForm(type) only handles this
+            // correctly for 'choice' (via its internal choiceSubtype
+            // default); every other group type would render blank and
+            // leave #creator-opt-subtype unselected. Resolve to each
+            // group's default subtype up front instead.
+            const groupDefaults = {
+                free: 'free_written',
+                choice: 'choice_single',
+                multi_group: 'multi_written',
+                assoc_group: 'assoc_written',
+                num_group: 'blackjack'
+            };
+            this.renderForm(groupDefaults[type] || type);
         }
     },
 
@@ -882,9 +896,20 @@ window.App.Creator = {
         const qText = document.getElementById('question-text').value.trim();
         if (!qText) { alert(APP_TEXT.Creator.AlertNoQ); return null; }
         const sel = document.getElementById('creator-q-type');
-        const subSel = document.getElementById('creator-q-subtype');
+        // NOTE: #creator-q-subtype is a legacy element that the card-based type
+        // picker (initWithType) never populates — it stays empty. The subtype
+        // actually shown/edited by the user lives in the options panel's
+        // #creator-opt-subtype, which renderForm keeps in sync via
+        // setupOptSubtype(). Fall back to the legacy select only if that's
+        // somehow unavailable.
+        const subSel = document.getElementById('creator-opt-subtype') || document.getElementById('creator-q-subtype');
+        // 'num_group' has exactly one leaf subtype ('blackjack') so renderForm
+        // never shows/populates a subtype dropdown for it — resolve it directly.
+        const groupDefaults = { num_group: 'blackjack' };
 
-        let rawType = (sel && (['free', 'multi_group', 'choice', 'assoc_group', 'num_group'].includes(sel.value))) ? subSel.value : (sel ? sel.value : 'choice');
+        let rawType = (sel && (['free', 'multi_group', 'choice', 'assoc_group', 'num_group'].includes(sel.value)))
+            ? (subSel.value || groupDefaults[sel.value] || sel.value)
+            : (sel ? sel.value : 'choice');
         let normalizedType = rawType;
         let choiceMode = 'single';
 
