@@ -23,6 +23,68 @@ App.Design = {
         layout: "standard"
     },
 
+    // Compact デザイン panel for the Creator's inline action-bar system
+    // (mirrors App.Config's renderInlineXxx pattern: render into a given
+    // container, mutate `design` directly on every change, no confirm
+    // step). Only the core per-question visual fields — title/qnumber
+    // reveal-card styling (prodDesign) is intentionally left out, per the
+    // request to drop that entirely.
+    renderInlineChooser: function (container, design, onChange) {
+        if (!container) return;
+
+        const field = (label, key, type, extra = '') => `
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                <label style="flex:0 0 84px; color:#94a3b8; font-size:0.75rem;">${label}</label>
+                ${type === 'color'
+                ? `<input type="text" data-key="${key}" value="${design[key] ?? ''}" style="flex:1; padding:5px 7px; background:#1e293b; border:1px solid #475569; border-radius:6px; color:#fff; font-size:0.78rem;">
+                   <span data-swatch="${key}" style="width:22px; height:22px; border-radius:5px; border:1px solid #475569; background:${design[key] || 'transparent'}; flex-shrink:0;"></span>`
+                : `<input type="text" data-key="${key}" value="${design[key] ?? ''}" style="flex:1; padding:5px 7px; background:#1e293b; border:1px solid #475569; border-radius:6px; color:#fff; font-size:0.78rem;" ${extra}>`
+            }
+            </div>
+        `;
+
+        const selectField = (label, key, options) => `
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                <label style="flex:0 0 84px; color:#94a3b8; font-size:0.75rem;">${label}</label>
+                <select data-key="${key}" style="flex:1; padding:5px 7px; background:#1e293b; border:1px solid #475569; border-radius:6px; color:#fff; font-size:0.78rem;">
+                    ${options.map(o => `<option value="${o.v}" ${design[key] === o.v ? 'selected' : ''}>${o.t}</option>`).join('')}
+                </select>
+            </div>
+        `;
+
+        container.innerHTML = `
+            ${field('背景色', 'mainBgColor', 'color')}
+            <div style="color:#666; font-size:0.7rem; margin:8px 0 4px; border-top:1px dashed #333; padding-top:6px;">問題文</div>
+            ${field('文字色', 'qTextColor', 'color')}
+            ${field('背景色', 'qBgColor', 'color')}
+            ${field('枠色', 'qBorderColor', 'color')}
+            ${field('文字サイズ', 'qFontSize', 'text')}
+            <div style="color:#666; font-size:0.7rem; margin:8px 0 4px; border-top:1px dashed #333; padding-top:6px;">選択肢</div>
+            ${field('文字色', 'cTextColor', 'color')}
+            ${field('背景色', 'cBgColor', 'color')}
+            ${field('枠色', 'cBorderColor', 'color')}
+            ${field('文字サイズ', 'cFontSize', 'text')}
+            <div style="color:#666; font-size:0.7rem; margin:8px 0 4px; border-top:1px dashed #333; padding-top:6px;">レイアウト</div>
+            ${selectField('配置', 'align', [{ v: 'left', t: '左寄せ' }, { v: 'center', t: '中央' }, { v: 'right', t: '右寄せ' }])}
+            ${selectField('画面分割', 'layout', [{ v: 'standard', t: '上下分割 (標準)' }, { v: 'split', t: '左右分割' }])}
+        `;
+
+        container.querySelectorAll('input[data-key]').forEach(inp => {
+            inp.oninput = () => {
+                design[inp.dataset.key] = inp.value;
+                const swatch = container.querySelector(`[data-swatch="${inp.dataset.key}"]`);
+                if (swatch) swatch.style.background = inp.value || 'transparent';
+                if (onChange) onChange();
+            };
+        });
+        container.querySelectorAll('select[data-key]').forEach(sel => {
+            sel.onchange = () => {
+                design[sel.dataset.key] = sel.value;
+                if (onChange) onChange();
+            };
+        });
+    },
+
     init: function (targetKey = null, targetData = null) {
         App.Ui.showView(App.Ui.views.design);
 

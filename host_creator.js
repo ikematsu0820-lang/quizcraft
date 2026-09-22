@@ -19,6 +19,9 @@ window.App.Creator = {
         window.App.Data.currentConfig = window.App.Config
             ? JSON.parse(JSON.stringify(window.App.Config.DEFAULT_CONFIG))
             : {};
+        window.App.Data.currentDesign = window.App.Design
+            ? JSON.parse(JSON.stringify(window.App.Design.defaults))
+            : {};
         window.App.State.editingSetId = null;
         this.currentLetterSteps = [];
 
@@ -171,6 +174,17 @@ window.App.Creator = {
             ? { ...JSON.parse(JSON.stringify(window.App.Config.DEFAULT_CONFIG)), ...(item.config || {}) }
             : (item.config || {});
 
+        // Design is shared across the whole set (Creator.save() copies one
+        // design object onto every question that doesn't already have its
+        // own) — seed the editor from the first question's design/layout/align.
+        const firstQForDesign = (item.questions || [])[0] || {};
+        window.App.Data.currentDesign = window.App.Design
+            ? { ...JSON.parse(JSON.stringify(window.App.Design.defaults)), ...(firstQForDesign.design || {}) }
+            : (firstQForDesign.design || {});
+        window.App.Data.currentDesign.layout = firstQForDesign.layout || window.App.Data.currentDesign.layout || 'standard';
+        window.App.Data.currentDesign.align = firstQForDesign.align || window.App.Data.currentDesign.align || 'center';
+        window.App.Data.currentDesign.cAlign = firstQForDesign.cAlign || window.App.Data.currentDesign.cAlign || 'left';
+
         const btnSave = document.getElementById('save-to-cloud-btn');
         if (btnSave) btnSave.textContent = APP_TEXT.Creator.BtnUpdate;
 
@@ -257,12 +271,6 @@ window.App.Creator = {
             subSel.disabled = true;
             document.getElementById('creator-type-locked-msg').classList.remove('hidden');
 
-            if (document.getElementById('creator-set-layout')) document.getElementById('creator-set-layout').value = firstQ.layout || 'standard';
-            if (window.updateAlignUI) window.updateAlignUI(firstQ.align || 'center');
-
-            if (window.applyDesignToUI && firstQ.design) {
-                window.applyDesignToUI(firstQ.design, firstQ.layout, firstQ.align);
-            }
         } else {
             sel.disabled = false;
             subSel.disabled = false;
@@ -284,7 +292,6 @@ window.App.Creator = {
         const inlineAddBtn = document.getElementById('creator-inline-add-btn');
         if (inlineAddBtn) inlineAddBtn.textContent = APP_TEXT.Creator.BtnAdd;
         document.getElementById('question-text').value = '';
-        document.getElementById('creator-commentary').value = '';
 
         const sel = document.getElementById('creator-q-type');
         // Same fix as getData(): #creator-q-subtype is a dead legacy element
@@ -610,22 +617,22 @@ window.App.Creator = {
         this.renderRulesSection();
     },
 
-    // Rules (win condition / answer format / time limit / scoring etc.) used
-    // to live on a separate, standalone "ルール設定" screen (App.Config) whose
-    // save button was broken (dead #config-action-area ids), so it never
-    // actually persisted anything. Rebuilt as four toggle buttons that all
-    // share one fixed-height panel right above the action bar (問題編集's
-    // choice-edit controls, and 解答権/正解ボーナス/制限時間's inline
-    // pickers) — only one panel's content is visible at a time, so the
-    // panel never grows or shrinks between them.
+    // Rules (win condition / time limit / scoring etc.) used to live on a
+    // separate, standalone "ルール設定" screen (App.Config) whose save
+    // button was broken (dead #config-action-area ids), so it never
+    // actually persisted anything. Rebuilt as toggle buttons that all share
+    // one fixed-height panel right above the action bar — only one panel's
+    // content is visible at a time, so the panel never grows or shrinks
+    // between them. 正解ボーナス and 制限時間 share a single "ルール設定"
+    // panel/button (both stacked, one scroll area).
     activeInlinePanel: null,
 
     renderRulesSection: function () {
         const modeBtn = document.getElementById('creator-rule-mode-btn');
-        const gameTypeBtn = document.getElementById('creator-rule-gametype-btn');
-        const timeLimitBtn = document.getElementById('creator-rule-timelimit-btn');
+        const rulesBtn = document.getElementById('creator-rule-settings-btn');
+        const designBtn = document.getElementById('creator-rule-design-btn');
         const editBtn = document.getElementById('creator-inline-edit-toggle');
-        if (!modeBtn || !gameTypeBtn || !timeLimitBtn || !editBtn) return;
+        if (!modeBtn || !rulesBtn || !editBtn) return;
         if (!window.App.Config) return;
 
         const conf = window.App.Data.currentConfig;
@@ -636,13 +643,12 @@ window.App.Creator = {
         const gameTypeLabels = { score: '得点制', panel: 'パネル', slot: '変動得点制' };
 
         modeBtn.innerHTML = `解答権<br><span style="font-size:0.75em; font-weight:normal; opacity:0.85;">${modeLabels[conf.mode] || conf.mode}</span>`;
-        gameTypeBtn.innerHTML = `正解ボーナス<br><span style="font-size:0.75em; font-weight:normal; opacity:0.85;">${gameTypeLabels[conf.gameType] || conf.gameType}</span>`;
-        timeLimitBtn.innerHTML = `制限時間<br><span style="font-size:0.75em; font-weight:normal; opacity:0.85;">${conf.timeLimitEnabled === 'on' ? conf.timeLimitSeconds + '秒' : 'OFF'}</span>`;
+        rulesBtn.innerHTML = `ルール設定<br><span style="font-size:0.75em; font-weight:normal; opacity:0.85;">${gameTypeLabels[conf.gameType] || conf.gameType} / ${conf.timeLimitEnabled === 'on' ? conf.timeLimitSeconds + '秒' : 'OFF'}</span>`;
 
         editBtn.onclick = () => this.toggleInlinePanel('edit');
+        if (designBtn) designBtn.onclick = () => this.toggleInlinePanel('design');
         modeBtn.onclick = () => this.toggleInlinePanel('mode');
-        gameTypeBtn.onclick = () => this.toggleInlinePanel('gametype');
-        timeLimitBtn.onclick = () => this.toggleInlinePanel('timelimit');
+        rulesBtn.onclick = () => this.toggleInlinePanel('rules');
 
         this.updateInlinePanelButtonStyles();
     },
@@ -650,9 +656,9 @@ window.App.Creator = {
     updateInlinePanelButtonStyles: function () {
         const buttons = {
             edit: document.getElementById('creator-inline-edit-toggle'),
+            design: document.getElementById('creator-rule-design-btn'),
             mode: document.getElementById('creator-rule-mode-btn'),
-            gametype: document.getElementById('creator-rule-gametype-btn'),
-            timelimit: document.getElementById('creator-rule-timelimit-btn')
+            rules: document.getElementById('creator-rule-settings-btn')
         };
         Object.entries(buttons).forEach(([key, btn]) => {
             if (!btn) return;
@@ -665,9 +671,9 @@ window.App.Creator = {
         const area = document.getElementById('creator-inline-edit-area');
         const panels = {
             edit: document.getElementById('creator-options-extra'),
+            design: document.getElementById('creator-inline-design'),
             mode: document.getElementById('creator-inline-mode'),
-            gametype: document.getElementById('creator-inline-gametype'),
-            timelimit: document.getElementById('creator-inline-timelimit')
+            rules: document.getElementById('creator-inline-rules')
         };
         // Shown only alongside the 'edit' panel, not the rule pickers.
         const listActions = document.getElementById('creator-inline-listactions');
@@ -692,9 +698,14 @@ window.App.Creator = {
             const conf = window.App.Data.currentConfig;
             const questions = window.App.Data.createdQuestions;
             const onChange = () => this.renderRulesSection();
-            if (key === 'mode') window.App.Config.renderInlineModeChooser(panels.mode, conf, questions, onChange);
-            else if (key === 'gametype') window.App.Config.renderInlineGameTypeChooser(panels.gametype, conf, onChange);
-            else if (key === 'timelimit') window.App.Config.renderInlineTimeLimitChooser(panels.timelimit, conf, onChange);
+            if (key === 'mode') {
+                window.App.Config.renderInlineModeChooser(document.getElementById('creator-inline-mode-body'), conf, questions, onChange);
+            } else if (key === 'rules') {
+                window.App.Config.renderInlineGameTypeChooser(document.getElementById('creator-inline-gametype'), conf, onChange);
+                window.App.Config.renderInlineTimeLimitChooser(document.getElementById('creator-inline-timelimit'), conf, onChange);
+            } else if (key === 'design' && window.App.Design && window.App.Design.renderInlineChooser) {
+                window.App.Design.renderInlineChooser(panels.design, window.App.Data.currentDesign, onChange);
+            }
             // 'edit' panel content is already kept current by renderForm().
         }
 
@@ -1033,8 +1044,7 @@ window.App.Creator = {
 
         let newQ = {
             q: qText,
-            type: normalizedType,
-            commentary: document.getElementById('creator-commentary').value
+            type: normalizedType
         };
 
         if (normalizedType === 'choice') {
@@ -1180,7 +1190,6 @@ window.App.Creator = {
         const inlineAddBtn = document.getElementById('creator-inline-add-btn');
         if (inlineAddBtn) inlineAddBtn.textContent = APP_TEXT.Creator.BtnUpdateQ;
         document.getElementById('question-text').value = q.q;
-        document.getElementById('creator-commentary').value = q.commentary || '';
         this.renderForm(q.type, q);
         document.getElementById('creator-list-modal')?.classList.add('hidden');
         document.getElementById('creator-view').scrollIntoView({ behavior: "smooth" });
@@ -1267,18 +1276,24 @@ window.App.Creator = {
         // Sanitize showId: remove dots and other problematic characters
         showId = showId.trim().toUpperCase().replace(/[\.\$#\[\]\/]/g, "");
 
-        const layoutEl = document.getElementById('creator-set-layout');
-        const alignEl = document.getElementById('creator-set-align');
-        const layout = layoutEl ? layoutEl.value : 'standard';
-        const align = alignEl ? alignEl.value : 'center';
-        const designData = window.collectDesignSettings ? window.collectDesignSettings() : { design: {} };
-        const design = designData.design || {};
+        // Design (colors/fonts/layout) is one shared setting for the whole
+        // set, edited via the デザイン inline panel and kept in
+        // App.Data.currentDesign — applied to every question here rather
+        // than per-question (add() stamps a fixed 'standard'/'center'
+        // default at add time, which used to make the old
+        // `if (!q.layout)` check below always false and silently drop
+        // whatever was chosen in the design UI).
+        const currentDesign = window.App.Data.currentDesign || {};
+        const layout = currentDesign.layout || 'standard';
+        const align = currentDesign.align || 'center';
+        const cAlign = currentDesign.cAlign || 'left';
+        const { layout: _l, align: _a, cAlign: _c, ...design } = currentDesign;
 
-        // Apply defaults to questions
         window.App.Data.createdQuestions.forEach(q => {
-            if (!q.layout) q.layout = layout;
-            if (!q.align) q.align = align;
-            if (!q.design) q.design = design;
+            q.layout = layout;
+            q.align = align;
+            q.cAlign = cAlign;
+            q.design = design;
             q.specialMode = q.specialMode || 'none';
         });
 
