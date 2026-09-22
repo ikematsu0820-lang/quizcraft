@@ -511,7 +511,7 @@ window.App.Creator = {
             container.appendChild(multiDiv);
 
             if (data) data.c.forEach((txt, i) => this.addMultiInput(multiDiv, i, txt, isRanking));
-            else for (let i = 0; i < 5; i++) this.addMultiInput(multiDiv, i, '', isRanking);
+            else for (let i = 0; i < 4; i++) this.addMultiInput(multiDiv, i, '', isRanking);
 
             // Add-item button in options panel
             if (optionsExtra) {
