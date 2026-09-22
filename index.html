@@ -534,13 +534,23 @@
                     <div id="creator-inline-qlist" class="hidden" style="margin-top:10px; padding-top:10px; border-top:1px dashed #333;"></div>
                     <div id="creator-inline-design" class="hidden"></div>
                     <div id="creator-inline-mode" class="hidden">
-                        <!-- 回答形式 (subtype, e.g. 単一解答/ダウト問題) lives here now -->
-                        <div id="creator-opt-subtype-area" class="hidden" style="margin-bottom:10px;">
-                            <label style="color:#94a3b8; font-size:0.75rem; display:block; margin-bottom:4px;">回答形式</label>
-                            <select id="creator-opt-subtype" style="
-                                width:100%; padding:6px 8px; background:#1e293b; border:1px solid #475569;
-                                border-radius:8px; color:#fff; font-size:0.85rem;
-                            "></select>
+                        <!-- 解答形式 (subtype, e.g. 単一解答/口頭式) and 解答権
+                             (一斉解答/早押し/順番解答) side by side as two pulldowns. -->
+                        <div style="display:flex; gap:10px; margin-bottom:10px;">
+                            <div id="creator-opt-subtype-area" class="hidden" style="flex:1; min-width:0;">
+                                <label style="color:#94a3b8; font-size:0.75rem; display:block; margin-bottom:4px;">解答形式</label>
+                                <select id="creator-opt-subtype" style="
+                                    width:100%; padding:6px 8px; background:#1e293b; border:1px solid #475569;
+                                    border-radius:8px; color:#fff; font-size:0.85rem;
+                                "></select>
+                            </div>
+                            <div style="flex:1; min-width:0;">
+                                <label style="color:#94a3b8; font-size:0.75rem; display:block; margin-bottom:4px;">解答権</label>
+                                <select id="creator-mode-select" style="
+                                    width:100%; padding:6px 8px; background:#1e293b; border:1px solid #475569;
+                                    border-radius:8px; color:#fff; font-size:0.85rem;
+                                "></select>
+                            </div>
                         </div>
                         <div id="creator-inline-mode-body"></div>
                     </div>
@@ -923,7 +933,7 @@
     <script src="host_design.js?v=231"></script>
     <script src="host_production_design.js?v=230"></script>
     <script src="host_creator.js?v=234"></script>
-    <script src="host_config.js?v=232"></script>
+    <script src="host_config.js?v=233"></script>
     <script src="host_prog_config.js?v=230"></script>
     <script src="host_studio.js?v=230"></script>
     <script src="player.js?v=230"></script>

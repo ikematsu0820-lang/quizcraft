@@ -280,7 +280,8 @@ App.Config = {
     // immediately — the container lives inside the fixed-height
     // #creator-inline-edit-area, so there's no confirm step and no popup.
 
-    // 解答権 — pick mode + edit that mode's fields.
+    // 解答権 — pick mode (via the #creator-mode-select pulldown, alongside
+    // 解答形式's pulldown) + edit that mode's fields below.
     renderInlineModeChooser: function (container, conf, questions, onChange) {
         const { qType, isOral, isDobon, isBlackjack } = this.deriveTypeInfo(questions);
         const modes = [
@@ -293,26 +294,26 @@ App.Config = {
         if (modes.find(m => m.value === current)?.disabled) current = modes.find(m => !m.disabled).value;
         conf.mode = current;
 
-        const render = () => {
-            container.innerHTML = `
-                <div id="mode-chooser-radios">${this._renderRadioRow(modes, current)}</div>
-                <div id="mode-chooser-detail" style="margin-top:12px; padding-top:12px; border-top:1px dashed #333;"></div>
-            `;
-            container.querySelectorAll('.compact-radio-row').forEach(row => {
-                const m = modes.find(x => x.value === row.dataset.val);
-                if (m.disabled) return;
-                row.onclick = () => {
-                    current = row.dataset.val;
-                    conf.mode = current;
-                    render();
-                    if (onChange) onChange();
-                };
-            });
+        const sel = document.getElementById('creator-mode-select');
+
+        const renderDetail = () => {
+            container.innerHTML = `<div id="mode-chooser-detail"></div>`;
             const detailArea = container.querySelector('#mode-chooser-detail');
             detailArea.innerHTML = this._modeDetailFieldsHtml(current, conf, qType, isDobon);
             this._wireModeDetailFields(detailArea, current, conf);
         };
-        render();
+
+        if (sel) {
+            sel.innerHTML = modes.map(m => `<option value="${m.value}" ${m.disabled ? 'disabled' : ''} ${m.value === current ? 'selected' : ''}>${m.label}</option>`).join('');
+            sel.value = current;
+            sel.onchange = () => {
+                current = sel.value;
+                conf.mode = current;
+                renderDetail();
+                if (onChange) onChange();
+            };
+        }
+        renderDetail();
     },
 
     // 正解ボーナス — pick gameType (score/panel/slot) + its detail fields.
