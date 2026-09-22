@@ -450,59 +450,71 @@
         </div>
         <h3 id="creator-form-title" style="display:none;" data-text="Creator.HeadingNewQ"></h3>
 
-        <!-- ===== WYSIWYG Monitor Preview ===== -->
-        <!-- Outer frame gives the "monitor look"; inner content sizes naturally -->
+        <!-- ===== WYSIWYG Monitor Preview (strict 16:9) ===== -->
         <div style="width:100%; max-width:800px; margin:0 auto;">
-            <div id="creator-monitor-preview" style="
-                width:100%;
-                background:#000;
-                border:3px solid #2a2a2a;
-                border-radius:10px;
-                box-shadow:0 8px 40px rgba(0,0,0,0.8), inset 0 0 0 1px rgba(255,255,255,0.05);
-                overflow:hidden;
+            <!-- Bezel wrapper -->
+            <div style="
+                background:#1a1a1a; border:3px solid #2a2a2a;
+                border-radius:12px; overflow:hidden;
+                box-shadow:0 8px 40px rgba(0,0,0,0.8);
             ">
-                <!-- Monitor "bezel" top bar -->
+                <!-- Bezel top bar -->
                 <div style="
-                    background:linear-gradient(180deg,#1a1a1a 0%,#111 100%);
+                    padding:5px 12px; display:flex; align-items:center; gap:6px;
+                    background:linear-gradient(180deg,#222 0%,#161616 100%);
                     border-bottom:1px solid #333;
-                    padding:6px 12px;
-                    display:flex; align-items:center; gap:8px;
                 ">
-                    <span style="width:10px;height:10px;border-radius:50%;background:#333;display:inline-block;"></span>
-                    <span style="width:10px;height:10px;border-radius:50%;background:#333;display:inline-block;"></span>
-                    <span style="width:10px;height:10px;border-radius:50%;background:#333;display:inline-block;"></span>
-                    <span style="color:#555;font-size:0.7rem;margin-left:8px;letter-spacing:0.1em;">PREVIEW</span>
+                    <span style="width:8px;height:8px;border-radius:50%;background:#444;display:inline-block;"></span>
+                    <span style="width:8px;height:8px;border-radius:50%;background:#444;display:inline-block;"></span>
+                    <span style="width:8px;height:8px;border-radius:50%;background:#444;display:inline-block;"></span>
+                    <span style="color:#444;font-size:0.65rem;margin-left:6px;letter-spacing:0.1em;">PREVIEW</span>
                 </div>
 
-                <!-- Monitor screen content -->
-                <div style="
+                <!-- Strict 16:9 screen -->
+                <div id="creator-monitor-preview" style="
+                    position:relative; width:100%; padding-top:56.25%;
                     background:linear-gradient(160deg,#050c14 0%,#0a0f1a 100%);
-                    padding:5% 5% 4% 5%;
-                    display:flex; flex-direction:column; align-items:center;
-                    min-height:280px;
+                    overflow:hidden;
                 ">
-                    <!-- Question Area — matches .q-area -->
-                    <div id="creator-monitor-q-area" style="
-                        width:90%; border:4px solid #00e5ff;
-                        background:rgba(0,0,0,0.5); border-radius:12px;
-                        padding:4% 5%; margin-bottom:4%;
-                        backdrop-filter:blur(10px);
-                        box-shadow:0 0 24px rgba(0,229,255,0.2), var(--shadow-soft);
+                    <!-- Absolute fill: full flex layout -->
+                    <div style="
+                        position:absolute; top:0; left:0; right:0; bottom:0;
+                        display:flex; flex-direction:column;
+                        padding:3.5% 5% 3% 5%;
+                        box-sizing:border-box;
                     ">
-                        <textarea id="question-text" placeholder="ここに問題文を入力" style="
-                            width:100%; background:transparent; border:none;
-                            color:#fff; font-size:clamp(0.9rem,2vw,1.3rem); font-weight:800;
-                            text-align:center; padding:0; resize:none; outline:none;
-                            min-height:2em; line-height:1.5;
-                            text-shadow:1px 1px 3px rgba(0,0,0,0.5);
-                            box-sizing:border-box; font-family:inherit;
-                        "></textarea>
-                    </div>
+                        <!-- Question Area (fixed size, ~28% of screen height) -->
+                        <div id="creator-monitor-q-area" style="
+                            width:90%; align-self:center;
+                            border:3px solid #00e5ff;
+                            background:rgba(0,0,0,0.5); border-radius:10px;
+                            padding:2% 4%;
+                            box-shadow:0 0 20px rgba(0,229,255,0.2);
+                            flex-shrink:0; margin-bottom:2%;
+                        ">
+                            <textarea id="question-text" placeholder="ここに問題文を入力" style="
+                                width:100%; background:transparent; border:none;
+                                color:#fff; font-size:clamp(0.75rem,1.8vw,1.2rem); font-weight:800;
+                                text-align:center; padding:0; resize:none; outline:none;
+                                min-height:1.8em; max-height:4em; line-height:1.5;
+                                text-shadow:1px 1px 3px rgba(0,0,0,0.5);
+                                box-sizing:border-box; font-family:inherit;
+                            "></textarea>
+                        </div>
 
-                    <!-- Choices Area — matches .c-area -->
-                    <div id="creator-form-container" style="
-                        width:85%; display:flex; flex-direction:column; gap:6px;
-                    "></div>
+                        <!-- Choices container: takes ALL remaining height, children share equally -->
+                        <div id="creator-form-container" style="
+                            width:85%; align-self:center;
+                            flex:1; display:flex; flex-direction:column; gap:1%;
+                            overflow:hidden; min-height:0;
+                        "></div>
+
+                        <!-- Add button inside frame -->
+                        <div id="creator-add-choice-area" style="
+                            align-self:center; margin-top:1.5%;
+                            flex-shrink:0;
+                        "></div>
+                    </div>
                 </div>
             </div>
         </div>

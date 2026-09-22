@@ -276,6 +276,12 @@ window.App.Creator = {
         const optSubSel = document.getElementById('creator-opt-subtype');
         if (!container) return;
         container.innerHTML = '';
+        // Reset to flex column so choice rows can use flex:1
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+        // Clear add-button slot
+        const addChoiceAreaReset = document.getElementById('creator-add-choice-area');
+        if (addChoiceAreaReset) addChoiceAreaReset.innerHTML = '';
         if (optionsExtra) optionsExtra.innerHTML = '';
         if (optSubArea) optSubArea.classList.add('hidden');
 
@@ -315,13 +321,15 @@ window.App.Creator = {
                 { v: 'choice_multi', t: 'ダウト問題' }
             ], isDobon ? 'choice_multi' : 'choice_single');
 
+            // Hint label inside the frame
             container.innerHTML = `
-                <div style="text-align:center; color:#64748b; font-size:0.8rem; margin-bottom:10px;">${msg}</div>
+                <div style="text-align:center; color:rgba(255,255,255,0.25); font-size:0.7rem; margin-bottom:4px;">${msg}</div>
             `;
 
+            // Choices list — flex column, each row gets flex:1 to auto-fill the container
             const choicesDiv = document.createElement('div');
             choicesDiv.id = 'creator-choices-list';
-            choicesDiv.style.cssText = 'display:flex; flex-direction:column; gap:min(8px,1.5vw); width:100%;';
+            choicesDiv.style.cssText = 'display:flex; flex-direction:column; gap:1%; flex:1; min-height:0; width:100%;';
             container.appendChild(choicesDiv);
 
             if (data) {
@@ -331,15 +339,16 @@ window.App.Creator = {
             }
             else for (let i = 0; i < 4; i++) this.addChoiceInput(choicesDiv, i);
 
-            // Add choice button
-            const addBtnWrap = document.createElement('div');
-            addBtnWrap.style.cssText = 'text-align:center; margin-top:10px;';
-            const addBtn = document.createElement('button');
-            addBtn.textContent = '＋ 選択肢を追加';
-            addBtn.style.cssText = 'background:rgba(0,229,255,0.1); border:1px dashed rgba(0,229,255,0.4); border-radius:8px; color:#00e5ff; padding:8px 20px; cursor:pointer; font-size:0.9rem;';
-            addBtn.onclick = () => this.addChoiceInput(choicesDiv);
-            addBtnWrap.appendChild(addBtn);
-            container.appendChild(addBtnWrap);
+            // Add choice button → placed in the #creator-add-choice-area slot inside the 16:9 frame
+            const addChoiceArea = document.getElementById('creator-add-choice-area');
+            if (addChoiceArea) {
+                addChoiceArea.innerHTML = '';
+                const addBtn = document.createElement('button');
+                addBtn.textContent = '＋ 選択肢を追加';
+                addBtn.style.cssText = 'background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.35); border-radius:6px; color:#00e5ff; padding:3px 14px; cursor:pointer; font-size:0.7rem;';
+                addBtn.onclick = () => this.addChoiceInput(choicesDiv);
+                addChoiceArea.appendChild(addBtn);
+            }
 
             // Shuffle option in options panel
             if (optionsExtra) {
@@ -574,8 +583,8 @@ window.App.Creator = {
             background:linear-gradient(90deg, rgba(255,255,255,0.04) 0%, transparent 100%);
             border-bottom:1px solid rgba(255,255,255,0.1);
             border-radius:6px;
-            padding:1.5% 2%;
             cursor:pointer; transition:background 0.2s;
+            flex:1; min-height:0; overflow:hidden;
             ${checked ? 'background:linear-gradient(90deg,rgba(0,229,255,0.12) 0%,transparent 100%);' : ''}
         `;
         row.onmouseenter = () => {
@@ -642,7 +651,7 @@ window.App.Creator = {
         delBtn.textContent = '×';
         delBtn.style.cssText = 'background:none; border:none; color:rgba(255,255,255,0.25); font-size:0.9rem; cursor:pointer; padding:2px 4px; margin-left:4px; flex-shrink:0;';
         delBtn.title = '削除';
-        delBtn.onclick = (e) => { e.stopPropagation(); row.remove(); this.updateLabels(parent); };
+        delBtn.onclick = (e) => { e.stopPropagation(); row.remove(); this.updateLabels(parent); this.updateChoiceSizes(parent); };
 
         row.appendChild(labelSpan);
         row.appendChild(inp);
@@ -651,6 +660,7 @@ window.App.Creator = {
 
         parent.appendChild(row);
         this.updateLabels(parent);
+        this.updateChoiceSizes(parent);
     },
 
     addSortInput: function (parent, index, text = "", rank = "") {
@@ -784,6 +794,37 @@ window.App.Creator = {
         parent.querySelectorAll('.choice-text-input').forEach((inp, i) => {
             const label = labels[i] || String(i + 1);
             inp.placeholder = `選択肢${label}`;
+        });
+        this.updateChoiceSizes(parent);
+    },
+
+    // Dynamically scale row padding & font so N choices always fit inside the 16:9 frame
+    updateChoiceSizes: function (parent) {
+        if (!parent) return;
+        const rows = parent.querySelectorAll('.choice-row');
+        const n = rows.length;
+        if (n === 0) return;
+
+        // The 16:9 frame's pixel height at current viewport
+        const frame = document.getElementById('creator-monitor-preview');
+        const frameH = frame ? frame.offsetHeight : 400;
+
+        // Reserve ~32% for question box + label + add-btn + gaps
+        const choicesAreaH = frameH * 0.60;
+        const rowH = Math.max(20, (choicesAreaH / n) - 2); // 2px gap
+
+        // Vertical padding: at most 12% of rowH each side
+        const vPad = Math.min(8, rowH * 0.12);
+        // Font size: roughly 40% of rowH, clamped
+        const fs = Math.max(9, Math.min(16, rowH * 0.40));
+
+        rows.forEach(row => {
+            row.style.padding = `${vPad}px 10px`;
+            // Scale label and input fonts
+            const label = row.querySelector('.choice-label-text');
+            const inp   = row.querySelector('.choice-text-input');
+            if (label) label.style.fontSize = `${Math.max(10, fs)}px`;
+            if (inp)   inp.style.fontSize   = `${Math.max(9, fs - 1)}px`;
         });
     },
 
