@@ -341,29 +341,21 @@ window.App.Creator = {
             }
             else for (let i = 0; i < 4; i++) this.addChoiceInput(choicesDiv, i);
 
-            // Add choice button + Shuffle option in options panel
+            // Add choice button + Shuffle option, same row, in options panel
             if (optionsExtra) {
-                // Shuffle checkbox (set via innerHTML first, before any appendChild
-                // with JS-attached listeners — innerHTML += re-serializes existing
-                // children and strips their event listeners)
                 optionsExtra.innerHTML = `
-                    <div style="margin-bottom:12px;">
-                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:#94a3b8; font-size:0.9rem;">
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+                        <button id="choice-add-btn" type="button" style="
+                            flex:1; background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4);
+                            border-radius:8px; color:#00e5ff; padding:8px 10px; cursor:pointer; font-size:0.85rem;
+                        ">＋ 選択肢を追加</button>
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:#94a3b8; font-size:0.8rem; white-space:nowrap; flex-shrink:0;">
                             <input type="checkbox" id="choice-shuffle-chk" ${data?.shuffle !== false ? 'checked' : ''}>
-                            <span>選択肢をシャッフルする</span>
+                            <span>シャッフル</span>
                         </label>
                     </div>
                 `;
-
-                // Add-choice button at the top of options
-                const addBtnDiv = document.createElement('div');
-                addBtnDiv.style.cssText = 'margin-bottom:14px;';
-                const addBtn = document.createElement('button');
-                addBtn.textContent = '＋ 選択肢を追加';
-                addBtn.style.cssText = 'background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4); border-radius:8px; color:#00e5ff; padding:8px 20px; cursor:pointer; font-size:0.9rem; width:100%;';
-                addBtn.onclick = () => this.addChoiceInput(choicesDiv);
-                addBtnDiv.appendChild(addBtn);
-                optionsExtra.insertBefore(addBtnDiv, optionsExtra.firstChild);
+                optionsExtra.querySelector('#choice-add-btn').onclick = () => this.addChoiceInput(choicesDiv);
             }
         }
 

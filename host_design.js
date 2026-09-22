@@ -40,24 +40,24 @@ App.Design = {
         if (!container) return;
 
         const field = (label, key, type, extra = '') => `
-            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-                <label style="flex:0 0 84px; color:#94a3b8; font-size:0.75rem;">${label}</label>
-                <input type="text" data-key="${key}" value="${design[key] ?? ''}" style="flex:1; padding:5px 7px; background:#1e293b; border:1px solid #475569; border-radius:6px; color:#fff; font-size:0.78rem;" ${extra}>
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+                <label style="flex:0 0 auto; color:#94a3b8; font-size:0.7rem; white-space:nowrap;">${label}</label>
+                <input type="text" data-key="${key}" value="${design[key] ?? ''}" style="flex:1; min-width:0; padding:5px 7px; background:#1e293b; border:1px solid #475569; border-radius:6px; color:#fff; font-size:0.78rem;" ${extra}>
             </div>
         `;
 
         // Compact color swatches, 3 per row (no hex text field taking up
         // room — the current value is still available as a hover tooltip).
         const colorSwatch = (label, key) => `
-            <div style="display:flex; flex-direction:column; align-items:center; gap:3px; flex:1;">
+            <div style="display:flex; flex-direction:column; align-items:center; gap:3px; flex:1 1 38px; min-width:0;">
                 <input type="color" data-color-key="${key}" value="${this._toHexOrDefault(design[key])}" title="${design[key] ?? ''}" style="
-                    width:100%; height:32px; padding:0; border:1px solid #475569; border-radius:6px; background:none; cursor:pointer;
+                    width:100%; height:30px; padding:0; border:1px solid #475569; border-radius:6px; background:none; cursor:pointer;
                 ">
-                <span style="font-size:0.65rem; color:#94a3b8;">${label}</span>
+                <span style="font-size:0.58rem; color:#94a3b8; white-space:nowrap;">${label}</span>
             </div>
         `;
         const colorRow = (items) => `
-            <div style="display:flex; gap:8px; margin-bottom:8px;">
+            <div style="display:flex; gap:6px; margin-bottom:8px; flex-wrap:wrap;">
                 ${items.map(([label, key]) => colorSwatch(label, key)).join('')}
             </div>
         `;
@@ -79,13 +79,15 @@ App.Design = {
         `;
 
         container.innerHTML = `
-            ${colorRow([['全体背景', 'mainBgColor']])}
-            <div style="color:#666; font-size:0.7rem; margin:8px 0 4px; border-top:1px dashed #333; padding-top:6px;">問題文</div>
-            ${colorRow([['文字', 'qTextColor'], ['背景', 'qBgColor'], ['枠', 'qBorderColor']])}
-            ${field('文字サイズ', 'qFontSize', 'text')}
-            <div style="color:#666; font-size:0.7rem; margin:8px 0 4px; border-top:1px dashed #333; padding-top:6px;">選択肢</div>
-            ${colorRow([['文字', 'cTextColor'], ['背景', 'cBgColor'], ['枠', 'cBorderColor']])}
-            ${field('文字サイズ', 'cFontSize', 'text')}
+            ${colorRow([
+                ['全体背景', 'mainBgColor'],
+                ['問題文字', 'qTextColor'], ['問題背景', 'qBgColor'], ['問題枠', 'qBorderColor'],
+                ['選択文字', 'cTextColor'], ['選択背景', 'cBgColor'], ['選択枠', 'cBorderColor'],
+            ])}
+            <div style="display:flex; gap:8px; margin-bottom:6px;">
+                <div style="flex:1; min-width:0;">${field('問題文字', 'qFontSize', 'text')}</div>
+                <div style="flex:1; min-width:0;">${field('選択文字', 'cFontSize', 'text')}</div>
+            </div>
             <div style="color:#666; font-size:0.7rem; margin:8px 0 4px; border-top:1px dashed #333; padding-top:6px;">選択肢の配置（選択式のみ）</div>
             ${numberField('行数', 'gridRows', 1, 10)}
             ${numberField('列数', 'gridCols', 1, 10)}
