@@ -425,6 +425,22 @@ window.App.Viewer = {
                 </style>
             `;
         }
+        // --- HOST ENDED SESSION ---
+        // Sent when the host leaves host-control mid-quiz (メニューに戻る,
+        // confirmed) — this screen would otherwise just stay frozen on
+        // whatever it last rendered, with no indication the show is over.
+        else if (st.step === 'host_ended') {
+            statusDiv.textContent = "ENDED";
+            this.applyDefaultDesign(viewContainer, null);
+            mainText.innerHTML = `
+                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; width:100%;">
+                    <div style="font-size:4vw; font-weight:900; color:#ff5555; text-shadow:0 0 30px rgba(255,85,85,0.5); margin-bottom:20px; text-align:center;">
+                        配信は終了しました
+                    </div>
+                    <div style="font-size:1.5vw; color:#aaa;">司会者によってこのクイズは終了されました</div>
+                </div>
+            `;
+        }
 
         this.updateTimeLimitDisplay(st);
     },

@@ -280,7 +280,9 @@ window.App.Creator = {
         this.currentLetterSteps = [];
 
         document.getElementById('creator-form-title').textContent = APP_TEXT.Creator.HeadingNewQ;
-        document.getElementById('add-question-btn').classList.remove('hidden');
+        document.getElementById('add-question-btn')?.classList.remove('hidden');
+        const inlineAddBtn = document.getElementById('creator-inline-add-btn');
+        if (inlineAddBtn) inlineAddBtn.textContent = APP_TEXT.Creator.BtnAdd;
         document.getElementById('question-text').value = '';
         document.getElementById('creator-commentary').value = '';
 
@@ -667,9 +669,12 @@ window.App.Creator = {
             gametype: document.getElementById('creator-inline-gametype'),
             timelimit: document.getElementById('creator-inline-timelimit')
         };
+        // Shown only alongside the 'edit' panel, not the rule pickers.
+        const listActions = document.getElementById('creator-inline-listactions');
         if (!area || !panels[key]) return;
 
         Object.values(panels).forEach(p => p.classList.add('hidden'));
+        if (listActions) listActions.classList.add('hidden');
 
         if (this.activeInlinePanel === key) {
             area.classList.add('hidden');
@@ -681,6 +686,7 @@ window.App.Creator = {
         this.activeInlinePanel = key;
         area.classList.remove('hidden');
         panels[key].classList.remove('hidden');
+        if (key === 'edit' && listActions) listActions.classList.remove('hidden');
 
         if (window.App.Config) {
             const conf = window.App.Data.currentConfig;
@@ -1170,7 +1176,9 @@ window.App.Creator = {
         this.editingIndex = index;
         const q = window.App.Data.createdQuestions[index];
         document.getElementById('creator-form-title').textContent = APP_TEXT.Creator.HeadingEditQ;
-        document.getElementById('add-question-btn').classList.add('hidden');
+        document.getElementById('add-question-btn')?.classList.add('hidden');
+        const inlineAddBtn = document.getElementById('creator-inline-add-btn');
+        if (inlineAddBtn) inlineAddBtn.textContent = APP_TEXT.Creator.BtnUpdateQ;
         document.getElementById('question-text').value = q.q;
         document.getElementById('creator-commentary').value = q.commentary || '';
         this.renderForm(q.type, q);

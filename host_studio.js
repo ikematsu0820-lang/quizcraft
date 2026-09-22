@@ -3452,6 +3452,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (App.State.currentRoomId) {
             const ok = confirm('進行中のクイズを終了してメニューに戻りますか？\n（戻ると今回のセッションは終了し、次回は問題セットを選び直せます）');
             if (!ok) return;
+            // Tell whatever's still showing the monitor/viewer screen (a
+            // separate tab/device) that the host ended the session — it has
+            // no other way to know the host left, and would otherwise just
+            // sit frozen on the last thing it rendered.
+            window.db.ref(`rooms/${App.State.currentRoomId}/status`).update({ step: 'host_ended' });
             App.State.currentRoomId = null;
             App.State.currentQIndex = 0;
             App.State.currentPeriodIndex = 0;
