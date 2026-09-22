@@ -1334,6 +1334,13 @@ window.loadSetForEditing = (k, i) => window.App.Creator.loadSet(k, i);
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('add-question-btn')?.addEventListener('click', () => window.App.Creator.add());
     document.getElementById('update-question-btn')?.addEventListener('click', () => window.App.Creator.update());
+    // Shortcuts inside the 問題編集 inline panel, so add/save are reachable
+    // without leaving that panel or opening the cart modal.
+    document.getElementById('creator-inline-add-btn')?.addEventListener('click', () => {
+        if (window.App.Creator.editingIndex !== null) window.App.Creator.update();
+        else window.App.Creator.add();
+    });
+    document.getElementById('creator-inline-save-btn')?.addEventListener('click', () => window.App.Creator.save());
     // Setup modal toggles
     document.getElementById('creator-cart-btn')?.addEventListener('click', () => {
         if (window.App.Creator.editingIndex !== null) {
