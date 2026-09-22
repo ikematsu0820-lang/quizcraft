@@ -14,6 +14,7 @@ window.App.Creator = {
     init: function () {
         this.editingIndex = null;
         this.editingTitle = "";
+        this.activeInlinePanel = null;
         window.App.Data.createdQuestions = [];
         window.App.Data.currentConfig = window.App.Config
             ? JSON.parse(JSON.stringify(window.App.Config.DEFAULT_CONFIG))
@@ -610,15 +611,19 @@ window.App.Creator = {
     // Rules (win condition / answer format / time limit / scoring etc.) used
     // to live on a separate, standalone "ルール設定" screen (App.Config) whose
     // save button was broken (dead #config-action-area ids), so it never
-    // actually persisted anything. Rebuilt here as three compact quick-access
-    // buttons in the action bar (each opens a small modal, not a full sheet),
-    // reusing App.Config's modal logic which mutates App.Data.currentConfig
-    // directly — no dependency on that old screen's own state.
+    // actually persisted anything. Rebuilt as four toggle buttons that all
+    // share one fixed-height panel right above the action bar (問題編集's
+    // choice-edit controls, and 解答権/正解ボーナス/制限時間's inline
+    // pickers) — only one panel's content is visible at a time, so the
+    // panel never grows or shrinks between them.
+    activeInlinePanel: null,
+
     renderRulesSection: function () {
         const modeBtn = document.getElementById('creator-rule-mode-btn');
         const gameTypeBtn = document.getElementById('creator-rule-gametype-btn');
         const timeLimitBtn = document.getElementById('creator-rule-timelimit-btn');
-        if (!modeBtn || !gameTypeBtn || !timeLimitBtn) return;
+        const editBtn = document.getElementById('creator-inline-edit-toggle');
+        if (!modeBtn || !gameTypeBtn || !timeLimitBtn || !editBtn) return;
         if (!window.App.Config) return;
 
         const conf = window.App.Data.currentConfig;
@@ -632,9 +637,62 @@ window.App.Creator = {
         gameTypeBtn.innerHTML = `正解ボーナス<br><span style="font-size:0.75em; font-weight:normal; opacity:0.85;">${gameTypeLabels[conf.gameType] || conf.gameType}</span>`;
         timeLimitBtn.innerHTML = `制限時間<br><span style="font-size:0.75em; font-weight:normal; opacity:0.85;">${conf.timeLimitEnabled === 'on' ? conf.timeLimitSeconds + '秒' : 'OFF'}</span>`;
 
-        modeBtn.onclick = () => window.App.Config.openModeChooser(conf, questions, () => this.renderRulesSection());
-        gameTypeBtn.onclick = () => window.App.Config.openGameTypeChooser(conf, () => this.renderRulesSection());
-        timeLimitBtn.onclick = () => window.App.Config.openTimeLimitChooser(conf, () => this.renderRulesSection());
+        editBtn.onclick = () => this.toggleInlinePanel('edit');
+        modeBtn.onclick = () => this.toggleInlinePanel('mode');
+        gameTypeBtn.onclick = () => this.toggleInlinePanel('gametype');
+        timeLimitBtn.onclick = () => this.toggleInlinePanel('timelimit');
+
+        this.updateInlinePanelButtonStyles();
+    },
+
+    updateInlinePanelButtonStyles: function () {
+        const buttons = {
+            edit: document.getElementById('creator-inline-edit-toggle'),
+            mode: document.getElementById('creator-rule-mode-btn'),
+            gametype: document.getElementById('creator-rule-gametype-btn'),
+            timelimit: document.getElementById('creator-rule-timelimit-btn')
+        };
+        Object.entries(buttons).forEach(([key, btn]) => {
+            if (!btn) return;
+            const isActive = this.activeInlinePanel === key;
+            btn.style.background = isActive ? '#00a8cc' : (key === 'edit' ? '#1e293b' : '#0e6b8f');
+        });
+    },
+
+    toggleInlinePanel: function (key) {
+        const area = document.getElementById('creator-inline-edit-area');
+        const panels = {
+            edit: document.getElementById('creator-options-extra'),
+            mode: document.getElementById('creator-inline-mode'),
+            gametype: document.getElementById('creator-inline-gametype'),
+            timelimit: document.getElementById('creator-inline-timelimit')
+        };
+        if (!area || !panels[key]) return;
+
+        Object.values(panels).forEach(p => p.classList.add('hidden'));
+
+        if (this.activeInlinePanel === key) {
+            area.classList.add('hidden');
+            this.activeInlinePanel = null;
+            this.updateInlinePanelButtonStyles();
+            return;
+        }
+
+        this.activeInlinePanel = key;
+        area.classList.remove('hidden');
+        panels[key].classList.remove('hidden');
+
+        if (window.App.Config) {
+            const conf = window.App.Data.currentConfig;
+            const questions = window.App.Data.createdQuestions;
+            const onChange = () => this.renderRulesSection();
+            if (key === 'mode') window.App.Config.renderInlineModeChooser(panels.mode, conf, questions, onChange);
+            else if (key === 'gametype') window.App.Config.renderInlineGameTypeChooser(panels.gametype, conf, onChange);
+            else if (key === 'timelimit') window.App.Config.renderInlineTimeLimitChooser(panels.timelimit, conf, onChange);
+            // 'edit' panel content is already kept current by renderForm().
+        }
+
+        this.updateInlinePanelButtonStyles();
     },
 
     // --- Choice Input: viewer .choice-item style (full-width horizontal row) ---

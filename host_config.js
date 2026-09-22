@@ -145,29 +145,8 @@ App.Config = {
         conf.mode = mode;
     },
 
-    // --- Compact rule modals (replace the old full bottom-sheet pattern) ---
-
-    _openCompactModal: function (id, title, bodyHtml, maxWidth) {
-        const existing = document.getElementById(id);
-        if (existing) existing.remove();
-        const modal = document.createElement('div');
-        modal.id = id;
-        modal.className = 'design-modal-overlay';
-        modal.style.cssText = 'z-index:9500;';
-        modal.innerHTML = `
-            <div class="design-modal-content" style="max-width:${maxWidth || '420px'};">
-                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
-                    <h3 style="margin:0; font-size:1em; color:#fff;">${title}</h3>
-                    <button class="compact-modal-close" style="background:transparent; border:none; font-size:24px; cursor:pointer; color:#aaa; padding:0 8px;">×</button>
-                </div>
-                <div class="compact-modal-body">${bodyHtml}</div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-        modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
-        modal.querySelector('.compact-modal-close').onclick = () => modal.remove();
-        return modal;
-    },
+    // --- Compact inline rule controls (render into a container the caller
+    // provides; no modal/backdrop — see renderInlineModeChooser etc. below) ---
 
     // Per-mode settings fields (same content the old bottom-sheet showed),
     // now rendered inline under the mode radio list.
@@ -296,7 +275,13 @@ App.Config = {
     },
 
     // 解答権 — pick mode + edit that mode's fields, in one compact modal.
-    openModeChooser: function (conf, questions, onDone) {
+    // All three renderInlineXxx functions below render directly into a
+    // given container (no modal/backdrop) and apply every change to `conf`
+    // immediately — the container lives inside the fixed-height
+    // #creator-inline-edit-area, so there's no confirm step and no popup.
+
+    // 解答権 — pick mode + edit that mode's fields.
+    renderInlineModeChooser: function (container, conf, questions, onChange) {
         const { qType, isDobon, isBlackjack } = this.deriveTypeInfo(questions);
         const modes = [
             { value: 'normal', icon: '⚡', label: '一斉解答', desc: '全員同時に解答', disabled: isBlackjack || isDobon || (qType && (qType.startsWith('multi') || qType.startsWith('ranking'))) },
@@ -306,44 +291,32 @@ App.Config = {
         ];
         let current = conf.mode || 'normal';
         if (modes.find(m => m.value === current)?.disabled) current = modes.find(m => !m.disabled).value;
+        conf.mode = current;
 
-        const modal = this._openCompactModal('mode-chooser-modal', '🎯 解答権', `
-            <div id="mode-chooser-radios">${this._renderRadioRow(modes, current)}</div>
-            <div id="mode-chooser-detail" style="margin-top:14px; padding-top:14px; border-top:1px dashed #333;"></div>
-            <button id="mode-chooser-done" class="btn-block btn-primary" style="margin-top:16px; padding:12px; font-weight:bold;">完了</button>
-        `);
-
-        const renderDetail = () => {
-            const area = modal.querySelector('#mode-chooser-detail');
-            area.innerHTML = this._modeDetailFieldsHtml(current, conf, qType, isDobon);
-            this._wireModeDetailFields(area, current, conf);
-        };
-
-        const wireRadios = () => {
-            modal.querySelectorAll('.compact-radio-row').forEach(row => {
+        const render = () => {
+            container.innerHTML = `
+                <div id="mode-chooser-radios">${this._renderRadioRow(modes, current)}</div>
+                <div id="mode-chooser-detail" style="margin-top:12px; padding-top:12px; border-top:1px dashed #333;"></div>
+            `;
+            container.querySelectorAll('.compact-radio-row').forEach(row => {
                 const m = modes.find(x => x.value === row.dataset.val);
                 if (m.disabled) return;
                 row.onclick = () => {
-                    current = m.value;
-                    modal.querySelector('#mode-chooser-radios').innerHTML = this._renderRadioRow(modes, current);
-                    wireRadios();
-                    renderDetail();
+                    current = row.dataset.val;
+                    conf.mode = current;
+                    render();
+                    if (onChange) onChange();
                 };
             });
+            const detailArea = container.querySelector('#mode-chooser-detail');
+            detailArea.innerHTML = this._modeDetailFieldsHtml(current, conf, qType, isDobon);
+            this._wireModeDetailFields(detailArea, current, conf);
         };
-
-        wireRadios();
-        renderDetail();
-
-        modal.querySelector('#mode-chooser-done').onclick = () => {
-            conf.mode = current;
-            modal.remove();
-            if (onDone) onDone();
-        };
+        render();
     },
 
     // 正解ボーナス — pick gameType (score/panel/slot) + its detail fields.
-    openGameTypeChooser: function (conf, onDone) {
+    renderInlineGameTypeChooser: function (container, conf, onChange) {
         const types = [
             { value: 'score', icon: '🏅', label: '得点制', desc: '正解ボーナス方式を選んで加点', disabled: false },
             { value: 'panel', icon: '🧩', label: 'パネル', desc: 'パネル獲得で対戦', disabled: false },
@@ -387,23 +360,23 @@ App.Config = {
             </div>
         `;
 
-        const modal = this._openCompactModal('gametype-chooser-modal', '🏆 正解ボーナス', `
-            <div id="gametype-chooser-radios">${this._renderRadioRow(types, current)}</div>
-            <div id="gametype-chooser-detail" style="margin-top:14px; padding-top:14px; border-top:1px dashed #333;"></div>
-            <button id="gametype-chooser-done" class="btn-block btn-primary" style="margin-top:16px; padding:12px; font-weight:bold;">完了</button>
-        `);
-
         const renderDetail = () => {
-            const area = modal.querySelector('#gametype-chooser-detail');
+            const area = container.querySelector('#gametype-chooser-detail');
             if (current === 'score') {
                 area.innerHTML = scoreDetailHtml();
                 area.querySelectorAll('input[name="score-type-radio"]').forEach(radio => {
                     radio.closest('label').onclick = () => {
                         conf.scoreType = radio.value;
                         renderDetail();
+                        if (onChange) onChange();
                     };
                 });
                 this.renderScoreDetailInSheet(conf.scoreType || 'uniform', conf);
+                // Commit score-detail field edits to conf as the user types,
+                // since there's no explicit confirm step anymore.
+                area.querySelectorAll('#score-type-sheet-detail input').forEach(inp => {
+                    inp.addEventListener('input', () => this._collectScoreDetailFromSheet(conf));
+                });
             } else if (current === 'slot') {
                 area.innerHTML = slotDetailHtml();
                 area.querySelector('#conf-slot-min').oninput = (e) => { conf.slotMin = parseInt(e.target.value) || 1; };
@@ -413,83 +386,82 @@ App.Config = {
             }
         };
 
-        const wireRadios = () => {
-            modal.querySelectorAll('.compact-radio-row').forEach(row => {
+        const render = () => {
+            container.innerHTML = `
+                <div id="gametype-chooser-radios">${this._renderRadioRow(types, current)}</div>
+                <div id="gametype-chooser-detail" style="margin-top:12px; padding-top:12px; border-top:1px dashed #333;"></div>
+            `;
+            container.querySelectorAll('.compact-radio-row').forEach(row => {
                 row.onclick = () => {
                     current = row.dataset.val;
-                    modal.querySelector('#gametype-chooser-radios').innerHTML = this._renderRadioRow(types, current);
-                    wireRadios();
-                    renderDetail();
+                    conf.gameType = current;
+                    render();
+                    if (onChange) onChange();
                 };
             });
+            renderDetail();
         };
-
-        wireRadios();
-        renderDetail();
-
-        modal.querySelector('#gametype-chooser-done').onclick = () => {
-            conf.gameType = current;
-            if (current === 'score') this._collectScoreDetailFromSheet(conf);
-            modal.remove();
-            if (onDone) onDone();
-        };
+        conf.gameType = current;
+        render();
     },
 
-    // 制限時間 — on/off + seconds, in one compact modal.
-    openTimeLimitChooser: function (conf, onDone) {
+    // 制限時間 — on/off + seconds.
+    renderInlineTimeLimitChooser: function (container, conf, onChange) {
         let enabled = (conf.timeLimitEnabled || 'off') === 'on';
         let seconds = conf.timeLimitSeconds || 30;
 
-        const bodyHtml = () => `
-            <div style="display:flex; gap:8px; margin-bottom:16px;">
-                <button type="button" id="tl-off-btn" style="flex:1; padding:10px; border-radius:10px; font-weight:bold; cursor:pointer;
-                    border:2px solid ${!enabled ? '#00e5ff' : '#333'}; background:${!enabled ? 'rgba(0,229,255,0.08)' : '#1a1a1a'}; color:${!enabled ? '#00e5ff' : '#ccc'};">OFF（無制限）</button>
-                <button type="button" id="tl-on-btn" style="flex:1; padding:10px; border-radius:10px; font-weight:bold; cursor:pointer;
-                    border:2px solid ${enabled ? '#f39c12' : '#333'}; background:${enabled ? 'rgba(243,156,18,0.1)' : '#1a1a1a'}; color:${enabled ? '#f39c12' : '#ccc'};">ON（時間制限あり）</button>
-            </div>
-            <div id="tl-seconds-area" style="${enabled ? '' : 'display:none;'}">
-                <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
-                    <input type="number" id="tl-seconds-input" value="${seconds}" min="5" max="600" step="5" style="
-                        flex:1; text-align:center; font-size:1.6em; font-weight:800;
-                        background:rgba(243,156,18,0.1); border:2px solid #f39c12; border-radius:12px; color:#f39c12; padding:8px;">
-                    <span style="color:#aaa;">秒</span>
+        const render = () => {
+            container.innerHTML = `
+                <div style="display:flex; gap:8px; margin-bottom:12px;">
+                    <button type="button" id="tl-off-btn" style="flex:1; padding:10px; border-radius:10px; font-weight:bold; cursor:pointer;
+                        border:2px solid ${!enabled ? '#00e5ff' : '#333'}; background:${!enabled ? 'rgba(0,229,255,0.08)' : '#1a1a1a'}; color:${!enabled ? '#00e5ff' : '#ccc'};">OFF（無制限）</button>
+                    <button type="button" id="tl-on-btn" style="flex:1; padding:10px; border-radius:10px; font-weight:bold; cursor:pointer;
+                        border:2px solid ${enabled ? '#f39c12' : '#333'}; background:${enabled ? 'rgba(243,156,18,0.1)' : '#1a1a1a'}; color:${enabled ? '#f39c12' : '#ccc'};">ON（時間制限あり）</button>
                 </div>
-                <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                    ${[10, 15, 20, 30, 45, 60].map(s => `
-                        <button type="button" class="tl-preset-btn" data-sec="${s}" style="
-                            flex:1; min-width:46px; padding:6px 4px; border-radius:8px; font-size:0.8em; font-weight:bold; cursor:pointer;
-                            background:${seconds === s ? 'rgba(243,156,18,0.2)' : '#222'};
-                            border:1px solid ${seconds === s ? '#f39c12' : '#444'};
-                            color:${seconds === s ? '#f39c12' : '#aaa'};">${s}秒</button>
-                    `).join('')}
+                <div id="tl-seconds-area" style="${enabled ? '' : 'display:none;'}">
+                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
+                        <input type="number" id="tl-seconds-input" value="${seconds}" min="5" max="600" step="5" style="
+                            flex:1; text-align:center; font-size:1.4em; font-weight:800;
+                            background:rgba(243,156,18,0.1); border:2px solid #f39c12; border-radius:12px; color:#f39c12; padding:6px;">
+                        <span style="color:#aaa;">秒</span>
+                    </div>
+                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                        ${[10, 15, 20, 30, 45, 60].map(s => `
+                            <button type="button" class="tl-preset-btn" data-sec="${s}" style="
+                                flex:1; min-width:46px; padding:6px 4px; border-radius:8px; font-size:0.8em; font-weight:bold; cursor:pointer;
+                                background:${seconds === s ? 'rgba(243,156,18,0.2)' : '#222'};
+                                border:1px solid ${seconds === s ? '#f39c12' : '#444'};
+                                color:${seconds === s ? '#f39c12' : '#aaa'};">${s}秒</button>
+                        `).join('')}
+                    </div>
                 </div>
-            </div>
-        `;
-
-        const modal = this._openCompactModal('timelimit-chooser-modal', '⏱ 制限時間', bodyHtml(), '360px');
-
-        const wire = () => {
-            modal.querySelector('#tl-off-btn').onclick = () => { enabled = false; modal.querySelector('.compact-modal-body').innerHTML = bodyHtml(); wire(); };
-            modal.querySelector('#tl-on-btn').onclick = () => { enabled = true; modal.querySelector('.compact-modal-body').innerHTML = bodyHtml(); wire(); };
-            const input = modal.querySelector('#tl-seconds-input');
-            if (input) input.oninput = () => { seconds = parseInt(input.value) || 30; };
-            modal.querySelectorAll('.tl-preset-btn').forEach(btn => {
-                btn.onclick = () => { seconds = parseInt(btn.dataset.sec); modal.querySelector('.compact-modal-body').innerHTML = bodyHtml(); wire(); };
+            `;
+            container.querySelector('#tl-off-btn').onclick = () => {
+                enabled = false; conf.timeLimitEnabled = 'off'; render();
+                if (onChange) onChange();
+            };
+            container.querySelector('#tl-on-btn').onclick = () => {
+                enabled = true; conf.timeLimitEnabled = 'on'; render();
+                if (onChange) onChange();
+            };
+            const input = container.querySelector('#tl-seconds-input');
+            if (input) input.oninput = () => {
+                seconds = Math.max(5, Math.min(600, parseInt(input.value) || 30));
+                conf.timeLimitSeconds = seconds;
+                if (onChange) onChange();
+            };
+            container.querySelectorAll('.tl-preset-btn').forEach(btn => {
+                btn.onclick = () => {
+                    seconds = parseInt(btn.dataset.sec);
+                    conf.timeLimitSeconds = seconds;
+                    render();
+                    if (onChange) onChange();
+                };
             });
         };
-        wire();
-
-        const doneBtn = document.createElement('button');
-        doneBtn.className = 'btn-block btn-primary';
-        doneBtn.style.cssText = 'margin-top:16px; padding:12px; font-weight:bold;';
-        doneBtn.textContent = '完了';
-        modal.querySelector('.design-modal-content').appendChild(doneBtn);
-        doneBtn.onclick = () => {
-            conf.timeLimitEnabled = enabled ? 'on' : 'off';
-            conf.timeLimitSeconds = Math.max(5, Math.min(600, seconds));
-            modal.remove();
-            if (onDone) onDone();
-        };
+        conf.timeLimitEnabled = enabled ? 'on' : 'off';
+        conf.timeLimitSeconds = seconds;
+        render();
     },
 
     renderBuilderForm: function (conf, questions) {
