@@ -20,7 +20,16 @@ App.Design = {
         cBorderColor: "#333333",
         cFontSize: "25px",
         align: "center",
-        layout: "standard"
+        layout: "top"
+    },
+
+    // 問題文の位置 — normalizes legacy values ('standard'/'split') saved by
+    // older sets to the current 4-direction vocabulary.
+    normalizeLayout: function (v) {
+        if (v === 'standard') return 'top';
+        if (v === 'split') return 'right';
+        if (['top', 'bottom', 'left', 'right'].includes(v)) return v;
+        return 'top';
     },
 
     // Compact デザイン panel for the Creator's inline action-bar system
@@ -38,6 +47,7 @@ App.Design = {
 
     renderInlineChooser: function (container, design, onChange) {
         if (!container) return;
+        design.layout = this.normalizeLayout(design.layout);
 
         const field = (label, key, type, extra = '') => `
             <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
@@ -71,12 +81,11 @@ App.Design = {
             </div>
         `;
 
-        const numberField = (label, key, min, max) => `
-            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-                <label style="flex:0 0 84px; color:#94a3b8; font-size:0.75rem;">${label}</label>
-                <input type="number" data-key="${key}" value="${design[key] ?? ''}" min="${min}" max="${max}" placeholder="自動" style="flex:1; padding:5px 7px; background:#1e293b; border:1px solid #475569; border-radius:6px; color:#fff; font-size:0.78rem;">
-            </div>
-        `;
+        const gridSummary = () => {
+            const r = parseInt(design.gridRows) || 0;
+            const c = parseInt(design.gridCols) || 0;
+            return (r > 0 && c > 0) ? `${r}行 × ${c}列` : '自動';
+        };
 
         container.innerHTML = `
             ${colorRow([
@@ -89,12 +98,20 @@ App.Design = {
                 <div style="flex:1; min-width:0;">${field('選択文字', 'cFontSize', 'text')}</div>
             </div>
             <div style="color:#666; font-size:0.7rem; margin:8px 0 4px; border-top:1px dashed #333; padding-top:6px;">選択肢の配置（選択式のみ）</div>
-            ${numberField('行数', 'gridRows', 1, 10)}
-            ${numberField('列数', 'gridCols', 1, 10)}
+            <button type="button" id="design-grid-config-btn" style="
+                width:100%; padding:8px 10px; background:#1e293b; border:1px solid #475569;
+                border-radius:8px; color:#fff; font-size:0.8rem; cursor:pointer;
+                display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;
+            ">
+                <span>選択肢の配置</span>
+                <span id="design-grid-summary" style="color:#00e5ff; font-weight:bold;">${gridSummary()}</span>
+            </button>
             <div style="color:#666; font-size:0.7rem; margin:8px 0 4px; border-top:1px dashed #333; padding-top:6px;">レイアウト</div>
             ${selectField('配置', 'align', [{ v: 'left', t: '左寄せ' }, { v: 'center', t: '中央' }, { v: 'right', t: '右寄せ' }])}
-            ${selectField('画面分割', 'layout', [{ v: 'standard', t: '上下分割 (標準)' }, { v: 'split', t: '左右分割' }])}
+            ${selectField('問題文の位置', 'layout', [{ v: 'top', t: '上側' }, { v: 'left', t: '左側' }, { v: 'right', t: '右側' }, { v: 'bottom', t: '下側' }])}
         `;
+
+        container.querySelector('#design-grid-config-btn').onclick = () => this._openGridModal(design, onChange);
 
         container.querySelectorAll('input[type="text"][data-key], input[type="number"][data-key]').forEach(inp => {
             inp.oninput = () => {
@@ -114,8 +131,91 @@ App.Design = {
             sel.onchange = () => {
                 design[sel.dataset.key] = sel.value;
                 if (onChange) onChange();
+                if (sel.dataset.key === 'layout' && window.App.Creator) window.App.Creator.applyDesignToPreview();
             };
         });
+    },
+
+    // 選択肢の配置 popup — rows × cols must cover every choice already
+    // added, or the grid would silently drop some off-screen; block
+    // confirming until it does instead of letting that happen quietly.
+    _openGridModal: function (design, onChange) {
+        const existing = document.getElementById('design-grid-modal');
+        if (existing) existing.remove();
+
+        const choiceCount = document.querySelectorAll('#creator-form-container .choice-text-input').length;
+
+        const overlay = document.createElement('div');
+        overlay.id = 'design-grid-modal';
+        overlay.className = 'design-modal-overlay';
+        overlay.innerHTML = `
+            <div class="design-modal-content" style="max-width:300px; padding:22px !important;">
+                <h3 class="modal-title" style="font-size:1.05em; margin-bottom:6px;">選択肢の配置</h3>
+                <p style="color:#888; font-size:0.75rem; text-align:center; margin:0 0 16px;">
+                    左上から順に敷き詰められ、余ったマスは空欄になります${choiceCount ? `（現在 ${choiceCount} 個）` : ''}
+                </p>
+                <div style="display:flex; gap:12px; margin-bottom:6px;">
+                    <div style="flex:1;">
+                        <label style="color:#94a3b8; font-size:0.75rem; display:block; margin-bottom:4px; text-align:center;">行数</label>
+                        <input type="number" id="grid-modal-rows" min="1" max="10" value="${design.gridRows || ''}" placeholder="自動" style="
+                            width:100%; padding:8px; text-align:center; background:#1e293b; border:1px solid #475569;
+                            border-radius:8px; color:#fff; font-size:1rem; box-sizing:border-box;
+                        ">
+                    </div>
+                    <div style="flex:1;">
+                        <label style="color:#94a3b8; font-size:0.75rem; display:block; margin-bottom:4px; text-align:center;">列数</label>
+                        <input type="number" id="grid-modal-cols" min="1" max="10" value="${design.gridCols || ''}" placeholder="自動" style="
+                            width:100%; padding:8px; text-align:center; background:#1e293b; border:1px solid #475569;
+                            border-radius:8px; color:#fff; font-size:1rem; box-sizing:border-box;
+                        ">
+                    </div>
+                </div>
+                <div id="grid-modal-error" style="color:#ff5555; font-size:0.75rem; text-align:center; min-height:1.2em; margin-bottom:6px;"></div>
+                <div style="display:flex; gap:10px; margin-top:10px;">
+                    <button type="button" id="grid-modal-cancel" style="flex:1; padding:10px; border-radius:8px; background:#333; border:none; color:#ccc; cursor:pointer;">キャンセル</button>
+                    <button type="button" id="grid-modal-clear" style="flex:1; padding:10px; border-radius:8px; background:#333; border:none; color:#ccc; cursor:pointer;">自動に戻す</button>
+                    <button type="button" id="grid-modal-ok" style="flex:1; padding:10px; border-radius:8px; background:#00e5ff; border:none; color:#000; font-weight:bold; cursor:pointer;">決定</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        const close = () => overlay.remove();
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+        overlay.querySelector('#grid-modal-cancel').onclick = close;
+        overlay.querySelector('#grid-modal-clear').onclick = () => {
+            design.gridRows = '';
+            design.gridCols = '';
+            close();
+            if (window.App.Creator) window.App.Creator.applyDesignToPreview();
+            const summary = document.getElementById('design-grid-summary');
+            if (summary) summary.textContent = '自動';
+            if (onChange) onChange();
+        };
+        overlay.querySelector('#grid-modal-ok').onclick = () => {
+            const rowsInp = overlay.querySelector('#grid-modal-rows');
+            const colsInp = overlay.querySelector('#grid-modal-cols');
+            const rows = parseInt(rowsInp.value) || 0;
+            const cols = parseInt(colsInp.value) || 0;
+            const errEl = overlay.querySelector('#grid-modal-error');
+
+            if ((rowsInp.value && !colsInp.value) || (!rowsInp.value && colsInp.value)) {
+                errEl.textContent = '行数・列数は両方入力してください';
+                return;
+            }
+            if (rows > 0 && cols > 0 && choiceCount > 0 && rows * cols < choiceCount) {
+                errEl.textContent = `行列が足りません（選択肢は${choiceCount}個あります）`;
+                return;
+            }
+
+            design.gridRows = rowsInp.value ? rows : '';
+            design.gridCols = colsInp.value ? cols : '';
+            close();
+            if (window.App.Creator) window.App.Creator.applyDesignToPreview();
+            const summary = document.getElementById('design-grid-summary');
+            if (summary) summary.textContent = (rows > 0 && cols > 0) ? `${rows}行 × ${cols}列` : '自動';
+            if (onChange) onChange();
+        };
     },
 
     init: function (targetKey = null, targetData = null) {

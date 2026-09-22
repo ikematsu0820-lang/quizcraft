@@ -743,7 +743,42 @@ window.App.Creator = {
                 : 'none';
         }
 
+        // 問題文の位置 — mirrors viewer.js's 4-direction layout. The wrapper
+        // always holds q-area then c-area in that DOM order; only its
+        // flex-direction changes, so "top"/"bottom" just reverse the column
+        // and "left"/"right" reverse the row.
+        const flexWrap = document.getElementById('creator-monitor-flexwrap');
         const qArea = document.getElementById('creator-monitor-q-area');
+        const formContainer = document.getElementById('creator-form-container');
+        const layout = window.App.Design ? window.App.Design.normalizeLayout(d.layout) : (d.layout || 'top');
+        const isRow = (layout === 'left' || layout === 'right');
+        if (flexWrap) {
+            flexWrap.style.flexDirection = { top: 'column', bottom: 'column-reverse', left: 'row', right: 'row-reverse' }[layout] || 'column';
+        }
+        if (qArea) {
+            if (isRow) {
+                qArea.style.width = '34%';
+                qArea.style.alignSelf = 'stretch';
+                qArea.style.display = 'flex';
+                qArea.style.alignItems = 'center';
+                qArea.style.margin = '0';
+            } else {
+                qArea.style.width = '90%';
+                qArea.style.alignSelf = 'center';
+                qArea.style.display = 'block';
+                qArea.style.margin = layout === 'bottom' ? '1.2% 0 0' : '0 0 1.2%';
+            }
+        }
+        if (formContainer) {
+            if (isRow) {
+                formContainer.style.width = '62%';
+                formContainer.style.alignSelf = 'stretch';
+            } else {
+                formContainer.style.width = '85%';
+                formContainer.style.alignSelf = 'center';
+            }
+        }
+
         if (qArea) {
             if (d.qBorderColor) qArea.style.borderColor = d.qBorderColor;
             if (d.qBgColor) qArea.style.backgroundColor = d.qBgColor;
@@ -790,7 +825,6 @@ window.App.Creator = {
 
         // 選択肢の配置（行数/列数）: mirrors viewer.js's .c-area grid — only
         // meaningful for choice questions, and only when both are set.
-        const formContainer = document.getElementById('creator-form-container');
         if (formContainer && (this.currentType || '').startsWith('choice')) {
             const rows = parseInt(d.gridRows) || 0;
             const cols = parseInt(d.gridCols) || 0;

@@ -864,109 +864,62 @@ window.App.Viewer = {
             </div>`;
 
         } else {
-            // Standard / Split (Includes Multi-Answer now)
-            if (layout === 'standard') {
-                contentBox.style.flexDirection = 'column';
-                contentBox.style.justifyContent = 'center';
-                contentBox.style.alignItems = 'center';
+            // 問題文の位置: top/bottom stack the q-area above/below the
+            // choices; left/right place them side by side. The wrapper
+            // always holds q-area then c-area in that DOM order — only its
+            // flex-direction changes (row-reverse/column-reverse just flip
+            // which side the first child lands on).
+            const pos = App.Design ? App.Design.normalizeLayout(layout) : (layout === 'split' ? 'right' : 'top');
+            const isRow = (pos === 'left' || pos === 'right');
+            const wrapDirection = { top: 'column', bottom: 'column-reverse', left: 'row', right: 'row-reverse' }[pos];
 
-                html += `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align};${d.qFontSize ? ` font-size:${d.qFontSize};` : ''}">
-                    ${q.q}
-                </div>`;
+            contentBox.style.flexDirection = wrapDirection;
+            contentBox.style.justifyContent = 'center';
+            contentBox.style.alignItems = 'center';
 
-                if (q.c) {
-                    const rows = parseInt(d.gridRows) || 0;
-                    const cols = parseInt(d.gridCols) || 0;
-                    let gridStyle = '';
-                    if (rows > 0 && cols > 0) {
-                        gridStyle = `display:grid; grid-template-columns: repeat(${cols}, 1fr); gap:2vh;`;
-                    }
+            const qAreaStyle = isRow
+                ? `width:28vw; height:80vh; margin:0 3vw;`
+                : `width:90%;`;
+            html += `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align};${d.qFontSize ? ` font-size:${d.qFontSize};` : ''} ${qAreaStyle}">
+                ${q.q}
+            </div>`;
 
-                    html += `<div class="c-area" style="${gridStyle}">`;
-                    q.c.forEach((c, i) => {
-                        const isRevealed = revealedMulti[i];
-                        const isAssoc = (q.type && q.type.startsWith('assoc'));
-                        const isMultiType = (q.type && (q.type.startsWith('multi') || q.type.startsWith('ranking') || isAssoc));
-                        const isAnswerPhase = (st.step === 'reveal_correct' || st.step === 'answer');
-                        const isMissed = isMultiType && !isAssoc && isAnswerPhase && !isRevealed;
+            if (q.c) {
+                const rows = parseInt(d.gridRows) || 0;
+                const cols = parseInt(d.gridCols) || 0;
+                const gridStyle = (rows > 0 && cols > 0) ? `display:grid; grid-template-columns: repeat(${cols}, 1fr); gap:2vh;` : '';
+                const cAreaStyle = isRow ? `width:50vw; box-sizing:border-box;` : '';
 
-                        let bgStyle = isRevealed ? 'background:#2ecc71;' : (d.cBgColor ? `background:${d.cBgColor};` : '');
-                        if (isMissed) bgStyle = 'background:#ff5555;';
+                html += `<div class="c-area" style="${gridStyle} ${cAreaStyle}">`;
+                q.c.forEach((c, i) => {
+                    const isRevealed = revealedMulti[i];
+                    const isAssoc = (q.type && q.type.startsWith('assoc'));
+                    const isMultiType = (q.type && (q.type.startsWith('multi') || q.type.startsWith('ranking') || isAssoc));
+                    const isAnswerPhase = (st.step === 'reveal_correct' || st.step === 'answer');
+                    const isMissed = isMultiType && !isAssoc && isAnswerPhase && !isRevealed;
 
-                        let bStyle = isRevealed ? 'border:3px solid #fff;' : (d.cBorderColor ? `border:1px solid ${d.cBorderColor};` : '');
-                        if (isMissed) bStyle = 'border:3px solid #fff;';
+                    let bgStyle = isRevealed ? 'background:#2ecc71;' : (d.cBgColor ? `background:${d.cBgColor};` : '');
+                    if (isMissed) bgStyle = 'background:#ff5555;';
 
-                        let colorStyle = isRevealed ? 'color:#fff;' : `color:${d.cTextColor || '#ddd'};`;
-                        if (isMissed) colorStyle = 'color:#fff;';
+                    let bStyle = isRevealed ? 'border:3px solid #fff;' : (d.cBorderColor ? `border:1px solid ${d.cBorderColor};` : '');
+                    if (isMissed) bStyle = 'border:3px solid #fff;';
 
-                        let transformStyle = isRevealed ? 'transform: scale(1.05); z-index:10;' : '';
-                        if (isMissed) transformStyle = 'transform: scale(1.0); z-index:5; opacity:1;';
+                    let colorStyle = isRevealed ? 'color:#fff;' : `color:${d.cTextColor || '#ddd'};`;
+                    if (isMissed) colorStyle = 'color:#fff;';
 
-                        const isHidden = isMultiType && !isRevealed && !isMissed;
+                    let transformStyle = isRevealed ? 'transform: scale(1.05); z-index:10;' : '';
+                    if (isMissed) transformStyle = 'transform: scale(1.0); z-index:5; opacity:1;';
 
-                        const prefixLabel = q.type.startsWith('ranking') ? `${i + 1}位` : String.fromCharCode(65 + i);
+                    const isHidden = isMultiType && !isRevealed && !isMissed;
 
-                        html += `<div class="choice-item" style="${colorStyle} ${bgStyle} ${bStyle} ${transformStyle}${d.cFontSize ? ` font-size:${d.cFontSize};` : ''} transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-                            <span class="choice-prefix" style="color:${isRevealed || isMissed ? '#fff' : '#00e5ff'}; ${isMultiType && !q.type.startsWith('ranking') && !isAssoc ? 'display:none;' : ''}">${prefixLabel}</span>
-                            <span style="${isHidden ? 'visibility:hidden;' : ''}">${c}</span>
-                        </div>`;
-                    });
-                    html += `</div>`;
-                }
-            } else {
-                // Split
-                const isSplit = true; // reusing existing logic
-                // For split, we use special container class or inline layout
-                // Since css has .layout-split-list, let's use it wrapper?
-                // But container is 'viewer-main-text' (passed as mainText). We append to it?
-                // No, contentBox IS mainText.
+                    const prefixLabel = q.type.startsWith('ranking') ? `${i + 1}位` : String.fromCharCode(65 + i);
 
-                // We need to apply 'layout-split-list' to the container for CSS to take effect?
-                // Or wrap it.
-                // CSS .layout-split-list targets THE CONTAINER of .q-area and .c-area.
-                // Let's create a wrapper.
-
-                html += `<div class="viewer-layout-container layout-split-list" style="width:100%; height:85%; display:flex; flex-direction:row-reverse; justify-content:center; align-items:center;">
-                    <div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align};${d.qFontSize ? ` font-size:${d.qFontSize};` : ''} width:25vw; height:80vh; margin:0 0 0 5vw;">
-                        ${q.q}
-                    </div>
-                    <div class="c-area" style="width:50vw; box-sizing:border-box; ${(parseInt(d.gridRows) > 0 && parseInt(d.gridCols) > 0)
-                        ? `display:grid; grid-template-columns:repeat(${parseInt(d.gridCols)}, 1fr); gap:2vh;`
-                        : ''
-                    }">`;
-
-                if (q.c) {
-                    q.c.forEach((c, i) => {
-
-                        const isRevealed = revealedMulti[i];
-                        const isAssoc = (q.type && q.type.startsWith('assoc'));
-                        const isMultiType = (q.type && (q.type.startsWith('multi') || q.type.startsWith('ranking') || isAssoc));
-                        const isAnswerPhase = (st.step === 'reveal_correct' || st.step === 'answer');
-                        const isMissed = isMultiType && !isAssoc && isAnswerPhase && !isRevealed;
-
-                        let bgStyle = isRevealed ? 'background:#2ecc71;' : (d.cBgColor ? `background:${d.cBgColor};` : '');
-                        if (isMissed) bgStyle = 'background:#ff5555;';
-
-                        let bStyle = isRevealed ? 'border:3px solid #fff;' : (d.cBorderColor ? `border:1px solid ${d.cBorderColor};` : '');
-                        if (isMissed) bStyle = 'border:3px solid #fff;';
-
-                        let colorStyle = isRevealed ? 'color:#fff;' : `color:${d.cTextColor || '#ddd'};`;
-                        if (isMissed) colorStyle = 'color:#fff;';
-
-                        let transformStyle = isRevealed ? 'transform: scale(1.05); z-index:10;' : '';
-                        if (isMissed) transformStyle = 'transform: scale(1.0); z-index:5; opacity:1;';
-
-                        const isHidden = isMultiType && !isRevealed && !isMissed;
-
-                        const prefixLabel = q.type.startsWith('ranking') ? `${i + 1}位` : String.fromCharCode(65 + i);
-
-                        html += `<div class="choice-item" style="${colorStyle} ${bgStyle} ${bStyle} ${transformStyle}${d.cFontSize ? ` font-size:${d.cFontSize};` : ''} transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-                            <span class="choice-prefix" style="color:${isRevealed || isMissed ? '#fff' : '#00e5ff'}; ${isMultiType && !q.type.startsWith('ranking') && !isAssoc ? 'display:none;' : ''}">${prefixLabel}</span>
-                            <span style="${isHidden ? 'visibility:hidden;' : ''}">${c}</span>
-                        </div>`;
-                    });
-                }
-                html += `</div></div>`;
+                    html += `<div class="choice-item" style="${colorStyle} ${bgStyle} ${bStyle} ${transformStyle}${d.cFontSize ? ` font-size:${d.cFontSize};` : ''} transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+                        <span class="choice-prefix" style="color:${isRevealed || isMissed ? '#fff' : '#00e5ff'}; ${isMultiType && !q.type.startsWith('ranking') && !isAssoc ? 'display:none;' : ''}">${prefixLabel}</span>
+                        <span style="${isHidden ? 'visibility:hidden;' : ''}">${c}</span>
+                    </div>`;
+                });
+                html += `</div>`;
             }
         }
         contentBox.innerHTML = html;
