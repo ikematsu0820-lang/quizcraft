@@ -320,6 +320,14 @@ window.App.Creator = {
         if (optionsExtra) optionsExtra.innerHTML = '';
         if (optSubArea) optSubArea.classList.add('hidden');
 
+        // Raw leaf type currently shown in the form (e.g. 'choice_multi',
+        // 'free_oral'), captured before the choice_single/choice_multi
+        // remap below. Used by 解答権's mode restrictions so picking 回答形式
+        // restricts 解答権 immediately, even before the first question in
+        // the set has been added (deriveTypeInfo() otherwise only looks at
+        // already-added questions).
+        this.currentType = type;
+
         // Handle Choice Subtypes
         if (type === 'choice_single') {
             this.choiceSubtype = 'single';
@@ -652,6 +660,19 @@ window.App.Creator = {
     // panel/button (both stacked, one scroll area).
     activeInlinePanel: null,
 
+    // deriveTypeInfo()/applyModeRestrictions() (host_config.js) only look at
+    // already-added questions[0], so before the first question in a set is
+    // added, picking a 回答形式 had no effect on 解答権's mode restrictions.
+    // Fall back to a synthetic entry built from the live form's current
+    // type/subtype so restrictions apply immediately.
+    effectiveQuestionsForRestrictions: function () {
+        const real = window.App.Data.createdQuestions;
+        if (real.length > 0 || !this.currentType) return real;
+        const mode = this.currentType === 'choice_multi' ? 'multi' : undefined;
+        const type = (this.currentType === 'choice_single' || this.currentType === 'choice_multi') ? 'choice' : this.currentType;
+        return [{ type, mode }];
+    },
+
     renderRulesSection: function () {
         const modeBtn = document.getElementById('creator-rule-mode-btn');
         const rulesBtn = document.getElementById('creator-rule-settings-btn');
@@ -661,7 +682,7 @@ window.App.Creator = {
         if (!window.App.Config) return;
 
         const conf = window.App.Data.currentConfig;
-        const questions = window.App.Data.createdQuestions;
+        const questions = this.effectiveQuestionsForRestrictions();
         window.App.Config.applyModeRestrictions(conf, questions);
 
         const modeLabels = { normal: '一斉解答', buzz: '早押し', turn: '順番解答', solo: 'ソロ対戦' };
@@ -674,6 +695,11 @@ window.App.Creator = {
         if (designBtn) designBtn.onclick = () => this.toggleInlinePanel('design');
         modeBtn.onclick = () => this.toggleInlinePanel('mode');
         rulesBtn.onclick = () => this.toggleInlinePanel('rules');
+
+        // Keep an already-open 解答権 panel's radio list in sync as 回答形式
+        // changes (it only reflects restrictions from the moment it opened
+        // otherwise).
+        if (this.activeInlinePanel === 'mode') this.renderActivePanelContent('mode');
 
         this.updateInlinePanelButtonStyles();
     },
@@ -719,22 +745,29 @@ window.App.Creator = {
         panels[key].classList.remove('hidden');
         if (key === 'edit' && listActions) listActions.classList.remove('hidden');
 
-        if (window.App.Config) {
-            const conf = window.App.Data.currentConfig;
-            const questions = window.App.Data.createdQuestions;
-            const onChange = () => this.renderRulesSection();
-            if (key === 'mode') {
-                window.App.Config.renderInlineModeChooser(document.getElementById('creator-inline-mode-body'), conf, questions, onChange);
-            } else if (key === 'rules') {
-                window.App.Config.renderInlineGameTypeChooser(document.getElementById('creator-inline-gametype'), conf, onChange);
-                window.App.Config.renderInlineTimeLimitChooser(document.getElementById('creator-inline-timelimit'), conf, onChange);
-            } else if (key === 'design' && window.App.Design && window.App.Design.renderInlineChooser) {
-                window.App.Design.renderInlineChooser(panels.design, window.App.Data.currentDesign, onChange);
-            }
-            // 'edit' panel content is already kept current by renderForm().
-        }
+        this.renderActivePanelContent(key);
 
         this.updateInlinePanelButtonStyles();
+    },
+
+    // Renders the given panel's content. Called on open (toggleInlinePanel)
+    // and again from renderRulesSection() whenever the live 回答形式/question
+    // list changes, so an already-open 解答権 panel's mode restrictions stay
+    // in sync instead of only updating on next open.
+    renderActivePanelContent: function (key) {
+        if (!window.App.Config) return;
+        const conf = window.App.Data.currentConfig;
+        const questions = this.effectiveQuestionsForRestrictions();
+        const onChange = () => this.renderRulesSection();
+        if (key === 'mode') {
+            window.App.Config.renderInlineModeChooser(document.getElementById('creator-inline-mode-body'), conf, questions, onChange);
+        } else if (key === 'rules') {
+            window.App.Config.renderInlineGameTypeChooser(document.getElementById('creator-inline-gametype'), conf, onChange);
+            window.App.Config.renderInlineTimeLimitChooser(document.getElementById('creator-inline-timelimit'), conf, onChange);
+        } else if (key === 'design' && window.App.Design && window.App.Design.renderInlineChooser) {
+            window.App.Design.renderInlineChooser(document.getElementById('creator-inline-design'), window.App.Data.currentDesign, onChange);
+        }
+        // 'edit' panel content is already kept current by renderForm().
     },
 
     // --- Choice Input: viewer .choice-item style (full-width horizontal row) ---

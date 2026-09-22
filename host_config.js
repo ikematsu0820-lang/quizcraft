@@ -282,9 +282,9 @@ App.Config = {
 
     // 解答権 — pick mode + edit that mode's fields.
     renderInlineModeChooser: function (container, conf, questions, onChange) {
-        const { qType, isDobon, isBlackjack } = this.deriveTypeInfo(questions);
+        const { qType, isOral, isDobon, isBlackjack } = this.deriveTypeInfo(questions);
         const modes = [
-            { value: 'normal', label: '一斉解答', disabled: isBlackjack || isDobon || (qType && (qType.startsWith('multi') || qType.startsWith('ranking'))) },
+            { value: 'normal', label: '一斉解答', disabled: isBlackjack || isOral || isDobon || (qType && (qType.startsWith('multi') || qType.startsWith('ranking'))) },
             { value: 'buzz', label: '早押し', disabled: isBlackjack || isDobon },
             { value: 'turn', label: '順番解答', disabled: false },
             { value: 'solo', label: 'ソロ対戦', disabled: isBlackjack }

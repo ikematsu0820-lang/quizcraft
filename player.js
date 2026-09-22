@@ -1579,7 +1579,15 @@ function renderPlayerQuestion(q, roomId, playerId) {
         inputCont.appendChild(helpText);
     }
     else {
-        // デフォルト: 記述式
+        // デフォルト: 記述式 — answered by tapping/typing on the phone right
+        // here, so show the player's own name directly above the input
+        // (near the bottom of the screen, where their thumb already is)
+        // as a clear "this is your answer box" cue.
+        const nameTag = document.createElement('div');
+        nameTag.className = 'player-input-name-tag';
+        nameTag.textContent = `${myName} さんの解答`;
+        nameTag.style.cssText = 'text-align:center; font-size:0.85em; color:#94a3b8; margin-bottom:8px; font-weight:600;';
+
         const inp = document.createElement('input');
         inp.type = 'text'; inp.placeholder = '解答を入力...'; inp.className = 'modern-input'; inp.style.marginBottom = '15px';
         const sub = document.createElement('button');
@@ -1588,7 +1596,7 @@ function renderPlayerQuestion(q, roomId, playerId) {
             if (inp.value.trim() === "") return;
             submitAnswer(roomId, playerId, inp.value.trim());
         };
-        inputCont.appendChild(inp); inputCont.appendChild(sub);
+        inputCont.appendChild(nameTag); inputCont.appendChild(inp); inputCont.appendChild(sub);
     }
 }
 
