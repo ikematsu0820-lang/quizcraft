@@ -279,9 +279,6 @@ window.App.Creator = {
         // Reset to flex column so choice rows can use flex:1
         container.style.display = 'flex';
         container.style.flexDirection = 'column';
-        // Clear add-button slot
-        const addChoiceAreaReset = document.getElementById('creator-add-choice-area');
-        if (addChoiceAreaReset) addChoiceAreaReset.innerHTML = '';
         if (optionsExtra) optionsExtra.innerHTML = '';
         if (optSubArea) optSubArea.classList.add('hidden');
 
@@ -339,19 +336,19 @@ window.App.Creator = {
             }
             else for (let i = 0; i < 4; i++) this.addChoiceInput(choicesDiv, i);
 
-            // Add choice button → placed in the #creator-add-choice-area slot inside the 16:9 frame
-            const addChoiceArea = document.getElementById('creator-add-choice-area');
-            if (addChoiceArea) {
-                addChoiceArea.innerHTML = '';
+            // Add choice button + Shuffle option in options panel
+            if (optionsExtra) {
+                // Add-choice button at the top of options
+                const addBtnDiv = document.createElement('div');
+                addBtnDiv.style.cssText = 'margin-bottom:14px;';
                 const addBtn = document.createElement('button');
                 addBtn.textContent = '＋ 選択肢を追加';
-                addBtn.style.cssText = 'background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.35); border-radius:6px; color:#00e5ff; padding:3px 14px; cursor:pointer; font-size:0.7rem;';
+                addBtn.style.cssText = 'background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4); border-radius:8px; color:#00e5ff; padding:8px 20px; cursor:pointer; font-size:0.9rem; width:100%;';
                 addBtn.onclick = () => this.addChoiceInput(choicesDiv);
-                addChoiceArea.appendChild(addBtn);
-            }
+                addBtnDiv.appendChild(addBtn);
+                optionsExtra.appendChild(addBtnDiv);
 
-            // Shuffle option in options panel
-            if (optionsExtra) {
+                // Shuffle checkbox
                 optionsExtra.innerHTML += `
                     <div style="margin-bottom:12px;">
                         <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:#94a3b8; font-size:0.9rem;">
