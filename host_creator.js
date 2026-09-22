@@ -321,7 +321,7 @@ window.App.Creator = {
 
             const choicesDiv = document.createElement('div');
             choicesDiv.id = 'creator-choices-list';
-            choicesDiv.style.cssText = 'display:grid; grid-template-columns:1fr 1fr; gap:10px;';
+            choicesDiv.style.cssText = 'display:flex; flex-direction:column; gap:min(8px,1.5vw); width:100%;';
             container.appendChild(choicesDiv);
 
             if (data) {
@@ -378,13 +378,12 @@ window.App.Creator = {
 
         else if (type === 'sort') {
             container.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                    <span style="color:#64748b; font-size:0.8rem;">順番をタップして設定</span>
-                    <button id="btn-reset-sort-ranks" style="background:rgba(255,255,255,0.1); border:1px solid #555; border-radius:6px; color:#aaa; padding:4px 12px; font-size:0.8rem; cursor:pointer;">順序リセット</button>
+                <div style="display:flex; justify-content:flex-end; align-items:center; margin-bottom:6px;">
+                    <button id="btn-reset-sort-ranks" style="background:rgba(255,255,255,0.08); border:1px solid #555; border-radius:6px; color:#aaa; padding:3px 10px; font-size:0.75rem; cursor:pointer;">順序リセット</button>
                 </div>
             `;
             const sortDiv = document.createElement('div');
-            sortDiv.style.cssText = 'display:grid; grid-template-columns:1fr 1fr; gap:10px;';
+            sortDiv.style.cssText = 'display:flex; flex-direction:column; gap:min(8px,1.5vw); width:100%;';
             container.appendChild(sortDiv);
 
             document.getElementById('btn-reset-sort-ranks').onclick = () => this.resetSortRanks(sortDiv);
@@ -558,88 +557,99 @@ window.App.Creator = {
         }
     },
 
-    // --- Choice Input as Monitor-style Card ---
+    // --- Choice Input: viewer .choice-item style (full-width horizontal row) ---
     addChoiceInput: function (parent, index, text = "", checked = false) {
         const limit = (this.choiceSubtype === 'multi') ? 36 : 20;
         if (parent.children.length >= limit) { alert(`選択肢の上限は${limit}個までです`); return; }
 
         const idx = (index !== undefined) ? index : parent.children.length;
-        const labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T'];
-        const colors = [
-            'rgba(239,68,68,0.25)',   // A - red
-            'rgba(59,130,246,0.25)',   // B - blue
-            'rgba(234,179,8,0.25)',    // C - yellow
-            'rgba(34,197,94,0.25)',    // D - green
-            'rgba(168,85,247,0.25)',   // E - purple
-            'rgba(249,115,22,0.25)',   // F - orange
-        ];
-        const borderColors = [
-            'rgba(239,68,68,0.5)',
-            'rgba(59,130,246,0.5)',
-            'rgba(234,179,8,0.5)',
-            'rgba(34,197,94,0.5)',
-            'rgba(168,85,247,0.5)',
-            'rgba(249,115,22,0.5)',
-        ];
-
-        const colorIdx = idx % colors.length;
+        const labels = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T'];
         const label = labels[idx] || String(idx + 1);
 
-        const card = document.createElement('div');
-        card.className = 'choice-row';
-        card.style.cssText = `
-            position:relative; background:${colors[colorIdx]};
-            border:2px solid ${checked ? '#00e5ff' : borderColors[colorIdx]};
-            border-radius:12px; padding:12px; min-height:60px;
-            display:flex; flex-direction:column; align-items:center; justify-content:center;
-            cursor:pointer; transition:all 0.2s;
-            ${checked ? 'box-shadow:0 0 15px rgba(0,229,255,0.3);' : ''}
+        const row = document.createElement('div');
+        row.className = 'choice-row';
+        // Mirrors viewer .choice-item: semi-transparent background, slight bottom border
+        row.style.cssText = `
+            display:flex; align-items:center;
+            background:linear-gradient(90deg, rgba(255,255,255,0.04) 0%, transparent 100%);
+            border-bottom:1px solid rgba(255,255,255,0.1);
+            border-radius:6px;
+            padding:1.5% 2%;
+            cursor:pointer; transition:background 0.2s;
+            ${checked ? 'background:linear-gradient(90deg,rgba(0,229,255,0.12) 0%,transparent 100%);' : ''}
         `;
+        row.onmouseenter = () => {
+            if (!chk.checked) row.style.background = 'linear-gradient(90deg,rgba(255,255,255,0.08) 0%,transparent 100%)';
+        };
+        row.onmouseleave = () => {
+            row.style.background = chk.checked
+                ? 'linear-gradient(90deg,rgba(0,229,255,0.12) 0%,transparent 100%)'
+                : 'linear-gradient(90deg,rgba(255,255,255,0.04) 0%,transparent 100%)';
+        };
 
-        const inputType = (this.choiceSubtype === 'single') ? 'radio' : 'checkbox';
-        const chk = document.createElement('input');
-        chk.type = inputType;
-        chk.name = 'creator-choice-correct-group';
-        chk.className = 'choice-correct-chk';
-        chk.checked = checked;
-        chk.style.cssText = 'position:absolute; top:8px; right:8px; transform:scale(1.3); cursor:pointer;';
-
+        // Label badge — mirrors viewer .choice-prefix
         const labelSpan = document.createElement('span');
         labelSpan.className = 'choice-label-text';
-        labelSpan.style.cssText = 'font-size:0.85rem; font-weight:bold; color:rgba(255,255,255,0.5); margin-bottom:4px;';
+        labelSpan.style.cssText = `
+            color:#00e5ff; font-weight:900;
+            font-family:'Arial Black',sans-serif;
+            margin-right:min(16px,3vw);
+            font-size:min(1.1rem,3vw);
+            min-width:min(22px,4vw);
+            text-shadow:0 0 8px rgba(0,229,255,0.4);
+        `;
         labelSpan.textContent = label;
 
+        // Editable text field
         const inp = document.createElement('input');
         inp.type = 'text';
         inp.className = 'choice-text-input';
-        inp.placeholder = `選択肢${label}`;
+        inp.placeholder = `選択肢 ${label}`;
         inp.value = text;
-        inp.style.cssText = 'width:100%; background:transparent; border:none; color:#fff; font-size:1rem; font-weight:bold; text-align:center; outline:none; padding:4px;';
+        inp.style.cssText = `
+            flex:1; background:transparent; border:none;
+            color:#ddd; font-size:min(1rem,2.8vw);
+            outline:none; padding:2px 0;
+        `;
+        inp.onfocus = () => inp.style.color = '#fff';
+        inp.onblur  = () => inp.style.color = '#ddd';
 
-        const delBtn = document.createElement('button');
-        delBtn.textContent = '×';
-        delBtn.style.cssText = 'position:absolute; top:4px; left:8px; background:none; border:none; color:rgba(255,255,255,0.3); font-size:1rem; cursor:pointer; padding:2px;';
-        delBtn.onclick = (e) => { e.stopPropagation(); card.remove(); this.updateLabels(parent); };
+        // Correct-answer toggle
+        const inputType = (this.choiceSubtype === 'single') ? 'radio' : 'checkbox';
+        const chk = document.createElement('input');
+        chk.type  = inputType;
+        chk.name  = 'creator-choice-correct-group';
+        chk.className = 'choice-correct-chk';
+        chk.checked = checked;
+        chk.title = '正解に設定';
+        chk.style.cssText = 'transform:scale(1.3); cursor:pointer; margin-left:8px; flex-shrink:0;';
 
-        // Click card to toggle correct
-        card.onclick = (e) => {
-            if (e.target === inp || e.target === delBtn) return;
-            chk.checked = !chk.checked;
+        chk.onchange = () => {
+            row.style.background = chk.checked
+                ? 'linear-gradient(90deg,rgba(0,229,255,0.12) 0%,transparent 100%)'
+                : 'linear-gradient(90deg,rgba(255,255,255,0.04) 0%,transparent 100%)';
+        };
+
+        // Click row body to toggle correct
+        row.onclick = (e) => {
+            if (e.target === inp || e.target === delBtn || e.target === chk) return;
+            chk.checked = (inputType === 'radio') ? true : !chk.checked;
             chk.dispatchEvent(new Event('change'));
         };
 
-        chk.onchange = () => {
-            // Update card border
-            card.style.borderColor = chk.checked ? '#00e5ff' : borderColors[colorIdx];
-            card.style.boxShadow = chk.checked ? '0 0 15px rgba(0,229,255,0.3)' : 'none';
-        };
+        // Delete button
+        const delBtn = document.createElement('button');
+        delBtn.textContent = '×';
+        delBtn.style.cssText = 'background:none; border:none; color:rgba(255,255,255,0.25); font-size:0.9rem; cursor:pointer; padding:2px 4px; margin-left:4px; flex-shrink:0;';
+        delBtn.title = '削除';
+        delBtn.onclick = (e) => { e.stopPropagation(); row.remove(); this.updateLabels(parent); };
 
-        card.appendChild(chk);
-        card.appendChild(delBtn);
-        card.appendChild(labelSpan);
-        card.appendChild(inp);
+        row.appendChild(labelSpan);
+        row.appendChild(inp);
+        row.appendChild(chk);
+        row.appendChild(delBtn);
 
-        parent.appendChild(card);
+        parent.appendChild(row);
         this.updateLabels(parent);
     },
 
@@ -647,20 +657,24 @@ window.App.Creator = {
         if (parent.children.length >= 20) { alert("並べ替え問題の上限は20個までです"); return; }
         const row = document.createElement('div');
         row.className = 'sort-row';
-
-        const controlHtml = `
-            <div class="sort-rank-box" style="width:40px; height:40px; border:2px solid #444; border-radius:8px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-weight:900; font-size:1.2em; color:var(--color-primary); background:rgba(0,0,0,0.3);">
-                ${rank || ''}
-            </div>
-            <input type="hidden" class="sort-order-input" value="${rank || ''}">
+        // Same viewer-style horizontal row
+        row.style.cssText = `
+            display:flex; align-items:center;
+            background:linear-gradient(90deg,rgba(255,255,255,0.04) 0%,transparent 100%);
+            border-bottom:1px solid rgba(255,255,255,0.1);
+            border-radius:6px;
+            padding:min(8px,1.8vw) min(10px,2vw);
         `;
 
         row.innerHTML = `
-        <span class="sort-label bold cyan text-lg w-20 text-center">${String.fromCharCode(65 + index)}</span>
-        <input type="text" class="sort-text-input flex-1" placeholder="項目を入力" value="${text}">
-        ${controlHtml}
-        <button class="btn-mini btn-dark btn-remove-sort" style="width:25px; padding:2px;">×</button>
-    `;
+            <span class="sort-label" style="color:#00e5ff;font-weight:900;font-family:'Arial Black',sans-serif;margin-right:min(16px,3vw);font-size:min(1.1rem,3vw);min-width:min(22px,4vw);text-shadow:0 0 8px rgba(0,229,255,0.4);">${String.fromCharCode(65 + index)}</span>
+            <input type="text" class="sort-text-input" placeholder="項目を入力" value="${text}" style="flex:1;background:transparent;border:none;color:#ddd;font-size:min(1rem,2.8vw);outline:none;padding:2px 0;">
+            <div class="sort-rank-box" style="width:min(36px,5vw);height:min(36px,5vw);border:2px solid #444;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:900;font-size:min(1rem,2.5vw);color:#00e5ff;background:rgba(0,0,0,0.3);margin-left:8px;flex-shrink:0;">
+                ${rank || ''}
+            </div>
+            <input type="hidden" class="sort-order-input" value="${rank || ''}">
+            <button class="btn-remove-sort" style="background:none;border:none;color:rgba(255,255,255,0.25);font-size:0.9rem;cursor:pointer;padding:2px 4px;margin-left:4px;flex-shrink:0;">×</button>
+        `;
 
         // Bind events
         const rankBox = row.querySelector('.sort-rank-box');
