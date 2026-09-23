@@ -747,9 +747,15 @@ window.App.Creator = {
         const screen = document.getElementById('creator-monitor-preview');
         if (screen && d.mainBgColor) {
             screen.style.backgroundColor = d.mainBgColor;
-            screen.style.backgroundImage = (d.mainBgColor === '#0a0a0a')
-                ? 'radial-gradient(circle at center, #1a1a1a 0%, #000000 100%)'
-                : 'none';
+            if (d.bgImage) {
+                screen.style.backgroundImage = `url(${d.bgImage})`;
+                screen.style.backgroundSize = 'cover';
+                screen.style.backgroundPosition = 'center';
+            } else {
+                screen.style.backgroundImage = (d.mainBgColor === '#0a0a0a')
+                    ? 'radial-gradient(circle at center, #1a1a1a 0%, #000000 100%)'
+                    : 'none';
+            }
         }
 
         // 問題文の位置 — mirrors viewer.js's 4-direction layout. The wrapper

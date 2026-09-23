@@ -117,12 +117,36 @@ App.Design = {
                     ${miniSelect('配置', 'cAlign', ALIGN_OPTS)}
                 </div>
             `,
-            object: () => `
+            object: () => {
+                const transparentToggle = (label, key) => `
+                    <label style="display:flex; align-items:center; gap:3px; cursor:pointer; color:#94a3b8; font-size:0.62rem; white-space:nowrap;">
+                        <input type="checkbox" data-transparent-key="${key}" ${design[key] === 'transparent' ? 'checked' : ''} style="width:12px; height:12px; accent-color:#00e5ff;">
+                        ${label}を透明に
+                    </label>
+                `;
+                const bgImg = design.bgImage || '';
+                const hasBgImg = bgImg.startsWith('data:') || bgImg.startsWith('http');
+                return `
                 ${colorRow([
                     ['全体背景', 'mainBgColor'],
                     ['問題枠', 'qBorderColor'], ['問題背景', 'qBgColor'],
                     ['選択枠', 'cBorderColor'], ['選択背景', 'cBgColor'],
                 ])}
+                <div style="display:flex; gap:8px; flex-wrap:wrap; margin:-4px 0 10px;">
+                    ${transparentToggle('問題枠', 'qBorderColor')}
+                    ${transparentToggle('問題背景', 'qBgColor')}
+                    ${transparentToggle('選択枠', 'cBorderColor')}
+                    ${transparentToggle('選択背景', 'cBgColor')}
+                </div>
+                <div style="margin-bottom:10px; padding:8px; background:#1e293b; border:1px solid #475569; border-radius:8px;">
+                    <div style="color:#94a3b8; font-size:0.75rem; margin-bottom:4px;">全体背景に画像を使う</div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <button type="button" id="design-bgimg-file-btn" style="flex:0 0 auto; padding:5px 10px; background:#333; border:none; border-radius:6px; color:#00e5ff; cursor:pointer; font-size:0.7rem;">📁 画像を選択</button>
+                        <span id="design-bgimg-status" style="font-size:0.68rem; color:${hasBgImg ? '#00ff88' : '#666'};">${hasBgImg ? '画像設定済み' : '未設定（色のみ）'}</span>
+                        <button type="button" id="design-bgimg-clear-btn" title="クリア" style="margin-left:auto; padding:4px 9px; background:#442222; border:none; border-radius:6px; color:#ff8888; cursor:pointer; font-size:0.68rem;">×</button>
+                    </div>
+                    <input type="file" accept="image/*" id="design-bgimg-file-input" style="display:none;">
+                </div>
                 <div style="color:#666; font-size:0.7rem; margin:8px 0 4px; border-top:1px dashed #333; padding-top:6px;">選択肢の配置（選択式のみ）／問題文の位置</div>
                 <div style="display:flex; gap:6px; margin-bottom:6px;">
                     <button type="button" id="design-grid-config-btn" style="
@@ -141,7 +165,8 @@ App.Design = {
                             .map(o => `<option value="${o.v}" ${design.layout === o.v ? 'selected' : ''}>${o.t}</option>`).join('')}
                     </select>
                 </div>
-            `,
+            `;
+            },
             sound: () => {
                 const soundRow = (label, key) => {
                     const val = design[key] || '';
@@ -198,6 +223,9 @@ App.Design = {
                     const key = picker.dataset.colorKey;
                     design[key] = picker.value;
                     picker.title = picker.value;
+                    // Picking a real color exits 透明 for that field.
+                    const chk = body.querySelector(`input[data-transparent-key="${key}"]`);
+                    if (chk) chk.checked = false;
                     if (onChange) onChange();
                 };
             });
@@ -207,6 +235,49 @@ App.Design = {
                     if (onChange) onChange();
                     if (sel.dataset.key === 'layout' && window.App.Creator) window.App.Creator.applyDesignToPreview();
                 };
+            });
+
+            // オブジェクト tab: 無色透明 — <input type=color> can't represent
+            // transparency, so this is a separate checkbox that stores the
+            // literal string 'transparent' (already the app's convention —
+            // see cBgColor's default) instead of a hex value.
+            body.querySelectorAll('input[data-transparent-key]').forEach(chk => {
+                const key = chk.dataset.transparentKey;
+                const picker = body.querySelector(`input[type="color"][data-color-key="${key}"]`);
+                const syncSwatch = () => {
+                    if (!picker) return;
+                    picker.disabled = chk.checked;
+                    picker.style.opacity = chk.checked ? '0.35' : '1';
+                };
+                chk.onchange = () => {
+                    design[key] = chk.checked ? 'transparent' : this._toHexOrDefault('');
+                    syncSwatch();
+                    if (onChange) onChange();
+                };
+                syncSwatch(); // reflect initial checked state without mutating design
+            });
+
+            // オブジェクト tab: 全体背景 image upload (file → base64) or clear.
+            body.querySelector('#design-bgimg-file-btn')?.addEventListener('click', () => {
+                body.querySelector('#design-bgimg-file-input')?.click();
+            });
+            body.querySelector('#design-bgimg-file-input')?.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    design.bgImage = ev.target.result;
+                    const status = body.querySelector('#design-bgimg-status');
+                    if (status) { status.textContent = '画像設定済み'; status.style.color = '#00ff88'; }
+                    if (onChange) onChange();
+                };
+                reader.readAsDataURL(file);
+            });
+            body.querySelector('#design-bgimg-clear-btn')?.addEventListener('click', () => {
+                design.bgImage = '';
+                const status = body.querySelector('#design-bgimg-status');
+                if (status) { status.textContent = '未設定（色のみ）'; status.style.color = '#666'; }
+                if (onChange) onChange();
             });
 
             // サウンド tab: URL text field, file upload (→ base64), preview
