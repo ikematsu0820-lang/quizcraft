@@ -611,7 +611,7 @@ window.App.Viewer = {
             <div style="width:100%;height:100%;display:flex;flex-direction:column;box-sizing:border-box;padding:2vh 2vw;gap:1.5vh;font-family:sans-serif;">
 
                 <!-- Question -->
-                <div style="text-align:center;color:#fff;font-size:3vh;font-weight:900;padding:1.2vh 2vw;border:2px solid rgba(0,191,255,0.25);border-radius:12px;background:rgba(0,191,255,0.04);letter-spacing:0.04em;">${q.q || ''}</div>
+                <div style="text-align:center;color:#fff;font-size:3vh;font-weight:900;padding:1.2vh 2vw;border:2px solid rgba(0,191,255,0.25);border-radius:12px;background:rgba(0,191,255,0.04);letter-spacing:0.04em;white-space:pre-wrap;">${q.q || ''}</div>
 
                 <!-- Score bar -->
                 <div style="display:flex;gap:1.5vw;justify-content:center;">
@@ -884,10 +884,11 @@ window.App.Viewer = {
             contentBox.style.justifyContent = 'center';
             contentBox.style.alignItems = 'center';
 
-            // Reusing q-area for consistent look
-            html += `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align}; font-size:${d.qFontSize || '6vh'}; width:80%;">
-                ${q.q}
-            </div>`;
+            // Reusing q-area for consistent look — ${q.q} sits directly
+            // against the tags (no surrounding template indentation) since
+            // .q-area now uses white-space:pre-wrap, which would otherwise
+            // render that indentation as stray blank lines/leading spaces.
+            html += `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align}; font-size:${d.qFontSize || '6vh'}; width:80%;">${q.q}</div>`;
 
         } else {
             // 問題文の位置: top/bottom stack the q-area above/below the
@@ -906,9 +907,8 @@ window.App.Viewer = {
             const qAreaStyle = isRow
                 ? `width:28vw; height:80vh; margin:0 3vw;`
                 : `width:90%;`;
-            html += `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align};${d.qFontSize ? ` font-size:${d.qFontSize};` : ''} ${qAreaStyle}">
-                ${q.q}
-            </div>`;
+            // ${q.q} sits directly against the tags — see the note above.
+            html += `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align};${d.qFontSize ? ` font-size:${d.qFontSize};` : ''} ${qAreaStyle}">${q.q}</div>`;
 
             if (q.c) {
                 const rows = parseInt(d.gridRows) || 0;
@@ -999,7 +999,7 @@ window.App.Viewer = {
         contentBox.innerHTML = `
             <style>@keyframes slideInLeft { from { opacity:0; transform:translateX(-40px); } to { opacity:1; transform:translateX(0); } }</style>
             <div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;padding:2vh 3vw;box-sizing:border-box;overflow:hidden;">
-                <div style="font-size:3vh;font-weight:700;color:${textColor};text-align:center;padding:1.2vh 2.5vw;background:${qBgColor};border-radius:10px;border-left:5px solid ${borderColor};width:90%;max-width:90vw;margin-bottom:1.5vh;line-height:1.4;">${q.q}</div>
+                <div style="font-size:3vh;font-weight:700;color:${textColor};text-align:center;padding:1.2vh 2.5vw;background:${qBgColor};border-radius:10px;border-left:5px solid ${borderColor};width:90%;max-width:90vw;margin-bottom:1.5vh;line-height:1.4;white-space:pre-wrap;">${q.q}</div>
                 <div style="font-size:2.2vh;color:#ffd700;font-weight:900;letter-spacing:0.25em;margin-bottom:1.2vh;text-shadow:0 0 15px #ffd70066;">正　解</div>
                 <div style="width:90%;max-width:90vw;flex:1;display:flex;flex-direction:column;gap:0.7vh;background:rgba(0,0,0,0.35);border:3px solid ${borderColor};border-radius:14px;padding:1.2vh 1.2vw;box-shadow:0 0 30px ${borderColor}44;overflow:hidden;">
                     ${rows}

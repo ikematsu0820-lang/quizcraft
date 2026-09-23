@@ -343,6 +343,7 @@
     font-weight: 700;
     margin-bottom: 20px;
     line-height: 1.6;
+    white-space: pre-wrap;
     box-shadow: var(--shadow-soft);
     backdrop-filter: blur(10px);
 }
