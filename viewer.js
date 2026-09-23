@@ -878,10 +878,16 @@ window.App.Viewer = {
         const textColor = d.qTextColor || '#fff';
         const borderColor = d.qBorderColor || 'var(--color-primary)';
 
-        // Free Input
+        // Free Input — only one box (q-area; the answer itself is on each
+        // player's own device, not the shared monitor), so 問題文の位置
+        // just anchors that single box to the chosen screen edge instead of
+        // reordering it against a second element like the choice-based
+        // branch below does.
         if (q.type === 'free_oral' || q.type === 'free_written') {
-            contentBox.style.flexDirection = 'column';
-            contentBox.style.justifyContent = 'center';
+            const pos = App.Design ? App.Design.normalizeLayout(layout) : 'top';
+            const isRow = (pos === 'left' || pos === 'right');
+            contentBox.style.flexDirection = isRow ? 'row' : 'column';
+            contentBox.style.justifyContent = { top: 'flex-start', bottom: 'flex-end', left: 'flex-start', right: 'flex-end' }[pos];
             contentBox.style.alignItems = 'center';
 
             // Reusing q-area for consistent look — ${q.q} sits directly
