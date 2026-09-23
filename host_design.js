@@ -583,10 +583,11 @@ App.Design = {
             btn.onclick = (e) => {
                 e.stopPropagation();
                 const item = items.find(it => it.id === btn.dataset.preview);
-                // Shared single <audio> (App.SoundLibrary.preview) so
-                // repeated taps replace the current preview instead of
-                // stacking multiple overlapping playbacks.
-                if (item && window.App.SoundLibrary) window.App.SoundLibrary.preview(item.data);
+                // Shared single <audio> (App.SoundLibrary.toggle) — tapping
+                // the same ▶ again pauses instead of restarting, and
+                // switching to a different sound always stops the last one
+                // first, so nothing plays on top of anything else.
+                if (item && window.App.SoundLibrary) window.App.SoundLibrary.toggle(item.data, btn);
             };
         });
         list.querySelectorAll('[data-pick]').forEach(btn => {

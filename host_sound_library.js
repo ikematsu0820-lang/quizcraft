@@ -18,18 +18,45 @@ window.App.SoundLibrary = {
     _cache: { bgmThinking: [], seButton: [], seCorrect: [], seWrong: [] },
 
     // 確認再生（▶ボタン）は常にこの1本の <audio> だけを使い回す —
-    // 別々に `new Audio().play()` していると、連打した分だけ同時に鳴って
-    // 重なってしまう。次の再生前に必ず一旦止めるので、常に最新の1つだけ
-    // が鳴る。サウンド編集画面／問題作成側のピッカー、両方の▶から使う。
+    // 別々に `new Audio().play()` していると連打した分だけ同時に鳴って
+    // 重なる。それに加えて、同じボタンをもう一度押したら「再生の次は
+    // 一時停止」になるトグル動作にする — 再生中の▶を押し直すと必ず
+    // 停止してから頭出しして再生し直していたのが「重なって聞こえる」と
+    // 感じられていたため。サウンド編集画面／問題作成側のピッカー、
+    // 両方の▶ボタンから使う。
     _previewAudioEl: null,
-    preview: function (url) {
+    _previewBtnEl: null,
+    toggle: function (url, btnEl) {
         if (!url) return;
-        if (!this._previewAudioEl) this._previewAudioEl = new Audio();
+        if (!this._previewAudioEl) {
+            this._previewAudioEl = new Audio();
+            this._previewAudioEl.addEventListener('ended', () => this._resetPreviewBtn());
+        }
         const el = this._previewAudioEl;
+
+        // Same button, currently playing → pause (don't restart it).
+        if (this._previewBtnEl === btnEl && !el.paused) {
+            el.pause();
+            this._resetPreviewBtn();
+            return;
+        }
+
+        // A different sound (or replaying one that already stopped) —
+        // clear whichever button was showing ⏸ before, then play this one.
+        this._resetPreviewBtn();
         el.pause();
         el.currentTime = 0;
         el.src = url;
         el.play().catch(() => { /* noop — e.g. blocked before a user gesture */ });
+        this._previewBtnEl = btnEl;
+        this._setBtnPlaying(btnEl, true);
+    },
+    _resetPreviewBtn: function () {
+        if (this._previewBtnEl) this._setBtnPlaying(this._previewBtnEl, false);
+        this._previewBtnEl = null;
+    },
+    _setBtnPlaying: function (btnEl, playing) {
+        if (btnEl && btnEl.isConnected) btnEl.textContent = playing ? '⏸' : '▶';
     },
 
     // ライブラリを常時リアルタイム購読 — サウンド編集画面を開いていれば
@@ -116,7 +143,7 @@ window.App.SoundLibrary = {
             btn.onclick = () => {
                 const key = btn.dataset.key;
                 const item = (this._cache[key] || []).find(it => it.id === btn.dataset.play);
-                if (item) this.preview(item.data);
+                if (item) this.toggle(item.data, btn);
             };
         });
         container.querySelectorAll('[data-delete]').forEach(btn => {
