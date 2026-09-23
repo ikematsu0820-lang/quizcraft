@@ -324,12 +324,18 @@ window.App.Viewer = {
                 return;
             }
 
-            const accent = q.design?.qBorderColor || '#00bfff';
+            // 正解表示専用の色（未設定なら問題文側の色にフォールバック —
+            // Creator側 App.Design._revealColorApplies() 対象タイプのみ、
+            // 正解表示オブジェクトとして個別に編集できる）。
+            const design = q.design || {};
+            const accent = design.revealBorderColor || design.qBorderColor || '#00bfff';
+            const revealBg = design.revealBgColor || 'rgba(0,0,0,0.95)';
+            const revealText = design.revealTextColor || '#fff';
             const answerBox = document.createElement('div');
             Object.assign(answerBox.style, {
                 position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-                zIndex: '300', background: 'rgba(0,0,0,0.95)', border: `6px solid ${accent}`,
-                borderRadius: '20px', padding: '40px 60px', color: '#fff',
+                zIndex: '300', background: revealBg, border: `6px solid ${accent}`,
+                borderRadius: '20px', padding: '40px 60px', color: revealText,
                 boxShadow: '0 0 80px rgba(0,0,0,0.9)', textAlign: 'center', minWidth: '60vw',
                 animation: 'popInCenter 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
             });
@@ -342,7 +348,7 @@ window.App.Viewer = {
 
             answerBox.innerHTML = `
                 <div style="font-size:3vh; color:${labelColor}; font-weight:800; margin-bottom:15px; letter-spacing:2px;">${labelText}</div>
-                <div style="font-size:${fontSize}; font-weight:900; line-height:1.2; word-break:break-all; max-width:80vw;">${ansStr}</div>
+                <div style="font-size:${fontSize}; font-weight:900; line-height:1.2; word-break:break-all; max-width:80vw; color:${revealText};">${ansStr}</div>
                 <div style="font-size:2.5vh; color:#aaa; font-weight:normal; margin-top:20px; border-top:1px solid #333; padding-top:20px;">${st.commentary || q.commentary || ""}</div>
             `;
             mainText.appendChild(answerBox);
@@ -984,6 +990,11 @@ window.App.Viewer = {
         const textColor = d.qTextColor || '#fff';
         const borderColor = d.qBorderColor || '#00bfff';
         const qBgColor = d.qBgColor || 'rgba(0,0,0,0.5)';
+        // 正解表示専用の色（未設定なら問題文側の色にフォールバック）—
+        // App.Design._revealColorApplies() 対象タイプの一つ。
+        const revealBorder = d.revealBorderColor || borderColor;
+        const revealBg = d.revealBgColor || 'rgba(0,0,0,0.35)';
+        const revealText = d.revealTextColor || textColor;
 
         // Parse correct order (array of original indices, e.g. [3,0,2,1])
         let correctOrder = [];
@@ -1001,9 +1012,9 @@ window.App.Viewer = {
             const text = (q.c && q.c[origIdx] !== undefined) ? q.c[origIdx] : label;
             const color = badgeColors[origIdx % badgeColors.length];
             const delay = rank * 0.07;
-            return `<div style="display:flex;align-items:center;gap:1.5vw;background:rgba(5,15,50,0.8);border-radius:10px;padding:1vh 1.5vw;border:1px solid rgba(255,255,255,0.12);animation:slideInLeft ${0.2 + delay}s ease-out both;">
+            return `<div style="display:flex;align-items:center;gap:1.5vw;padding:1vh 1.5vw;animation:slideInLeft ${0.2 + delay}s ease-out both;">
                 <div style="width:5vh;height:5vh;min-width:5vh;border-radius:50%;background:${color};border:3px solid rgba(255,255,255,0.85);display:flex;align-items:center;justify-content:center;font-size:2.4vh;font-weight:900;color:#fff;flex-shrink:0;box-shadow:0 2px 10px ${color}88;">${label}</div>
-                <div style="font-size:2.8vh;font-weight:700;color:#fff;line-height:1.3;">${text}</div>
+                <div style="font-size:2.8vh;font-weight:700;color:${revealText};line-height:1.3;">${text}</div>
             </div>`;
         }).join('');
 
@@ -1014,7 +1025,7 @@ window.App.Viewer = {
             <div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;padding:2vh 3vw;box-sizing:border-box;overflow:hidden;">
                 <div style="font-size:3vh;font-weight:700;color:${textColor};text-align:center;padding:1.2vh 2.5vw;background:${qBgColor};border-radius:10px;border-left:5px solid ${borderColor};width:90%;max-width:90vw;margin-bottom:1.5vh;line-height:1.4;white-space:pre-wrap;">${q.q}</div>
                 <div style="font-size:2.2vh;color:#ffd700;font-weight:900;letter-spacing:0.25em;margin-bottom:1.2vh;text-shadow:0 0 15px #ffd70066;">正　解</div>
-                <div style="width:90%;max-width:90vw;flex:1;display:flex;flex-direction:column;gap:0.7vh;background:rgba(0,0,0,0.35);border:3px solid ${borderColor};border-radius:14px;padding:1.2vh 1.2vw;box-shadow:0 0 30px ${borderColor}44;overflow:hidden;">
+                <div style="width:90%;max-width:90vw;flex:1;display:flex;flex-direction:column;gap:0.7vh;background:${revealBg};border:3px solid ${revealBorder};border-radius:14px;padding:1.2vh 1.2vw;box-shadow:0 0 30px ${revealBorder}44;overflow:hidden;">
                     ${rows}
                 </div>
                 ${commentary ? `<div style="font-size:2vh;color:#aaa;margin-top:1vh;text-align:center;max-width:90vw;">${commentary}</div>` : ''}

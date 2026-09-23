@@ -5,6 +5,53 @@
 App.Design = {
     _activeDesignTab: 'text',
 
+    // オブジェクト選択 — プレビュー内の要素（問題文/選択肢/全体背景、正解
+    // 表示中はその正解ボックス）をタップすると、テキスト/オブジェクト
+    // タブの中身がそのオブジェクトに関係する項目だけに絞り込まれる。
+    // 選択操作自体（クリック配線・ハイライト）は host_creator.js 側
+    // （プレビューの実体を持つ）で行い、ここでは選択状態と、状態に応じた
+    // 絞り込みロジック・妥当性チェックだけを持つ。
+    _selectedObject: 'question', // 'question' | 'choices' | 'background' | 'reveal'
+
+    _hasChoicesObject: function () {
+        const t = (window.App.Creator && window.App.Creator.currentType) || '';
+        return t.startsWith('choice') || t === 'sort' || t.startsWith('multi') || t.startsWith('ranking') || t.startsWith('assoc');
+    },
+
+    // 正解表示の色（revealTextColor/revealBorderColor/revealBgColor）が
+    // 実際に効くタイプだけ — 選択式/ダウト（金色ハイライト）・多答/連想
+    // （緑ハイライト）は状態ごとの決め打ち配色が"正解表示"の演出そのもの
+    // なので対象外、数字予想（ブラックジャック）は固定の正解がなく色を
+    // 塗る対象がない。一問一答/文字パネル/並べ替えだけ、シンプルな
+    // 枠＋背景＋文字色のボックスとして表示される。
+    _revealColorApplies: function () {
+        const t = (window.App.Creator && window.App.Creator.currentType) || '';
+        return t.startsWith('free') || t === 'letter_select' || t === 'sort';
+    },
+
+    // 選択中のオブジェクトが今の状況（問題タイプ・正解表示のON/OFF）で
+    // 実在しなければ、素直に「問題文」へフォールバックする。
+    _normalizedSelection: function () {
+        let sel = this._selectedObject || 'question';
+        if (sel === 'choices' && !this._hasChoicesObject()) sel = 'question';
+        if (sel === 'reveal' && !(window.App.Creator && window.App.Creator._previewRevealOn)) sel = 'question';
+        return sel;
+    },
+
+    selectObject: function (obj) {
+        this._selectedObject = obj;
+        if (window.App.Creator) {
+            // Highlight regardless of which inline panel is currently
+            // showing (the preview itself is always visible above it) —
+            // only the panel content re-render is gated to デザイン, since
+            // that's the only thing this selection actually filters.
+            window.App.Creator.highlightSelectedObject();
+            if (window.App.Creator.activeInlinePanel === 'design') {
+                window.App.Creator.renderActivePanelContent('design');
+            }
+        }
+    },
+
     defaults: {
         mainBgColor: "#0a0a0a",
         qTextColor: "#ffffff",
@@ -21,7 +68,14 @@ App.Design = {
         bgmThinking: "",
         seButton: "",
         seCorrect: "",
-        seWrong: ""
+        seWrong: "",
+        // 正解表示（reveal）専用の配色 — 未設定なら問題文側の色にフォール
+        // バックする（viewer.js / renderPreviewReveal 両方）ので、既存の
+        // デザインは何も変わらないまま、正解表示オブジェクトを選んで
+        // 触った時だけ独自に上書きできる。
+        revealTextColor: "",
+        revealBorderColor: "",
+        revealBgColor: ""
     },
 
     // サウンドのデフォルト保存 — one fixed default for the 4 サウンド
@@ -168,55 +222,136 @@ App.Design = {
             </div>
         `;
 
+        // 連想クイズの項目は「選択肢」ではなく「ヒント」なので文言だけ
+        // 差し替える — グリッド設定自体は選択式/並べ替え/多答/連想の
+        // どのタイプにも共通で効く（#creator-choices-list を使う全タイプ、
+        // applyDesignToPreview 側）。
+        const isAssoc = ((window.App.Creator && window.App.Creator.currentType) || '').startsWith('assoc');
+        const choicesLabel = isAssoc ? 'ヒント' : '選択肢';
+
+        // プレビューでタップした対象に応じて、テキスト/オブジェクトタブの
+        // 中身をその対象に関係する項目だけへ絞り込む。何が選ばれているか
+        // 文字でも分かるよう、両タブの先頭に小さな見出しを出す。
+        const OBJECT_TITLES = { question: '問題文', choices: choicesLabel, background: '全体背景', reveal: '正解表示' };
+        const selectionHeader = (sel) => `
+            <div style="display:flex; align-items:center; gap:5px; margin-bottom:8px; color:#00e5ff; font-size:0.68rem; font-weight:bold;">
+                <span>👆</span><span>${OBJECT_TITLES[sel]}を編集中</span>
+            </div>
+        `;
+
         const bodyHtml = {
-            text: () => `
-                <div style="display:flex; gap:6px; margin-bottom:10px; align-items:center;">
-                    ${rowLabel('問題文')}
-                    ${colorSwatch('文字色', 'qTextColor')}
-                    ${miniText('サイズ', 'qFontSize')}
-                    ${miniSelect('配置', 'align', ALIGN_OPTS)}
-                </div>
-                <div style="display:flex; gap:6px; margin-bottom:6px; align-items:center;">
-                    ${rowLabel('選択肢')}
-                    ${colorSwatch('文字色', 'cTextColor')}
-                    ${miniText('サイズ', 'cFontSize')}
-                    ${miniSelect('配置', 'cAlign', ALIGN_OPTS)}
-                </div>
-            `,
-            object: () => {
-                // 連想クイズの項目は「選択肢」ではなく「ヒント」なので、この
-                // ボタン/モーダルの文言だけ差し替える — グリッド設定自体は
-                // 選択式/並べ替え/多答/連想のどのタイプにも共通で効く
-                // （#creator-choices-list を使う全タイプ、applyDesignToPreview 側）。
-                const isAssoc = ((window.App.Creator && window.App.Creator.currentType) || '').startsWith('assoc');
-                const gridLabel = isAssoc ? 'ヒントの配置' : '選択肢の配置';
+            text: () => {
+                const sel = this._normalizedSelection();
+                if (sel === 'choices') {
+                    return `
+                        ${selectionHeader(sel)}
+                        <div style="display:flex; gap:6px; margin-bottom:6px; align-items:center;">
+                            ${rowLabel(choicesLabel)}
+                            ${colorSwatch('文字色', 'cTextColor')}
+                            ${miniText('サイズ', 'cFontSize')}
+                            ${miniSelect('配置', 'cAlign', ALIGN_OPTS)}
+                        </div>
+                    `;
+                }
+                if (sel === 'reveal') {
+                    if (!this._revealColorApplies()) {
+                        return `
+                            ${selectionHeader(sel)}
+                            <p style="color:#666; font-size:0.78rem; text-align:center; padding:20px 0;">この問題形式の正解表示は、色が決まった専用の演出のため変更できません</p>
+                        `;
+                    }
+                    return `
+                        ${selectionHeader(sel)}
+                        <div style="display:flex; gap:6px; margin-bottom:6px; align-items:center;">
+                            ${rowLabel('正解表示')}
+                            ${colorSwatch('文字色', 'revealTextColor')}
+                        </div>
+                        <p style="color:#555; font-size:0.62rem; margin:4px 0 0;">※未設定の間は問題文の文字色がそのまま使われます</p>
+                    `;
+                }
+                if (sel === 'background') {
+                    return `
+                        ${selectionHeader(sel)}
+                        <p style="color:#666; font-size:0.78rem; text-align:center; padding:20px 0;">全体背景に文字設定はありません</p>
+                    `;
+                }
                 return `
-                ${colorRow([
-                    ['全体背景', 'mainBgColor'],
-                    ['問題枠', 'qBorderColor'],
-                    ['問題背景', 'qBgColor'],
-                    ['選択枠', 'cBorderColor'],
-                    ['選択背景', 'cBgColor'],
-                ])}
-                <div style="color:#666; font-size:0.7rem; margin:8px 0 4px; border-top:1px dashed #333; padding-top:6px;">${gridLabel}／問題文の位置</div>
-                <div style="display:flex; gap:6px; margin-bottom:6px;">
-                    <button type="button" id="design-grid-config-btn" style="
-                        flex:1; min-width:0; padding:6px 6px; background:#1e293b; border:1px solid #475569;
-                        border-radius:8px; color:#fff; font-size:0.72rem; cursor:pointer;
-                        display:flex; flex-direction:row; align-items:center; justify-content:center; gap:5px;
-                    ">
-                        <span>${gridLabel}</span>
-                        <span id="design-grid-summary" style="color:#00e5ff; font-weight:bold;">${gridSummary()}</span>
-                    </button>
-                    <select data-key="layout" style="
-                        flex:1; min-width:0; padding:6px 4px; background:#1e293b; border:1px solid #475569;
-                        border-radius:8px; color:#fff; font-size:0.72rem; box-sizing:border-box;
-                    ">
-                        ${[{ v: 'top', t: '問題文: 上側' }, { v: 'left', t: '問題文: 左側' }, { v: 'right', t: '問題文: 右側' }, { v: 'bottom', t: '問題文: 下側' }]
-                            .map(o => `<option value="${o.v}" ${design.layout === o.v ? 'selected' : ''}>${o.t}</option>`).join('')}
-                    </select>
-                </div>
-            `;
+                    ${selectionHeader('question')}
+                    <div style="display:flex; gap:6px; margin-bottom:6px; align-items:center;">
+                        ${rowLabel('問題文')}
+                        ${colorSwatch('文字色', 'qTextColor')}
+                        ${miniText('サイズ', 'qFontSize')}
+                        ${miniSelect('配置', 'align', ALIGN_OPTS)}
+                    </div>
+                `;
+            },
+            object: () => {
+                const sel = this._normalizedSelection();
+
+                if (sel === 'choices') {
+                    return `
+                        ${selectionHeader(sel)}
+                        ${colorRow([
+                            [`${choicesLabel}枠`, 'cBorderColor'],
+                            [`${choicesLabel}背景`, 'cBgColor'],
+                        ])}
+                        <div style="display:flex; gap:6px; margin-top:8px;">
+                            <button type="button" id="design-grid-config-btn" style="
+                                flex:1; min-width:0; padding:6px 6px; background:#1e293b; border:1px solid #475569;
+                                border-radius:8px; color:#fff; font-size:0.72rem; cursor:pointer;
+                                display:flex; flex-direction:row; align-items:center; justify-content:center; gap:5px;
+                            ">
+                                <span>${choicesLabel}の配置</span>
+                                <span id="design-grid-summary" style="color:#00e5ff; font-weight:bold;">${gridSummary()}</span>
+                            </button>
+                        </div>
+                    `;
+                }
+
+                if (sel === 'background') {
+                    // 画像アップロードはこのスウォッチ自身のカラーポップ
+                    // オーバー内（_openColorPickerModal）に統合済み —
+                    // ここでは色スウォッチを出すだけでよい。
+                    return `
+                        ${selectionHeader(sel)}
+                        ${colorRow([['全体背景', 'mainBgColor']])}
+                        <p style="color:#555; font-size:0.62rem; margin:8px 0 0;">※背景に画像を使いたい場合は、上のスウォッチをタップして開く画面から設定できます</p>
+                    `;
+                }
+
+                if (sel === 'reveal') {
+                    if (!this._revealColorApplies()) {
+                        return `
+                            ${selectionHeader(sel)}
+                            <p style="color:#666; font-size:0.78rem; text-align:center; padding:20px 0;">この問題形式の正解表示は、色が決まった専用の演出のため変更できません</p>
+                        `;
+                    }
+                    return `
+                        ${selectionHeader(sel)}
+                        ${colorRow([
+                            ['正解枠', 'revealBorderColor'],
+                            ['正解背景', 'revealBgColor'],
+                        ])}
+                        <p style="color:#555; font-size:0.62rem; margin:4px 0 0;">※未設定の間は問題枠・問題背景の色がそのまま使われます</p>
+                    `;
+                }
+
+                return `
+                    ${selectionHeader('question')}
+                    ${colorRow([
+                        ['問題枠', 'qBorderColor'],
+                        ['問題背景', 'qBgColor'],
+                    ])}
+                    <div style="display:flex; gap:6px; margin-top:8px;">
+                        <select data-key="layout" style="
+                            flex:1; min-width:0; padding:6px 4px; background:#1e293b; border:1px solid #475569;
+                            border-radius:8px; color:#fff; font-size:0.72rem; box-sizing:border-box;
+                        ">
+                            ${[{ v: 'top', t: '問題文: 上側' }, { v: 'left', t: '問題文: 左側' }, { v: 'right', t: '問題文: 右側' }, { v: 'bottom', t: '問題文: 下側' }]
+                                .map(o => `<option value="${o.v}" ${design.layout === o.v ? 'selected' : ''}>${o.t}</option>`).join('')}
+                        </select>
+                    </div>
+                `;
             },
             sound: () => {
                 // Compact tile, matching colorSwatch's look — tap to open

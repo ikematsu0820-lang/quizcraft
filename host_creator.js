@@ -280,6 +280,10 @@ window.App.Creator = {
         this._previewRevealOn = false;
         const revealToggle = document.getElementById('creator-preview-reveal-toggle');
         if (revealToggle) revealToggle.checked = false;
+        // Same idea for the tap-to-select-object state — a fresh render
+        // means whatever was selected before (e.g. 選択肢, or 正解表示 if
+        // that was on) may no longer apply to this type/state.
+        if (window.App.Design) window.App.Design._selectedObject = 'question';
 
         container.innerHTML = '';
         // Reset to flex column so choice rows can use flex:1
@@ -598,6 +602,54 @@ window.App.Creator = {
 
         this.renderRulesSection();
         this.applyDesignToPreview();
+        this.wirePreviewObjectSelection();
+    },
+
+    // プレビュー内の要素をタップすると、その要素に関係する項目だけに
+    // デザインパネルの中身を絞り込む（App.Design.selectObject / 各
+    // bodyHtml 関数の絞り込み）。#creator-choices-list は choice/sort/
+    // assoc/multi のときだけ存在するので、無いタイプ（一問一答/文字
+    // パネル/数字予想）ではその分岐だけ自然に効かなくなる。
+    wirePreviewObjectSelection: function () {
+        const qAreaEl = document.getElementById('creator-monitor-q-area');
+        if (qAreaEl) {
+            qAreaEl.onclick = () => {
+                if (window.App.Design) window.App.Design.selectObject('question');
+            };
+        }
+
+        const choicesListEl = document.getElementById('creator-choices-list');
+        if (choicesListEl) {
+            choicesListEl.onclick = () => {
+                if (window.App.Design) window.App.Design.selectObject('choices');
+            };
+        }
+
+        // 問題文/選択肢のどちらでもない、プレビューの余白（背景）を直接
+        // タップした場合だけ「全体背景」を選択 — 子要素のクリックが
+        // バブリングしてここまで来ても、target===currentTarget のときだけ
+        // 反応するので問題文/選択肢の選択を上書きしない。
+        const flexWrapEl = document.getElementById('creator-monitor-flexwrap');
+        if (flexWrapEl) {
+            flexWrapEl.onclick = (e) => {
+                if (e.target === flexWrapEl && window.App.Design) window.App.Design.selectObject('background');
+            };
+        }
+
+        this.highlightSelectedObject();
+    },
+
+    // 選択中のオブジェクトをプレビュー上でも分かるよう、枠線でハイライト
+    // する。#creator-form-container は通常時は選択肢の行を、正解表示中は
+    // 正解ボックスを持つので、'choices'/'reveal' どちらもこれで賄える。
+    highlightSelectedObject: function () {
+        if (!window.App.Design) return;
+        const sel = window.App.Design._normalizedSelection();
+        const SELECTED = '2px solid #00e5ff';
+        const qAreaEl = document.getElementById('creator-monitor-q-area');
+        const formContainerEl = document.getElementById('creator-form-container');
+        if (qAreaEl) qAreaEl.style.outline = (sel === 'question') ? SELECTED : 'none';
+        if (formContainerEl) formContainerEl.style.outline = (sel === 'choices' || sel === 'reveal') ? SELECTED : 'none';
     },
 
     // Rules (win condition / time limit / scoring etc.) used to live on a
@@ -1473,10 +1525,15 @@ window.App.Creator = {
         if (on) {
             this._previewRevealData = this._readFormDataForPreview();
             this.renderPreviewReveal(this._previewRevealData);
+            // The 正解表示 box is now what's showing where 選択肢 used to
+            // be — select it so the デザイン panel offers its (独自の)
+            // color settings instead of stale 選択肢 ones.
+            if (window.App.Design) window.App.Design.selectObject('reveal');
         } else {
             // Rebuild the real editable form from whatever was last read —
             // #question-text itself was never touched, so nothing typed
-            // there is lost either way.
+            // there is lost either way. renderForm() itself resets the
+            // selected object back to 'question'.
             this.renderForm(this.currentType, this._previewRevealData);
             this.applyDesignToPreview();
         }
@@ -1488,10 +1545,21 @@ window.App.Creator = {
         const d = window.App.Data.currentDesign || {};
         const type = data.type || '';
         container.style.display = 'block';
+        // Tapping the reveal box selects it as the 'reveal' object, same as
+        // tapping 問題文/選択肢 does for those — see wirePreviewObjectSelection.
+        container.onclick = () => {
+            if (window.App.Design) window.App.Design.selectObject('reveal');
+        };
 
         if (type === 'sort') {
             // Mirrors viewer.js's renderSortReveal (badge + ordered list),
             // scaled down to fit the compact 16:9 preview instead of vh/vw.
+            // Wrapper border/background follow revealBorderColor/
+            // revealBgColor (falling back to qBorderColor/qBgColor) — see
+            // App.Design._revealColorApplies().
+            const revealBorder = d.revealBorderColor || d.qBorderColor || '#00bfff';
+            const revealBg = d.revealBgColor || 'rgba(5,15,50,0.5)';
+            const revealText = d.revealTextColor || d.qTextColor || '#fff';
             let correctOrder = [];
             if (typeof data.correct === 'string') correctOrder = data.correct.split('').map(c => c.charCodeAt(0) - 65);
             const badgeColors = ['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6', '#e91e63', '#1abc9c', '#e67e22', '#16a085', '#c0392b'];
@@ -1499,12 +1567,14 @@ window.App.Creator = {
                 const label = String.fromCharCode(65 + origIdx);
                 const text = (data.c && data.c[origIdx] !== undefined) ? data.c[origIdx] : label;
                 const color = badgeColors[origIdx % badgeColors.length];
-                return `<div style="display:flex; align-items:center; gap:6px; background:rgba(5,15,50,0.8); border-radius:8px; padding:1.5% 3%; border:1px solid rgba(255,255,255,0.12); margin-bottom:2%;">
+                return `<div style="display:flex; align-items:center; gap:6px; padding:1.5% 3%; margin-bottom:2%;">
                     <div style="width:18px; height:18px; min-width:18px; border-radius:50%; background:${color}; border:2px solid rgba(255,255,255,0.85); display:flex; align-items:center; justify-content:center; font-size:0.62rem; font-weight:900; color:#fff;">${label}</div>
-                    <div style="font-weight:700; color:#fff; font-size:clamp(0.6rem,1.4vw,0.85rem); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${text}</div>
+                    <div style="font-weight:700; color:${revealText}; font-size:clamp(0.6rem,1.4vw,0.85rem); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${text}</div>
                 </div>`;
             }).join('');
-            container.innerHTML = `<div style="width:100%; overflow-y:auto;">${rows || '<p style="color:#888; font-size:0.75rem; text-align:center;">並び順が未設定です</p>'}</div>`;
+            container.innerHTML = `<div style="width:100%; height:100%; box-sizing:border-box; overflow-y:auto; border:2px solid ${revealBorder}; background:${revealBg}; border-radius:8px; padding:2%;">
+                ${rows || '<p style="color:#888; font-size:0.75rem; text-align:center;">並び順が未設定です</p>'}
+            </div>`;
             return;
         }
 
@@ -1565,14 +1635,19 @@ window.App.Creator = {
 
         // Generic fallback (free_written/free_oral/letter_select/num
         // predictions/etc.) — mirrors viewer.js's centered "CORRECT ANSWER"
-        // popup, scaled down for the compact preview.
-        const accent = d.qBorderColor || '#00bfff';
+        // popup, scaled down for the compact preview. revealBorderColor/
+        // revealBgColor/revealTextColor (falling back to the question's own
+        // colors) — this is the one reveal style with independently
+        // editable colors (App.Design._revealColorApplies()).
+        const accent = d.revealBorderColor || d.qBorderColor || '#00bfff';
+        const revealBg = d.revealBgColor || 'rgba(0,0,0,0.95)';
+        const revealText = d.revealTextColor || '#fff';
         const ansStr = window.App.Viewer ? window.App.Viewer.getAnswerString(data) : (Array.isArray(data.correct) ? data.correct.join(' / ') : (data.correct || ''));
         container.innerHTML = `
             <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;">
-                <div style="background:rgba(0,0,0,0.95); border:3px solid ${accent}; border-radius:12px; padding:6% 8%; text-align:center; max-width:90%; box-sizing:border-box;">
+                <div style="background:${revealBg}; border:3px solid ${accent}; border-radius:12px; padding:6% 8%; text-align:center; max-width:90%; box-sizing:border-box;">
                     <div style="font-size:clamp(0.5rem,1.1vw,0.68rem); color:${accent}; font-weight:800; margin-bottom:6px; letter-spacing:1px;">CORRECT ANSWER</div>
-                    <div style="font-size:clamp(0.8rem,2.4vw,1.3rem); font-weight:900; color:#fff; word-break:break-all;">${ansStr || '（未設定）'}</div>
+                    <div style="font-size:clamp(0.8rem,2.4vw,1.3rem); font-weight:900; color:${revealText}; word-break:break-all;">${ansStr || '（未設定）'}</div>
                 </div>
             </div>
         `;
