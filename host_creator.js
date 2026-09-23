@@ -1897,6 +1897,13 @@ ${spec.placeholder}" style="
 
         op.then(() => {
             console.log("Save successful");
+            // Lightweight summary (no embedded questions/design/audio) so
+            // the 過去に作成した問題 list can render without downloading
+            // every saved set's full content just to show titles — see
+            // App.Dashboard.buildSetMeta/loadItems (host_core.js).
+            if (window.App.Dashboard && window.App.Dashboard.buildSetMeta) {
+                window.db.ref(`saved_sets_meta/${showId}/${ref.key}`).set(window.App.Dashboard.buildSetMeta(data));
+            }
             window.App.Ui.showToast("保存しました");
             window.App.State.editingSetId = null;
             this.editingTitle = "";

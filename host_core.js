@@ -412,8 +412,12 @@ window.App.Dashboard = {
         const showId = window.App.State.currentShowId;
         if (!showId) return;
 
+        // saved_sets_meta only, not saved_sets — this fires on every visit
+        // to the dashboard, and only needs a yes/no "has at least one set"
+        // for the step indicator below, not the full embedded question/
+        // design/audio payload of every saved set.
         Promise.all([
-            window.db.ref(`saved_sets/${showId}`).once('value'),
+            window.db.ref(`saved_sets_meta/${showId}`).once('value'),
             window.db.ref(`saved_programs/${showId}`).once('value')
         ]).then(([setSnap, progSnap]) => {
             const hasSets = setSnap.exists();
@@ -431,17 +435,48 @@ window.App.Dashboard = {
         });
     },
 
+    // 保存済みセットには問題ごとにデザイン（サウンドライブラリから選んだ
+    // 音声データ込み）がまるごと入っている — 一覧に出すタイトルだけの
+    // ためにこれを全件フルで取ってくると、セット数・問題数が増えるほど
+    // 重くなる。saved_sets_meta にタイトル/問題数/モード/形式だけの軽い
+    // サマリーを保存しておき（App.Dashboard.buildSetMeta 参照）、一覧は
+    // まずそちらから即座に描画する。フルデータは裏で並行して取得し、
+    // 揃い次第もう一度描画し直して itemCache（編集/複製/テストで必要）
+    // を満たす。saved_sets_meta が無い古いセットは、フルデータが届いた
+    // 時点で backfill され、次回以降は同じく速くなる。
     loadItems: function () {
         const listEl = document.getElementById('dash-set-list');
         if (!listEl) return;
 
         listEl.innerHTML = '';
         this.itemCache = {}; // Initialize cache
+        this._fullSetDataLoaded = false;
         let showId = window.App.State.currentShowId;
         if (showId) showId = showId.trim();
 
         if (!showId) return;
 
+        const getTs = (d) => {
+            if (typeof d.createdAt === 'number') return d.createdAt;
+            // timestampオブジェクトや未定義の場合は現在時刻(または大きな値)として扱うことでトップに表示
+            return Date.now() + 10000;
+        };
+
+        // Fast path — renders almost immediately even for large shows.
+        Promise.all([
+            window.db.ref(`saved_sets_meta/${showId}`).once('value'),
+            window.db.ref(`saved_programs/${showId}`).once('value')
+        ]).then(([metaSnap, progSnap]) => {
+            const meta = metaSnap.val() || {};
+            const progs = progSnap.val() || {};
+            this.setsData = Object.keys(meta).map(k => ({ ...meta[k], key: k })).sort((a, b) => getTs(b) - getTs(a));
+            this.progsData = Object.keys(progs).map(k => ({ ...progs[k], key: k })).sort((a, b) => getTs(b) - getTs(a));
+            this._ensureFilterUi(listEl);
+            this.runFilter();
+        });
+
+        // Slow path — full data, needed for 編集/複製/テスト (which read
+        // .questions) and to backfill legacy sets missing a meta entry.
         Promise.all([
             window.db.ref(`saved_sets/${showId}`).once('value'),
             window.db.ref(`saved_programs/${showId}`).once('value')
@@ -449,76 +484,111 @@ window.App.Dashboard = {
             const sets = setSnap.val() || {};
             const progs = progSnap.val() || {};
 
-            // ★ ソート処理の強化 (新規保存直後のアイテムを上位に)
-            const getTs = (d) => {
-                if (typeof d.createdAt === 'number') return d.createdAt;
-                // timestampオブジェクトや未定義の場合は現在時刻(または大きな値)として扱うことでトップに表示
-                return Date.now() + 10000;
-            };
-
             const sortedSets = Object.keys(sets).map(k => ({ ...sets[k], key: k }))
                 .sort((a, b) => getTs(b) - getTs(a));
-
             const sortedProgs = Object.keys(progs).map(k => ({ ...progs[k], key: k }))
                 .sort((a, b) => getTs(b) - getTs(a));
 
-            // Store data for filtering
             this.setsData = sortedSets;
-            this.progsData = sortedProgs; // Programs usually shown in "All"
+            this.progsData = sortedProgs;
+            this._fullSetDataLoaded = true;
 
-            // Initialize filter states
-            if (!this.filterState) {
-                this.filterState = { mode: 'all', type: 'all' };
-            }
-
-            // Inject Filter UI if not present
-            if (!document.getElementById('dash-filter-container')) {
-                const filterHtml = `
-                    <div id="dash-filter-container" style="margin-bottom:15px;">
-                        <!-- Row 1: Game Mode -->
-                        <div id="dash-filter-mode" style="display:flex; gap:8px; overflow-x:auto; padding-bottom:8px; margin-bottom:5px;">
-                            <button class="filter-btn active" onclick="window.App.Dashboard.applyFilter('mode', 'all', this)">すべて</button>
-                            <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('mode', 'normal', this)">一斉</button>
-                            <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('mode', 'buzz', this)">早押し</button>
-                            <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('mode', 'turn', this)">順番</button>
-                            <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('mode', 'solo', this)">ソロ</button>
-                        </div>
-                        <!-- Row 2: Question Type -->
-                        <div id="dash-filter-type" style="display:flex; gap:8px; overflow-x:auto; padding-bottom:5px;">
-                            <button class="filter-btn active" onclick="window.App.Dashboard.applyFilter('type', 'all', this)">すべて</button>
-                            <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('type', 'free', this)">一問一答</button>
-                            <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('type', 'choice', this)">選択式</button>
-                            <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('type', 'sort', this)">並び替え</button>
-                            <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('type', 'multi', this)">多答問題</button>
-                            <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('type', 'assoc', this)">連想</button>
-                        </div>
-                    </div>
-                    <style>
-                        .filter-btn {
-                            background: rgba(255,255,255,0.05);
-                            border: 1px solid rgba(255,255,255,0.1);
-                            color: #aaa;
-                            padding: 5px 10px;
-                            border-radius: 12px;
-                            font-size: 0.8em;
-                            cursor: pointer;
-                            white-space: nowrap;
-                            transition: all 0.2s;
-                            flex-shrink: 0;
-                        }
-                        .filter-btn.active {
-                            background: rgba(0, 229, 255, 0.15);
-                            color: #00e5ff;
-                            border-color: #00e5ff;
-                            font-weight: bold;
-                        }
-                    </style>
-                `;
-                listEl.insertAdjacentHTML('beforebegin', filterHtml);
-            }
-
-            // Initial Render
+            this._ensureFilterUi(listEl);
             this.runFilter();
+
+            this._backfillMissingSetMeta(showId, sets);
+        });
+    },
+
+    _ensureFilterUi: function (listEl) {
+        if (!this.filterState) this.filterState = { mode: 'all', type: 'all' };
+        if (document.getElementById('dash-filter-container')) return;
+        const filterHtml = `
+            <div id="dash-filter-container" style="margin-bottom:15px;">
+                <!-- Row 1: Game Mode -->
+                <div id="dash-filter-mode" style="display:flex; gap:8px; overflow-x:auto; padding-bottom:8px; margin-bottom:5px;">
+                    <button class="filter-btn active" onclick="window.App.Dashboard.applyFilter('mode', 'all', this)">すべて</button>
+                    <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('mode', 'normal', this)">一斉</button>
+                    <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('mode', 'buzz', this)">早押し</button>
+                    <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('mode', 'turn', this)">順番</button>
+                    <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('mode', 'solo', this)">ソロ</button>
+                </div>
+                <!-- Row 2: Question Type -->
+                <div id="dash-filter-type" style="display:flex; gap:8px; overflow-x:auto; padding-bottom:5px;">
+                    <button class="filter-btn active" onclick="window.App.Dashboard.applyFilter('type', 'all', this)">すべて</button>
+                    <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('type', 'free', this)">一問一答</button>
+                    <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('type', 'choice', this)">選択式</button>
+                    <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('type', 'sort', this)">並び替え</button>
+                    <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('type', 'multi', this)">多答問題</button>
+                    <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('type', 'assoc', this)">連想</button>
+                </div>
+            </div>
+            <style>
+                .filter-btn {
+                    background: rgba(255,255,255,0.05);
+                    border: 1px solid rgba(255,255,255,0.1);
+                    color: #aaa;
+                    padding: 5px 10px;
+                    border-radius: 12px;
+                    font-size: 0.8em;
+                    cursor: pointer;
+                    white-space: nowrap;
+                    transition: all 0.2s;
+                    flex-shrink: 0;
+                }
+                .filter-btn.active {
+                    background: rgba(0, 229, 255, 0.15);
+                    color: #00e5ff;
+                    border-color: #00e5ff;
+                    font-weight: bold;
+                }
+            </style>
+        `;
+        listEl.insertAdjacentHTML('beforebegin', filterHtml);
+    },
+
+    // Lightweight summary written alongside every full-set save/copy so
+    // loadItems()'s fast path has everything runFilter()/the list row
+    // needs, without embedding .questions (and its per-question design
+    // audio) at all.
+    buildSetMeta: function (setData) {
+        const questions = Array.isArray(setData.questions) ? setData.questions
+            : (setData.questions ? Object.values(setData.questions) : []);
+        const getQCategory = (qs) => {
+            if (!qs || qs.length === 0) return 'unknown';
+            const t = qs[0].type;
+            if (['free_oral', 'free_written', 'letter_select'].includes(t)) return 'free';
+            if (t === 'choice') return 'choice';
+            if (t === 'sort') return 'sort';
+            if (['multi', 'multi_written', 'multi_oral', 'ranking_written', 'ranking_oral'].includes(t)) return 'multi';
+            if (t.startsWith('assoc')) return 'assoc';
+            return 'unknown';
+        };
+        const meta = {
+            title: setData.title || 'Untitled Set',
+            qCount: questions.length,
+            config: { mode: (setData.config && setData.config.mode) || 'normal' },
+            typeCat: getQCategory(questions),
+        };
+        if (typeof setData.createdAt === 'number') meta.createdAt = setData.createdAt;
+        return meta;
+    },
+
+    // Legacy sets saved before saved_sets_meta existed have no entry there
+    // — write one now (once, only for the ones missing it) so the next
+    // visit to this list is fast for them too.
+    _backfillMissingSetMeta: function (showId, sets) {
+        if (!window.db) return;
+        window.db.ref(`saved_sets_meta/${showId}`).once('value').then(snap => {
+            const existing = snap.val() || {};
+            const updates = {};
+            Object.keys(sets).forEach(k => {
+                if (existing[k]) return;
+                updates[k] = this.buildSetMeta(sets[k]);
+            });
+            if (Object.keys(updates).length > 0) {
+                window.db.ref(`saved_sets_meta/${showId}`).update(updates);
+            }
         });
     },
 
@@ -543,8 +613,12 @@ window.App.Dashboard = {
         listEl.innerHTML = '';
         this.itemCache = {}; // Reset cache
 
-        // Helper to categorize question type
+        // Helper to categorize question type — prefers the precomputed
+        // meta.typeCat (present on the fast, meta-only path, which has no
+        // .questions to derive this from) and falls back to deriving it
+        // once the full item (with .questions) is available.
         const getQCategory = (item) => {
+            if (item.typeCat) return item.typeCat;
             if (!item.questions || item.questions.length === 0) return 'unknown';
             const t = item.questions[0].type;
             if (['free_oral', 'free_written', 'letter_select'].includes(t)) return 'free';
@@ -573,7 +647,8 @@ window.App.Dashboard = {
             const dateStr = (typeof d.createdAt === 'number')
                 ? new Date(d.createdAt).toLocaleDateString()
                 : "New!";
-            const qCount = Array.isArray(d.questions) ? d.questions.length : (d.questions ? Object.keys(d.questions).length : 0);
+            const qCount = (d.qCount !== undefined) ? d.qCount
+                : Array.isArray(d.questions) ? d.questions.length : (d.questions ? Object.keys(d.questions).length : 0);
 
             const modeMap = { 'normal': '一斉', 'buzz': '早押し', 'turn': '順番', 'solo': 'ソロ' };
             const modeStr = modeMap[itemMode] || '一斉';
@@ -624,7 +699,9 @@ window.App.Dashboard = {
         const newTitle = prompt("新しい名前を入力してください:", oldTitle);
 
         if (newTitle && newTitle !== oldTitle) {
-            window.db.ref(`${path}/${window.App.State.currentShowId}/${key}/title`).set(newTitle).then(() => {
+            const showId = window.App.State.currentShowId;
+            window.db.ref(`${path}/${showId}/${key}/title`).set(newTitle).then(() => {
+                if (type === 'set') window.db.ref(`saved_sets_meta/${showId}/${key}/title`).set(newTitle);
                 window.App.Ui.showToast("名前を変更しました");
                 this.loadItems();
                 const modal = document.getElementById('item-menu-modal');
@@ -656,7 +733,9 @@ window.App.Dashboard = {
             const newTitle = input.value.trim();
             if (newTitle && newTitle !== oldTitle) {
                 const path = (type === 'set') ? 'saved_sets' : 'saved_programs';
-                window.db.ref(`${path}/${window.App.State.currentShowId}/${key}/title`).set(newTitle).then(() => {
+                const showId = window.App.State.currentShowId;
+                window.db.ref(`${path}/${showId}/${key}/title`).set(newTitle).then(() => {
+                    if (type === 'set') window.db.ref(`saved_sets_meta/${showId}/${key}/title`).set(newTitle);
                     window.App.Ui.showToast("名前を変更しました");
                     this.loadItems(); // Refresh background list
 
@@ -688,6 +767,18 @@ window.App.Dashboard = {
         if (!data) return;
 
         const isSet = (type === 'set');
+
+        // The list can render from the lightweight saved_sets_meta summary
+        // before the full saved_sets fetch (with .questions) resolves —
+        // start/edit/copy/test all need the full data, so block just this
+        // brief window rather than let them silently act on an incomplete
+        // item (delete doesn't need .questions, but keeping this uniform
+        // is simpler and the full fetch is normally only a beat behind).
+        if (isSet && !Array.isArray(data.questions)) {
+            window.App.Ui.showToast('読み込み中です。少し待ってからもう一度お試しください');
+            return;
+        }
+
         const title = data.title || (isSet ? 'Untitled Set' : 'Untitled Program');
 
         // Actions
@@ -812,6 +903,7 @@ window.App.Dashboard = {
 
             const newKey = window.db.ref(`saved_sets/${showId}`).push().key;
             window.db.ref(`saved_sets/${showId}/${newKey}`).set(newData).then(() => {
+                window.db.ref(`saved_sets_meta/${showId}/${newKey}`).set(this.buildSetMeta(newData));
                 window.App.Ui.showToast("セットをコピーしました");
                 this.loadItems();
                 this.updateFlowProgress();
@@ -864,6 +956,9 @@ window.App.Dashboard = {
         if (!confirm("本当に削除しますか？")) return;
         const showId = window.App.State.currentShowId;
         window.db.ref(`${path}/${showId}/${key}`).remove().then(() => {
+            // Keep saved_sets_meta from accumulating orphaned entries for
+            // sets that no longer exist.
+            if (path === 'saved_sets') window.db.ref(`saved_sets_meta/${showId}/${key}`).remove();
             window.App.Ui.showToast("削除しました");
             this.loadItems();
         });
