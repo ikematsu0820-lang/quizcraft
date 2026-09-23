@@ -21,6 +21,7 @@ App.Design = {
         cBorderColor: "#333333",
         cFontSize: "25px",
         align: "center",
+        cAlign: "left",
         layout: "top",
         bgmThinking: "",
         seButton: "",
@@ -54,13 +55,6 @@ App.Design = {
         if (!container) return;
         design.layout = this.normalizeLayout(design.layout);
 
-        const field = (label, key, type, extra = '') => `
-            <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
-                <label style="flex:0 0 auto; color:#94a3b8; font-size:0.7rem; white-space:nowrap;">${label}</label>
-                <input type="text" data-key="${key}" value="${design[key] ?? ''}" style="flex:1; min-width:0; padding:5px 7px; background:#1e293b; border:1px solid #475569; border-radius:6px; color:#fff; font-size:0.78rem;" ${extra}>
-            </div>
-        `;
-
         // Compact color swatches, 3 per row (no hex text field taking up
         // room — the current value is still available as a hover tooltip).
         const colorSwatch = (label, key) => `
@@ -77,14 +71,30 @@ App.Design = {
             </div>
         `;
 
-        const selectField = (label, key, options) => `
-            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-                <label style="flex:0 0 84px; color:#94a3b8; font-size:0.75rem;">${label}</label>
-                <select data-key="${key}" style="flex:1; padding:5px 7px; background:#1e293b; border:1px solid #475569; border-radius:6px; color:#fff; font-size:0.78rem;">
-                    ${options.map(o => `<option value="${o.v}" ${design[key] === o.v ? 'selected' : ''}>${o.t}</option>`).join('')}
-                </select>
+        // Compact 3-per-row variants (control on top, small caption below —
+        // matches colorSwatch's look) used to fit 文字色/サイズ/配置 in one
+        // row for 問題文 and 選択肢 each.
+        const miniText = (label, key) => `
+            <div style="display:flex; flex-direction:column; align-items:center; gap:3px; flex:1; min-width:0;">
+                <input type="text" data-key="${key}" value="${design[key] ?? ''}" style="
+                    width:100%; padding:5px 4px; background:#1e293b; border:1px solid #475569;
+                    border-radius:6px; color:#fff; font-size:0.72rem; text-align:center; box-sizing:border-box;
+                ">
+                <span style="font-size:0.58rem; color:#94a3b8; white-space:nowrap;">${label}</span>
             </div>
         `;
+        const miniSelect = (label, key, options) => `
+            <div style="display:flex; flex-direction:column; align-items:center; gap:3px; flex:1; min-width:0;">
+                <select data-key="${key}" style="
+                    width:100%; padding:5px 2px; background:#1e293b; border:1px solid #475569;
+                    border-radius:6px; color:#fff; font-size:0.66rem; box-sizing:border-box;
+                ">
+                    ${options.map(o => `<option value="${o.v}" ${design[key] === o.v ? 'selected' : ''}>${o.t}</option>`).join('')}
+                </select>
+                <span style="font-size:0.58rem; color:#94a3b8; white-space:nowrap;">${label}</span>
+            </div>
+        `;
+        const ALIGN_OPTS = [{ v: 'left', t: '左寄せ' }, { v: 'center', t: '中央' }, { v: 'right', t: '右寄せ' }];
 
         const gridSummary = () => {
             const r = parseInt(design.gridRows) || 0;
@@ -94,12 +104,18 @@ App.Design = {
 
         const bodyHtml = {
             text: () => `
-                ${colorRow([['問題文字', 'qTextColor'], ['選択文字', 'cTextColor']])}
-                <div style="display:flex; gap:8px; margin-bottom:6px;">
-                    <div style="flex:1; min-width:0;">${field('問題文字サイズ', 'qFontSize', 'text')}</div>
-                    <div style="flex:1; min-width:0;">${field('選択文字サイズ', 'cFontSize', 'text')}</div>
+                <div style="color:#666; font-size:0.7rem; margin:0 0 4px;">問題文</div>
+                <div style="display:flex; gap:6px; margin-bottom:10px;">
+                    ${colorSwatch('文字色', 'qTextColor')}
+                    ${miniText('サイズ', 'qFontSize')}
+                    ${miniSelect('配置', 'align', ALIGN_OPTS)}
                 </div>
-                ${selectField('文字の配置', 'align', [{ v: 'left', t: '左寄せ' }, { v: 'center', t: '中央' }, { v: 'right', t: '右寄せ' }])}
+                <div style="color:#666; font-size:0.7rem; margin:0 0 4px;">選択肢</div>
+                <div style="display:flex; gap:6px; margin-bottom:6px;">
+                    ${colorSwatch('文字色', 'cTextColor')}
+                    ${miniText('サイズ', 'cFontSize')}
+                    ${miniSelect('配置', 'cAlign', ALIGN_OPTS)}
+                </div>
             `,
             object: () => `
                 ${colorRow([
@@ -107,17 +123,24 @@ App.Design = {
                     ['問題枠', 'qBorderColor'], ['問題背景', 'qBgColor'],
                     ['選択枠', 'cBorderColor'], ['選択背景', 'cBgColor'],
                 ])}
-                <div style="color:#666; font-size:0.7rem; margin:8px 0 4px; border-top:1px dashed #333; padding-top:6px;">選択肢の配置（選択式のみ）</div>
-                <button type="button" id="design-grid-config-btn" style="
-                    width:100%; padding:8px 10px; background:#1e293b; border:1px solid #475569;
-                    border-radius:8px; color:#fff; font-size:0.8rem; cursor:pointer;
-                    display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;
-                ">
-                    <span>選択肢の配置</span>
-                    <span id="design-grid-summary" style="color:#00e5ff; font-weight:bold;">${gridSummary()}</span>
-                </button>
-                <div style="color:#666; font-size:0.7rem; margin:8px 0 4px; border-top:1px dashed #333; padding-top:6px;">レイアウト</div>
-                ${selectField('問題文の位置', 'layout', [{ v: 'top', t: '上側' }, { v: 'left', t: '左側' }, { v: 'right', t: '右側' }, { v: 'bottom', t: '下側' }])}
+                <div style="color:#666; font-size:0.7rem; margin:8px 0 4px; border-top:1px dashed #333; padding-top:6px;">選択肢の配置（選択式のみ）／問題文の位置</div>
+                <div style="display:flex; gap:6px; margin-bottom:6px;">
+                    <button type="button" id="design-grid-config-btn" style="
+                        flex:1; min-width:0; padding:6px 6px; background:#1e293b; border:1px solid #475569;
+                        border-radius:8px; color:#fff; font-size:0.72rem; cursor:pointer;
+                        display:flex; flex-direction:column; align-items:center; gap:2px;
+                    ">
+                        <span>選択肢の配置</span>
+                        <span id="design-grid-summary" style="color:#00e5ff; font-weight:bold;">${gridSummary()}</span>
+                    </button>
+                    <select data-key="layout" style="
+                        flex:1; min-width:0; padding:6px 4px; background:#1e293b; border:1px solid #475569;
+                        border-radius:8px; color:#fff; font-size:0.72rem; box-sizing:border-box;
+                    ">
+                        ${[{ v: 'top', t: '問題文: 上側' }, { v: 'left', t: '問題文: 左側' }, { v: 'right', t: '問題文: 右側' }, { v: 'bottom', t: '問題文: 下側' }]
+                            .map(o => `<option value="${o.v}" ${design.layout === o.v ? 'selected' : ''}>${o.t}</option>`).join('')}
+                    </select>
+                </div>
             `,
             sound: () => {
                 const soundRow = (label, key) => {

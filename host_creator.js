@@ -278,6 +278,10 @@ window.App.Creator = {
         container.style.flexDirection = 'column';
         if (optionsExtra) optionsExtra.innerHTML = '';
         if (optSubArea) optSubArea.classList.add('hidden');
+        // リストに追加/保存 live outside the PREVIEW bezel and stay visible
+        // across all 4 tabs once question editing has started, not just
+        // while 問題編集 is the active tab.
+        document.getElementById('creator-inline-listactions')?.classList.remove('hidden');
 
         // Raw leaf type currently shown in the form (e.g. 'choice_multi',
         // 'free_oral'), captured before the choice_single/choice_multi
@@ -375,9 +379,9 @@ window.App.Creator = {
 
             // Sub-type
             setupOptSubtype([
-                { v: 'free_written', t: '手書きで答える（自由入力・自動判定）' },
-                { v: 'free_oral', t: '口頭で答える（口頭・司会判定）' },
-                { v: 'letter_select', t: '文字パネル（自由入力・自動判定）' }
+                { v: 'free_written', t: '手書きで答える' },
+                { v: 'free_oral', t: '口頭で答える' },
+                { v: 'letter_select', t: '文字パネル' }
             ], 'letter_select');
         }
 
@@ -449,9 +453,9 @@ window.App.Creator = {
 
             // Sub-type
             setupOptSubtype([
-                { v: 'free_written', t: '手書きで答える（自由入力・自動判定）' },
-                { v: 'free_oral', t: '口頭で答える（口頭・司会判定）' },
-                { v: 'letter_select', t: '文字パネル（自由入力・自動判定）' }
+                { v: 'free_written', t: '手書きで答える' },
+                { v: 'free_oral', t: '口頭で答える' },
+                { v: 'letter_select', t: '文字パネル' }
             ], type);
         }
         else if (type.startsWith('assoc')) {
@@ -499,8 +503,8 @@ window.App.Creator = {
 
             // Sub-type
             setupOptSubtype([
-                { v: 'assoc_written', t: '連想・手書きで答える（自由入力・司会判定）' },
-                { v: 'assoc_oral', t: '連想・口頭で答える（口頭・司会判定）' }
+                { v: 'assoc_written', t: '連想・手書きで答える' },
+                { v: 'assoc_oral', t: '連想・口頭で答える' }
             ], type);
         }
         else if (type.startsWith('multi') || type.startsWith('ranking')) {
@@ -532,10 +536,10 @@ window.App.Creator = {
 
             // Sub-type
             setupOptSubtype([
-                { v: 'multi_written', t: '手書きで答える（自由入力・司会判定）' },
-                { v: 'multi_oral', t: '口頭で答える（口頭・司会判定）' },
-                { v: 'ranking_written', t: 'ランキング・手書きで答える（自由入力・司会判定）' },
-                { v: 'ranking_oral', t: 'ランキング・口頭で答える（口頭・司会判定）' }
+                { v: 'multi_written', t: '手書きで答える' },
+                { v: 'multi_oral', t: '口頭で答える' },
+                { v: 'ranking_written', t: 'ランキング・手書きで答える' },
+                { v: 'ranking_oral', t: 'ランキング・口頭で答える' }
             ], type);
         }
         else if (type === 'blackjack') {
@@ -616,7 +620,7 @@ window.App.Creator = {
         const questions = this.effectiveQuestionsForRestrictions();
         window.App.Config.applyModeRestrictions(conf, questions);
 
-        modeBtn.textContent = '解答権';
+        modeBtn.textContent = '解答方式';
         rulesBtn.textContent = 'ルール設定';
 
         editBtn.onclick = () => this.toggleInlinePanel('edit');
@@ -654,8 +658,8 @@ window.App.Creator = {
             mode: document.getElementById('creator-inline-mode'),
             rules: document.getElementById('creator-inline-rules')
         };
-        // Shown only alongside the 'edit' panel, not the rule pickers.
-        const listActions = document.getElementById('creator-inline-listactions');
+        // 問題編集 only — not the rule pickers. リストに追加/保存 lives
+        // outside this panel entirely now, so it isn't touched here.
         const qList = document.getElementById('creator-inline-qlist');
         const editSubtabs = document.getElementById('creator-edit-subtabs');
         const homePanel = document.getElementById('creator-edit-home-panel');
@@ -663,7 +667,6 @@ window.App.Creator = {
         if (!area || !panels[key]) return;
 
         Object.values(panels).forEach(p => p.classList.add('hidden'));
-        if (listActions) listActions.classList.add('hidden');
         if (qList) qList.classList.add('hidden');
         if (editSubtabs) editSubtabs.classList.add('hidden');
         if (homePanel) homePanel.classList.add('hidden');
@@ -699,7 +702,6 @@ window.App.Creator = {
     renderEditPanelBody: function () {
         const homePanel = document.getElementById('creator-edit-home-panel');
         const bulkPanel = document.getElementById('creator-bulk-panel');
-        const listActions = document.getElementById('creator-inline-listactions');
         const qList = document.getElementById('creator-inline-qlist');
         if (this.editSubTab === 'bulk') {
             if (homePanel) homePanel.classList.add('hidden');
@@ -708,7 +710,6 @@ window.App.Creator = {
         } else {
             if (bulkPanel) bulkPanel.classList.add('hidden');
             if (homePanel) homePanel.classList.remove('hidden');
-            if (listActions) listActions.classList.remove('hidden');
             if (qList) { qList.classList.remove('hidden'); this.renderList(); }
         }
     },
@@ -816,6 +817,7 @@ window.App.Creator = {
                 el.style.setProperty('color', d.cTextColor, 'important');
                 el.style.setProperty('--creator-choice-text-color', d.cTextColor);
             }
+            el.style.setProperty('text-align', d.cAlign || 'left', 'important');
         });
 
         // 選択背景/選択枠 — applied to each row (the editor's own
@@ -1111,6 +1113,70 @@ window.App.Creator = {
             });
         };
         parent.appendChild(row);
+    },
+
+    // 文字パネル (letter_select): each step is one character position of the
+    // final answer — a 正解 letter plus optional ダミー (decoy) letters.
+    // player.js pools every step's correct+dummy letters into one shuffled
+    // panel, so a step needs at least a 正解 to be meaningful.
+    renderLetterStepList: function () {
+        const container = document.getElementById('letter-step-container');
+        if (!container) return;
+        container.innerHTML = '';
+
+        this.currentLetterSteps.forEach((step, i) => {
+            if (!step.dummies) step.dummies = [];
+            const row = document.createElement('div');
+            row.className = 'letter-step-row';
+            row.style.cssText = 'display:flex; align-items:center; gap:6px; margin-bottom:8px; padding:8px; background:#1a1a1a; border-radius:8px; border:1px solid #333;';
+            row.innerHTML = `
+                <span style="color:#00e5ff; font-weight:900; font-size:0.85rem; min-width:18px; text-align:center;">${i + 1}</span>
+                <input type="text" class="letter-step-correct" maxlength="2" value="${step.correct || ''}" placeholder="正解" style="
+                    width:42px; padding:6px 2px; text-align:center; background:#0d1b2a; border:1px solid #475569;
+                    border-radius:6px; color:#00ff88; font-weight:bold; font-size:0.9rem; flex-shrink:0;
+                ">
+                <div class="letter-step-dummies" style="display:flex; gap:4px; flex-wrap:wrap; flex:1; align-items:center;"></div>
+                <button type="button" class="letter-step-del-btn" title="この文字を削除" style="
+                    background:none; border:none; color:rgba(255,255,255,0.3); font-size:1rem; cursor:pointer; flex-shrink:0;
+                ">×</button>
+            `;
+
+            const dummiesWrap = row.querySelector('.letter-step-dummies');
+            step.dummies.forEach((d, di) => {
+                const dInp = document.createElement('input');
+                dInp.type = 'text';
+                dInp.maxLength = 2;
+                dInp.value = d;
+                dInp.placeholder = 'ダミー';
+                dInp.style.cssText = 'width:36px; padding:5px 2px; text-align:center; background:#0d1b2a; border:1px dashed #475569; border-radius:6px; color:#ff8888; font-size:0.8rem;';
+                dInp.oninput = () => { step.dummies[di] = dInp.value; };
+                dummiesWrap.appendChild(dInp);
+            });
+            const addDummyBtn = document.createElement('button');
+            addDummyBtn.type = 'button';
+            addDummyBtn.textContent = '+';
+            addDummyBtn.title = 'ダミー文字を追加';
+            addDummyBtn.style.cssText = 'width:26px; height:26px; background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4); border-radius:6px; color:#00e5ff; cursor:pointer; font-size:0.85rem; flex-shrink:0;';
+            addDummyBtn.onclick = () => { step.dummies.push(''); this.renderLetterStepList(); };
+            dummiesWrap.appendChild(addDummyBtn);
+
+            row.querySelector('.letter-step-correct').oninput = (e) => { step.correct = e.target.value; };
+            row.querySelector('.letter-step-del-btn').onclick = () => {
+                this.currentLetterSteps.splice(i, 1);
+                this.renderLetterStepList();
+            };
+            container.appendChild(row);
+        });
+
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.textContent = '＋ 文字を追加';
+        addBtn.style.cssText = 'background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4); border-radius:8px; color:#00e5ff; padding:8px 20px; cursor:pointer; font-size:0.9rem; width:100%; margin-top:2px;';
+        addBtn.onclick = () => {
+            this.currentLetterSteps.push({ correct: '', dummies: [] });
+            this.renderLetterStepList();
+        };
+        container.appendChild(addBtn);
     },
 
     createAddBtn: function (parent, text, onClick) {

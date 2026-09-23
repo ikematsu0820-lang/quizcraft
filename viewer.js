@@ -942,7 +942,7 @@ window.App.Viewer = {
 
                     html += `<div class="choice-item" style="${colorStyle} ${bgStyle} ${bStyle} ${transformStyle}${d.cFontSize ? ` font-size:${d.cFontSize};` : ''} transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
                         <span class="choice-prefix" style="color:${isRevealed || isMissed ? '#fff' : '#00e5ff'}; ${isMultiType && !q.type.startsWith('ranking') && !isAssoc ? 'display:none;' : ''}">${prefixLabel}</span>
-                        <span style="${isHidden ? 'visibility:hidden;' : ''}">${c}</span>
+                        <span style="flex:1; text-align:${d.cAlign || 'left'}; ${isHidden ? 'visibility:hidden;' : ''}">${c}</span>
                     </div>`;
                 });
                 html += `</div>`;

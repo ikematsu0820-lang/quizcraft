@@ -530,18 +530,6 @@
 
                     <div id="creator-edit-home-panel">
                         <div id="creator-options-extra"></div>
-                        <div id="creator-inline-listactions" class="hidden" style="display:flex; gap:8px; margin-top:10px; padding-top:10px; border-top:1px dashed #333;">
-                            <button id="creator-inline-add-btn" style="
-                                flex:1; padding:8px 4px; font-size:0.85rem; font-weight:bold;
-                                background:linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
-                                border:none; border-radius:8px; color:#fff; cursor:pointer;
-                            ">リストに追加</button>
-                            <button id="creator-inline-save-btn" style="
-                                flex:1; padding:8px 4px; font-size:0.85rem; font-weight:bold;
-                                background:#1e293b; border:1px solid #475569;
-                                border-radius:8px; color:#fff; cursor:pointer;
-                            ">💾 リストを保存する</button>
-                        </div>
                         <!-- Already-added questions — click one to edit it. Only
                              shown alongside 問題編集 (populated by renderList()). -->
                         <div id="creator-inline-qlist" class="hidden" style="margin-top:10px; padding-top:10px; border-top:1px dashed #333;"></div>
@@ -584,27 +572,42 @@
                      問題編集's inline panel) — kept inside the bezel wrapper so
                      it's the same width and visually attached, no gap. ===== -->
                 <div style="display:flex; border-top:1px solid #2a2a2a;">
-                    <button id="creator-inline-edit-toggle" class="creator-rule-btn" style="
-                        flex:0.9; padding:14px 4px; font-size:0.8rem; font-weight:bold; line-height:1.3;
+                    <button id="creator-rule-design-btn" class="creator-rule-btn" style="
+                        flex:1; padding:14px 4px; font-size:0.8rem; font-weight:bold; line-height:1.3;
                         background:#0e6b8f; border:none;
                         color:#fff; cursor:pointer;
-                    ">問題編集</button>
-            <button id="creator-rule-design-btn" class="creator-rule-btn" style="
-                flex:1; padding:14px 4px; font-size:0.8rem; font-weight:bold; line-height:1.3;
-                background:#0e6b8f; border:none; border-left:1px solid rgba(255,255,255,0.15);
-                color:#fff; cursor:pointer;
-            ">デザイン</button>
+                    ">デザイン</button>
             <button id="creator-rule-mode-btn" class="creator-rule-btn" style="
                 flex:1; padding:14px 4px; font-size:0.8rem; font-weight:bold; line-height:1.3;
                 background:#0e6b8f; border:none; border-left:1px solid rgba(255,255,255,0.15);
                 color:#fff; cursor:pointer;
-            ">解答権</button>
+            ">解答方式</button>
             <button id="creator-rule-settings-btn" class="creator-rule-btn" style="
                 flex:1; padding:14px 4px; font-size:0.8rem; font-weight:bold; line-height:1.3;
                 background:#0e6b8f; border:none; border-left:1px solid rgba(255,255,255,0.15);
                 color:#fff; cursor:pointer;
             ">ルール設定</button>
+            <button id="creator-inline-edit-toggle" class="creator-rule-btn" style="
+                flex:1; padding:14px 4px; font-size:0.8rem; font-weight:bold; line-height:1.3;
+                background:#0e6b8f; border:none; border-left:1px solid rgba(255,255,255,0.15);
+                color:#fff; cursor:pointer;
+            ">問題編集</button>
         </div>
+            </div>
+
+            <!-- リストに追加/保存 — outside the PREVIEW bezel (persistent
+                 across all 4 tabs above, not tied to 問題編集 specifically). -->
+            <div id="creator-inline-listactions" class="hidden" style="display:flex; gap:8px; margin-top:12px;">
+                <button id="creator-inline-add-btn" style="
+                    flex:1; padding:12px 4px; font-size:0.9rem; font-weight:bold;
+                    background:linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+                    border:none; border-radius:10px; color:#fff; cursor:pointer;
+                ">リストに追加</button>
+                <button id="creator-inline-save-btn" style="
+                    flex:1; padding:12px 4px; font-size:0.9rem; font-weight:bold;
+                    background:#1e293b; border:1px solid #475569;
+                    border-radius:10px; color:#fff; cursor:pointer;
+                ">💾 リストを保存する</button>
             </div>
         </div>
 
@@ -946,16 +949,16 @@
     <!-- Drag & Drop Library -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script src="firebase.js"></script>
-    <script src="text_config.js?v=231"></script>
+    <script src="text_config.js?v=232"></script>
     <script src="host_core.js?v=231"></script>
-    <script src="host_design.js?v=235"></script>
+    <script src="host_design.js?v=236"></script>
     <script src="host_production_design.js?v=230"></script>
-    <script src="host_creator.js?v=239"></script>
+    <script src="host_creator.js?v=240"></script>
     <script src="host_config.js?v=235"></script>
     <script src="host_prog_config.js?v=230"></script>
     <script src="host_studio.js?v=231"></script>
     <script src="player.js?v=231"></script>
-    <script src="viewer.js?v=233"></script>
+    <script src="viewer.js?v=234"></script>
 
 
     <!-- Edit Menu Modal -->
