@@ -347,7 +347,13 @@ window.App.Creator = {
             choicesDiv.style.cssText = 'display:flex; flex-direction:column; gap:1%; flex:1; min-height:0; width:100%;';
             container.appendChild(choicesDiv);
 
-            if (data) {
+            // data.c.length check (not just truthiness) matters here — the
+            // 正解表示 preview toggle can hand back a `data` object whose
+            // .c is still an empty array (a brand-new question nobody has
+            // typed choices into yet); without it, restoring after
+            // unchecking the toggle left 0 rows instead of falling back to
+            // the usual blank-4-rows default.
+            if (data && data.c && data.c.length > 0) {
                 if (data.multi) this.choiceSubtype = 'multi';
                 else this.choiceSubtype = 'single';
                 data.c.forEach((txt, i) => this.addChoiceInput(choicesDiv, i, txt, data.correct.includes(i)));
@@ -407,7 +413,8 @@ window.App.Creator = {
 
             document.getElementById('btn-reset-sort-ranks').onclick = () => this.resetSortRanks(sortDiv);
 
-            if (data) {
+            // See the choice branch's comment above re: data.c.length.
+            if (data && data.c && data.c.length > 0) {
                 const orderStr = data.correct || "";
                 let maxR = 0;
                 data.c.forEach((txt, i) => {
@@ -478,7 +485,7 @@ window.App.Creator = {
             assocDiv.style.cssText = 'display:flex; flex-direction:column; gap:1%; flex:1; min-height:0; width:100%;';
             container.appendChild(assocDiv);
 
-            if (data && data.c) {
+            if (data && data.c && data.c.length > 0) {
                 data.c.forEach((txt, i) => this.addAssocInput(assocDiv, i, txt));
             } else {
                 for (let i = 0; i < 4; i++) this.addAssocInput(assocDiv, i, '');
@@ -530,7 +537,7 @@ window.App.Creator = {
             multiDiv.style.cssText = 'display:flex; flex-direction:column; gap:1%; flex:1; min-height:0; width:100%;';
             container.appendChild(multiDiv);
 
-            if (data) data.c.forEach((txt, i) => this.addMultiInput(multiDiv, i, txt, isRanking));
+            if (data && data.c && data.c.length > 0) data.c.forEach((txt, i) => this.addMultiInput(multiDiv, i, txt, isRanking));
             else for (let i = 0; i < 4; i++) this.addMultiInput(multiDiv, i, '', isRanking);
 
             // Add-item button in options panel
@@ -573,7 +580,7 @@ window.App.Creator = {
             bjDiv.style.cssText = 'display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:0 10px;';
             container.appendChild(bjDiv);
 
-            if (data && data.c) {
+            if (data && data.c && data.c.length > 0) {
                 data.c.forEach((txt, i) => this.addBjCardInput(bjDiv, i, txt, data.values[i]));
             } else {
                 for (let i = 0; i < 4; i++) this.addBjCardInput(bjDiv, i, '', '');
