@@ -184,6 +184,12 @@ App.Design = {
                 </div>
             `,
             object: () => {
+                // 連想クイズの項目は「選択肢」ではなく「ヒント」なので、この
+                // ボタン/モーダルの文言だけ差し替える — グリッド設定自体は
+                // 選択式/並べ替え/多答/連想のどのタイプにも共通で効く
+                // （#creator-choices-list を使う全タイプ、applyDesignToPreview 側）。
+                const isAssoc = ((window.App.Creator && window.App.Creator.currentType) || '').startsWith('assoc');
+                const gridLabel = isAssoc ? 'ヒントの配置' : '選択肢の配置';
                 return `
                 ${colorRow([
                     ['全体背景', 'mainBgColor'],
@@ -192,14 +198,14 @@ App.Design = {
                     ['選択枠', 'cBorderColor'],
                     ['選択背景', 'cBgColor'],
                 ])}
-                <div style="color:#666; font-size:0.7rem; margin:8px 0 4px; border-top:1px dashed #333; padding-top:6px;">選択肢の配置（選択式のみ）／問題文の位置</div>
+                <div style="color:#666; font-size:0.7rem; margin:8px 0 4px; border-top:1px dashed #333; padding-top:6px;">${gridLabel}／問題文の位置</div>
                 <div style="display:flex; gap:6px; margin-bottom:6px;">
                     <button type="button" id="design-grid-config-btn" style="
                         flex:1; min-width:0; padding:6px 6px; background:#1e293b; border:1px solid #475569;
                         border-radius:8px; color:#fff; font-size:0.72rem; cursor:pointer;
-                        display:flex; flex-direction:column; align-items:center; gap:2px;
+                        display:flex; flex-direction:row; align-items:center; justify-content:center; gap:5px;
                     ">
-                        <span>選択肢の配置</span>
+                        <span>${gridLabel}</span>
                         <span id="design-grid-summary" style="color:#00e5ff; font-weight:bold;">${gridSummary()}</span>
                     </button>
                     <select data-key="layout" style="
@@ -607,14 +613,21 @@ App.Design = {
         const existing = document.getElementById('design-grid-modal');
         if (existing) existing.remove();
 
-        const choiceCount = document.querySelectorAll('#creator-form-container .choice-text-input').length;
+        // .row-input covers 並べ替え/多答/連想 rows too (only .choice-row's
+        // input is .choice-text-input) — without it this count silently
+        // read 0 for those types, so "not enough cells" validation below
+        // never actually caught anything for them.
+        const choiceCount = document.querySelectorAll('#creator-form-container .choice-text-input, #creator-form-container .row-input').length;
+        const isAssoc = ((window.App.Creator && window.App.Creator.currentType) || '').startsWith('assoc');
+        const gridLabel = isAssoc ? 'ヒントの配置' : '選択肢の配置';
+        const itemWord = isAssoc ? 'ヒント' : '選択肢';
 
         const overlay = document.createElement('div');
         overlay.id = 'design-grid-modal';
         overlay.className = 'design-modal-overlay';
         overlay.innerHTML = `
             <div class="design-modal-content" style="max-width:300px; padding:22px !important;">
-                <h3 class="modal-title" style="font-size:1.05em; margin-bottom:6px;">選択肢の配置</h3>
+                <h3 class="modal-title" style="font-size:1.05em; margin-bottom:6px;">${gridLabel}</h3>
                 <p style="color:#888; font-size:0.75rem; text-align:center; margin:0 0 16px;">
                     左上から順に敷き詰められ、余ったマスは空欄になります${choiceCount ? `（現在 ${choiceCount} 個）` : ''}
                 </p>
@@ -667,7 +680,7 @@ App.Design = {
                 return;
             }
             if (rows > 0 && cols > 0 && choiceCount > 0 && rows * cols < choiceCount) {
-                errEl.textContent = `行列が足りません（選択肢は${choiceCount}個あります）`;
+                errEl.textContent = `行列が足りません（${itemWord}は${choiceCount}個あります）`;
                 return;
             }
 

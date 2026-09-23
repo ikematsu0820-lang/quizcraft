@@ -391,6 +391,7 @@ window.App.Creator = {
                 </div>
             `;
             const sortDiv = document.createElement('div');
+            sortDiv.id = 'creator-choices-list';
             sortDiv.style.cssText = 'display:flex; flex-direction:column; gap:1%; flex:1; min-height:0; width:100%;';
             container.appendChild(sortDiv);
 
@@ -463,6 +464,7 @@ window.App.Creator = {
             `;
 
             const assocDiv = document.createElement('div');
+            assocDiv.id = 'creator-choices-list';
             assocDiv.style.cssText = 'display:flex; flex-direction:column; gap:1%; flex:1; min-height:0; width:100%;';
             container.appendChild(assocDiv);
 
@@ -514,6 +516,7 @@ window.App.Creator = {
                 <div style="text-align:center; color:#64748b; font-size:0.8rem; margin-bottom:10px; padding-top:6px;">${descText}</div>
             `;
             const multiDiv = document.createElement('div');
+            multiDiv.id = 'creator-choices-list';
             multiDiv.style.cssText = 'display:flex; flex-direction:column; gap:1%; flex:1; min-height:0; width:100%;';
             container.appendChild(multiDiv);
 
@@ -796,6 +799,11 @@ window.App.Creator = {
         if (qArea) {
             if (d.qBorderColor) qArea.style.borderColor = d.qBorderColor;
             if (d.qBgColor) qArea.style.backgroundColor = d.qBgColor;
+            // The box's default cyan glow is a hardcoded box-shadow in
+            // index.html (not tied to qBorderColor) — 問題枠 alone going
+            // transparent left it lingering as a stray blue halo, so hide
+            // it explicitly whenever the border itself is 透明.
+            qArea.style.boxShadow = (d.qBorderColor === 'transparent') ? 'none' : '0 0 20px rgba(0,229,255,0.2)';
         }
         // input/select/textarea get a global "color:#fff !important" reset
         // (style_host.css), so a plain .style.color assignment loses to it —
@@ -838,14 +846,16 @@ window.App.Creator = {
             if (d.cBorderColor) row.style.borderBottomColor = d.cBorderColor;
         });
 
-        // 選択肢の配置（行数/列数）: mirrors viewer.js's .c-area grid — only
-        // meaningful for choice questions, and only when both are set.
-        // The rows live in #creator-choices-list (a wrapper INSIDE
-        // formContainer, alongside the "正解をタップして選択" hint text),
-        // not formContainer itself — grid-ing formContainer would just grid
-        // that one wrapper div, leaving the rows inside it still stacked.
+        // 選択肢/項目の配置（行数/列数）: mirrors viewer.js's .c-area grid,
+        // which applies to any type with a .c list (choice/sort/multi/
+        // ranking/assoc) — not just 選択式, despite this being named after
+        // it. #creator-choices-list is reused as the wrapper id across all
+        // of those types' renderForm branches (only one exists at a time),
+        // so its presence alone is enough to gate this — no need to check
+        // this.currentType too (previously restricted to 'choice', which
+        // silently no-opped the same setting for sort/multi/assoc).
         const choicesList = document.getElementById('creator-choices-list');
-        if (choicesList && (this.currentType || '').startsWith('choice')) {
+        if (choicesList) {
             const rows = parseInt(d.gridRows) || 0;
             const cols = parseInt(d.gridCols) || 0;
             if (rows > 0 && cols > 0) {

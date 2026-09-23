@@ -901,7 +901,14 @@ window.App.Viewer = {
             const wrapDirection = { top: 'column', bottom: 'column-reverse', left: 'row', right: 'row-reverse' }[pos];
 
             contentBox.style.flexDirection = wrapDirection;
-            contentBox.style.justifyContent = 'center';
+            // flex-start (not 'center', #viewer-main-text's own CSS default)
+            // so 上側/下側/左側/右側 actually anchor the block toward that
+            // edge — matching the Creator's preview (#creator-monitor-flexwrap
+            // has no justify-content override, so it's flex-start there too).
+            // 'center' here only reordered q-area/c-area while keeping the
+            // pair vertically centered as a group, which never visibly moved
+            // toward the chosen edge.
+            contentBox.style.justifyContent = 'flex-start';
             contentBox.style.alignItems = 'center';
 
             const qAreaStyle = isRow
