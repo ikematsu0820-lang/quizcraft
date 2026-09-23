@@ -242,16 +242,14 @@ App.Config = {
                 { value: 'first_come', label: '先着のみ' }
             ];
             return `
-                <div id="score-type-radio-group">${optionRows.map(o => `
-                    <label style="display:flex; align-items:center; gap:8px; padding:5px 8px; margin-bottom:3px; border-radius:6px;
-                        border:1px solid ${scoreType === o.value ? '#00bfff' : '#333'};
-                        background:${scoreType === o.value ? 'rgba(0,191,255,0.08)' : '#111'}; cursor:pointer;">
-                        <input type="radio" name="score-type-radio" value="${o.value}" ${scoreType === o.value ? 'checked' : ''} style="display:none;">
-                        <span style="font-size:0.85em; color:${scoreType === o.value ? '#00bfff' : '#888'};">${scoreType === o.value ? '☑' : '☐'}</span>
-                        <span style="font-weight:bold; color:${scoreType === o.value ? '#00bfff' : '#ccc'}; font-size:0.8em;">${o.label}</span>
-                    </label>
-                `).join('')}</div>
-                <div id="score-type-sheet-detail" style="background:rgba(0,0,0,0.3); padding:8px; border-radius:6px; border:1px solid rgba(255,255,255,0.06); margin-top:6px; min-height:40px;"></div>
+                <label class="config-label" style="margin:0 0 4px; font-size:0.78em; display:block;">得点ルール</label>
+                <select id="score-type-select" style="
+                    width:100%; padding:6px 8px; background:#1e293b; border:1px solid #475569;
+                    border-radius:8px; color:#fff; font-size:0.85rem;
+                ">
+                    ${optionRows.map(o => `<option value="${o.value}" ${scoreType === o.value ? 'selected' : ''}>${o.label}</option>`).join('')}
+                </select>
+                <div id="score-type-sheet-detail" style="background:rgba(0,0,0,0.3); padding:8px; border-radius:6px; border:1px solid rgba(255,255,255,0.06); margin-top:8px; min-height:40px;"></div>
             `;
         };
         const slotDetailHtml = () => `
@@ -272,13 +270,11 @@ App.Config = {
             const area = container.querySelector('#gametype-chooser-detail');
             if (current === 'score') {
                 area.innerHTML = scoreDetailHtml();
-                area.querySelectorAll('input[name="score-type-radio"]').forEach(radio => {
-                    radio.closest('label').onclick = () => {
-                        conf.scoreType = radio.value;
-                        renderDetail();
-                        if (onChange) onChange();
-                    };
-                });
+                area.querySelector('#score-type-select').onchange = (e) => {
+                    conf.scoreType = e.target.value;
+                    renderDetail();
+                    if (onChange) onChange();
+                };
                 this.renderScoreDetailInSheet(conf.scoreType || 'uniform', conf);
                 // Commit score-detail field edits to conf as the user types,
                 // since there's no explicit confirm step anymore.

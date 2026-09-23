@@ -60,6 +60,18 @@ App.Design = {
         return base;
     },
 
+    // カラーパレット — 6 curated 5×4 palettes shown as an accordion in the
+    // color-picker popup, so choosing a color is "pick a tile" instead of
+    // hunting around a full color wheel every time.
+    _colorPalettes: [
+        { name: '1. ビビッド / 定番色', colors: ['#FF0000', '#FF3333', '#FF5722', '#FF7043', '#FF9800', '#FFC107', '#FFEB3B', '#CDDC39', '#8BC34A', '#4CAF50', '#009688', '#00BCD4', '#03A9F4', '#2196F3', '#3F51B5', '#673AB7', '#9C27B0', '#E91E63', '#FF4081', '#F44336'] },
+        { name: '2. パステル / ライト', colors: ['#FFCDD2', '#F8BBD0', '#FCE4EC', '#FF80AB', '#FF4081', '#FFE0B2', '#FFF9C4', '#FFFDE7', '#FFF59D', '#FFE082', '#DCEDC8', '#C8E6C9', '#B2DFDB', '#A7FFEB', '#B9F6CA', '#B3E5FC', '#BBDEFB', '#C5CAE9', '#D1C4E9', '#E1BEE7'] },
+        { name: '3. ダーク / ディープ', colors: ['#4A0000', '#5C0606', '#7A0C0C', '#4E342E', '#3E2723', '#4D3800', '#5D4037', '#33691E', '#1B5E20', '#004D40', '#00363A', '#01579B', '#0D47A1', '#1A237E', '#0A192F', '#311B92', '#4A148C', '#880E4F', '#212121', '#121212'] },
+        { name: '4. ネオン / サイバー', colors: ['#FF0055', '#FF1493', '#FF007F', '#FF00AA', '#F000FF', '#FF3F00', '#FF6600', '#FF9900', '#FFCC00', '#FFFF00', '#CCFF00', '#76FF03', '#00FF66', '#00FF99', '#00FFCC', '#00FFFF', '#00CCFF', '#0099FF', '#7DF9FF', '#B000FF'] },
+        { name: '5. モノトーン / グレースケール', colors: ['#FFFFFF', '#F5F5F5', '#EEEEEE', '#E0E0E0', '#D6D6D6', '#CCCCCC', '#BDBDBD', '#AAAAAA', '#9E9E9E', '#8D8D8D', '#757575', '#616161', '#545454', '#424242', '#303030', '#2C2C2C', '#212121', '#1A1A1A', '#0F0F0F', '#000000'] },
+        { name: '6. リッチ / メタリック＆アース', colors: ['#D4AF37', '#FFD700', '#E5C158', '#C5A059', '#AA771C', '#CD7F32', '#B87333', '#C38B5F', '#A0522D', '#8B4513', '#E5E4E2', '#D9D9D9', '#B0C4DE', '#778899', '#4F6D7A', '#1B365D', '#0B2545', '#134E5E', '#1A4329', '#58111A'] },
+    ],
+
     // 問題文の位置 — normalizes legacy values ('standard'/'split') saved by
     // older sets to the current 4-direction vocabulary.
     normalizeLayout: function (v) {
@@ -88,14 +100,19 @@ App.Design = {
 
         // Compact color swatches, 3-5 per row (no hex text field taking up
         // room — the current value is still available as a hover tooltip).
+        // Tapping opens the palette picker popup (_openColorPickerModal)
+        // instead of the native OS color wheel — there's no format
+        // constraint here (unlike <input type=color>) so the swatch can
+        // just show the raw value (hex/rgba/'transparent') directly.
         // `extraHtml` renders below the caption — used by the オブジェクト
         // tab to merge each field's 透明 toggle / 全体背景's image button
         // directly into its own swatch instead of a separate section.
         const colorSwatch = (label, key, extraHtml = '') => `
-            <div style="display:flex; flex-direction:column; align-items:center; gap:2px; flex:1 1 38px; min-width:0;">
-                <input type="color" data-color-key="${key}" value="${this._toHexOrDefault(design[key])}" title="${design[key] ?? ''}" style="
-                    width:100%; height:30px; padding:0; border:1px solid #475569; border-radius:6px; background:none; cursor:pointer;
-                ">
+            <div style="display:flex; flex-direction:column; align-items:center; gap:3px; flex:1 1 38px; min-width:0;">
+                <button type="button" data-color-swatch-key="${key}" data-color-swatch-label="${label}" title="${design[key] ?? ''}" style="
+                    width:100%; height:32px; box-sizing:border-box; padding:0; border:1px solid #475569; border-radius:6px; cursor:pointer;
+                    background:${design[key] || 'transparent'};
+                "></button>
                 <span style="font-size:0.58rem; color:#94a3b8; white-space:nowrap;">${label}</span>
                 ${extraHtml}
             </div>
@@ -109,10 +126,15 @@ App.Design = {
         // Compact 3-per-row variants (control on top, small caption below —
         // matches colorSwatch's look) used to fit 文字色/サイズ/配置 in one
         // row for 問題文 and 選択肢 each.
+        // Fixed 32px height (box-sizing:border-box) on all 3 of these so
+        // the color swatch/size field/align select line up exactly, even
+        // though a <select> and an <input> render their content slightly
+        // differently by default.
+        const CONTROL_HEIGHT = '32px';
         const miniText = (label, key) => `
             <div style="display:flex; flex-direction:column; align-items:center; gap:3px; flex:1; min-width:0;">
                 <input type="text" data-key="${key}" value="${design[key] ?? ''}" style="
-                    width:100%; padding:5px 4px; background:#1e293b; border:1px solid #475569;
+                    width:100%; height:${CONTROL_HEIGHT}; min-height:${CONTROL_HEIGHT}; margin:0; padding:0 4px; background:#1e293b; border:1px solid #475569;
                     border-radius:6px; color:#fff; font-size:0.72rem; text-align:center; box-sizing:border-box;
                 ">
                 <span style="font-size:0.58rem; color:#94a3b8; white-space:nowrap;">${label}</span>
@@ -121,7 +143,7 @@ App.Design = {
         const miniSelect = (label, key, options) => `
             <div style="display:flex; flex-direction:column; align-items:center; gap:3px; flex:1; min-width:0;">
                 <select data-key="${key}" style="
-                    width:100%; padding:5px 2px; background:#1e293b; border:1px solid #475569;
+                    width:100%; height:${CONTROL_HEIGHT}; min-height:${CONTROL_HEIGHT}; margin:0; padding:0 2px; background:#1e293b; border:1px solid #475569;
                     border-radius:6px; color:#fff; font-size:0.66rem; box-sizing:border-box;
                 ">
                     ${options.map(o => `<option value="${o.v}" ${design[key] === o.v ? 'selected' : ''}>${o.t}</option>`).join('')}
@@ -137,24 +159,24 @@ App.Design = {
             return (r > 0 && c > 0) ? `${r}行 × ${c}列` : '自動';
         };
 
-        // A plain (non-interactive) label sized/aligned to sit in the same
-        // row as colorSwatch/miniText/miniSelect — bottom-aligned with
-        // their caption text since it has no caption of its own below it.
+        // A plain (non-interactive) label sized to sit in the same row as
+        // colorSwatch/miniText/miniSelect — the row itself centers it
+        // vertically against their (control + caption) height.
         const rowLabel = (text) => `
-            <div style="flex:0 0 34px; display:flex; align-items:flex-end; justify-content:center; padding-bottom:15px;">
+            <div style="flex:0 0 34px; display:flex; align-items:center; justify-content:center;">
                 <span style="font-size:0.66rem; color:#94a3b8; font-weight:bold; white-space:nowrap;">${text}</span>
             </div>
         `;
 
         const bodyHtml = {
             text: () => `
-                <div style="display:flex; gap:6px; margin-bottom:10px; align-items:flex-start;">
+                <div style="display:flex; gap:6px; margin-bottom:10px; align-items:center;">
                     ${rowLabel('問題文')}
                     ${colorSwatch('文字色', 'qTextColor')}
                     ${miniText('サイズ', 'qFontSize')}
                     ${miniSelect('配置', 'align', ALIGN_OPTS)}
                 </div>
-                <div style="display:flex; gap:6px; margin-bottom:6px; align-items:flex-start;">
+                <div style="display:flex; gap:6px; margin-bottom:6px; align-items:center;">
                     ${rowLabel('選択肢')}
                     ${colorSwatch('文字色', 'cTextColor')}
                     ${miniText('サイズ', 'cFontSize')}
@@ -270,16 +292,11 @@ App.Design = {
                     if (onChange) onChange();
                 };
             });
-            body.querySelectorAll('input[type="color"][data-color-key]').forEach(picker => {
-                picker.oninput = () => {
-                    const key = picker.dataset.colorKey;
-                    design[key] = picker.value;
-                    picker.title = picker.value;
-                    // Picking a real color exits 透明 for that field.
-                    const chk = body.querySelector(`input[data-transparent-key="${key}"]`);
-                    if (chk) chk.checked = false;
+            body.querySelectorAll('button[data-color-swatch-key]').forEach(btn => {
+                btn.onclick = () => this._openColorPickerModal(design, btn.dataset.colorSwatchKey, btn.dataset.colorSwatchLabel, btn, () => {
                     if (onChange) onChange();
-                };
+                    renderBody();
+                });
             });
             body.querySelectorAll('select[data-key]').forEach(sel => {
                 sel.onchange = () => {
@@ -295,18 +312,16 @@ App.Design = {
             // see cBgColor's default) instead of a hex value.
             body.querySelectorAll('input[data-transparent-key]').forEach(chk => {
                 const key = chk.dataset.transparentKey;
-                const picker = body.querySelector(`input[type="color"][data-color-key="${key}"]`);
-                const syncSwatch = () => {
-                    if (!picker) return;
-                    picker.disabled = chk.checked;
-                    picker.style.opacity = chk.checked ? '0.35' : '1';
-                };
+                const swatchBtn = body.querySelector(`button[data-color-swatch-key="${key}"]`);
+                if (swatchBtn) {
+                    swatchBtn.disabled = chk.checked;
+                    swatchBtn.style.opacity = chk.checked ? '0.35' : '1';
+                }
                 chk.onchange = () => {
                     design[key] = chk.checked ? 'transparent' : this._toHexOrDefault('');
-                    syncSwatch();
                     if (onChange) onChange();
+                    renderBody();
                 };
-                syncSwatch(); // reflect initial checked state without mutating design
             });
 
             // オブジェクト tab: 全体背景 image upload (file → base64) or
@@ -382,6 +397,135 @@ App.Design = {
     // サウンド tile tap target — the full editor (URL / file upload / play
     // / clear) for one sound field, in a popup so the main サウンド tab
     // can stay a single compact row of tiles.
+    // カラーパレットピッカー — a tile-grid accordion (6 curated palettes)
+    // instead of the native OS color wheel every time, plus a HEX field
+    // and a collapsed 詳細カスタム section for the native picker when a
+    // tile isn't exactly right. Applies live (each tile/HEX/native pick
+    // calls onChange immediately) — 閉じる just dismisses the popup.
+    // Compact anchored dropdown (not a full-screen modal) — positioned
+    // right by the swatch that opened it, like Office's fill-color
+    // dropdown, so the live preview above stays visible and updates as
+    // colors are picked, instead of being covered by the picker.
+    _openColorPickerModal: function (design, key, label, anchorEl, onChange) {
+        const existing = document.getElementById('design-color-popover');
+        if (existing) existing.remove();
+
+        const isHex = v => /^#[0-9a-fA-F]{6}$/.test(v || '');
+        const sameColor = (a, b) => (a || '').toLowerCase() === (b || '').toLowerCase();
+
+        const pop = document.createElement('div');
+        pop.id = 'design-color-popover';
+        pop.style.cssText = `
+            position:fixed; width:236px; max-height:70vh; overflow-y:auto; z-index:10001;
+            background:rgba(20,20,24,0.98); border:1px solid rgba(255,255,255,0.12); border-radius:10px;
+            box-shadow:0 12px 30px rgba(0,0,0,0.6); padding:10px;
+        `;
+        pop.innerHTML = `
+            <div style="font-size:0.72rem; color:#ccc; font-weight:bold; margin-bottom:6px;">${label}</div>
+            <div id="color-popover-accordion"></div>
+            <div style="display:flex; align-items:center; gap:6px; margin-top:8px;">
+                <label style="font-size:0.62rem; color:#94a3b8; flex:0 0 auto;">HEX</label>
+                <input type="text" id="color-popover-hex" value="${isHex(design[key]) ? design[key] : ''}" placeholder="#RRGGBB" style="
+                    flex:1; min-width:0; padding:4px 6px; background:#0d1b2a; border:1px solid #475569;
+                    border-radius:5px; color:#fff; font-size:0.72rem;
+                ">
+                <input type="color" id="color-popover-native" title="詳細カスタム" value="${this._toHexOrDefault(design[key])}" style="
+                    flex:0 0 24px; width:24px; height:24px; padding:0; border:1px solid #475569; border-radius:5px; background:none; cursor:pointer;
+                ">
+            </div>
+        `;
+        document.body.appendChild(pop);
+
+        // Positioned once the real content (palette grid) is in, below —
+        // computed after renderAccordion() further down, not here, since
+        // the height needed depends on that content.
+        const positionPopover = () => {
+            const r = anchorEl.getBoundingClientRect();
+            const popH = pop.offsetHeight;
+            const spaceBelow = window.innerHeight - r.bottom;
+            const top = (spaceBelow >= popH + 8 || spaceBelow >= r.top)
+                ? Math.min(r.bottom + 6, window.innerHeight - popH - 6)
+                : Math.max(6, r.top - popH - 6);
+            const left = Math.min(Math.max(6, r.left), window.innerWidth - 236 - 6);
+            pop.style.top = `${Math.max(6, top)}px`;
+            pop.style.left = `${left}px`;
+        };
+
+        const hexInp = pop.querySelector('#color-popover-hex');
+        const nativeInp = pop.querySelector('#color-popover-native');
+        const accordion = pop.querySelector('#color-popover-accordion');
+
+        const applyColor = (hex) => {
+            design[key] = hex;
+            hexInp.value = hex;
+            nativeInp.value = this._toHexOrDefault(hex);
+            // Picking a real color exits 透明 for this field, if it was set.
+            const chk = document.querySelector(`input[data-transparent-key="${key}"]`);
+            if (chk) chk.checked = false;
+            renderAccordion();
+            positionPopover();
+            if (onChange) onChange();
+        };
+
+        const renderAccordion = () => {
+            accordion.innerHTML = this._colorPalettes.map((p, i) => `
+                <div style="margin-bottom:3px; border:1px solid #333; border-radius:6px; overflow:hidden;">
+                    <button type="button" class="color-palette-header" data-idx="${i}" style="
+                        width:100%; text-align:left; padding:5px 7px; background:#1a1a1a; border:none;
+                        color:#ccc; font-size:0.66rem; font-weight:bold; cursor:pointer;
+                        display:flex; justify-content:space-between; align-items:center;
+                    ">
+                        <span>${p.name}</span>
+                        <span>${this._openPaletteIdx === i ? '▾' : '▸'}</span>
+                    </button>
+                    <div class="color-palette-grid" style="
+                        display:${this._openPaletteIdx === i ? 'grid' : 'none'};
+                        grid-template-columns: repeat(5, 1fr); gap:4px; padding:6px 7px; background:#111;
+                    ">
+                        ${p.colors.map(c => `
+                            <button type="button" class="color-palette-tile" data-color="${c}" title="${c}" style="
+                                aspect-ratio:1; background:${c}; border-radius:3px; cursor:pointer;
+                                border:${sameColor(c, design[key]) ? '2px solid #00e5ff' : '1px solid rgba(255,255,255,0.15)'};
+                                box-shadow:${sameColor(c, design[key]) ? '0 0 5px rgba(0,229,255,0.7)' : 'none'};
+                            "></button>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+
+            accordion.querySelectorAll('.color-palette-header').forEach(hbtn => {
+                hbtn.onclick = () => {
+                    const idx = parseInt(hbtn.dataset.idx);
+                    this._openPaletteIdx = (this._openPaletteIdx === idx) ? -1 : idx;
+                    renderAccordion();
+                    positionPopover();
+                };
+            });
+            accordion.querySelectorAll('.color-palette-tile').forEach(tbtn => {
+                tbtn.onclick = () => applyColor(tbtn.dataset.color);
+            });
+        };
+
+        this._openPaletteIdx = 0; // always start with 1. ビビッド expanded
+        renderAccordion();
+        positionPopover();
+
+        hexInp.addEventListener('change', () => {
+            if (isHex(hexInp.value)) applyColor(hexInp.value);
+            else hexInp.value = isHex(design[key]) ? design[key] : '';
+        });
+        nativeInp.addEventListener('input', () => applyColor(nativeInp.value));
+
+        // クリックアウトで閉じる — a floating dropdown like this (not a
+        // confirm-style modal) is expected to dismiss that way.
+        const onOutsideClick = (e) => {
+            if (pop.contains(e.target) || e.target === anchorEl) return;
+            pop.remove();
+            document.removeEventListener('mousedown', onOutsideClick, true);
+        };
+        setTimeout(() => document.addEventListener('mousedown', onOutsideClick, true), 0);
+    },
+
     _openSoundModal: function (design, key, label, onChange) {
         const existing = document.getElementById('design-sound-modal');
         if (existing) existing.remove();
