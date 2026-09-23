@@ -24,6 +24,42 @@ App.Design = {
         seWrong: ""
     },
 
+    // サウンドのデフォルト保存 — one fixed default for the 4 サウンド
+    // fields, shared app-wide (Firebase, not per-browser/per-account), so
+    // every new question/set on any device starts with the same sounds.
+    // Saved explicitly (a button in the サウンド tab); loaded into a local
+    // cache as early as possible (see preloadAppDefaultSounds below) so
+    // App.Creator.init()/loadSet() can read it synchronously.
+    _soundKeys: ['bgmThinking', 'seButton', 'seCorrect', 'seWrong'],
+    _cachedAppDefaultSounds: null,
+
+    preloadAppDefaultSounds: function () {
+        if (!window.db) return;
+        window.db.ref('app_defaults/sounds').once('value')
+            .then(snap => { this._cachedAppDefaultSounds = snap.val() || {}; })
+            .catch(() => { this._cachedAppDefaultSounds = this._cachedAppDefaultSounds || {}; });
+    },
+
+    saveSoundDefaults: function (design) {
+        const toSave = {};
+        this._soundKeys.forEach(k => { toSave[k] = design[k] || ''; });
+        if (!window.db) return Promise.resolve(false);
+        return window.db.ref('app_defaults/sounds').set(toSave)
+            .then(() => { this._cachedAppDefaultSounds = toSave; return true; })
+            .catch(e => { console.error('saveSoundDefaults failed:', e); return false; });
+    },
+
+    // this.defaults, with the app-wide サウンドのデフォルト overlaid on
+    // top (from the preload cache — synchronous, may be empty if the
+    // preload hasn't resolved yet) — the base a brand-new question's/set's
+    // design should start from.
+    defaultsWithSavedSounds: function () {
+        const base = { ...this.defaults };
+        const saved = this._cachedAppDefaultSounds;
+        if (saved) this._soundKeys.forEach(k => { if (saved[k]) base[k] = saved[k]; });
+        return base;
+    },
+
     // 問題文の位置 — normalizes legacy values ('standard'/'split') saved by
     // older sets to the current 4-direction vocabulary.
     normalizeLayout: function (v) {
@@ -191,7 +227,13 @@ App.Design = {
                     ${soundRow('ボタンを押した時のSE', 'seButton')}
                     ${soundRow('正解時の音', 'seCorrect')}
                     ${soundRow('不正解時の音', 'seWrong')}
-                    <p style="color:#555; font-size:0.65rem; margin:4px 0 0;">※シンキングタイムBGMはモニター画面、その他は各プレイヤーの端末で再生されます</p>
+                    <p style="color:#555; font-size:0.65rem; margin:4px 0 10px;">※シンキングタイムBGMはモニター画面、その他は各プレイヤーの端末で再生されます</p>
+                    <button type="button" id="design-save-sound-defaults-btn" style="
+                        width:100%; padding:8px; font-size:0.78rem; font-weight:bold;
+                        background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4);
+                        border-radius:8px; color:#00e5ff; cursor:pointer;
+                    ">💾 この4つをアプリ全体のデフォルトにする</button>
+                    <p style="color:#555; font-size:0.62rem; margin:4px 0 0;">※新規の問題・セットを作るとき、端末やアカウントに関係なく、ここで保存した音が最初から設定された状態で始まります</p>
                 `;
             },
             animation: () => `<p style="color:#666; font-size:0.8rem; text-align:center; padding:30px 0;">アニメーションは準備中です</p>`,
@@ -329,6 +371,14 @@ App.Design = {
                     if (onChange) onChange();
                 };
             });
+            body.querySelector('#design-save-sound-defaults-btn')?.addEventListener('click', () => {
+                if (window.App.Ui) window.App.Ui.showToast('保存中...');
+                this.saveSoundDefaults(design).then(ok => {
+                    if (window.App.Ui) {
+                        window.App.Ui.showToast(ok ? '✅ アプリ全体のデフォルトとして保存しました' : '⚠️ 保存に失敗しました（音声ファイルが大きすぎる可能性があります）');
+                    }
+                });
+            });
         };
 
         const renderBody = () => {
@@ -442,3 +492,8 @@ App.Design = {
     },
 
 };
+
+// Kick off the app-wide サウンドのデフォルト fetch as soon as this script
+// loads (firebase.js runs first, so window.db is already available) —
+// by the time a user opens the Creator, the cache is almost always ready.
+App.Design.preloadAppDefaultSounds();

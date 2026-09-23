@@ -20,7 +20,7 @@ window.App.Creator = {
             ? JSON.parse(JSON.stringify(window.App.Config.DEFAULT_CONFIG))
             : {};
         window.App.Data.currentDesign = window.App.Design
-            ? JSON.parse(JSON.stringify(window.App.Design.defaults))
+            ? JSON.parse(JSON.stringify(window.App.Design.defaultsWithSavedSounds()))
             : {};
         window.App.State.editingSetId = null;
         this.currentLetterSteps = [];
@@ -30,8 +30,6 @@ window.App.Creator = {
 
         const btnSave = document.getElementById('save-to-cloud-btn');
         if (btnSave) btnSave.textContent = APP_TEXT.Creator.BtnSave;
-
-        if (window.resetGlobalSettings) window.resetGlobalSettings();
 
         this.setupTypeSelect();
 
@@ -182,7 +180,7 @@ window.App.Creator = {
         // own) — seed the editor from the first question's design/layout/align.
         const firstQForDesign = (item.questions || [])[0] || {};
         window.App.Data.currentDesign = window.App.Design
-            ? { ...JSON.parse(JSON.stringify(window.App.Design.defaults)), ...(firstQForDesign.design || {}) }
+            ? { ...JSON.parse(JSON.stringify(window.App.Design.defaultsWithSavedSounds())), ...(firstQForDesign.design || {}) }
             : (firstQForDesign.design || {});
         window.App.Data.currentDesign.layout = firstQForDesign.layout || window.App.Data.currentDesign.layout || 'standard';
         window.App.Data.currentDesign.align = firstQForDesign.align || window.App.Data.currentDesign.align || 'center';
