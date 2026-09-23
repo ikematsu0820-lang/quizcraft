@@ -17,6 +17,21 @@ window.App.SoundLibrary = {
     },
     _cache: { bgmThinking: [], seButton: [], seCorrect: [], seWrong: [] },
 
+    // 確認再生（▶ボタン）は常にこの1本の <audio> だけを使い回す —
+    // 別々に `new Audio().play()` していると、連打した分だけ同時に鳴って
+    // 重なってしまう。次の再生前に必ず一旦止めるので、常に最新の1つだけ
+    // が鳴る。サウンド編集画面／問題作成側のピッカー、両方の▶から使う。
+    _previewAudioEl: null,
+    preview: function (url) {
+        if (!url) return;
+        if (!this._previewAudioEl) this._previewAudioEl = new Audio();
+        const el = this._previewAudioEl;
+        el.pause();
+        el.currentTime = 0;
+        el.src = url;
+        el.play().catch(() => { /* noop — e.g. blocked before a user gesture */ });
+    },
+
     // ライブラリを常時リアルタイム購読 — サウンド編集画面を開いていれば
     // 追加/削除が即座に反映され、問題作成側の _openSoundModal もモーダル
     // を開いた時点の最新キャッシュを読むだけで済む（都度フェッチ不要）。
@@ -101,7 +116,7 @@ window.App.SoundLibrary = {
             btn.onclick = () => {
                 const key = btn.dataset.key;
                 const item = (this._cache[key] || []).find(it => it.id === btn.dataset.play);
-                if (item && item.data) { try { new Audio(item.data).play().catch(() => {}); } catch (err) { /* noop */ } }
+                if (item) this.preview(item.data);
             };
         });
         container.querySelectorAll('[data-delete]').forEach(btn => {

@@ -583,7 +583,10 @@ App.Design = {
             btn.onclick = (e) => {
                 e.stopPropagation();
                 const item = items.find(it => it.id === btn.dataset.preview);
-                if (item && item.data) { try { new Audio(item.data).play().catch(() => {}); } catch (err) { /* noop */ } }
+                // Shared single <audio> (App.SoundLibrary.preview) so
+                // repeated taps replace the current preview instead of
+                // stacking multiple overlapping playbacks.
+                if (item && window.App.SoundLibrary) window.App.SoundLibrary.preview(item.data);
             };
         });
         list.querySelectorAll('[data-pick]').forEach(btn => {
