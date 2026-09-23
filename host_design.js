@@ -184,14 +184,6 @@ App.Design = {
                 </div>
             `,
             object: () => {
-                // 透明 toggle merges into its own color swatch (extraHtml)
-                // instead of a separate row of checkboxes.
-                const transparentMini = (key) => `
-                    <label style="display:flex; align-items:center; gap:2px; cursor:pointer; color:#94a3b8; font-size:0.52rem; white-space:nowrap;">
-                        <input type="checkbox" data-transparent-key="${key}" ${design[key] === 'transparent' ? 'checked' : ''} style="width:9px; height:9px; accent-color:#00e5ff;">
-                        透明
-                    </label>
-                `;
                 // 全体背景 image upload merges into its own swatch too.
                 const bgImg = design.bgImage || '';
                 const hasBgImg = bgImg.startsWith('data:') || bgImg.startsWith('http');
@@ -212,10 +204,10 @@ App.Design = {
                 return `
                 ${colorRow([
                     ['全体背景', 'mainBgColor', bgImgMini],
-                    ['問題枠', 'qBorderColor', transparentMini('qBorderColor')],
-                    ['問題背景', 'qBgColor', transparentMini('qBgColor')],
-                    ['選択枠', 'cBorderColor', transparentMini('cBorderColor')],
-                    ['選択背景', 'cBgColor', transparentMini('cBgColor')],
+                    ['問題枠', 'qBorderColor'],
+                    ['問題背景', 'qBgColor'],
+                    ['選択枠', 'cBorderColor'],
+                    ['選択背景', 'cBgColor'],
                 ])}
                 <div style="color:#666; font-size:0.7rem; margin:8px 0 4px; border-top:1px dashed #333; padding-top:6px;">選択肢の配置（選択式のみ）／問題文の位置</div>
                 <div style="display:flex; gap:6px; margin-bottom:6px;">
@@ -303,24 +295,6 @@ App.Design = {
                     design[sel.dataset.key] = sel.value;
                     if (onChange) onChange();
                     if (sel.dataset.key === 'layout' && window.App.Creator) window.App.Creator.applyDesignToPreview();
-                };
-            });
-
-            // オブジェクト tab: 無色透明 — <input type=color> can't represent
-            // transparency, so this is a separate checkbox that stores the
-            // literal string 'transparent' (already the app's convention —
-            // see cBgColor's default) instead of a hex value.
-            body.querySelectorAll('input[data-transparent-key]').forEach(chk => {
-                const key = chk.dataset.transparentKey;
-                const swatchBtn = body.querySelector(`button[data-color-swatch-key="${key}"]`);
-                if (swatchBtn) {
-                    swatchBtn.disabled = chk.checked;
-                    swatchBtn.style.opacity = chk.checked ? '0.35' : '1';
-                }
-                chk.onchange = () => {
-                    design[key] = chk.checked ? 'transparent' : this._toHexOrDefault('');
-                    if (onChange) onChange();
-                    renderBody();
                 };
             });
 
@@ -463,13 +437,6 @@ App.Design = {
         const paletteSelect = pop.querySelector('#color-popover-palette-select');
         const grid = pop.querySelector('#color-popover-grid');
 
-        // Syncs the (optional) separate 透明 checkbox elsewhere on the page
-        // (オブジェクト tab's per-swatch toggle) so both controls agree.
-        const syncTransparentCheckbox = (checked) => {
-            const chk = document.querySelector(`input[data-transparent-key="${key}"]`);
-            if (chk) chk.checked = checked;
-        };
-
         // Renders the tile grid for whichever palette is currently selected
         // in the pulldown. This does NOT touch `design[key]` or the select's
         // value itself — it's purely "show me palette N's tiles", called both
@@ -513,8 +480,6 @@ App.Design = {
             design[key] = hex;
             hexInp.value = hex;
             nativeInp.value = this._toHexOrDefault(hex);
-            // Picking a real color exits 透明 for this field, if it was set.
-            syncTransparentCheckbox(false);
             renderGrid();
             positionPopover();
             if (onChange) onChange();
@@ -523,7 +488,6 @@ App.Design = {
         const applyTransparent = () => {
             design[key] = 'transparent';
             hexInp.value = '';
-            syncTransparentCheckbox(true);
             hideGrid();
             positionPopover();
             if (onChange) onChange();
