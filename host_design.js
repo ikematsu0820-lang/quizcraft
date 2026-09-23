@@ -8,6 +8,7 @@ App.Design = {
     previewQIndex: 0, // Current question being previewed in the set
     _eventsBound: false,
     _resizeHandler: null,
+    _activeDesignTab: 'text',
 
     defaults: {
         mainBgColor: "#0a0a0a",
@@ -87,53 +88,97 @@ App.Design = {
             return (r > 0 && c > 0) ? `${r}行 × ${c}列` : '自動';
         };
 
+        const bodyHtml = {
+            text: () => `
+                ${colorRow([['問題文字', 'qTextColor'], ['選択文字', 'cTextColor']])}
+                <div style="display:flex; gap:8px; margin-bottom:6px;">
+                    <div style="flex:1; min-width:0;">${field('問題文字サイズ', 'qFontSize', 'text')}</div>
+                    <div style="flex:1; min-width:0;">${field('選択文字サイズ', 'cFontSize', 'text')}</div>
+                </div>
+                ${selectField('文字の配置', 'align', [{ v: 'left', t: '左寄せ' }, { v: 'center', t: '中央' }, { v: 'right', t: '右寄せ' }])}
+            `,
+            object: () => `
+                ${colorRow([
+                    ['全体背景', 'mainBgColor'],
+                    ['問題枠', 'qBorderColor'], ['問題背景', 'qBgColor'],
+                    ['選択枠', 'cBorderColor'], ['選択背景', 'cBgColor'],
+                ])}
+                <div style="color:#666; font-size:0.7rem; margin:8px 0 4px; border-top:1px dashed #333; padding-top:6px;">選択肢の配置（選択式のみ）</div>
+                <button type="button" id="design-grid-config-btn" style="
+                    width:100%; padding:8px 10px; background:#1e293b; border:1px solid #475569;
+                    border-radius:8px; color:#fff; font-size:0.8rem; cursor:pointer;
+                    display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;
+                ">
+                    <span>選択肢の配置</span>
+                    <span id="design-grid-summary" style="color:#00e5ff; font-weight:bold;">${gridSummary()}</span>
+                </button>
+                <div style="color:#666; font-size:0.7rem; margin:8px 0 4px; border-top:1px dashed #333; padding-top:6px;">レイアウト</div>
+                ${selectField('問題文の位置', 'layout', [{ v: 'top', t: '上側' }, { v: 'left', t: '左側' }, { v: 'right', t: '右側' }, { v: 'bottom', t: '下側' }])}
+            `,
+            sound: () => `<p style="color:#666; font-size:0.8rem; text-align:center; padding:30px 0;">サウンドは準備中です</p>`,
+            animation: () => `<p style="color:#666; font-size:0.8rem; text-align:center; padding:30px 0;">アニメーションは準備中です</p>`,
+        };
+
+        const tabs = [
+            { key: 'text', label: 'テキスト' },
+            { key: 'object', label: 'オブジェクト' },
+            { key: 'sound', label: 'サウンド' },
+            { key: 'animation', label: 'アニメーション' },
+        ];
+        if (!bodyHtml[this._activeDesignTab]) this._activeDesignTab = 'text';
+
+        const wireBody = (body) => {
+            body.querySelector('#design-grid-config-btn')?.addEventListener('click', () => this._openGridModal(design, onChange));
+            body.querySelectorAll('input[type="text"][data-key], input[type="number"][data-key]').forEach(inp => {
+                inp.oninput = () => {
+                    design[inp.dataset.key] = inp.value;
+                    if (onChange) onChange();
+                };
+            });
+            body.querySelectorAll('input[type="color"][data-color-key]').forEach(picker => {
+                picker.oninput = () => {
+                    const key = picker.dataset.colorKey;
+                    design[key] = picker.value;
+                    picker.title = picker.value;
+                    if (onChange) onChange();
+                };
+            });
+            body.querySelectorAll('select[data-key]').forEach(sel => {
+                sel.onchange = () => {
+                    design[sel.dataset.key] = sel.value;
+                    if (onChange) onChange();
+                    if (sel.dataset.key === 'layout' && window.App.Creator) window.App.Creator.applyDesignToPreview();
+                };
+            });
+        };
+
+        const renderBody = () => {
+            const body = container.querySelector('#design-subtab-body');
+            body.innerHTML = bodyHtml[this._activeDesignTab]();
+            wireBody(body);
+        };
+
         container.innerHTML = `
-            ${colorRow([
-                ['全体背景', 'mainBgColor'],
-                ['問題文字', 'qTextColor'], ['問題背景', 'qBgColor'], ['問題枠', 'qBorderColor'],
-                ['選択文字', 'cTextColor'], ['選択背景', 'cBgColor'], ['選択枠', 'cBorderColor'],
-            ])}
-            <div style="display:flex; gap:8px; margin-bottom:6px;">
-                <div style="flex:1; min-width:0;">${field('問題文字', 'qFontSize', 'text')}</div>
-                <div style="flex:1; min-width:0;">${field('選択文字', 'cFontSize', 'text')}</div>
+            <div style="display:flex; gap:0; margin:-4px -4px 10px; border-radius:8px; overflow:hidden; border:1px solid #333;">
+                ${tabs.map(t => `
+                    <button type="button" class="design-subtab-btn" data-tab="${t.key}" style="
+                        flex:1; padding:8px 2px; font-size:0.72rem; font-weight:bold; border:none; cursor:pointer;
+                        background:${this._activeDesignTab === t.key ? '#00a8cc' : '#1e293b'}; color:#fff;
+                    ">${t.label}</button>
+                `).join('')}
             </div>
-            <div style="color:#666; font-size:0.7rem; margin:8px 0 4px; border-top:1px dashed #333; padding-top:6px;">選択肢の配置（選択式のみ）</div>
-            <button type="button" id="design-grid-config-btn" style="
-                width:100%; padding:8px 10px; background:#1e293b; border:1px solid #475569;
-                border-radius:8px; color:#fff; font-size:0.8rem; cursor:pointer;
-                display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;
-            ">
-                <span>選択肢の配置</span>
-                <span id="design-grid-summary" style="color:#00e5ff; font-weight:bold;">${gridSummary()}</span>
-            </button>
-            <div style="color:#666; font-size:0.7rem; margin:8px 0 4px; border-top:1px dashed #333; padding-top:6px;">レイアウト</div>
-            ${selectField('配置', 'align', [{ v: 'left', t: '左寄せ' }, { v: 'center', t: '中央' }, { v: 'right', t: '右寄せ' }])}
-            ${selectField('問題文の位置', 'layout', [{ v: 'top', t: '上側' }, { v: 'left', t: '左側' }, { v: 'right', t: '右側' }, { v: 'bottom', t: '下側' }])}
+            <div id="design-subtab-body"></div>
         `;
-
-        container.querySelector('#design-grid-config-btn').onclick = () => this._openGridModal(design, onChange);
-
-        container.querySelectorAll('input[type="text"][data-key], input[type="number"][data-key]').forEach(inp => {
-            inp.oninput = () => {
-                design[inp.dataset.key] = inp.value;
-                if (onChange) onChange();
+        container.querySelectorAll('.design-subtab-btn').forEach(btn => {
+            btn.onclick = () => {
+                this._activeDesignTab = btn.dataset.tab;
+                container.querySelectorAll('.design-subtab-btn').forEach(b => {
+                    b.style.background = (b.dataset.tab === this._activeDesignTab) ? '#00a8cc' : '#1e293b';
+                });
+                renderBody();
             };
         });
-        container.querySelectorAll('input[type="color"][data-color-key]').forEach(picker => {
-            picker.oninput = () => {
-                const key = picker.dataset.colorKey;
-                design[key] = picker.value;
-                picker.title = picker.value;
-                if (onChange) onChange();
-            };
-        });
-        container.querySelectorAll('select[data-key]').forEach(sel => {
-            sel.onchange = () => {
-                design[sel.dataset.key] = sel.value;
-                if (onChange) onChange();
-                if (sel.dataset.key === 'layout' && window.App.Creator) window.App.Creator.applyDesignToPreview();
-            };
-        });
+        renderBody();
     },
 
     // 選択肢の配置 popup — rows × cols must cover every choice already
@@ -181,7 +226,6 @@ App.Design = {
         document.body.appendChild(overlay);
 
         const close = () => overlay.remove();
-        overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
         overlay.querySelector('#grid-modal-cancel').onclick = close;
         overlay.querySelector('#grid-modal-clear').onclick = () => {
             design.gridRows = '';

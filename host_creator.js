@@ -447,31 +447,6 @@ window.App.Creator = {
                 input.value = Array.isArray(data.correct) ? data.correct.join(', ') : data.correct;
             }
 
-            // Bulk paste-in (問題編集 panel) — free_written only, per request.
-            // 1列目=問題文 / 2列目=答え, one question per line, so pasting
-            // straight from a spreadsheet (tab-separated cells) works as-is.
-            if (optionsExtra && type === 'free_written') {
-                const bulkWrap = document.createElement('div');
-                bulkWrap.style.cssText = 'margin-top:12px; padding-top:12px; border-top:1px dashed #333;';
-                bulkWrap.innerHTML = `
-                    <div style="color:#94a3b8; font-size:0.75rem; font-weight:bold; margin-bottom:4px;">📋 表形式で一括追加（1行1問／問題文<span style="color:#00e5ff;">[タブ]</span>答え）</div>
-                    <textarea id="creator-bulk-free-input" rows="4" placeholder="表計算ソフトからそのままコピペできます。例:
-日本の首都は？	東京
-富士山の標高は？	3776" style="
-                        width:100%; padding:8px; background:#0d1b2a; border:1px dashed rgba(255,255,255,0.25);
-                        border-radius:8px; color:#fff; font-size:0.8rem; resize:vertical; box-sizing:border-box;
-                        font-family:monospace; outline:none;
-                    "></textarea>
-                    <button id="creator-bulk-free-add-btn" style="
-                        margin-top:6px; width:100%; padding:8px; font-size:0.85rem; font-weight:bold;
-                        background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4);
-                        border-radius:8px; color:#00e5ff; cursor:pointer;
-                    ">＋ 一括追加</button>
-                `;
-                optionsExtra.appendChild(bulkWrap);
-                bulkWrap.querySelector('#creator-bulk-free-add-btn').onclick = () => this.addBulkFreeWritten();
-            }
-
             // Sub-type
             setupOptSubtype([
                 { v: 'free_written', t: '記述式（自由入力・自動判定）' },
@@ -612,6 +587,10 @@ window.App.Creator = {
     // panel/button (both stacked, one scroll area).
     activeInlinePanel: null,
 
+    // 問題編集's own sub-tab: 'home' (the normal per-question editor, shown
+    // by default) or 'bulk' (paste multiple whole questions at once).
+    editSubTab: 'home',
+
     // deriveTypeInfo()/applyModeRestrictions() (host_config.js) only look at
     // already-added questions[0], so before the first question in a set is
     // added, picking a 回答形式 had no effect on 解答権's mode restrictions.
@@ -681,11 +660,17 @@ window.App.Creator = {
         // Shown only alongside the 'edit' panel, not the rule pickers.
         const listActions = document.getElementById('creator-inline-listactions');
         const qList = document.getElementById('creator-inline-qlist');
+        const editSubtabs = document.getElementById('creator-edit-subtabs');
+        const homePanel = document.getElementById('creator-edit-home-panel');
+        const bulkPanel = document.getElementById('creator-bulk-panel');
         if (!area || !panels[key]) return;
 
         Object.values(panels).forEach(p => p.classList.add('hidden'));
         if (listActions) listActions.classList.add('hidden');
         if (qList) qList.classList.add('hidden');
+        if (editSubtabs) editSubtabs.classList.add('hidden');
+        if (homePanel) homePanel.classList.add('hidden');
+        if (bulkPanel) bulkPanel.classList.add('hidden');
 
         if (this.activeInlinePanel === key) {
             area.classList.add('hidden');
@@ -697,12 +682,45 @@ window.App.Creator = {
         this.activeInlinePanel = key;
         area.classList.remove('hidden');
         panels[key].classList.remove('hidden');
-        if (key === 'edit' && listActions) listActions.classList.remove('hidden');
-        if (key === 'edit' && qList) { qList.classList.remove('hidden'); this.renderList(); }
+        if (key === 'edit') {
+            if (editSubtabs) editSubtabs.classList.remove('hidden');
+            this.renderEditSubtabs();
+            this.renderEditPanelBody();
+        }
 
         this.renderActivePanelContent(key);
 
         this.updateInlinePanelButtonStyles();
+    },
+
+    // 問題編集's own ホーム/一括編集 sub-tab bar.
+    renderEditSubtabs: function () {
+        const homeBtn = document.getElementById('creator-edit-subtab-home-btn');
+        const bulkBtn = document.getElementById('creator-edit-subtab-bulk-btn');
+        if (!homeBtn || !bulkBtn) return;
+        homeBtn.style.background = (this.editSubTab === 'home') ? '#00a8cc' : '#1e293b';
+        bulkBtn.style.background = (this.editSubTab === 'bulk') ? '#00a8cc' : '#1e293b';
+        homeBtn.onclick = () => { this.editSubTab = 'home'; this.renderEditSubtabs(); this.renderEditPanelBody(); };
+        bulkBtn.onclick = () => { this.editSubTab = 'bulk'; this.renderEditSubtabs(); this.renderEditPanelBody(); };
+    },
+
+    // Shows either the normal per-question editor (home) or the bulk-paste
+    // panel (bulk) — whichever 問題編集's own sub-tab is currently active.
+    renderEditPanelBody: function () {
+        const homePanel = document.getElementById('creator-edit-home-panel');
+        const bulkPanel = document.getElementById('creator-bulk-panel');
+        const listActions = document.getElementById('creator-inline-listactions');
+        const qList = document.getElementById('creator-inline-qlist');
+        if (this.editSubTab === 'bulk') {
+            if (homePanel) homePanel.classList.add('hidden');
+            if (bulkPanel) bulkPanel.classList.remove('hidden');
+            this.renderBulkPanel();
+        } else {
+            if (bulkPanel) bulkPanel.classList.add('hidden');
+            if (homePanel) homePanel.classList.remove('hidden');
+            if (listActions) listActions.classList.remove('hidden');
+            if (qList) { qList.classList.remove('hidden'); this.renderList(); }
+        }
     },
 
     // Renders the given panel's content. Called on open (toggleInlinePanel)
@@ -825,18 +843,23 @@ window.App.Creator = {
 
         // 選択肢の配置（行数/列数）: mirrors viewer.js's .c-area grid — only
         // meaningful for choice questions, and only when both are set.
-        if (formContainer && (this.currentType || '').startsWith('choice')) {
+        // The rows live in #creator-choices-list (a wrapper INSIDE
+        // formContainer, alongside the "正解をタップして選択" hint text),
+        // not formContainer itself — grid-ing formContainer would just grid
+        // that one wrapper div, leaving the rows inside it still stacked.
+        const choicesList = document.getElementById('creator-choices-list');
+        if (choicesList && (this.currentType || '').startsWith('choice')) {
             const rows = parseInt(d.gridRows) || 0;
             const cols = parseInt(d.gridCols) || 0;
             if (rows > 0 && cols > 0) {
-                formContainer.style.display = 'grid';
-                formContainer.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-                formContainer.style.gridTemplateRows = '';
-                formContainer.style.flexDirection = '';
+                choicesList.style.display = 'grid';
+                choicesList.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+                choicesList.style.gridTemplateRows = '';
+                choicesList.style.flexDirection = '';
             } else {
-                formContainer.style.display = 'flex';
-                formContainer.style.flexDirection = 'column';
-                formContainer.style.gridTemplateColumns = '';
+                choicesList.style.display = 'flex';
+                choicesList.style.flexDirection = 'column';
+                choicesList.style.gridTemplateColumns = '';
             }
         }
     },
@@ -1309,33 +1332,122 @@ window.App.Creator = {
         }
     },
 
-    // 表形式で一括追加 (問題編集 panel, free_written only). Each line is
-    // "問題文<TAB>答え" — pasted straight from a spreadsheet, so columns
-    // arrive tab-separated. Answers may themselves be comma-separated for
-    // multiple accepted keywords, matching the single-question form.
-    addBulkFreeWritten: function () {
-        const textarea = document.getElementById('creator-bulk-free-input');
-        if (!textarea) return;
+    // 一括編集: paste multiple whole questions at once (問題編集's own
+    // ホーム/一括編集 sub-tab). Each line is spreadsheet-paste friendly
+    // (tab-separated columns) — the exact columns depend on the current
+    // question type, described by `spec.hint`/`spec.placeholder` below.
+    // `spec.parseLine(cols)` turns one line's columns into a question
+    // object (or null to skip it as malformed).
+    _bulkSpecs: {
+        free_written: {
+            hint: '問題文<span style="color:#00e5ff;">[タブ]</span>答え（複数正解はカンマ区切り）',
+            placeholder: '日本の首都は？\t東京\n富士山の標高は？\t3776',
+            parseLine: (cols) => {
+                const [q, ans] = cols;
+                if (!q || !ans) return null;
+                return { q, correct: ans.split(',').map(s => s.trim()).filter(s => s) };
+            },
+        },
+        choice: {
+            hint: '問題文<span style="color:#00e5ff;">[タブ]</span>正解<span style="color:#00e5ff;">[タブ]</span>誤答1<span style="color:#00e5ff;">[タブ]</span>誤答2…',
+            placeholder: '日本の首都は？\t東京\t大阪\t京都\t名古屋',
+            parseLine: (cols, self) => {
+                const [q, ...opts] = cols;
+                if (!q || opts.length < 2 || !opts[0]) return null;
+                const mode = self.choiceSubtype === 'multi' ? 'multi' : 'single';
+                return { q, c: opts, correct: [0], correctIndex: 0, mode, multi: mode === 'multi', shuffle: true };
+            },
+        },
+        sort: {
+            hint: '問題文<span style="color:#00e5ff;">[タブ]</span>項目（正しい順序で）…',
+            placeholder: '小さい順に並べて\t1\t3\t5\t7',
+            parseLine: (cols) => {
+                const [q, ...opts] = cols;
+                if (!q || opts.length < 2) return null;
+                const correct = opts.map((_, i) => String.fromCharCode(65 + i)).join('');
+                return { q, c: opts, correct, initialOrder: 'random', shuffle: true };
+            },
+        },
+        multi: {
+            hint: '問題文<span style="color:#00e5ff;">[タブ]</span>答え1<span style="color:#00e5ff;">[タブ]</span>答え2…',
+            placeholder: '都道府県を1つ以上挙げて\t東京都\t大阪府\t北海道',
+            parseLine: (cols) => {
+                const [q, ...opts] = cols;
+                if (!q || opts.length < 1 || !opts[0]) return null;
+                return { q, c: opts, correct: opts };
+            },
+        },
+        assoc: {
+            hint: '正解<span style="color:#00e5ff;">[タブ]</span>ヒント1<span style="color:#00e5ff;">[タブ]</span>ヒント2…',
+            placeholder: 'すし\t酢飯\tネタ\t握る',
+            parseLine: (cols) => {
+                const [ans, ...hints] = cols;
+                if (!ans || hints.length < 1 || !hints[0]) return null;
+                return { q: ans, correct: [ans], c: hints };
+            },
+        },
+    },
+
+    // Maps this.currentType (the raw leaf type renderForm was given) to a
+    // _bulkSpecs key + the exact `type` string new questions should get.
+    _bulkTarget: function () {
+        const t = this.currentType || '';
+        if (t.startsWith('choice')) return { specKey: 'choice', type: 'choice' };
+        if (t === 'sort') return { specKey: 'sort', type: 'sort' };
+        if (t.startsWith('multi') || t.startsWith('ranking')) return { specKey: 'multi', type: t };
+        if (t.startsWith('assoc')) return { specKey: 'assoc', type: t };
+        if (t === 'free_written') return { specKey: 'free_written', type: 'free_written' };
+        return null;
+    },
+
+    renderBulkPanel: function () {
+        const panel = document.getElementById('creator-bulk-panel');
+        if (!panel) return;
+        const target = this._bulkTarget();
+        if (!target) {
+            panel.innerHTML = `<p style="color:#666; font-size:0.8rem; text-align:center; padding:30px 0;">この形式では一括編集はご利用いただけません</p>`;
+            return;
+        }
+        const spec = this._bulkSpecs[target.specKey];
+        panel.innerHTML = `
+            <div style="color:#94a3b8; font-size:0.75rem; font-weight:bold; margin-bottom:4px;">📋 表形式で一括追加（1行1問／${spec.hint}）</div>
+            <textarea id="creator-bulk-input" rows="4" placeholder="表計算ソフトからそのままコピペできます。例:
+${spec.placeholder}" style="
+                width:100%; padding:8px; background:#0d1b2a; border:1px dashed rgba(255,255,255,0.25);
+                border-radius:8px; color:#fff; font-size:0.8rem; resize:vertical; box-sizing:border-box;
+                font-family:monospace; outline:none;
+            "></textarea>
+            <button id="creator-bulk-add-btn" style="
+                margin-top:6px; width:100%; padding:8px; font-size:0.85rem; font-weight:bold;
+                background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4);
+                border-radius:8px; color:#00e5ff; cursor:pointer;
+            ">＋ 一括追加</button>
+        `;
+        panel.querySelector('#creator-bulk-add-btn').onclick = () => this.runBulkAdd();
+    },
+
+    runBulkAdd: function () {
+        const target = this._bulkTarget();
+        const textarea = document.getElementById('creator-bulk-input');
+        if (!target || !textarea) return;
+        const spec = this._bulkSpecs[target.specKey];
+
         const lines = textarea.value.split('\n').map(l => l.trim()).filter(l => l);
         if (lines.length === 0) return;
 
-        let added = 0;
-        let skipped = 0;
+        let added = 0, skipped = 0;
         lines.forEach(line => {
-            const [qPart, ansPart] = line.split('\t');
-            const qText = (qPart || '').trim();
-            const ans = (ansPart || '').trim();
-            if (!qText || !ans) { skipped++; return; }
-
+            const cols = line.split('\t').map(s => s.trim());
+            const parsed = spec.parseLine(cols, this);
+            if (!parsed) { skipped++; return; }
             window.App.Data.createdQuestions.push({
-                q: qText,
-                type: 'free_written',
-                correct: ans.split(',').map(s => s.trim()).filter(s => s),
+                ...parsed,
+                type: target.type,
                 points: 1,
                 loss: 0,
                 timeLimit: 0,
-                layout: 'standard',
-                align: 'center'
+                layout: 'top',
+                align: 'center',
             });
             added++;
         });
