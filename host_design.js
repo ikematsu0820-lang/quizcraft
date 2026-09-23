@@ -422,8 +422,15 @@ App.Design = {
         `;
         pop.innerHTML = `
             <div style="font-size:0.72rem; color:#ccc; font-weight:bold; margin-bottom:6px;">${label}</div>
-            <div id="color-popover-accordion"></div>
-            <div style="display:flex; align-items:center; gap:6px; margin-top:8px;">
+            <select id="color-popover-palette-select" style="
+                width:100%; padding:5px 6px; margin-bottom:6px; background:#1a1a1a; border:1px solid #333;
+                border-radius:6px; color:#ccc; font-size:0.68rem; font-weight:bold; box-sizing:border-box; cursor:pointer;
+            ">
+                ${this._colorPalettes.map((p, i) => `<option value="${i}">${p.name}</option>`).join('')}
+                <option value="transparent">透明</option>
+            </select>
+            <div id="color-popover-grid" style="display:grid; grid-template-columns: repeat(5, 1fr); gap:4px; padding:2px 0 4px;"></div>
+            <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
                 <label style="font-size:0.62rem; color:#94a3b8; flex:0 0 auto;">HEX</label>
                 <input type="text" id="color-popover-hex" value="${isHex(design[key]) ? design[key] : ''}" placeholder="#RRGGBB" style="
                     flex:1; min-width:0; padding:4px 6px; background:#0d1b2a; border:1px solid #475569;
@@ -453,61 +460,87 @@ App.Design = {
 
         const hexInp = pop.querySelector('#color-popover-hex');
         const nativeInp = pop.querySelector('#color-popover-native');
-        const accordion = pop.querySelector('#color-popover-accordion');
+        const paletteSelect = pop.querySelector('#color-popover-palette-select');
+        const grid = pop.querySelector('#color-popover-grid');
+
+        // Syncs the (optional) separate 透明 checkbox elsewhere on the page
+        // (オブジェクト tab's per-swatch toggle) so both controls agree.
+        const syncTransparentCheckbox = (checked) => {
+            const chk = document.querySelector(`input[data-transparent-key="${key}"]`);
+            if (chk) chk.checked = checked;
+        };
+
+        // Renders the tile grid for whichever palette is currently selected
+        // in the pulldown. This does NOT touch `design[key]` or the select's
+        // value itself — it's purely "show me palette N's tiles", called both
+        // when the user switches palettes (just browsing) and after a color
+        // is applied (to refresh the selected-tile highlight).
+        const renderGrid = () => {
+            grid.style.display = 'grid';
+            const p = this._colorPalettes[this._openPaletteIdx];
+            grid.innerHTML = p.colors.map(c => `
+                <button type="button" class="color-palette-tile" data-color="${c}" title="${c}" style="
+                    aspect-ratio:1; background:${c}; border-radius:3px; cursor:pointer;
+                    border:${sameColor(c, design[key]) ? '2px solid #00e5ff' : '1px solid rgba(255,255,255,0.15)'};
+                    box-shadow:${sameColor(c, design[key]) ? '0 0 5px rgba(0,229,255,0.7)' : 'none'};
+                "></button>
+            `).join('');
+            grid.querySelectorAll('.color-palette-tile').forEach(tbtn => {
+                tbtn.onclick = () => applyColor(tbtn.dataset.color);
+            });
+        };
+
+        const hideGrid = () => {
+            grid.style.display = 'none';
+            grid.innerHTML = '';
+        };
+
+        // Sets the pulldown + grid to match `design[key]`'s current value —
+        // called only when the popover first opens, not on every render, so
+        // that browsing palettes from the dropdown afterward isn't fought by
+        // this re-derivation snapping the select back to 透明.
+        const syncFromDesign = () => {
+            if (design[key] === 'transparent') {
+                paletteSelect.value = 'transparent';
+                hideGrid();
+            } else {
+                paletteSelect.value = String(this._openPaletteIdx);
+                renderGrid();
+            }
+        };
 
         const applyColor = (hex) => {
             design[key] = hex;
             hexInp.value = hex;
             nativeInp.value = this._toHexOrDefault(hex);
             // Picking a real color exits 透明 for this field, if it was set.
-            const chk = document.querySelector(`input[data-transparent-key="${key}"]`);
-            if (chk) chk.checked = false;
-            renderAccordion();
+            syncTransparentCheckbox(false);
+            renderGrid();
             positionPopover();
             if (onChange) onChange();
         };
 
-        const renderAccordion = () => {
-            accordion.innerHTML = this._colorPalettes.map((p, i) => `
-                <div style="margin-bottom:3px; border:1px solid #333; border-radius:6px; overflow:hidden;">
-                    <button type="button" class="color-palette-header" data-idx="${i}" style="
-                        width:100%; text-align:left; padding:5px 7px; background:#1a1a1a; border:none;
-                        color:#ccc; font-size:0.66rem; font-weight:bold; cursor:pointer;
-                        display:flex; justify-content:space-between; align-items:center;
-                    ">
-                        <span>${p.name}</span>
-                        <span>${this._openPaletteIdx === i ? '▾' : '▸'}</span>
-                    </button>
-                    <div class="color-palette-grid" style="
-                        display:${this._openPaletteIdx === i ? 'grid' : 'none'};
-                        grid-template-columns: repeat(5, 1fr); gap:4px; padding:6px 7px; background:#111;
-                    ">
-                        ${p.colors.map(c => `
-                            <button type="button" class="color-palette-tile" data-color="${c}" title="${c}" style="
-                                aspect-ratio:1; background:${c}; border-radius:3px; cursor:pointer;
-                                border:${sameColor(c, design[key]) ? '2px solid #00e5ff' : '1px solid rgba(255,255,255,0.15)'};
-                                box-shadow:${sameColor(c, design[key]) ? '0 0 5px rgba(0,229,255,0.7)' : 'none'};
-                            "></button>
-                        `).join('')}
-                    </div>
-                </div>
-            `).join('');
-
-            accordion.querySelectorAll('.color-palette-header').forEach(hbtn => {
-                hbtn.onclick = () => {
-                    const idx = parseInt(hbtn.dataset.idx);
-                    this._openPaletteIdx = (this._openPaletteIdx === idx) ? -1 : idx;
-                    renderAccordion();
-                    positionPopover();
-                };
-            });
-            accordion.querySelectorAll('.color-palette-tile').forEach(tbtn => {
-                tbtn.onclick = () => applyColor(tbtn.dataset.color);
-            });
+        const applyTransparent = () => {
+            design[key] = 'transparent';
+            hexInp.value = '';
+            syncTransparentCheckbox(true);
+            hideGrid();
+            positionPopover();
+            if (onChange) onChange();
         };
 
-        this._openPaletteIdx = 0; // always start with 1. ビビッド expanded
-        renderAccordion();
+        paletteSelect.onchange = () => {
+            if (paletteSelect.value === 'transparent') {
+                applyTransparent();
+            } else {
+                this._openPaletteIdx = parseInt(paletteSelect.value, 10);
+                renderGrid();
+                positionPopover();
+            }
+        };
+
+        this._openPaletteIdx = 0; // when not 透明, always start on 1. ビビッド's grid
+        syncFromDesign();
         positionPopover();
 
         hexInp.addEventListener('change', () => {

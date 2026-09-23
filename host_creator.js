@@ -71,9 +71,9 @@ window.App.Creator = {
                 num_group: 'blackjack'
             };
             this.renderForm(groupDefaults[type] || type);
-            // Open with 問題編集 already active — no extra tap needed to
-            // start adding choices/etc.
-            this.toggleInlinePanel('edit');
+            // Open with デザイン (テキスト sub-tab) already active.
+            if (window.App.Design) window.App.Design._activeDesignTab = 'text';
+            this.toggleInlinePanel('design');
         }
     },
 
@@ -237,7 +237,8 @@ window.App.Creator = {
         this.renderList();
         window.App.Ui.showView(window.App.Ui.views.creator);
         this.activeInlinePanel = null;
-        this.toggleInlinePanel('edit');
+        if (window.App.Design) window.App.Design._activeDesignTab = 'text';
+        this.toggleInlinePanel('design');
     },
 
     resetForm: function () {
@@ -437,8 +438,8 @@ window.App.Creator = {
         else if (type.startsWith('free')) {
             container.innerHTML = `
                 <div style="padding:10px;">
-                    <div style="text-align:center; color:#64748b; font-size:0.8rem; margin-bottom:10px;">正解キーワードを入力</div>
-                    <input type="text" id="creator-text-answer" placeholder="キーワード（複数ある場合はカンマ区切り）" style="
+                    <div style="text-align:center; color:#64748b; font-size:0.8rem; margin-bottom:10px;">正解を入力</div>
+                    <input type="text" id="creator-text-answer" placeholder="正解（複数ある場合はカンマ区切り）" style="
                         width:100%; padding:12px; background:#0d1b2a; border:1px dashed rgba(255,255,255,0.25);
                         border-radius:8px; color:#fff; font-size:1rem; text-align:center; outline:none; box-sizing:border-box;
                     ">
