@@ -86,19 +86,23 @@ App.Design = {
         if (!container) return;
         design.layout = this.normalizeLayout(design.layout);
 
-        // Compact color swatches, 3 per row (no hex text field taking up
+        // Compact color swatches, 3-5 per row (no hex text field taking up
         // room — the current value is still available as a hover tooltip).
-        const colorSwatch = (label, key) => `
-            <div style="display:flex; flex-direction:column; align-items:center; gap:3px; flex:1 1 38px; min-width:0;">
+        // `extraHtml` renders below the caption — used by the オブジェクト
+        // tab to merge each field's 透明 toggle / 全体背景's image button
+        // directly into its own swatch instead of a separate section.
+        const colorSwatch = (label, key, extraHtml = '') => `
+            <div style="display:flex; flex-direction:column; align-items:center; gap:2px; flex:1 1 38px; min-width:0;">
                 <input type="color" data-color-key="${key}" value="${this._toHexOrDefault(design[key])}" title="${design[key] ?? ''}" style="
                     width:100%; height:30px; padding:0; border:1px solid #475569; border-radius:6px; background:none; cursor:pointer;
                 ">
                 <span style="font-size:0.58rem; color:#94a3b8; white-space:nowrap;">${label}</span>
+                ${extraHtml}
             </div>
         `;
         const colorRow = (items) => `
             <div style="display:flex; gap:6px; margin-bottom:8px; flex-wrap:wrap;">
-                ${items.map(([label, key]) => colorSwatch(label, key)).join('')}
+                ${items.map(([label, key, extra]) => colorSwatch(label, key, extra || '')).join('')}
             </div>
         `;
 
@@ -133,51 +137,64 @@ App.Design = {
             return (r > 0 && c > 0) ? `${r}行 × ${c}列` : '自動';
         };
 
+        // A plain (non-interactive) label sized/aligned to sit in the same
+        // row as colorSwatch/miniText/miniSelect — bottom-aligned with
+        // their caption text since it has no caption of its own below it.
+        const rowLabel = (text) => `
+            <div style="flex:0 0 34px; display:flex; align-items:flex-end; justify-content:center; padding-bottom:15px;">
+                <span style="font-size:0.66rem; color:#94a3b8; font-weight:bold; white-space:nowrap;">${text}</span>
+            </div>
+        `;
+
         const bodyHtml = {
             text: () => `
-                <div style="color:#666; font-size:0.7rem; margin:0 0 4px;">問題文</div>
-                <div style="display:flex; gap:6px; margin-bottom:10px;">
+                <div style="display:flex; gap:6px; margin-bottom:10px; align-items:flex-start;">
+                    ${rowLabel('問題文')}
                     ${colorSwatch('文字色', 'qTextColor')}
                     ${miniText('サイズ', 'qFontSize')}
                     ${miniSelect('配置', 'align', ALIGN_OPTS)}
                 </div>
-                <div style="color:#666; font-size:0.7rem; margin:0 0 4px;">選択肢</div>
-                <div style="display:flex; gap:6px; margin-bottom:6px;">
+                <div style="display:flex; gap:6px; margin-bottom:6px; align-items:flex-start;">
+                    ${rowLabel('選択肢')}
                     ${colorSwatch('文字色', 'cTextColor')}
                     ${miniText('サイズ', 'cFontSize')}
                     ${miniSelect('配置', 'cAlign', ALIGN_OPTS)}
                 </div>
             `,
             object: () => {
-                const transparentToggle = (label, key) => `
-                    <label style="display:flex; align-items:center; gap:3px; cursor:pointer; color:#94a3b8; font-size:0.62rem; white-space:nowrap;">
-                        <input type="checkbox" data-transparent-key="${key}" ${design[key] === 'transparent' ? 'checked' : ''} style="width:12px; height:12px; accent-color:#00e5ff;">
-                        ${label}を透明に
+                // 透明 toggle merges into its own color swatch (extraHtml)
+                // instead of a separate row of checkboxes.
+                const transparentMini = (key) => `
+                    <label style="display:flex; align-items:center; gap:2px; cursor:pointer; color:#94a3b8; font-size:0.52rem; white-space:nowrap;">
+                        <input type="checkbox" data-transparent-key="${key}" ${design[key] === 'transparent' ? 'checked' : ''} style="width:9px; height:9px; accent-color:#00e5ff;">
+                        透明
                     </label>
                 `;
+                // 全体背景 image upload merges into its own swatch too.
                 const bgImg = design.bgImage || '';
                 const hasBgImg = bgImg.startsWith('data:') || bgImg.startsWith('http');
-                return `
-                ${colorRow([
-                    ['全体背景', 'mainBgColor'],
-                    ['問題枠', 'qBorderColor'], ['問題背景', 'qBgColor'],
-                    ['選択枠', 'cBorderColor'], ['選択背景', 'cBgColor'],
-                ])}
-                <div style="display:flex; gap:8px; flex-wrap:wrap; margin:-4px 0 10px;">
-                    ${transparentToggle('問題枠', 'qBorderColor')}
-                    ${transparentToggle('問題背景', 'qBgColor')}
-                    ${transparentToggle('選択枠', 'cBorderColor')}
-                    ${transparentToggle('選択背景', 'cBgColor')}
-                </div>
-                <div style="margin-bottom:10px; padding:8px; background:#1e293b; border:1px solid #475569; border-radius:8px;">
-                    <div style="color:#94a3b8; font-size:0.75rem; margin-bottom:4px;">全体背景に画像を使う</div>
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <button type="button" id="design-bgimg-file-btn" style="flex:0 0 auto; padding:5px 10px; background:#333; border:none; border-radius:6px; color:#00e5ff; cursor:pointer; font-size:0.7rem;">📁 画像を選択</button>
-                        <span id="design-bgimg-status" style="font-size:0.68rem; color:${hasBgImg ? '#00ff88' : '#666'};">${hasBgImg ? '画像設定済み' : '未設定（色のみ）'}</span>
-                        <button type="button" id="design-bgimg-clear-btn" title="クリア" style="margin-left:auto; padding:4px 9px; background:#442222; border:none; border-radius:6px; color:#ff8888; cursor:pointer; font-size:0.68rem;">×</button>
+                const bgImgMini = `
+                    <div style="display:flex; gap:2px; align-items:center;">
+                        <button type="button" id="design-bgimg-file-btn" title="全体背景に画像を使う" style="
+                            flex:1; font-size:0.8rem; line-height:1.3; padding:0; background:none;
+                            border:1px dashed ${hasBgImg ? '#00ff88' : '#475569'}; border-radius:4px;
+                            color:${hasBgImg ? '#00ff88' : '#94a3b8'}; cursor:pointer;
+                        ">🖼️</button>
+                        ${hasBgImg ? `<button type="button" id="design-bgimg-clear-btn" title="画像をクリア" style="
+                            flex:0 0 auto; font-size:0.58rem; padding:0 4px; background:none; border:1px dashed #ff8888;
+                            border-radius:4px; color:#ff8888; cursor:pointer;
+                        ">×</button>` : ''}
                     </div>
                     <input type="file" accept="image/*" id="design-bgimg-file-input" style="display:none;">
-                </div>
+                `;
+                return `
+                ${colorRow([
+                    ['全体背景', 'mainBgColor', bgImgMini],
+                    ['問題枠', 'qBorderColor', transparentMini('qBorderColor')],
+                    ['問題背景', 'qBgColor', transparentMini('qBgColor')],
+                    ['選択枠', 'cBorderColor', transparentMini('cBorderColor')],
+                    ['選択背景', 'cBgColor', transparentMini('cBgColor')],
+                ])}
                 <div style="color:#666; font-size:0.7rem; margin:8px 0 4px; border-top:1px dashed #333; padding-top:6px;">選択肢の配置（選択式のみ）／問題文の位置</div>
                 <div style="display:flex; gap:6px; margin-bottom:6px;">
                     <button type="button" id="design-grid-config-btn" style="
@@ -199,35 +216,33 @@ App.Design = {
             `;
             },
             sound: () => {
-                const soundRow = (label, key) => {
+                // Compact tile, matching colorSwatch's look — tap to open
+                // the full editor (URL/file/play/clear) in a popup instead
+                // of a full card taking its own vertical space inline.
+                const soundTile = (label, key, icon) => {
                     const val = design[key] || '';
                     const hasFile = val.startsWith('data:');
-                    const isUrl = val && !hasFile;
+                    const isSet = !!val;
                     return `
-                        <div style="margin-bottom:10px; padding:8px; background:#1e293b; border:1px solid #475569; border-radius:8px;">
-                            <div style="color:#94a3b8; font-size:0.75rem; margin-bottom:4px;">${label}</div>
-                            <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px;">
-                                <input type="text" data-sound-key="${key}" value="${isUrl ? val : ''}" placeholder="音声URLを入力" style="
-                                    flex:1; min-width:0; padding:5px 7px; background:#0d1b2a; border:1px solid #475569;
-                                    border-radius:6px; color:#fff; font-size:0.72rem;
-                                ">
-                                <button type="button" data-sound-play-btn="${key}" title="再生して確認" style="flex:0 0 auto; padding:5px 9px; background:#00a8cc; border:none; border-radius:6px; color:#fff; cursor:pointer;">▶</button>
-                                <button type="button" data-sound-clear-btn="${key}" title="クリア" style="flex:0 0 auto; padding:5px 9px; background:#442222; border:none; border-radius:6px; color:#ff8888; cursor:pointer;">×</button>
-                            </div>
-                            <div style="display:flex; align-items:center; gap:8px;">
-                                <button type="button" data-sound-file-btn="${key}" style="flex:0 0 auto; padding:4px 10px; background:#333; border:none; border-radius:6px; color:#00e5ff; cursor:pointer; font-size:0.7rem;">📁 ファイルを選択</button>
-                                <span data-sound-status="${key}" style="font-size:0.68rem; color:${hasFile ? '#00ff88' : (isUrl ? '#00e5ff' : '#666')};">${hasFile ? 'ファイル登録済み' : (isUrl ? 'URL設定済み' : '未設定')}</span>
-                            </div>
-                            <input type="file" accept="audio/*" data-sound-file-input="${key}" style="display:none;">
-                        </div>
+                        <button type="button" data-sound-tile="${key}" data-sound-label="${label}" style="
+                            flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:2px;
+                            padding:7px 2px; background:#1e293b; border:1px solid ${isSet ? '#00e5ff' : '#475569'};
+                            border-radius:8px; color:#fff; cursor:pointer;
+                        ">
+                            <span style="font-size:1rem; line-height:1;">${icon}</span>
+                            <span style="font-size:0.56rem; color:#94a3b8; white-space:nowrap;">${label}</span>
+                            <span style="font-size:0.52rem; color:${isSet ? '#00e5ff' : '#555'};">${isSet ? (hasFile ? 'あり' : 'URL') : '未設定'}</span>
+                        </button>
                     `;
                 };
                 return `
-                    ${soundRow('シンキングタイムBGM', 'bgmThinking')}
-                    ${soundRow('ボタンを押した時のSE', 'seButton')}
-                    ${soundRow('正解時の音', 'seCorrect')}
-                    ${soundRow('不正解時の音', 'seWrong')}
-                    <p style="color:#555; font-size:0.65rem; margin:4px 0 10px;">※シンキングタイムBGMはモニター画面、その他は各プレイヤーの端末で再生されます</p>
+                    <div style="display:flex; gap:6px; margin-bottom:8px;">
+                        ${soundTile('シンキングBGM', 'bgmThinking', '🎵')}
+                        ${soundTile('ボタンSE', 'seButton', '🔘')}
+                        ${soundTile('正解音', 'seCorrect', '⭕')}
+                        ${soundTile('不正解音', 'seWrong', '❌')}
+                    </div>
+                    <p style="color:#555; font-size:0.62rem; margin:4px 0 10px;">※タップして音声を設定。BGMはモニター画面、他は各プレイヤーの端末で再生されます</p>
                     <button type="button" id="design-save-sound-defaults-btn" style="
                         width:100%; padding:8px; font-size:0.78rem; font-weight:bold;
                         background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4);
@@ -294,7 +309,9 @@ App.Design = {
                 syncSwatch(); // reflect initial checked state without mutating design
             });
 
-            // オブジェクト tab: 全体背景 image upload (file → base64) or clear.
+            // オブジェクト tab: 全体背景 image upload (file → base64) or
+            // clear — re-renders the panel afterward so the swatch's merged
+            // status border/× button reflect the new state.
             body.querySelector('#design-bgimg-file-btn')?.addEventListener('click', () => {
                 body.querySelector('#design-bgimg-file-input')?.click();
             });
@@ -304,72 +321,24 @@ App.Design = {
                 const reader = new FileReader();
                 reader.onload = (ev) => {
                     design.bgImage = ev.target.result;
-                    const status = body.querySelector('#design-bgimg-status');
-                    if (status) { status.textContent = '画像設定済み'; status.style.color = '#00ff88'; }
                     if (onChange) onChange();
+                    renderBody();
                 };
                 reader.readAsDataURL(file);
             });
             body.querySelector('#design-bgimg-clear-btn')?.addEventListener('click', () => {
                 design.bgImage = '';
-                const status = body.querySelector('#design-bgimg-status');
-                if (status) { status.textContent = '未設定（色のみ）'; status.style.color = '#666'; }
                 if (onChange) onChange();
+                renderBody();
             });
 
-            // サウンド tab: URL text field, file upload (→ base64), preview
-            // playback, and clear — per soundRow above.
-            const refreshSoundStatus = (key, val) => {
-                const status = body.querySelector(`span[data-sound-status="${key}"]`);
-                if (!status) return;
-                const hasFile = (val || '').startsWith('data:');
-                const isUrl = val && !hasFile;
-                status.textContent = hasFile ? 'ファイル登録済み' : (isUrl ? 'URL設定済み' : '未設定');
-                status.style.color = hasFile ? '#00ff88' : (isUrl ? '#00e5ff' : '#666');
-            };
-            body.querySelectorAll('input[data-sound-key]').forEach(inp => {
-                inp.oninput = () => {
-                    const key = inp.dataset.soundKey;
-                    design[key] = inp.value;
-                    refreshSoundStatus(key, inp.value);
+            // サウンド tab: tapping a compact tile opens the full editor
+            // (URL/file/play/clear) in a popup instead of an inline card.
+            body.querySelectorAll('button[data-sound-tile]').forEach(btn => {
+                btn.onclick = () => this._openSoundModal(design, btn.dataset.soundTile, btn.dataset.soundLabel, () => {
                     if (onChange) onChange();
-                };
-            });
-            body.querySelectorAll('button[data-sound-file-btn]').forEach(btn => {
-                btn.onclick = () => body.querySelector(`input[data-sound-file-input="${btn.dataset.soundFileBtn}"]`)?.click();
-            });
-            body.querySelectorAll('input[data-sound-file-input]').forEach(fileInp => {
-                fileInp.onchange = (e) => {
-                    const key = fileInp.dataset.soundFileInput;
-                    const file = e.target.files[0];
-                    if (!file) return;
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                        design[key] = ev.target.result;
-                        const textInp = body.querySelector(`input[data-sound-key="${key}"]`);
-                        if (textInp) textInp.value = '';
-                        refreshSoundStatus(key, design[key]);
-                        if (onChange) onChange();
-                    };
-                    reader.readAsDataURL(file);
-                };
-            });
-            body.querySelectorAll('button[data-sound-play-btn]').forEach(btn => {
-                btn.onclick = () => {
-                    const url = design[btn.dataset.soundPlayBtn];
-                    if (!url) { if (window.App.Ui) window.App.Ui.showToast('音声が未設定です'); return; }
-                    try { new Audio(url).play().catch(() => {}); } catch (e) { /* noop */ }
-                };
-            });
-            body.querySelectorAll('button[data-sound-clear-btn]').forEach(btn => {
-                btn.onclick = () => {
-                    const key = btn.dataset.soundClearBtn;
-                    design[key] = '';
-                    const textInp = body.querySelector(`input[data-sound-key="${key}"]`);
-                    if (textInp) textInp.value = '';
-                    refreshSoundStatus(key, '');
-                    if (onChange) onChange();
-                };
+                    renderBody();
+                });
             });
             body.querySelector('#design-save-sound-defaults-btn')?.addEventListener('click', () => {
                 if (window.App.Ui) window.App.Ui.showToast('保存中...');
@@ -408,6 +377,80 @@ App.Design = {
             };
         });
         renderBody();
+    },
+
+    // サウンド tile tap target — the full editor (URL / file upload / play
+    // / clear) for one sound field, in a popup so the main サウンド tab
+    // can stay a single compact row of tiles.
+    _openSoundModal: function (design, key, label, onChange) {
+        const existing = document.getElementById('design-sound-modal');
+        if (existing) existing.remove();
+
+        const val = design[key] || '';
+        const hasFile = val.startsWith('data:');
+        const isUrl = val && !hasFile;
+
+        const overlay = document.createElement('div');
+        overlay.id = 'design-sound-modal';
+        overlay.className = 'design-modal-overlay';
+        overlay.innerHTML = `
+            <div class="design-modal-content" style="max-width:320px; padding:22px !important;">
+                <h3 class="modal-title" style="font-size:1.05em; margin-bottom:14px;">${label}</h3>
+                <div style="display:flex; gap:6px; align-items:center; margin-bottom:10px;">
+                    <input type="text" id="sound-modal-url" value="${isUrl ? val : ''}" placeholder="音声URLを入力" style="
+                        flex:1; min-width:0; padding:7px 9px; background:#0d1b2a; border:1px solid #475569;
+                        border-radius:6px; color:#fff; font-size:0.85rem;
+                    ">
+                    <button type="button" id="sound-modal-play-btn" title="再生して確認" style="flex:0 0 auto; padding:7px 11px; background:#00a8cc; border:none; border-radius:6px; color:#fff; cursor:pointer;">▶</button>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
+                    <button type="button" id="sound-modal-file-btn" style="flex:0 0 auto; padding:6px 12px; background:#333; border:none; border-radius:6px; color:#00e5ff; cursor:pointer; font-size:0.78rem;">📁 ファイルを選択</button>
+                    <span id="sound-modal-status" style="font-size:0.75rem; color:${hasFile ? '#00ff88' : (isUrl ? '#00e5ff' : '#666')};">${hasFile ? 'ファイル登録済み' : (isUrl ? 'URL設定済み' : '未設定')}</span>
+                </div>
+                <input type="file" accept="audio/*" id="sound-modal-file-input" style="display:none;">
+                <div style="display:flex; gap:10px;">
+                    <button type="button" id="sound-modal-clear-btn" style="flex:1; padding:10px; border-radius:8px; background:#442222; border:none; color:#ff8888; cursor:pointer;">クリア</button>
+                    <button type="button" id="sound-modal-close-btn" style="flex:1; padding:10px; border-radius:8px; background:#00e5ff; border:none; color:#000; font-weight:bold; cursor:pointer;">閉じる</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        const urlInp = overlay.querySelector('#sound-modal-url');
+        const statusEl = overlay.querySelector('#sound-modal-status');
+        const refreshStatus = () => {
+            const v = design[key] || '';
+            const isFile = v.startsWith('data:');
+            const isU = v && !isFile;
+            statusEl.textContent = isFile ? 'ファイル登録済み' : (isU ? 'URL設定済み' : '未設定');
+            statusEl.style.color = isFile ? '#00ff88' : (isU ? '#00e5ff' : '#666');
+        };
+        const close = () => { overlay.remove(); if (onChange) onChange(); };
+
+        urlInp.oninput = () => { design[key] = urlInp.value; refreshStatus(); };
+        overlay.querySelector('#sound-modal-play-btn').onclick = () => {
+            const url = design[key];
+            if (!url) { if (window.App.Ui) window.App.Ui.showToast('音声が未設定です'); return; }
+            try { new Audio(url).play().catch(() => {}); } catch (e) { /* noop */ }
+        };
+        overlay.querySelector('#sound-modal-file-btn').onclick = () => overlay.querySelector('#sound-modal-file-input').click();
+        overlay.querySelector('#sound-modal-file-input').onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                design[key] = ev.target.result;
+                urlInp.value = '';
+                refreshStatus();
+            };
+            reader.readAsDataURL(file);
+        };
+        overlay.querySelector('#sound-modal-clear-btn').onclick = () => {
+            design[key] = '';
+            urlInp.value = '';
+            refreshStatus();
+        };
+        overlay.querySelector('#sound-modal-close-btn').onclick = close;
     },
 
     // 選択肢の配置 popup — rows × cols must cover every choice already
