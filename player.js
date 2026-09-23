@@ -447,15 +447,20 @@ function updateUI() {
         }
     }
     else if (st.step === 'answering') {
-        quizArea.classList.remove('hidden');
         if (roomConfig.mode === 'buzz') {
-            // 早押しモード: 勝者以外は解答画面操作不可
+            // 早押しモード: 早押し勝者「以外」は解答の権利自体がない —
+            // 単に薄く表示するだけだと入力欄が見えたままで「権利はあるが
+            // 待たされている」ように見えてしまうので、権利がない間は解答
+            // エリアごと隠し、早押しボタンだけを見せる。
             if (p.lastResult === 'lose') {
+                // 既に自分の番は終わっているので見学できるよう隠さない
+                quizArea.classList.remove('hidden');
                 showLoserMessage(lobby, buzzArea);
                 toggleInputEnabled(false);
             }
             else if (p.lastResult === 'win') {
                 // ★追加: 正解者への即時フィードバック
+                quizArea.classList.remove('hidden');
                 buzzArea.classList.add('hidden');
                 toggleInputEnabled(false);
                 const changeArea = document.getElementById('change-btn-area');
@@ -469,9 +474,10 @@ function updateUI() {
                 waitMsg.innerHTML = `<div class="status-badge" style="background:#2ecc71;">CORRECT</div><p style="margin-top:10px; font-weight:bold; font-size:1.5em;">正解です！</p>`;
             }
             else if (st.isBuzzActive) {
-                // 早押しボタン受付中
+                // 早押しボタン受付中 — 解答権を得るまでは入力欄自体を隠す
+                quizArea.classList.add('hidden');
                 buzzArea.classList.remove('hidden');
-                toggleInputEnabled(false); // クイズ解答エリアはまだ無効
+                toggleInputEnabled(false);
                 const btn = document.getElementById('player-buzz-btn');
 
                 if (p.buzzRest && p.buzzRest > 0) {
@@ -519,6 +525,7 @@ function updateUI() {
             }
             else if (st.currentAnswerer === myPlayerId) {
                 // 自分が早押し勝者 -> 解答権獲得
+                quizArea.classList.remove('hidden');
                 buzzArea.classList.add('hidden');
                 toggleInputEnabled(true);
                 handleNormalResponseUI(p, quizArea, waitMsg);
@@ -529,7 +536,8 @@ function updateUI() {
                 }, 100);
             }
             else if (st.currentAnswerer) {
-                // 誰か他の人が解答権獲得中 -> 自分は操作不可
+                // 誰か他の人が解答権獲得中 -> 自分は解答権なし
+                quizArea.classList.add('hidden');
                 buzzArea.classList.add('hidden');
                 toggleInputEnabled(false);
                 waitMsg.classList.remove('hidden');
@@ -538,13 +546,15 @@ function updateUI() {
             else {
                 // 誰も解答権がない状態 (例: 誤答後リセット待ち、または開始前)
                 // 基本的には isBuzzActive が true になるはずだが、念のためロック
+                quizArea.classList.add('hidden');
                 buzzArea.classList.add('hidden');
                 toggleInputEnabled(false);
                 waitMsg.classList.remove('hidden');
                 waitMsg.innerHTML = "待機中...";
             }
         } else {
-            // 通常一斉解答 (Normal Mode)
+            // 通常一斉解答 (Normal Mode) — 全員に解答権があるので常に表示
+            quizArea.classList.remove('hidden');
             const isMultipleAttempts = (roomConfig.mode === 'normal' && roomConfig.answerAttempts === 'multiple');
 
             if (p.lastResult === 'win') {
