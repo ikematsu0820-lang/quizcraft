@@ -7,6 +7,30 @@ window.App.Viewer = {
     roomId: null,
     config: {},
     questions: [],
+    _bgmAudio: null,
+    _bgmUrl: null,
+
+    // シンキングタイムBGM — loops on the monitor while a question is up for
+    // answering, and stops once it isn't (or the question has no BGM set).
+    updateThinkingBgm: function (st, q) {
+        const d = (q && q.design) || {};
+        const shouldPlay = !!(d.bgmThinking && ['answering', 'question', 'reveal_q'].includes(st.step));
+        if (shouldPlay) {
+            if (this._bgmUrl !== d.bgmThinking) {
+                if (this._bgmAudio) this._bgmAudio.pause();
+                this._bgmUrl = d.bgmThinking;
+                try {
+                    this._bgmAudio = new Audio(d.bgmThinking);
+                    this._bgmAudio.loop = true;
+                    this._bgmAudio.play().catch(() => {});
+                } catch (e) { this._bgmAudio = null; }
+            }
+        } else if (this._bgmAudio) {
+            this._bgmAudio.pause();
+            this._bgmAudio = null;
+            this._bgmUrl = null;
+        }
+    },
 
     init: function () {
         const urlParams = new URLSearchParams(window.location.search);
@@ -83,6 +107,8 @@ window.App.Viewer = {
         const mainText = document.getElementById('viewer-main-text');
         const statusDiv = document.getElementById('viewer-status');
         const viewContainer = document.getElementById('viewer-main-view');
+
+        this.updateThinkingBgm(st, this.questions[st.qIndex]);
 
         ['viewer-panel-grid', 'viewer-bomb-grid', 'viewer-multi-grid', 'viewer-race-area', 'viewer-timer-bar-area'].forEach(id => {
             const el = document.getElementById(id);

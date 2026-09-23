@@ -21,7 +21,11 @@ App.Design = {
         cBorderColor: "#333333",
         cFontSize: "25px",
         align: "center",
-        layout: "top"
+        layout: "top",
+        bgmThinking: "",
+        seButton: "",
+        seCorrect: "",
+        seWrong: ""
     },
 
     // 問題文の位置 — normalizes legacy values ('standard'/'split') saved by
@@ -115,7 +119,38 @@ App.Design = {
                 <div style="color:#666; font-size:0.7rem; margin:8px 0 4px; border-top:1px dashed #333; padding-top:6px;">レイアウト</div>
                 ${selectField('問題文の位置', 'layout', [{ v: 'top', t: '上側' }, { v: 'left', t: '左側' }, { v: 'right', t: '右側' }, { v: 'bottom', t: '下側' }])}
             `,
-            sound: () => `<p style="color:#666; font-size:0.8rem; text-align:center; padding:30px 0;">サウンドは準備中です</p>`,
+            sound: () => {
+                const soundRow = (label, key) => {
+                    const val = design[key] || '';
+                    const hasFile = val.startsWith('data:');
+                    const isUrl = val && !hasFile;
+                    return `
+                        <div style="margin-bottom:10px; padding:8px; background:#1e293b; border:1px solid #475569; border-radius:8px;">
+                            <div style="color:#94a3b8; font-size:0.75rem; margin-bottom:4px;">${label}</div>
+                            <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px;">
+                                <input type="text" data-sound-key="${key}" value="${isUrl ? val : ''}" placeholder="音声URLを入力" style="
+                                    flex:1; min-width:0; padding:5px 7px; background:#0d1b2a; border:1px solid #475569;
+                                    border-radius:6px; color:#fff; font-size:0.72rem;
+                                ">
+                                <button type="button" data-sound-play-btn="${key}" title="再生して確認" style="flex:0 0 auto; padding:5px 9px; background:#00a8cc; border:none; border-radius:6px; color:#fff; cursor:pointer;">▶</button>
+                                <button type="button" data-sound-clear-btn="${key}" title="クリア" style="flex:0 0 auto; padding:5px 9px; background:#442222; border:none; border-radius:6px; color:#ff8888; cursor:pointer;">×</button>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <button type="button" data-sound-file-btn="${key}" style="flex:0 0 auto; padding:4px 10px; background:#333; border:none; border-radius:6px; color:#00e5ff; cursor:pointer; font-size:0.7rem;">📁 ファイルを選択</button>
+                                <span data-sound-status="${key}" style="font-size:0.68rem; color:${hasFile ? '#00ff88' : (isUrl ? '#00e5ff' : '#666')};">${hasFile ? 'ファイル登録済み' : (isUrl ? 'URL設定済み' : '未設定')}</span>
+                            </div>
+                            <input type="file" accept="audio/*" data-sound-file-input="${key}" style="display:none;">
+                        </div>
+                    `;
+                };
+                return `
+                    ${soundRow('シンキングタイムBGM', 'bgmThinking')}
+                    ${soundRow('ボタンを押した時のSE', 'seButton')}
+                    ${soundRow('正解時の音', 'seCorrect')}
+                    ${soundRow('不正解時の音', 'seWrong')}
+                    <p style="color:#555; font-size:0.65rem; margin:4px 0 0;">※シンキングタイムBGMはモニター画面、その他は各プレイヤーの端末で再生されます</p>
+                `;
+            },
             animation: () => `<p style="color:#666; font-size:0.8rem; text-align:center; padding:30px 0;">アニメーションは準備中です</p>`,
         };
 
@@ -148,6 +183,61 @@ App.Design = {
                     design[sel.dataset.key] = sel.value;
                     if (onChange) onChange();
                     if (sel.dataset.key === 'layout' && window.App.Creator) window.App.Creator.applyDesignToPreview();
+                };
+            });
+
+            // サウンド tab: URL text field, file upload (→ base64), preview
+            // playback, and clear — per soundRow above.
+            const refreshSoundStatus = (key, val) => {
+                const status = body.querySelector(`span[data-sound-status="${key}"]`);
+                if (!status) return;
+                const hasFile = (val || '').startsWith('data:');
+                const isUrl = val && !hasFile;
+                status.textContent = hasFile ? 'ファイル登録済み' : (isUrl ? 'URL設定済み' : '未設定');
+                status.style.color = hasFile ? '#00ff88' : (isUrl ? '#00e5ff' : '#666');
+            };
+            body.querySelectorAll('input[data-sound-key]').forEach(inp => {
+                inp.oninput = () => {
+                    const key = inp.dataset.soundKey;
+                    design[key] = inp.value;
+                    refreshSoundStatus(key, inp.value);
+                    if (onChange) onChange();
+                };
+            });
+            body.querySelectorAll('button[data-sound-file-btn]').forEach(btn => {
+                btn.onclick = () => body.querySelector(`input[data-sound-file-input="${btn.dataset.soundFileBtn}"]`)?.click();
+            });
+            body.querySelectorAll('input[data-sound-file-input]').forEach(fileInp => {
+                fileInp.onchange = (e) => {
+                    const key = fileInp.dataset.soundFileInput;
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        design[key] = ev.target.result;
+                        const textInp = body.querySelector(`input[data-sound-key="${key}"]`);
+                        if (textInp) textInp.value = '';
+                        refreshSoundStatus(key, design[key]);
+                        if (onChange) onChange();
+                    };
+                    reader.readAsDataURL(file);
+                };
+            });
+            body.querySelectorAll('button[data-sound-play-btn]').forEach(btn => {
+                btn.onclick = () => {
+                    const url = design[btn.dataset.soundPlayBtn];
+                    if (!url) { if (window.App.Ui) window.App.Ui.showToast('音声が未設定です'); return; }
+                    try { new Audio(url).play().catch(() => {}); } catch (e) { /* noop */ }
+                };
+            });
+            body.querySelectorAll('button[data-sound-clear-btn]').forEach(btn => {
+                btn.onclick = () => {
+                    const key = btn.dataset.soundClearBtn;
+                    design[key] = '';
+                    const textInp = body.querySelector(`input[data-sound-key="${key}"]`);
+                    if (textInp) textInp.value = '';
+                    refreshSoundStatus(key, '');
+                    if (onChange) onChange();
                 };
             });
         };

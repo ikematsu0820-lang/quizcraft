@@ -13,6 +13,15 @@ let localOptimisticResult = null;
 
 let localStatus = { step: 'standby' };
 let localPlayerData = { isAlive: true, lastResult: null };
+let _lastPlayedResult = null; // 正解/不正解 SE — only fire on an actual transition
+
+function playSound(url) {
+    if (!url) return;
+    try {
+        const audio = new Audio(url);
+        audio.play().catch(() => {}); // ignore autoplay-block errors
+    } catch (e) { /* noop */ }
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('join-room-btn');
@@ -65,6 +74,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (buzzBtn) {
         buzzBtn.addEventListener('click', () => {
             if (!myRoomId || !myPlayerId) return;
+            if (currentQuestion && currentQuestion.design && currentQuestion.design.seButton) {
+                playSound(currentQuestion.design.seButton);
+            }
             buzzBtn.disabled = true;
             buzzBtn.textContent = "送信中...";
             window.db.ref(`rooms/${myRoomId}/players/${myPlayerId}`).update({
@@ -157,6 +169,15 @@ function startPlayerListener(roomId, playerId) {
         } else if (val.lastResult) {
             localOptimisticResult = null; // Server confirmed
         }
+
+        // 正解/不正解の音 — only on the moment lastResult actually changes
+        // into win/lose, not on every unrelated field update to this node.
+        if (val.lastResult && val.lastResult !== _lastPlayedResult) {
+            const d = (currentQuestion && currentQuestion.design) || {};
+            if (val.lastResult === 'win' && d.seCorrect) playSound(d.seCorrect);
+            else if (val.lastResult === 'lose' && d.seWrong) playSound(d.seWrong);
+        }
+        _lastPlayedResult = val.lastResult || null;
 
         localPlayerData = val;
         updateUI();
@@ -1633,6 +1654,10 @@ function submitAnswer(roomId, playerId, answer) {
     if (!['answering', 'question', 'reveal_q'].includes(localStatus.step)) {
         console.warn("Answer rejected: Not in answering phase (" + localStatus.step + ")");
         return;
+    }
+
+    if (currentQuestion && currentQuestion.design && currentQuestion.design.seButton) {
+        playSound(currentQuestion.design.seButton);
     }
 
     // ★ Immediate Feedback Logic for Dobon/Turn Mode
