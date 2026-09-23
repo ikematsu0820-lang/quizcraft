@@ -375,8 +375,8 @@ window.App.Creator = {
 
             // Sub-type
             setupOptSubtype([
-                { v: 'free_written', t: '記述式（自由入力・自動判定）' },
-                { v: 'free_oral', t: '口頭解答（口頭・司会判定）' },
+                { v: 'free_written', t: '手書きで答える（自由入力・自動判定）' },
+                { v: 'free_oral', t: '口頭で答える（口頭・司会判定）' },
                 { v: 'letter_select', t: '文字パネル（自由入力・自動判定）' }
             ], 'letter_select');
         }
@@ -449,8 +449,8 @@ window.App.Creator = {
 
             // Sub-type
             setupOptSubtype([
-                { v: 'free_written', t: '記述式（自由入力・自動判定）' },
-                { v: 'free_oral', t: '口頭解答（口頭・司会判定）' },
+                { v: 'free_written', t: '手書きで答える（自由入力・自動判定）' },
+                { v: 'free_oral', t: '口頭で答える（口頭・司会判定）' },
                 { v: 'letter_select', t: '文字パネル（自由入力・自動判定）' }
             ], type);
         }
@@ -499,8 +499,8 @@ window.App.Creator = {
 
             // Sub-type
             setupOptSubtype([
-                { v: 'assoc_written', t: '連想記述式（自由入力・司会判定）' },
-                { v: 'assoc_oral', t: '連想口頭式（口頭・司会判定）' }
+                { v: 'assoc_written', t: '連想・手書きで答える（自由入力・司会判定）' },
+                { v: 'assoc_oral', t: '連想・口頭で答える（口頭・司会判定）' }
             ], type);
         }
         else if (type.startsWith('multi') || type.startsWith('ranking')) {
@@ -532,10 +532,10 @@ window.App.Creator = {
 
             // Sub-type
             setupOptSubtype([
-                { v: 'multi_written', t: '記述式（自由入力・司会判定）' },
-                { v: 'multi_oral', t: '口頭解答（口頭・司会判定）' },
-                { v: 'ranking_written', t: 'ランキング記述式（自由入力・司会判定）' },
-                { v: 'ranking_oral', t: 'ランキング口頭式（口頭・司会判定）' }
+                { v: 'multi_written', t: '手書きで答える（自由入力・司会判定）' },
+                { v: 'multi_oral', t: '口頭で答える（口頭・司会判定）' },
+                { v: 'ranking_written', t: 'ランキング・手書きで答える（自由入力・司会判定）' },
+                { v: 'ranking_oral', t: 'ランキング・口頭で答える（口頭・司会判定）' }
             ], type);
         }
         else if (type === 'blackjack') {
@@ -616,11 +616,8 @@ window.App.Creator = {
         const questions = this.effectiveQuestionsForRestrictions();
         window.App.Config.applyModeRestrictions(conf, questions);
 
-        const modeLabels = { normal: '一斉解答', buzz: '早押し', turn: '順番解答', solo: 'ソロ対戦' };
-        const gameTypeLabels = { score: '得点制', panel: 'パネル', slot: '変動得点制' };
-
-        modeBtn.innerHTML = `解答権<br><span style="font-size:0.75em; font-weight:normal; opacity:0.85;">${modeLabels[conf.mode] || conf.mode}</span>`;
-        rulesBtn.innerHTML = `ルール設定<br><span style="font-size:0.75em; font-weight:normal; opacity:0.85;">${gameTypeLabels[conf.gameType] || conf.gameType} / ${conf.timeLimitEnabled === 'on' ? conf.timeLimitSeconds + '秒' : 'OFF'}</span>`;
+        modeBtn.textContent = '解答権';
+        rulesBtn.textContent = 'ルール設定';
 
         editBtn.onclick = () => this.toggleInlinePanel('edit');
         if (designBtn) designBtn.onclick = () => this.toggleInlinePanel('design');
@@ -671,13 +668,6 @@ window.App.Creator = {
         if (editSubtabs) editSubtabs.classList.add('hidden');
         if (homePanel) homePanel.classList.add('hidden');
         if (bulkPanel) bulkPanel.classList.add('hidden');
-
-        if (this.activeInlinePanel === key) {
-            area.classList.add('hidden');
-            this.activeInlinePanel = null;
-            this.updateInlinePanelButtonStyles();
-            return;
-        }
 
         this.activeInlinePanel = key;
         area.classList.remove('hidden');

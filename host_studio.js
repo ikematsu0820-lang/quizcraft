@@ -710,6 +710,12 @@ App.Studio = {
         // Firebase Sync
         window.db.ref(`rooms/${roomId}/config`).set(App.Data.currentConfig);
         window.db.ref(`rooms/${roomId}/questions`).set(App.Data.studioQuestions);
+        // The viewer only re-renders on a `status` change (its `config`
+        // listener just updates a local copy silently) — without this, it
+        // keeps showing the generic "Quiz Studio" placeholder from room
+        // creation until 開始する next touches `status`, so the real title
+        // only appears one step later than it should.
+        window.db.ref(`rooms/${roomId}/status/programTitle`).set(App.Data.currentConfig.periodTitle);
 
         // UI Prep
         document.getElementById('studio-standby-panel').classList.add('hidden');
@@ -1481,6 +1487,7 @@ App.Studio = {
         // Firebase Sync
         window.db.ref(`rooms/${roomId}/config`).set(App.Data.currentConfig);
         window.db.ref(`rooms/${roomId}/questions`).set(App.Data.studioQuestions);
+        window.db.ref(`rooms/${roomId}/status/programTitle`).set(App.Data.currentConfig.periodTitle);
 
         // UI Prep
         document.getElementById('studio-standby-panel').classList.add('hidden');
@@ -1808,12 +1815,54 @@ App.Studio = {
         if (!q || !(q.type.startsWith('multi') || q.type.startsWith('ranking') || q.type.startsWith('assoc'))) return;
 
         this.revealedMultiIndices = this.revealedMultiIndices || {};
-        this.revealedMultiIndices[index] = !this.revealedMultiIndices[index];
+        const nowRevealed = !this.revealedMultiIndices[index];
+        this.revealedMultiIndices[index] = nowRevealed;
 
         // Update Firebase
         window.db.ref(`rooms/${roomId}/status`).update({
             revealedMulti: this.revealedMultiIndices
         });
+
+        // 順番解答（多答/ランキング）: this row IS the current turn player's
+        // judgment — clicking an answer to reveal it was silently not
+        // awarding them any points. Score them here and hand the turn to
+        // the next player, the same way updatePlayerScore()'s turn-mode
+        // branch does for other modes. assoc is excluded: its "answers"
+        // are progressive hints toward one single final answer, not
+        // separate scored items.
+        const config = App.Data.currentConfig || {};
+        const isMultiType = (q.type.startsWith('multi') || q.type.startsWith('ranking'));
+        if (nowRevealed && isMultiType && config.mode === 'turn' && this.turnOrder.length > 0) {
+            if (this.turnIndex >= this.turnOrder.length) this.turnIndex = 0;
+            const turnPlayerId = this.turnOrder[this.turnIndex];
+            if (turnPlayerId) {
+                const pts = q.points || 1;
+                window.db.ref(`rooms/${roomId}/players/${turnPlayerId}`).once('value', snap => {
+                    const p = snap.val();
+                    if (!p) return;
+                    snap.ref.update({
+                        periodScore: (p.periodScore || 0) + pts,
+                        totalScore: (p.totalScore || 0) + pts,
+                        lastResult: 'win'
+                    });
+                });
+
+                this.turnIndex = (this.turnIndex + 1) % this.turnOrder.length;
+                const nextPlayerId = this.turnOrder[this.turnIndex];
+                const nextPlayerName = (App.Data.players && App.Data.players[nextPlayerId])
+                    ? App.Data.players[nextPlayerId].name : '---';
+                window.db.ref(`rooms/${roomId}/status`).update({
+                    currentAnswerer: nextPlayerId,
+                    currentAnswererName: nextPlayerName,
+                    turnIndex: this.turnIndex
+                });
+                const info = document.getElementById('studio-sub-info');
+                if (info) {
+                    info.innerHTML = `<span style="color:#9b59b6; font-weight:bold;">順番: ${nextPlayerName}（${this.turnIndex + 1}/${this.turnOrder.length}）</span>`;
+                }
+                App.Ui.showToast(`正解！次は ${nextPlayerName} さんの番です`);
+            }
+        }
 
         // Re-render simplified host view (if any)
         this.renderQuestionMonitor(q);

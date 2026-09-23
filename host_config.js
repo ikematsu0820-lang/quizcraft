@@ -454,7 +454,7 @@ App.Config = {
         const { typeDisplay, isOral, qType, isDobon, isBlackjack } = this.deriveTypeInfo(questions);
 
         const normalOption = isOral
-            ? `<option value="normal" disabled style="color:#555;">✖ 一斉解答 (口頭形式では選択不可)</option>`
+            ? `<option value="normal" disabled style="color:#555;">✖ 一斉解答 (口頭で答える形式では選択不可)</option>`
             : `<option value="normal">一斉解答 (Normal)</option>`;
 
         const borderLeftColor = (typeDisplay.includes('選択式') || typeDisplay.includes('ダウト') || typeDisplay.includes('単一解答')) ? '#000000' : '#aaa';
