@@ -271,6 +271,16 @@ window.App.Creator = {
         const optSubArea = document.getElementById('creator-opt-subtype-area');
         const optSubSel = document.getElementById('creator-opt-subtype');
         if (!container) return;
+
+        // 正解表示プレビュー is per-question-instance state — any fresh
+        // render (new type picked, a different question loaded for edit,
+        // add/reset) falls back to the normal editable view rather than
+        // leaving the checkbox showing ON while a different question's
+        // (now stale) editable form is what's actually displayed.
+        this._previewRevealOn = false;
+        const revealToggle = document.getElementById('creator-preview-reveal-toggle');
+        if (revealToggle) revealToggle.checked = false;
+
         container.innerHTML = '';
         // Reset to flex column so choice rows can use flex:1
         container.style.display = 'flex';
@@ -1375,6 +1385,192 @@ window.App.Creator = {
         return newQ;
     },
 
+    // Non-validating twin of getData() for the 正解表示 preview toggle —
+    // getData() alert()s and bails on incomplete input (e.g. no question
+    // text yet, fewer than 2 choices), which would interrupt the user just
+    // for flipping a passive preview checkbox. This reads whatever is
+    // filled in so far and fills in safe fallbacks instead.
+    _readFormDataForPreview: function () {
+        const qText = (document.getElementById('question-text') || {}).value || '';
+        const sel = document.getElementById('creator-q-type');
+        const subSel = document.getElementById('creator-opt-subtype') || document.getElementById('creator-q-subtype');
+        const groupDefaults = { num_group: 'blackjack' };
+
+        let rawType = (sel && (['free', 'multi_group', 'choice', 'assoc_group', 'num_group'].includes(sel.value)))
+            ? ((subSel && subSel.value) || groupDefaults[sel.value] || sel.value)
+            : (sel ? sel.value : (this.currentType || 'choice'));
+        let type = rawType;
+        let choiceMode = 'single';
+        if (rawType === 'choice_single') { type = 'choice'; choiceMode = 'single'; }
+        else if (rawType === 'choice_multi') { type = 'choice'; choiceMode = 'multi'; }
+
+        const data = { q: qText, type };
+
+        if (type === 'choice') {
+            const opts = [], corr = [];
+            document.querySelectorAll('.choice-row').forEach((row, i) => {
+                const val = ((row.querySelector('.choice-text-input') || {}).value || '').trim();
+                if (val) {
+                    opts.push(val);
+                    if (row.querySelector('.choice-correct-chk')?.checked) corr.push(opts.length - 1);
+                }
+            });
+            data.c = opts; data.correct = corr; data.correctIndex = corr[0];
+            data.mode = choiceMode; data.multi = (choiceMode === 'multi');
+        } else if (type === 'letter_select') {
+            data.steps = this.currentLetterSteps || [];
+            data.correct = (this.currentLetterSteps || []).map(s => s.correct).join('');
+        } else if (type === 'sort') {
+            const opts = [], items = [];
+            document.querySelectorAll('.sort-row').forEach((row, i) => {
+                const txt = ((row.querySelector('.sort-text-input') || {}).value || '').trim();
+                if (txt) {
+                    opts.push(txt);
+                    const label = String.fromCharCode(65 + i);
+                    const rank = parseInt((row.querySelector('.sort-order-input') || {}).value) || (items.length + 1);
+                    items.push({ label, rank });
+                }
+            });
+            data.c = opts;
+            items.sort((a, b) => a.rank - b.rank);
+            data.correct = items.map(o => o.label).join('');
+        } else if (type.startsWith('free')) {
+            const ans = ((document.getElementById('creator-text-answer') || {}).value || '').trim();
+            data.correct = ans ? ans.split(',').map(s => s.trim()).filter(s => s) : [];
+        } else if (type.startsWith('assoc')) {
+            const ans = ((document.getElementById('creator-assoc-answer') || {}).value || '').trim();
+            data.correct = ans ? ans.split(',').map(s => s.trim()).filter(s => s) : [];
+            const opts = [];
+            document.querySelectorAll('.assoc-text-input').forEach(inp => { if (inp.value.trim()) opts.push(inp.value.trim()); });
+            data.c = opts;
+        } else if (type.startsWith('multi') || type.startsWith('ranking')) {
+            const opts = [];
+            document.querySelectorAll('.multi-text-input').forEach(inp => { if (inp.value.trim()) opts.push(inp.value.trim()); });
+            data.c = opts; data.correct = opts;
+        } else if (type === 'blackjack') {
+            data.target = parseInt(document.getElementById('bj-target')?.value) || 21;
+            const cardTexts = [];
+            document.querySelectorAll('#bj-cards-list .bj-card-text').forEach(inp => { if (inp.value.trim()) cardTexts.push(inp.value.trim()); });
+            data.c = cardTexts;
+        }
+        return data;
+    },
+
+    // 正解表示 checkbox in the preview bezel — swaps #creator-form-container
+    // between the normal editable choice rows and a read-only rendering of
+    // how the correct answer looks once revealed on the real monitor
+    // (viewer.js's reveal_correct step), so both can be checked without
+    // leaving the Creator or starting a real room.
+    togglePreviewReveal: function (on) {
+        this._previewRevealOn = on;
+        if (on) {
+            this._previewRevealData = this._readFormDataForPreview();
+            this.renderPreviewReveal(this._previewRevealData);
+        } else {
+            // Rebuild the real editable form from whatever was last read —
+            // #question-text itself was never touched, so nothing typed
+            // there is lost either way.
+            this.renderForm(this.currentType, this._previewRevealData);
+            this.applyDesignToPreview();
+        }
+    },
+
+    renderPreviewReveal: function (data) {
+        const container = document.getElementById('creator-form-container');
+        if (!container) return;
+        const d = window.App.Data.currentDesign || {};
+        const type = data.type || '';
+        container.style.display = 'block';
+
+        if (type === 'sort') {
+            // Mirrors viewer.js's renderSortReveal (badge + ordered list),
+            // scaled down to fit the compact 16:9 preview instead of vh/vw.
+            let correctOrder = [];
+            if (typeof data.correct === 'string') correctOrder = data.correct.split('').map(c => c.charCodeAt(0) - 65);
+            const badgeColors = ['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6', '#e91e63', '#1abc9c', '#e67e22', '#16a085', '#c0392b'];
+            const rows = correctOrder.map((origIdx, rank) => {
+                const label = String.fromCharCode(65 + origIdx);
+                const text = (data.c && data.c[origIdx] !== undefined) ? data.c[origIdx] : label;
+                const color = badgeColors[origIdx % badgeColors.length];
+                return `<div style="display:flex; align-items:center; gap:6px; background:rgba(5,15,50,0.8); border-radius:8px; padding:1.5% 3%; border:1px solid rgba(255,255,255,0.12); margin-bottom:2%;">
+                    <div style="width:18px; height:18px; min-width:18px; border-radius:50%; background:${color}; border:2px solid rgba(255,255,255,0.85); display:flex; align-items:center; justify-content:center; font-size:0.62rem; font-weight:900; color:#fff;">${label}</div>
+                    <div style="font-weight:700; color:#fff; font-size:clamp(0.6rem,1.4vw,0.85rem); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${text}</div>
+                </div>`;
+            }).join('');
+            container.innerHTML = `<div style="width:100%; overflow-y:auto;">${rows || '<p style="color:#888; font-size:0.75rem; text-align:center;">並び順が未設定です</p>'}</div>`;
+            return;
+        }
+
+        if (type === 'choice') {
+            // Mirrors viewer.js: dobon(multi)=trap/safe coloring,
+            // single-answer=gold highlight on the correct one, others dimmed.
+            const isDobon = !!data.multi;
+            const correctIdx = data.correctIndex;
+            const trapSet = new Set(Array.isArray(data.correct) ? data.correct.map(Number) : []);
+            const rowsHtml = (data.c || []).map((c, i) => {
+                const label = String.fromCharCode(65 + i);
+                let style;
+                if (isDobon) {
+                    const isTrap = trapSet.has(i);
+                    style = `background:${isTrap ? '#ff5555' : '#2ecc71'}; border:2px solid #fff; color:#fff;`;
+                } else if (i === correctIdx) {
+                    style = `background:linear-gradient(135deg,#ffd700 0%,#ffec3d 100%); color:#1a1000; border:2px solid #fff; font-weight:900;`;
+                } else {
+                    style = `background:rgba(20,20,20,0.85); color:#888; opacity:0.45; border:1px solid rgba(255,255,255,0.08);`;
+                }
+                return `<div style="display:flex; align-items:center; gap:8px; padding:2.5% 3%; border-radius:6px; margin-bottom:2%; ${style}">
+                    <span style="font-weight:900; font-size:0.75rem;">${label}</span>
+                    <span style="flex:1; font-size:clamp(0.6rem,1.4vw,0.85rem); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${c}</span>
+                </div>`;
+            }).join('');
+            container.innerHTML = `<div style="width:100%;">${rowsHtml || '<p style="color:#888; font-size:0.75rem; text-align:center;">選択肢が未設定です</p>'}</div>`;
+            return;
+        }
+
+        if (type.startsWith('multi') || type.startsWith('ranking') || type.startsWith('assoc')) {
+            // These are shown fully revealed (all green) — the real monitor
+            // fills them in one at a time as players answer, which isn't
+            // something a static preview can simulate.
+            const rowsHtml = (data.c || []).map((c, i) => `
+                <div style="display:flex; align-items:center; gap:8px; padding:2.5% 3%; border-radius:6px; margin-bottom:2%; background:#2ecc71; border:2px solid #fff; color:#fff;">
+                    <span style="font-weight:900; font-size:0.75rem;">${String.fromCharCode(65 + i)}</span>
+                    <span style="flex:1; font-size:clamp(0.6rem,1.4vw,0.85rem); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${c}</span>
+                </div>
+            `).join('');
+            container.innerHTML = `<div style="width:100%;">${rowsHtml || '<p style="color:#888; font-size:0.75rem; text-align:center;">項目が未設定です</p>'}</div>`;
+            return;
+        }
+
+        if (type === 'blackjack') {
+            // No fixed "correct answer" to reveal — it's a live card draw
+            // against a target, so just surface the target number instead.
+            container.innerHTML = `
+                <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;">
+                    <div style="text-align:center;">
+                        <div style="font-size:0.62rem; color:#888; letter-spacing:1px; margin-bottom:4px;">TARGET</div>
+                        <div style="font-size:clamp(1.4rem,5vw,2.4rem); font-weight:900; color:#ffd700;">${data.target || 21}</div>
+                        <p style="color:#666; font-size:0.62rem; margin-top:6px;">実際の判定はカードを引くプレイヤー次第です</p>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
+        // Generic fallback (free_written/free_oral/letter_select/num
+        // predictions/etc.) — mirrors viewer.js's centered "CORRECT ANSWER"
+        // popup, scaled down for the compact preview.
+        const accent = d.qBorderColor || '#00bfff';
+        const ansStr = window.App.Viewer ? window.App.Viewer.getAnswerString(data) : (Array.isArray(data.correct) ? data.correct.join(' / ') : (data.correct || ''));
+        container.innerHTML = `
+            <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;">
+                <div style="background:rgba(0,0,0,0.95); border:3px solid ${accent}; border-radius:12px; padding:6% 8%; text-align:center; max-width:90%; box-sizing:border-box;">
+                    <div style="font-size:clamp(0.5rem,1.1vw,0.68rem); color:${accent}; font-weight:800; margin-bottom:6px; letter-spacing:1px;">CORRECT ANSWER</div>
+                    <div style="font-size:clamp(0.8rem,2.4vw,1.3rem); font-weight:900; color:#fff; word-break:break-all;">${ansStr || '（未設定）'}</div>
+                </div>
+            </div>
+        `;
+    },
+
     add: function () {
         const q = this.getData();
         if (q) {
@@ -1745,4 +1941,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('cancel-update-btn')?.addEventListener('click', () => window.App.Creator.resetForm());
     document.getElementById('save-to-cloud-btn')?.addEventListener('click', () => window.App.Creator.save());
+
+    document.getElementById('creator-preview-reveal-toggle')?.addEventListener('change', (e) => {
+        window.App.Creator.togglePreviewReveal(e.target.checked);
+    });
 });

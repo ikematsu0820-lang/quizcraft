@@ -312,10 +312,11 @@ App.Design = {
         };
 
         container.innerHTML = `
-            <div style="display:flex; gap:0; margin:-4px -4px 10px; border-radius:8px; overflow:hidden; border:1px solid #333;">
+            <div style="display:flex; gap:0; margin:-4px -4px 14px; border-radius:8px; overflow:hidden; border:1px solid #333;">
                 ${tabs.map(t => `
                     <button type="button" class="design-subtab-btn" data-tab="${t.key}" style="
-                        flex:1; padding:8px 2px; font-size:0.72rem; font-weight:bold; border:none; cursor:pointer;
+                        flex:1; height:32px; box-sizing:border-box; padding:0 2px; font-size:0.72rem; font-weight:bold; border:none; cursor:pointer;
+                        display:flex; align-items:center; justify-content:center;
                         background:${this._activeDesignTab === t.key ? '#00a8cc' : '#1e293b'}; color:#fff;
                     ">${t.label}</button>
                 `).join('')}

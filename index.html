@@ -165,6 +165,10 @@
                     <span style="width:8px;height:8px;border-radius:50%;background:#444;display:inline-block;"></span>
                     <span style="width:8px;height:8px;border-radius:50%;background:#444;display:inline-block;"></span>
                     <span style="color:#444;font-size:0.65rem;margin-left:6px;letter-spacing:0.1em;">PREVIEW</span>
+                    <label style="margin-left:auto; display:flex; align-items:center; gap:4px; color:#aaa; font-size:0.68rem; cursor:pointer; user-select:none;">
+                        <input type="checkbox" id="creator-preview-reveal-toggle" style="width:11px; height:11px; accent-color:#00e5ff; cursor:pointer;">
+                        正解表示
+                    </label>
                 </div>
 
                 <!-- Strict 16:9 screen -->
@@ -273,22 +277,26 @@
                      it's the same width and visually attached, no gap. ===== -->
                 <div style="display:flex; border-top:1px solid #2a2a2a;">
                     <button id="creator-rule-design-btn" class="creator-rule-btn" style="
-                        flex:1; padding:14px 4px; font-size:0.8rem; font-weight:bold; line-height:1.3;
+                        flex:1; height:32px; box-sizing:border-box; padding:0 4px; font-size:0.8rem; font-weight:bold;
+                        display:flex; align-items:center; justify-content:center;
                         background:#0e6b8f; border:none;
                         color:#fff; cursor:pointer;
                     ">デザイン</button>
             <button id="creator-rule-mode-btn" class="creator-rule-btn" style="
-                flex:1; padding:14px 4px; font-size:0.8rem; font-weight:bold; line-height:1.3;
+                flex:1; height:32px; box-sizing:border-box; padding:0 4px; font-size:0.8rem; font-weight:bold;
+                display:flex; align-items:center; justify-content:center;
                 background:#0e6b8f; border:none; border-left:1px solid rgba(255,255,255,0.15);
                 color:#fff; cursor:pointer;
             ">解答方式</button>
             <button id="creator-rule-settings-btn" class="creator-rule-btn" style="
-                flex:1; padding:14px 4px; font-size:0.8rem; font-weight:bold; line-height:1.3;
+                flex:1; height:32px; box-sizing:border-box; padding:0 4px; font-size:0.8rem; font-weight:bold;
+                display:flex; align-items:center; justify-content:center;
                 background:#0e6b8f; border:none; border-left:1px solid rgba(255,255,255,0.15);
                 color:#fff; cursor:pointer;
             ">ルール設定</button>
             <button id="creator-inline-edit-toggle" class="creator-rule-btn" style="
-                flex:1; padding:14px 4px; font-size:0.8rem; font-weight:bold; line-height:1.3;
+                flex:1; height:32px; box-sizing:border-box; padding:0 4px; font-size:0.8rem; font-weight:bold;
+                display:flex; align-items:center; justify-content:center;
                 background:#0e6b8f; border:none; border-left:1px solid rgba(255,255,255,0.15);
                 color:#fff; cursor:pointer;
             ">問題編集</button>
@@ -296,15 +304,22 @@
             </div>
 
             <!-- リストに追加/保存 — outside the PREVIEW bezel (persistent
-                 across all 4 tabs above, not tied to 問題編集 specifically). -->
-            <div id="creator-inline-listactions" class="hidden" style="display:flex; gap:8px; margin-top:12px;">
+                 across all 4 tabs above, not tied to 問題編集 specifically).
+                 Buttons matched to the same 32px row height as the デザイン
+                 tab's テキスト controls (colorSwatch/miniText/miniSelect) —
+                 the space that frees up goes into a larger margin-top so
+                 the black gap between the bezel and these buttons reads as
+                 an intentional gap, not just leftover slack. -->
+            <div id="creator-inline-listactions" class="hidden" style="display:flex; gap:8px; margin-top:20px;">
                 <button id="creator-inline-add-btn" style="
-                    flex:1; padding:12px 4px; font-size:0.9rem; font-weight:bold;
+                    flex:1; height:32px; box-sizing:border-box; padding:0 4px; font-size:0.85rem; font-weight:bold;
+                    display:flex; align-items:center; justify-content:center;
                     background:linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
                     border:none; border-radius:10px; color:#fff; cursor:pointer;
                 ">リストに追加</button>
                 <button id="creator-inline-save-btn" style="
-                    flex:1; padding:12px 4px; font-size:0.9rem; font-weight:bold;
+                    flex:1; height:32px; box-sizing:border-box; padding:0 4px; font-size:0.85rem; font-weight:bold;
+                    display:flex; align-items:center; justify-content:center;
                     background:#1e293b; border:1px solid #475569;
                     border-radius:10px; color:#fff; cursor:pointer;
                 ">💾 リストを保存する</button>
@@ -649,9 +664,9 @@
     <script src="firebase.js"></script>
     <script src="text_config.js?v=232"></script>
     <script src="host_core.js?v=232"></script>
-    <script src="host_design.js?v=245"></script>
-    <script src="host_creator.js?v=246"></script>
-    <script src="host_config.js?v=238"></script>
+    <script src="host_design.js?v=246"></script>
+    <script src="host_creator.js?v=247"></script>
+    <script src="host_config.js?v=239"></script>
     <script src="host_prog_config.js?v=230"></script>
     <script src="host_studio.js?v=233"></script>
     <script src="player.js?v=232"></script>

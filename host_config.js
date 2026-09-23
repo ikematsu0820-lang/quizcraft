@@ -62,9 +62,20 @@ App.Config = {
         } else if (qType.startsWith('multi') || qType.startsWith('ranking')) {
             if (!conf.mode || conf.mode === 'normal') mode = 'turn';
         } else if (mode === 'normal') {
+            // 一斉解答 IS selectable for free_written/letter_select (unlike
+            // the _oral variants, where the 解答権 pulldown disables it
+            // outright) — this branch only exists to SUGGEST 早押し the
+            // first time one of these types is seen while mode is still at
+            // its untouched 'normal' default. Without the
+            // _oneOnOneSuggestedFor guard, this function re-runs on every
+            // renderRulesSection() call and kept re-forcing buzz right back
+            // even after the user explicitly picked 一斉解答 from the
+            // dropdown — conf.mode being 'normal' looked identical whether
+            // it was "still the default" or "the user just chose this".
             const hasOneOnOne = questions.some(q => ['free_oral', 'free_written', 'letter_select', 'multi_oral', 'ranking_oral', 'assoc_oral'].includes(q.type));
-            if (hasOneOnOne) mode = 'buzz';
+            if (hasOneOnOne && conf._oneOnOneSuggestedFor !== qType) mode = 'buzz';
         }
+        conf._oneOnOneSuggestedFor = qType;
         conf.mode = mode;
     },
 
