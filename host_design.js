@@ -536,74 +536,64 @@ App.Design = {
         setTimeout(() => document.addEventListener('mousedown', onOutsideClick, true), 0);
     },
 
+    // サウンドタイルをタップすると、直接アップロードするのではなく
+    // 「サウンド編集」（ホストメニュー）に登録済みの音源から選ぶだけの
+    // ピッカーになる — 音源の追加/削除は host_sound_library.js 側で行う。
     _openSoundModal: function (design, key, label, onChange) {
         const existing = document.getElementById('design-sound-modal');
         if (existing) existing.remove();
 
-        const val = design[key] || '';
-        const hasFile = val.startsWith('data:');
-        const isUrl = val && !hasFile;
+        const items = (window.App.SoundLibrary && window.App.SoundLibrary._cache[key]) || [];
+        const currentVal = design[key] || '';
 
         const overlay = document.createElement('div');
         overlay.id = 'design-sound-modal';
         overlay.className = 'design-modal-overlay';
         overlay.innerHTML = `
             <div class="design-modal-content" style="max-width:320px; padding:22px !important;">
-                <h3 class="modal-title" style="font-size:1.05em; margin-bottom:14px;">${label}</h3>
-                <div style="display:flex; gap:6px; align-items:center; margin-bottom:10px;">
-                    <input type="text" id="sound-modal-url" value="${isUrl ? val : ''}" placeholder="音声URLを入力" style="
-                        flex:1; min-width:0; padding:7px 9px; background:#0d1b2a; border:1px solid #475569;
-                        border-radius:6px; color:#fff; font-size:0.85rem;
-                    ">
-                    <button type="button" id="sound-modal-play-btn" title="再生して確認" style="flex:0 0 auto; padding:7px 11px; background:#00a8cc; border:none; border-radius:6px; color:#fff; cursor:pointer;">▶</button>
+                <h3 class="modal-title" style="font-size:1.05em; margin-bottom:10px;">${label}</h3>
+                <div id="sound-picker-list" style="display:flex; flex-direction:column; gap:6px; max-height:260px; overflow-y:auto; margin-bottom:12px;">
+                    <button type="button" data-pick="" style="
+                        display:flex; align-items:center; padding:9px 10px; text-align:left;
+                        background:${!currentVal ? 'rgba(0,229,255,0.14)' : '#1e293b'}; border:1px solid ${!currentVal ? '#00e5ff' : '#475569'};
+                        border-radius:8px; color:#fff; cursor:pointer; font-size:0.85rem;
+                    ">未設定にする</button>
+                    ${items.map(it => `
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <button type="button" data-pick="${it.id}" style="
+                                flex:1; min-width:0; display:flex; align-items:center; padding:9px 10px; text-align:left;
+                                background:${currentVal === it.data ? 'rgba(0,229,255,0.14)' : '#1e293b'}; border:1px solid ${currentVal === it.data ? '#00e5ff' : '#475569'};
+                                border-radius:8px; color:#fff; cursor:pointer; font-size:0.85rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+                            ">${it.name}</button>
+                            <button type="button" data-preview="${it.id}" title="再生して確認" style="flex:0 0 auto; padding:8px 10px; background:#00a8cc; border:none; border-radius:6px; color:#fff; cursor:pointer;">▶</button>
+                        </div>
+                    `).join('')}
+                    ${items.length === 0 ? '<p style="color:#666; font-size:0.78rem; text-align:center; margin:8px 0;">まだ音源が登録されていません</p>' : ''}
                 </div>
-                <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
-                    <button type="button" id="sound-modal-file-btn" style="flex:0 0 auto; padding:6px 12px; background:#333; border:none; border-radius:6px; color:#00e5ff; cursor:pointer; font-size:0.78rem;">📁 ファイルを選択</button>
-                    <span id="sound-modal-status" style="font-size:0.75rem; color:${hasFile ? '#00ff88' : (isUrl ? '#00e5ff' : '#666')};">${hasFile ? 'ファイル登録済み' : (isUrl ? 'URL設定済み' : '未設定')}</span>
-                </div>
-                <input type="file" accept="audio/*" id="sound-modal-file-input" style="display:none;">
-                <div style="display:flex; gap:10px;">
-                    <button type="button" id="sound-modal-clear-btn" style="flex:1; padding:10px; border-radius:8px; background:#442222; border:none; color:#ff8888; cursor:pointer;">クリア</button>
-                    <button type="button" id="sound-modal-close-btn" style="flex:1; padding:10px; border-radius:8px; background:#00e5ff; border:none; color:#000; font-weight:bold; cursor:pointer;">閉じる</button>
-                </div>
+                <p style="color:#666; font-size:0.66rem; margin:0 0 12px; line-height:1.4;">※音源の追加・削除は、ホストメニューの「サウンド編集」から行えます</p>
+                <button type="button" id="sound-modal-close-btn" style="width:100%; padding:10px; border-radius:8px; background:#333; border:none; color:#ccc; cursor:pointer;">閉じる</button>
             </div>
         `;
         document.body.appendChild(overlay);
 
-        const urlInp = overlay.querySelector('#sound-modal-url');
-        const statusEl = overlay.querySelector('#sound-modal-status');
-        const refreshStatus = () => {
-            const v = design[key] || '';
-            const isFile = v.startsWith('data:');
-            const isU = v && !isFile;
-            statusEl.textContent = isFile ? 'ファイル登録済み' : (isU ? 'URL設定済み' : '未設定');
-            statusEl.style.color = isFile ? '#00ff88' : (isU ? '#00e5ff' : '#666');
-        };
-        const close = () => { overlay.remove(); if (onChange) onChange(); };
+        const list = overlay.querySelector('#sound-picker-list');
+        const close = () => overlay.remove();
 
-        urlInp.oninput = () => { design[key] = urlInp.value; refreshStatus(); };
-        overlay.querySelector('#sound-modal-play-btn').onclick = () => {
-            const url = design[key];
-            if (!url) { if (window.App.Ui) window.App.Ui.showToast('音声が未設定です'); return; }
-            try { new Audio(url).play().catch(() => {}); } catch (e) { /* noop */ }
-        };
-        overlay.querySelector('#sound-modal-file-btn').onclick = () => overlay.querySelector('#sound-modal-file-input').click();
-        overlay.querySelector('#sound-modal-file-input').onchange = (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                design[key] = ev.target.result;
-                urlInp.value = '';
-                refreshStatus();
+        list.querySelectorAll('[data-preview]').forEach(btn => {
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                const item = items.find(it => it.id === btn.dataset.preview);
+                if (item && item.data) { try { new Audio(item.data).play().catch(() => {}); } catch (err) { /* noop */ } }
             };
-            reader.readAsDataURL(file);
-        };
-        overlay.querySelector('#sound-modal-clear-btn').onclick = () => {
-            design[key] = '';
-            urlInp.value = '';
-            refreshStatus();
-        };
+        });
+        list.querySelectorAll('[data-pick]').forEach(btn => {
+            btn.onclick = () => {
+                const item = items.find(it => it.id === btn.dataset.pick);
+                design[key] = item ? item.data : '';
+                close();
+                if (onChange) onChange();
+            };
+        });
         overlay.querySelector('#sound-modal-close-btn').onclick = close;
     },
 

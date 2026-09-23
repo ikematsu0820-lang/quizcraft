@@ -47,7 +47,8 @@ window.App.Ui = {
             playerGame: document.getElementById('player-game-view'),
             viewerLogin: document.getElementById('viewer-login-view'),
             viewerMain: document.getElementById('viewer-main-view'),
-            savedItems: document.getElementById('saved-items-view')
+            savedItems: document.getElementById('saved-items-view'),
+            soundLibrary: document.getElementById('sound-library-view')
         };
     },
 

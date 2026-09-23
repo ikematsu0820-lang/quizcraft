@@ -59,7 +59,25 @@
                     <span style="font-size:2.2rem; margin-bottom:8px;">📺</span>
                     <span>問題を出す</span>
                 </button>
+                <button id="menu-btn-sound-library" style="display:flex; align-items:center; justify-content:center; gap:8px; padding:14px 20px; font-size:0.95rem; font-weight:bold; background:rgba(255,255,255,0.06); border:1px dashed rgba(255,255,255,0.25); border-radius:14px; color:#ccc; cursor:pointer;">
+                    <span style="font-size:1.2rem;">🔊</span>
+                    <span>サウンド編集</span>
+                </button>
             </div>
+        </div>
+    </div>
+
+    <!-- サウンド編集 — 問題作成/ホスト双方から使う音源ライブラリの管理画面。
+         ここでアップロードした音源を、問題作成のデザイン/サウンドタブでは
+         選ぶだけになる（host_sound_library.js / host_design.js._openSoundModal）。 -->
+    <div id="sound-library-view" class="view hidden">
+        <div class="view-header" style="display:flex; justify-content:space-between; align-items:center; width:100%; border-bottom:1px solid #333; padding-bottom:12px; margin-bottom:20px;">
+            <h3 style="margin:0;">🔊 サウンド編集</h3>
+            <button class="header-back-btn back-to-menu" style="background:rgba(255,255,255,0.1); border:1px solid #555; color:#fff; padding:8px 16px; border-radius:8px; cursor:pointer;">← メニューに戻る</button>
+        </div>
+        <div style="max-width:600px; margin:0 auto; width:100%; padding:0 16px 30px; box-sizing:border-box;">
+            <p style="color:#888; font-size:0.8rem; margin:0 0 16px;">ここでアップロードした音源が、問題作成の「デザイン」→「サウンド」タブで選べるようになります。</p>
+            <div id="sound-library-body"></div>
         </div>
     </div>
 
@@ -663,8 +681,9 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script src="firebase.js"></script>
     <script src="text_config.js?v=232"></script>
-    <script src="host_core.js?v=232"></script>
-    <script src="host_design.js?v=246"></script>
+    <script src="host_core.js?v=233"></script>
+    <script src="host_sound_library.js?v=1"></script>
+    <script src="host_design.js?v=247"></script>
     <script src="host_creator.js?v=247"></script>
     <script src="host_config.js?v=239"></script>
     <script src="host_prog_config.js?v=230"></script>
