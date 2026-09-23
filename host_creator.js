@@ -1185,14 +1185,6 @@ window.App.Creator = {
         container.appendChild(addBtn);
     },
 
-    createAddBtn: function (parent, text, onClick) {
-        const btn = document.createElement('button');
-        btn.className = 'btn-info btn-mini mt-10';
-        btn.textContent = text;
-        btn.onclick = onClick;
-        parent.appendChild(btn);
-    },
-
     updateLabels: function (parent) {
         const labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T'];
         parent.querySelectorAll('.choice-label-text').forEach((el, i) => el.textContent = labels[i] || String(i + 1));

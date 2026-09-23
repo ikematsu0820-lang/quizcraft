@@ -38,11 +38,8 @@ window.App.Ui = {
             main: document.getElementById('main-view'),
             hostLogin: document.getElementById('host-login-view'),
             dashboard: document.getElementById('host-main-menu-view') || document.getElementById('host-dashboard-view'),
-            design: document.getElementById('design-view'),
-            productionDesign: document.getElementById('production-design-view'),
             creator: document.getElementById('creator-view'),
             selectType: document.getElementById('select-type-view'),
-            config: document.getElementById('config-view'),
             progConfig: document.getElementById('prog-config-view'),
             hostControl: document.getElementById('host-control-view'),
             ranking: document.getElementById('ranking-view'),
@@ -273,16 +270,6 @@ window.App.bindEvents = function () {
     document.getElementById('dash-create-btn')?.addEventListener('click', () => {
         if (window.App.Creator && window.App.Creator.init) window.App.Creator.init();
     });
-    document.getElementById('dash-config-btn')?.addEventListener('click', () => {
-        window.App.Data.periodPlaylist = [];
-        if (window.App.Config && window.App.Config.init) window.App.Config.init();
-    });
-    document.getElementById('dash-question-design-btn')?.addEventListener('click', () => {
-        if (window.App.Design && window.App.Design.init) window.App.Design.init();
-    });
-    document.getElementById('dash-production-design-btn')?.addEventListener('click', () => {
-        window.App.Ui.showToast("シーンデザイン機能は準備中です");
-    });
     document.getElementById('dash-prog-config-btn')?.addEventListener('click', () => {
         if (window.App.ProgConfig && window.App.ProgConfig.init) window.App.ProgConfig.init();
     });
@@ -295,120 +282,6 @@ window.App.bindEvents = function () {
         window.App.Ui.showToast("スタジオ機能は現在改装中です（実装待ち）");
     });
     document.getElementById('dash-viewer-btn')?.addEventListener('click', () => U.showView(V.viewerLogin));
-
-    // FAB Save Bindings
-    document.getElementById('fab-creator-save')?.addEventListener('click', () => {
-        if (window.App.Creator?.save) window.App.Creator.save();
-    });
-    document.getElementById('fab-config-save')?.addEventListener('click', () => {
-        if (window.App.Config?.saveRulesToSet) window.App.Config.saveRulesToSet();
-    });
-    document.getElementById('fab-design-save')?.addEventListener('click', () => {
-        if (window.App.Design?.save) window.App.Design.save();
-    });
-    document.getElementById('fab-prod-save')?.addEventListener('click', () => {
-        if (window.App.ProductionDesign?.save) window.App.ProductionDesign.save();
-    });
-    document.getElementById('fab-prog-save')?.addEventListener('click', () => {
-        if (window.App.ProgConfig?.saveProgram) window.App.ProgConfig.saveProgram();
-    });
-
-    // --- TEST PLAY LOGIC ---
-    document.getElementById('fab-test-play')?.addEventListener('click', () => {
-        const countStr = prompt("テストプレイを行うプレイヤー数を選んでください (1〜8)\n※ 出題者画面とモニター画面も同時に開きます", "4");
-        if (countStr === null) return; // Cancelled
-
-        let count = parseInt(countStr);
-        if (isNaN(count) || count < 1) count = 1;
-        if (count > 8) count = 8;
-
-        window.App.Ui.showToast("テストデータを準備しています...");
-
-        // 1. Construct Test Data based on Active View
-        const isProg = !document.getElementById('prog-config-view').classList.contains('hidden');
-        let uploadData = null;
-
-        if (isProg) {
-            uploadData = { playlist: window.App.Data.periodPlaylist || [] };
-        } else {
-            // For Set Editing Views
-            let workingSet = window.App.Data.currentSet ? JSON.parse(JSON.stringify(window.App.Data.currentSet)) : {};
-
-            // If in Creator view
-            if (!document.getElementById('creator-view').classList.contains('hidden')) {
-                if (window.App.Creator) {
-                    // Update currently open question if editing
-                    if (window.App.Creator.editingIndex !== null) {
-                        const currentQ = window.App.Creator.getData();
-                        if (currentQ) window.App.Data.createdQuestions[window.App.Creator.editingIndex] = { ...window.App.Data.createdQuestions[window.App.Creator.editingIndex], ...currentQ };
-                    }
-                    workingSet.questions = window.App.Data.createdQuestions || [];
-                    workingSet.title = window.App.Creator.editingTitle || "テストセット";
-                    // Apply minimal config if missing
-                    if (!workingSet.config) workingSet.config = { mode: 'normal', gameType: 'score', theme: 'light' };
-                }
-            }
-            // If in Config view
-            else if (!document.getElementById('config-view').classList.contains('hidden')) {
-                if (window.App.Config && window.App.Config.selectedSetData) {
-                    workingSet = JSON.parse(JSON.stringify(window.App.Config.selectedSetData));
-                    workingSet.key = window.App.Config.selectedSetKey;
-                    const mode = document.getElementById('config-mode-select')?.value || 'normal';
-                    const gType = document.getElementById('config-game-type')?.value || 'score';
-                    workingSet.config = {
-                        ...(workingSet.config || {}),
-                        mode: mode,
-                        gameType: gType,
-                        theme: document.getElementById('config-theme-select')?.value || 'dark'
-                    };
-                }
-            }
-            // If in Design view
-            else if (!document.getElementById('design-view').classList.contains('hidden')) {
-                if (window.App.Design && window.App.Design.currentTarget && window.App.Design.currentTarget.data) {
-                    workingSet = JSON.parse(JSON.stringify(window.App.Design.currentTarget.data));
-                    workingSet.key = window.App.Design.currentTarget.key;
-                }
-                if (window.App.Design && window.App.Design.collectSettings) {
-                    const s = window.App.Design.collectSettings();
-                    if (workingSet.questions) {
-                        workingSet.questions.forEach(q => {
-                            q.design = s.design;
-                            q.layout = s.layout;
-                            q.align = s.align;
-                            q.prodDesign = s.prodDesign;
-                        });
-                    }
-                }
-            }
-
-            // Ensure questions exist
-            if (!workingSet.questions || workingSet.questions.length === 0) {
-                alert("テストプレイする問題がありません。追加してください。");
-                return;
-            }
-
-            uploadData = workingSet;
-        }
-
-        if (!uploadData) {
-            alert("エラー: テストデータが構築できませんでした");
-            return;
-        }
-
-        // 2. Generate test ID and open host tab synchronously (before async Firebase)
-        const testId = `TEST-${Math.floor(Math.random() * 9000) + 1000}`;
-        const baseUrl = window.location.origin + window.location.pathname;
-        const sid = encodeURIComponent(window.App.State.currentShowId || '');
-        const hostUrl = `${baseUrl}?${isProg ? 'testProg' : 'testHost'}=${testId}&tp=${count}&sid=${sid}`;
-        window.open(hostUrl, '_blank');
-
-        // 3. Save test data to Firebase (host tab will wait for this to arrive)
-        const dbPath = isProg ? `saved_programs/${testId}` : `saved_sets/${testId}`;
-        window.db.ref(dbPath).set(uploadData).catch(err => {
-            alert("テスト準備エラー: " + err.message);
-        });
-    });
 };
 
 window.App._showTestNavBar = function (testId, playerCount) {
@@ -1053,8 +926,6 @@ window.App.Dashboard = {
 // 互換性ブリッジ
 window.initCreatorMode = () => window.App.Creator.init();
 window.loadSetForEditing = (k, i) => window.App.Creator.loadSet(k, i);
-window.enterConfigMode = () => window.App.Config.init();
-window.loadProgramToConfigOnDash = (d) => window.App.Config.loadExternal(d);
 window.startRoom = () => window.App.Studio.startRoom();
 window.quickStartSet = (d) => window.App.Studio.quickStart(d);
 window.enterDashboard = () => window.App.Dashboard.enter();

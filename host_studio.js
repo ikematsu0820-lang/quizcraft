@@ -1638,17 +1638,6 @@ App.Studio = {
         }, 1200);
     },
 
-    showNextSetWait: function (nextIdx) {
-        document.getElementById('studio-execution-grid').classList.add('hidden');
-        document.getElementById('studio-standby-panel').classList.remove('hidden');
-        const btn = document.getElementById('btn-phase-main');
-        btn.textContent = `次のセットを開始 (${App.Data.periodPlaylist[nextIdx].title})`;
-        btn.classList.remove('hidden');
-        btn.className = 'btn-block btn-large-action action-ready';
-        btn.onclick = () => this.setupPeriod(nextIdx);
-        this.syncMainButton();
-    },
-
     resetPlayerStatus: function () {
         const roomId = App.State.currentRoomId;
         this.revealedMultiIndices = {}; // Reset multi-answer reveal state
@@ -1974,14 +1963,6 @@ App.Studio = {
             };
             grid.appendChild(btn);
         });
-    },
-
-    setPanelColor: function (colorCode) {
-        this.selectedPanelColor = colorCode;
-        const names = ["クリア(黒)", "Red", "Green", "White", "Blue"];
-        const disp = document.getElementById('panel-selected-color');
-        if (disp) disp.textContent = names[colorCode];
-        document.querySelectorAll('.p-btn').forEach(b => b.style.border = '1px solid #555');
     },
 
     checkBuzz: function (players) {
