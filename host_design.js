@@ -184,26 +184,9 @@ App.Design = {
                 </div>
             `,
             object: () => {
-                // 全体背景 image upload merges into its own swatch too.
-                const bgImg = design.bgImage || '';
-                const hasBgImg = bgImg.startsWith('data:') || bgImg.startsWith('http');
-                const bgImgMini = `
-                    <div style="display:flex; gap:2px; align-items:center;">
-                        <button type="button" id="design-bgimg-file-btn" title="全体背景に画像を使う" style="
-                            flex:1; font-size:0.8rem; line-height:1.3; padding:0; background:none;
-                            border:1px dashed ${hasBgImg ? '#00ff88' : '#475569'}; border-radius:4px;
-                            color:${hasBgImg ? '#00ff88' : '#94a3b8'}; cursor:pointer;
-                        ">🖼️</button>
-                        ${hasBgImg ? `<button type="button" id="design-bgimg-clear-btn" title="画像をクリア" style="
-                            flex:0 0 auto; font-size:0.58rem; padding:0 4px; background:none; border:1px dashed #ff8888;
-                            border-radius:4px; color:#ff8888; cursor:pointer;
-                        ">×</button>` : ''}
-                    </div>
-                    <input type="file" accept="image/*" id="design-bgimg-file-input" style="display:none;">
-                `;
                 return `
                 ${colorRow([
-                    ['全体背景', 'mainBgColor', bgImgMini],
+                    ['全体背景', 'mainBgColor'],
                     ['問題枠', 'qBorderColor'],
                     ['問題背景', 'qBgColor'],
                     ['選択枠', 'cBorderColor'],
@@ -296,29 +279,6 @@ App.Design = {
                     if (onChange) onChange();
                     if (sel.dataset.key === 'layout' && window.App.Creator) window.App.Creator.applyDesignToPreview();
                 };
-            });
-
-            // オブジェクト tab: 全体背景 image upload (file → base64) or
-            // clear — re-renders the panel afterward so the swatch's merged
-            // status border/× button reflect the new state.
-            body.querySelector('#design-bgimg-file-btn')?.addEventListener('click', () => {
-                body.querySelector('#design-bgimg-file-input')?.click();
-            });
-            body.querySelector('#design-bgimg-file-input')?.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                    design.bgImage = ev.target.result;
-                    if (onChange) onChange();
-                    renderBody();
-                };
-                reader.readAsDataURL(file);
-            });
-            body.querySelector('#design-bgimg-clear-btn')?.addEventListener('click', () => {
-                design.bgImage = '';
-                if (onChange) onChange();
-                renderBody();
             });
 
             // サウンド tab: tapping a compact tile opens the full editor
@@ -414,6 +374,7 @@ App.Design = {
                     flex:0 0 24px; width:24px; height:24px; padding:0; border:1px solid #475569; border-radius:5px; background:none; cursor:pointer;
                 ">
             </div>
+            ${key === 'mainBgColor' ? '<div id="color-popover-bgimg"></div>' : ''}
         `;
         document.body.appendChild(pop);
 
@@ -503,8 +464,53 @@ App.Design = {
             }
         };
 
+        // 全体背景 only — merges the image-upload option into this same
+        // popover instead of a separate icon hanging below the swatch.
+        const renderBgImgSection = () => {
+            if (key !== 'mainBgColor') return;
+            const bgImgEl = pop.querySelector('#color-popover-bgimg');
+            const bgImg = design.bgImage || '';
+            const hasBgImg = bgImg.startsWith('data:') || bgImg.startsWith('http');
+            bgImgEl.innerHTML = `
+                <div style="display:flex; align-items:center; gap:6px; margin-top:8px; padding-top:8px; border-top:1px dashed #333;">
+                    <button type="button" id="color-popover-bgimg-file-btn" title="全体背景に画像を使う" style="
+                        flex:1; min-width:0; padding:5px 6px; font-size:0.68rem; background:none;
+                        border:1px dashed ${hasBgImg ? '#00ff88' : '#475569'}; border-radius:5px;
+                        color:${hasBgImg ? '#00ff88' : '#94a3b8'}; cursor:pointer;
+                    ">🖼️ 画像を使う${hasBgImg ? '（設定済み）' : ''}</button>
+                    ${hasBgImg ? `<button type="button" id="color-popover-bgimg-clear-btn" title="画像をクリア" style="
+                        flex:0 0 auto; padding:5px 8px; font-size:0.62rem; background:none; border:1px dashed #ff8888;
+                        border-radius:5px; color:#ff8888; cursor:pointer;
+                    ">×</button>` : ''}
+                    <input type="file" accept="image/*" id="color-popover-bgimg-file-input" style="display:none;">
+                </div>
+            `;
+            bgImgEl.querySelector('#color-popover-bgimg-file-btn').onclick = () => {
+                bgImgEl.querySelector('#color-popover-bgimg-file-input').click();
+            };
+            bgImgEl.querySelector('#color-popover-bgimg-file-input').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    design.bgImage = ev.target.result;
+                    renderBgImgSection();
+                    positionPopover();
+                    if (onChange) onChange();
+                };
+                reader.readAsDataURL(file);
+            });
+            bgImgEl.querySelector('#color-popover-bgimg-clear-btn')?.addEventListener('click', () => {
+                design.bgImage = '';
+                renderBgImgSection();
+                positionPopover();
+                if (onChange) onChange();
+            });
+        };
+
         this._openPaletteIdx = 0; // when not 透明, always start on 1. ビビッド's grid
         syncFromDesign();
+        renderBgImgSection();
         positionPopover();
 
         hexInp.addEventListener('change', () => {
