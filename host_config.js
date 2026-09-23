@@ -267,11 +267,14 @@ App.Config = {
     // 解答形式's pulldown) + edit that mode's fields below.
     renderInlineModeChooser: function (container, conf, questions, onChange) {
         const { qType, isOral, isDobon, isBlackjack } = this.deriveTypeInfo(questions);
+        // ソロ対戦 is no longer a creator-configured 解答権 — it's now chosen
+        // by the host at load time (プログラム/セットの読込 screen), as a
+        // per-session override on top of whatever mode the set was created
+        // with. See host_studio.js loadProgramList()/setupPeriod().
         const modes = [
             { value: 'normal', label: '一斉解答', disabled: isBlackjack || isOral || isDobon || (qType && (qType.startsWith('multi') || qType.startsWith('ranking'))) },
             { value: 'buzz', label: '早押し', disabled: isBlackjack || isDobon },
-            { value: 'turn', label: '順番解答', disabled: false },
-            { value: 'solo', label: 'ソロ対戦', disabled: isBlackjack }
+            { value: 'turn', label: '順番解答', disabled: false }
         ];
         let current = conf.mode || 'normal';
         if (modes.find(m => m.value === current)?.disabled) current = modes.find(m => !m.disabled).value;

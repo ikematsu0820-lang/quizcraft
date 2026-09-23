@@ -740,6 +740,18 @@
                 <div style="color:#ffd700; font-size:1.2em; font-weight:bold; margin-bottom:15px; text-align:center;">
                     プログラム（セット）の読込</div>
                 <select id="studio-program-select" class="btn-block config-select mb-15" style="padding:10px;"></select>
+
+                <div style="display:flex; gap:8px; margin-bottom:15px;">
+                    <button type="button" id="studio-mode-normal-btn" style="
+                        flex:1; padding:10px 4px; border-radius:10px; font-weight:bold; cursor:pointer;
+                        border:2px solid #00e5ff; background:rgba(0,229,255,0.1); color:#00e5ff;
+                    ">規定モード</button>
+                    <button type="button" id="studio-mode-solo-btn" style="
+                        flex:1; padding:10px 4px; border-radius:10px; font-weight:bold; cursor:pointer;
+                        border:2px solid #333; background:#1a1a1a; color:#ccc;
+                    ">ソロモード</button>
+                </div>
+
                 <button id="studio-load-program-btn" class="btn-primary btn-block"
                     style="padding:12px; font-weight:bold; font-size:1.1em;">読み込む</button>
             </div>
@@ -954,9 +966,9 @@
     <script src="host_design.js?v=236"></script>
     <script src="host_production_design.js?v=230"></script>
     <script src="host_creator.js?v=240"></script>
-    <script src="host_config.js?v=235"></script>
+    <script src="host_config.js?v=236"></script>
     <script src="host_prog_config.js?v=230"></script>
-    <script src="host_studio.js?v=231"></script>
+    <script src="host_studio.js?v=232"></script>
     <script src="player.js?v=231"></script>
     <script src="viewer.js?v=234"></script>
 

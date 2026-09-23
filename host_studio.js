@@ -509,6 +509,19 @@ App.Studio = {
         }
     },
 
+    // 読込画面でホストが「ソロモード」を選んだ場合、セット側に保存されて
+    // いる解答権を無視してこのセッション限定でソロ対戦に上書きする。
+    applyForcedMode: function (config) {
+        if (this._forcedMode !== 'solo') return config;
+        config.mode = 'solo';
+        if (config.soloLife === undefined) config.soloLife = 3;
+        if (config.soloStyle === undefined) config.soloStyle = 'manual';
+        if (config.soloTimeType === undefined) config.soloTimeType = 'per_q';
+        if (config.soloTimeVal === undefined) config.soloTimeVal = 0;
+        if (config.soloRecovery === undefined) config.soloRecovery = 0;
+        return config;
+    },
+
     loadProgramList: function () {
         const select = document.getElementById('studio-program-select');
         const btn = document.getElementById('studio-load-program-btn');
@@ -517,6 +530,28 @@ App.Studio = {
 
         if (!select || !btn) return;
         if (!showId) { select.innerHTML = '<option>エラー: ID未設定</option>'; return; }
+
+        // 規定モード/ソロモード — ソロ対戦はもうセット側で作り込む設定では
+        // なく、読み込む時にホストがこのセッション限定で選ぶ上書き。
+        this._forcedMode = null;
+        const normalBtn = document.getElementById('studio-mode-normal-btn');
+        const soloBtn = document.getElementById('studio-mode-solo-btn');
+        const paintModeBtns = () => {
+            const isSolo = (this._forcedMode === 'solo');
+            if (normalBtn) {
+                normalBtn.style.borderColor = isSolo ? '#333' : '#00e5ff';
+                normalBtn.style.background = isSolo ? '#1a1a1a' : 'rgba(0,229,255,0.1)';
+                normalBtn.style.color = isSolo ? '#ccc' : '#00e5ff';
+            }
+            if (soloBtn) {
+                soloBtn.style.borderColor = isSolo ? '#00e5ff' : '#333';
+                soloBtn.style.background = isSolo ? 'rgba(0,229,255,0.1)' : '#1a1a1a';
+                soloBtn.style.color = isSolo ? '#00e5ff' : '#ccc';
+            }
+        };
+        if (normalBtn) normalBtn.onclick = () => { this._forcedMode = null; paintModeBtns(); };
+        if (soloBtn) soloBtn.onclick = () => { this._forcedMode = 'solo'; paintModeBtns(); };
+        paintModeBtns();
 
         select.innerHTML = '<option>読込中...</option>';
         btn.disabled = true;
@@ -589,6 +624,11 @@ App.Studio = {
         btn.onclick = () => {
             const val = select.value;
             if (!val) return;
+
+            if (this._forcedMode === 'solo') {
+                const ok = confirm('ソロモードになると今までのモードでなくなりますけど、いいですか？');
+                if (!ok) return;
+            }
 
             const showId = App.State.currentShowId;
 
@@ -697,7 +737,7 @@ App.Studio = {
             qs = this.shuffleArray([...qs]);
         }
         App.Data.studioQuestions = qs;
-        App.Data.currentConfig = item.config || { mode: 'normal' };
+        App.Data.currentConfig = this.applyForcedMode(item.config || { mode: 'normal' });
         App.Data.currentConfig.periodTitle = item.title || "Untitled";
         App.State.currentQIndex = 0;
 
@@ -1474,7 +1514,7 @@ App.Studio = {
             qs = this.shuffleArray([...qs]);
         }
         App.Data.studioQuestions = qs;
-        App.Data.currentConfig = child.config || { mode: 'normal' };
+        App.Data.currentConfig = this.applyForcedMode(child.config || { mode: 'normal' });
         App.Data.currentConfig.periodTitle = child.title || "Untitled";
         App.State.currentQIndex = 0;
 
