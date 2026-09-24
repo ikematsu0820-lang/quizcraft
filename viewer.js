@@ -12,24 +12,81 @@ window.App.Viewer = {
 
     // シンキングタイムBGM — loops on the monitor while a question is up for
     // answering, and stops once it isn't (or the question has no BGM set).
+    //
+    // BGM は数MBあるので、問題ごとに new Audio(data:URI) を作り直すと毎回
+    // デコードと読み込みが走って鳴り始めが遅れる。曲ごとに Audio を1つだけ
+    // 作って（data:URI → Blob URL にして）読み込み済みにしておき、ここでは
+    // 再生/停止を切り替えるだけにする。
+    _bgmCache: {}, // data:URI -> { audio, ready: Promise }
+
+    getBgmAudio: function (data) {
+        if (!data) return null;
+        if (this._bgmCache[data]) return this._bgmCache[data].audio;
+        const audio = new Audio();
+        audio.loop = true;
+        audio.preload = 'auto';
+        const entry = { audio };
+        entry.ready = fetch(data).then(r => r.blob()).then(blob => {
+            audio.src = URL.createObjectURL(blob);
+            audio.load();
+        }).catch(() => { audio.src = data; });
+        this._bgmCache[data] = entry;
+        return audio;
+    },
+
+    // 問題データが届いた時点（＝ホストが「番組を開始」した時点）で、
+    // 出題より前に BGM を読み込んでおく。
+    preloadBgm: function () {
+        const seen = new Set();
+        (this.questions || []).forEach(q => {
+            const b = q && q.design && q.design.bgmThinking;
+            if (b && b.startsWith('data:') && !seen.has(b)) { seen.add(b); this.getBgmAudio(b); }
+        });
+    },
+
     updateThinkingBgm: function (st, q) {
         const d = (q && q.design) || {};
-        const shouldPlay = !!(d.bgmThinking && ['answering', 'question', 'reveal_q'].includes(st.step));
+        const want = (d.bgmThinking && d.bgmThinking.startsWith('data:')) ? d.bgmThinking : null;
+        const shouldPlay = !!(want && ['answering', 'question', 'reveal_q'].includes(st.step));
         if (shouldPlay) {
-            if (this._bgmUrl !== d.bgmThinking) {
-                if (this._bgmAudio) this._bgmAudio.pause();
-                this._bgmUrl = d.bgmThinking;
-                try {
-                    this._bgmAudio = new Audio(d.bgmThinking);
-                    this._bgmAudio.loop = true;
-                    this._bgmAudio.play().catch(() => {});
-                } catch (e) { this._bgmAudio = null; }
+            if (this._bgmUrl !== want && this._bgmAudio) {
+                this._bgmAudio.pause();
+                this._bgmAudio.currentTime = 0;
+            }
+            this._bgmUrl = want;
+            this._bgmAudio = this.getBgmAudio(want);
+            if (this._bgmAudio.paused) {
+                const entry = this._bgmCache[want];
+                const start = () => {
+                    if (this._bgmUrl !== want) return; // 読込中に止められた
+                    this._bgmAudio.play().catch(err => {
+                        if (err && err.name === 'NotAllowedError') this.showSoundUnlock();
+                    });
+                };
+                if (this._bgmAudio.src) start(); else entry.ready.then(start);
             }
         } else if (this._bgmAudio) {
             this._bgmAudio.pause();
+            this._bgmAudio.currentTime = 0;
             this._bgmAudio = null;
             this._bgmUrl = null;
         }
+    },
+
+    // モニターのタブは自動で開かれるため、ブラウザの自動再生制限で音が
+    // 止められることがある — その時だけ、クリックで音を有効にする案内を
+    // 出す（クリックした瞬間に BGM を再開）。
+    showSoundUnlock: function () {
+        if (document.getElementById('viewer-sound-unlock')) return;
+        const btn = document.createElement('button');
+        btn.id = 'viewer-sound-unlock';
+        btn.textContent = '🔊 クリックして音声を有効にする';
+        btn.style.cssText = 'position:fixed; right:16px; bottom:16px; z-index:99999; padding:12px 18px; font-size:16px; font-weight:bold; color:#fff; background:#e53935; border:none; border-radius:10px; cursor:pointer; box-shadow:0 4px 16px rgba(0,0,0,0.5);';
+        btn.onclick = () => {
+            btn.remove();
+            if (this._bgmAudio) this._bgmAudio.play().catch(() => {});
+        };
+        document.body.appendChild(btn);
     },
 
     init: function () {
@@ -96,6 +153,7 @@ window.App.Viewer = {
         let roomImages = null;
         const resolveQuestions = () => {
             this.questions = window.App.SetImages.unpack(rawQuestions, roomImages);
+            this.preloadBgm();
         };
         refs.images.on('value', snap => {
             roomImages = snap.val();

@@ -8,26 +8,86 @@ let myName = "NoName";
 let roomConfig = { mode: 'normal', normalLimit: 'one' };
 let currentQuestion = null;
 
+// ===== 効果音 =====
 // 効果音は rooms/{id}/images に1回だけ送られ、各問題の design には
 // '@img:N' の参照だけが入っている（host_core.js の App.SetImages）。
 // プレイヤーが鳴らすのはボタン/正解/不正解の3つだけなので、images を
 // 丸ごと（シンキングBGMなど数MB）ではなく、必要な番号だけ取ってくる。
-const _playerSoundCache = {};
+//
+// 鳴らすたびに new Audio(data:URI) を作ると、毎回デコードと再生準備が
+// 走ってスマホでは 0.1〜0.5 秒遅れる。Web Audio でデコード済みの
+// AudioBuffer を持っておき、押した瞬間はそれを鳴らすだけにする。
+const PLAYER_SE_KEYS = ['seButton', 'seCorrect', 'seWrong'];
+const _playerSoundCache = {};   // `${roomId}/${mediaVer}/${idx}` -> data:URI
+const _decodedSounds = new Map(); // data:URI -> AudioBuffer
+let _audioCtx = null;
+
+function getAudioCtx() {
+    if (_audioCtx) return _audioCtx;
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return null;
+    try { _audioCtx = new Ctx(); } catch (e) { _audioCtx = null; }
+    return _audioCtx;
+}
+
+// iPhone などはタップ操作の中でしか音を鳴らし始められないので、参加
+// ボタン・早押しボタンなど最初のタップで AudioContext を起こしておく
+// （無音を1回鳴らす）。以降は判定時の正解/不正解音もタップ無しで鳴る。
+function unlockAudio() {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    if (unlockAudio._done) return;
+    try {
+        const src = ctx.createBufferSource();
+        src.buffer = ctx.createBuffer(1, 1, 22050);
+        src.connect(ctx.destination);
+        src.start(0);
+        unlockAudio._done = true;
+    } catch (e) { /* noop */ }
+}
+['touchstart', 'touchend', 'mousedown', 'keydown'].forEach(ev =>
+    document.addEventListener(ev, unlockAudio, { capture: true, passive: true }));
+
+function decodeSound(data) {
+    if (!data || _decodedSounds.has(data)) return;
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    _decodedSounds.set(data, null); // デコード中（二重デコード防止）
+    fetch(data).then(r => r.arrayBuffer())
+        .then(buf => new Promise((res, rej) => ctx.decodeAudioData(buf, res, rej)))
+        .then(audioBuf => _decodedSounds.set(data, audioBuf))
+        .catch(() => _decodedSounds.delete(data));
+}
+
+// 参照 '@img:N' を実データに解決して design に書き戻し、デコードも始める。
 function resolvePlayerSounds(q, roomId) {
     const d = q && q.design;
     if (!d) return;
-    ['seButton', 'seCorrect', 'seWrong'].forEach(k => {
+    PLAYER_SE_KEYS.forEach(k => {
         const v = d[k];
+        if (typeof v === 'string' && v.startsWith('data:')) { decodeSound(v); return; }
         if (typeof v !== 'string' || !v.startsWith('@img:')) return;
         const idx = v.slice(5);
         const cacheKey = `${roomId}/${roomConfig.mediaVer || 0}/${idx}`;
-        if (_playerSoundCache[cacheKey]) { d[k] = _playerSoundCache[cacheKey]; return; }
+        if (_playerSoundCache[cacheKey]) { d[k] = _playerSoundCache[cacheKey]; decodeSound(d[k]); return; }
         d[k] = ''; // 取得するまでは鳴らさない（参照文字列を再生しようとしない）
         window.db.ref(`rooms/${roomId}/images/${idx}`).once('value').then(snap => {
             const data = snap.val() || '';
             _playerSoundCache[cacheKey] = data;
             d[k] = data;
+            decodeSound(data);
         });
+    });
+}
+
+// セットが始まった時点（config.mediaVer が変わった時）に1問目の効果音を
+// 先読みしておく — 問題が届いてから取りに行くと、1問目の最初の早押しで
+// 音が間に合わない。デザインはセット共通なので1問目だけ見れば足りる。
+function preloadPlayerSounds(roomId) {
+    window.db.ref(`rooms/${roomId}/questions/0/design`).once('value').then(snap => {
+        const design = snap.val();
+        if (design) resolvePlayerSounds({ design }, roomId);
     });
 }
 
@@ -40,10 +100,24 @@ let _lastPlayedResult = null; // 正解/不正解 SE — only fire on an actual 
 
 function playSound(url) {
     if (!url) return;
+    const ctx = getAudioCtx();
+    const buf = _decodedSounds.get(url);
+    if (ctx && buf) {
+        try {
+            if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+            const src = ctx.createBufferSource();
+            src.buffer = buf;
+            src.connect(ctx.destination);
+            src.start(0);
+            return;
+        } catch (e) { /* 下の HTMLAudio にフォールバック */ }
+    }
+    // まだデコードできていない時だけ従来の方法で鳴らし、次回用にデコードする
     try {
         const audio = new Audio(url);
         audio.play().catch(() => {}); // ignore autoplay-block errors
     } catch (e) { /* noop */ }
+    decodeSound(url);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -116,6 +190,7 @@ function showPlayerView(viewId) {
 }
 
 function joinRoom() {
+    unlockAudio(); // 参加ボタンのタップ中に音を解禁しておく（iPhone 対策）
     const codeInput = document.getElementById('room-code-input');
     const nameInput = document.getElementById('player-name-input');
 
@@ -207,7 +282,9 @@ function startPlayerListener(roomId, playerId) {
     });
 
     configRef.on('value', snap => {
+        const prevMediaVer = roomConfig.mediaVer;
         roomConfig = snap.val() || { mode: 'normal' };
+        if (roomConfig.mediaVer && roomConfig.mediaVer !== prevMediaVer) preloadPlayerSounds(roomId);
     });
 
     statusRef.on('value', snap => {
