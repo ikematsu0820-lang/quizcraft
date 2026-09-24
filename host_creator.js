@@ -1374,6 +1374,19 @@ window.App.Creator = {
 
 
     getData: function () {
+        // 正解表示プレビュー中は #creator-form-container の中身が読み取り
+        // 専用の正解表示ボックスに差し替わっていて、実際の入力欄（選択肢
+        // の行や #creator-text-answer など）が存在しない。そのままここで
+        // .value を読もうとして例外になり、リストに追加/更新ボタンを
+        // 押しても（何のエラーも見えないまま）反応しないように見えて
+        // いた — 保存/更新/編集切替のどこから来ても必ずここを通るので、
+        // 読み取り前に一旦編集画面へ戻す。
+        if (this._previewRevealOn) {
+            this.togglePreviewReveal(false);
+            const toggle = document.getElementById('creator-preview-reveal-toggle');
+            if (toggle) toggle.checked = false;
+        }
+
         const qText = document.getElementById('question-text').value.trim();
         if (!qText) { alert(APP_TEXT.Creator.AlertNoQ); return null; }
         const sel = document.getElementById('creator-q-type');
