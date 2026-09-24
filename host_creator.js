@@ -171,6 +171,9 @@ window.App.Creator = {
     loadSet: function (key, item) {
         window.App.State.editingSetId = key;
         this.editingTitle = item.title || "";
+        // init() を通らないので、ヘッダーの番組IDもここで表示する
+        const showIdEl = document.getElementById('creator-show-id');
+        if (showIdEl) showIdEl.textContent = window.App.State.currentShowId || '---';
         item.questions = window.App.SetImages.unpack(item.questions || [], item.images);
         delete item.images;
         window.App.Data.createdQuestions = item.questions;
@@ -251,8 +254,10 @@ window.App.Creator = {
     },
 
     snapshot: function () {
+        // 画像・音声は参照に置き換えてから比べる — 元に戻した状態だと
+        // 数MBのBGMが問題数分つながり、文字列の上限を超えて落ちる
         return JSON.stringify({
-            q: window.App.Data.createdQuestions || [],
+            q: window.App.SetImages.pack(window.App.Data.createdQuestions || []),
             d: window.App.Data.currentDesign || {},
             c: window.App.Data.currentConfig || {}
         });

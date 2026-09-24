@@ -20,29 +20,44 @@ window.App.Data = {
     currentConfig: {}
 };
 
-// 背景画像の重複排除 — デザインはセット共通なのに Creator.save() が全問題に
-// 同じ design をコピーするため、画像（data: URI, 1枚100KB超）が問題数分
-// 複製されて1セット数MBになり、読込・ルームへの送信・モニターへの配信が
-// 止まったように遅くなっていた（「クイズ王は俺だ」75問で約9MB）。
-// 保存時/ルーム送信時は画像を images 配列に1回だけ持ち、各問題には
+// 背景画像・サウンドの重複排除 — デザインはセット共通なのに
+// Creator.save() が全問題に同じ design をコピーするため、画像や音声
+// （data: URI）が問題数分複製されて巨大になっていた。画像（1枚100KB超）
+// で「クイズ王は俺だ」75問が約9MBになり開始・配信が止まり、シンキング
+// BGM（約7MB）を選ぶと数百MBになって保存自体が失敗していた。
+// 保存時/ルーム送信時はこれらを images 配列に1回だけ持ち、各問題には
 // '@img:N' の参照だけを残す。読む側は unpack() で元に戻す。
+// （フィールド名は画像だけだった頃のまま images — 保存済みデータ互換）
 window.App.SetImages = {
     PREFIX: '@img:',
+    KEYS: ['bgImage', 'bgmThinking', 'seButton', 'seCorrect', 'seWrong'],
 
     pack: function (questions) {
         const images = [];
         const indexOf = {};
         const list = Array.isArray(questions) ? questions : Object.values(questions || {});
         const packed = list.map(q => {
-            const img = q && q.design && q.design.bgImage;
-            if (typeof img !== 'string' || !img.startsWith('data:')) return q;
-            if (indexOf[img] === undefined) {
-                indexOf[img] = images.length;
-                images.push(img);
-            }
-            return { ...q, design: { ...q.design, bgImage: this.PREFIX + indexOf[img] } };
+            if (!q || !q.design) return q;
+            let design = null;
+            this.KEYS.forEach(k => {
+                const v = q.design[k];
+                if (typeof v !== 'string' || !v.startsWith('data:')) return;
+                if (indexOf[v] === undefined) {
+                    indexOf[v] = images.length;
+                    images.push(v);
+                }
+                design = design || { ...q.design };
+                design[k] = this.PREFIX + indexOf[v];
+            });
+            return design ? { ...q, design } : q;
         });
         return { questions: packed, images: images };
+    },
+
+    // '@img:N' なら N を返す（参照でなければ -1）
+    refIndex: function (v) {
+        if (typeof v !== 'string' || !v.startsWith(this.PREFIX)) return -1;
+        return parseInt(v.slice(this.PREFIX.length), 10);
     },
 
     unpack: function (questions, images) {
@@ -50,9 +65,15 @@ window.App.SetImages = {
         if (!images) return list;
         const imgs = Array.isArray(images) ? images : Object.values(images);
         return list.map(q => {
-            const ref = q && q.design && q.design.bgImage;
-            if (typeof ref !== 'string' || !ref.startsWith(this.PREFIX)) return q;
-            return { ...q, design: { ...q.design, bgImage: imgs[parseInt(ref.slice(this.PREFIX.length), 10)] || '' } };
+            if (!q || !q.design) return q;
+            let design = null;
+            this.KEYS.forEach(k => {
+                const idx = this.refIndex(q.design[k]);
+                if (idx < 0) return;
+                design = design || { ...q.design };
+                design[k] = imgs[idx] || '';
+            });
+            return design ? { ...q, design } : q;
         });
     }
 };

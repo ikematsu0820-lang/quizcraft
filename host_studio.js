@@ -691,6 +691,9 @@ App.Studio = {
     syncRoomQuestions: function (roomId) {
         const packed = App.SetImages.pack(App.Data.studioQuestions);
         window.db.ref(`rooms/${roomId}/images`).set(packed.images.length ? packed.images : null);
+        // セットが変わると images の中身も入れ替わる — プレイヤー側の効果音
+        // キャッシュ（player.js resolvePlayerSounds）を区別するための版番号
+        window.db.ref(`rooms/${roomId}/config/mediaVer`).set(Date.now());
         window.db.ref(`rooms/${roomId}/questions`).set(packed.questions);
     },
 
@@ -738,15 +741,18 @@ App.Studio = {
 
         // Always run shuffleQuestions to apply per-question choice shuffling (q.shuffle flag).
         // The global config.shuffleQuestions only controls question ORDER randomization.
-        // 保存時に1回だけにまとめた背景画像（item.images）を各問題に戻す
-        let qs = App.SetImages.unpack(item.questions || [], item.images);
+        // 画像・音声は参照（'@img:N'）のまま扱い、最後に元へ戻す —
+        // shuffleQuestions() は問題を JSON で丸ごとコピーするので、先に
+        // 戻すと数MBの音声が問題数分複製されてしまう（App.SetImages）。
+        const media = App.SetImages.pack(App.SetImages.unpack(item.questions || [], item.images));
+        let qs = media.questions;
         // Apply per-question choice shuffling (based on each q.shuffle flag)
         qs = this.shuffleQuestions(qs);
         // If global question order shuffle is enabled, randomize the question order too
         if (item.config && item.config.shuffleQuestions === true) {
             qs = this.shuffleArray([...qs]);
         }
-        App.Data.studioQuestions = qs;
+        App.Data.studioQuestions = App.SetImages.unpack(qs, media.images);
         App.Data.currentConfig = this.applyForcedMode(item.config || { mode: 'normal' });
         App.Data.currentConfig.periodTitle = item.title || "Untitled";
         App.State.currentQIndex = 0;
@@ -1517,12 +1523,14 @@ App.Studio = {
         App.State.currentPeriodIndex = containerIndex; // Keep container as the period index
         if (!child.progSettings) child.progSettings = { showRankingAfter: false, eliminationMode: 'none' };
 
-        let qs = App.SetImages.unpack(child.questions || [], child.images);
+        // 参照のままシャッフルしてから元に戻す（setupPeriod と同じ理由）
+        const media = App.SetImages.pack(App.SetImages.unpack(child.questions || [], child.images));
+        let qs = media.questions;
         qs = this.shuffleQuestions(qs);
         if (child.config && child.config.shuffleQuestions === true) {
             qs = this.shuffleArray([...qs]);
         }
-        App.Data.studioQuestions = qs;
+        App.Data.studioQuestions = App.SetImages.unpack(qs, media.images);
         App.Data.currentConfig = this.applyForcedMode(child.config || { mode: 'normal' });
         App.Data.currentConfig.periodTitle = child.title || "Untitled";
         App.State.currentQIndex = 0;

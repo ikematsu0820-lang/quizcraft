@@ -8,6 +8,29 @@ let myName = "NoName";
 let roomConfig = { mode: 'normal', normalLimit: 'one' };
 let currentQuestion = null;
 
+// 効果音は rooms/{id}/images に1回だけ送られ、各問題の design には
+// '@img:N' の参照だけが入っている（host_core.js の App.SetImages）。
+// プレイヤーが鳴らすのはボタン/正解/不正解の3つだけなので、images を
+// 丸ごと（シンキングBGMなど数MB）ではなく、必要な番号だけ取ってくる。
+const _playerSoundCache = {};
+function resolvePlayerSounds(q, roomId) {
+    const d = q && q.design;
+    if (!d) return;
+    ['seButton', 'seCorrect', 'seWrong'].forEach(k => {
+        const v = d[k];
+        if (typeof v !== 'string' || !v.startsWith('@img:')) return;
+        const idx = v.slice(5);
+        const cacheKey = `${roomId}/${roomConfig.mediaVer || 0}/${idx}`;
+        if (_playerSoundCache[cacheKey]) { d[k] = _playerSoundCache[cacheKey]; return; }
+        d[k] = ''; // 取得するまでは鳴らさない（参照文字列を再生しようとしない）
+        window.db.ref(`rooms/${roomId}/images/${idx}`).once('value').then(snap => {
+            const data = snap.val() || '';
+            _playerSoundCache[cacheKey] = data;
+            d[k] = data;
+        });
+    });
+}
+
 let isReanswering = false;
 let localOptimisticResult = null;
 
@@ -208,6 +231,7 @@ function startPlayerListener(roomId, playerId) {
                 const q = qSnap.val();
                 if (q) {
                     currentQuestion = q;
+                    resolvePlayerSounds(q, roomId);
                     renderPlayerQuestion(q, roomId, playerId);
                     updateUI();
                 }
