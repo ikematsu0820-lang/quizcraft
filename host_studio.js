@@ -684,6 +684,16 @@ App.Studio = {
         };
     },
 
+    // 問題をルームへ送る。背景画像は全問題で同じなので images に1回だけ
+    // 書き、問題側は参照だけにする（App.SetImages）— 画像を問題数分
+    // 複製して送ると数MBになり、モニターの表示が止まったように遅れる。
+    // viewer は images を先に受け取れるよう、questions より先に書く。
+    syncRoomQuestions: function (roomId) {
+        const packed = App.SetImages.pack(App.Data.studioQuestions);
+        window.db.ref(`rooms/${roomId}/images`).set(packed.images.length ? packed.images : null);
+        window.db.ref(`rooms/${roomId}/questions`).set(packed.questions);
+    },
+
     renderTimeline: function () {
         const area = document.getElementById('studio-period-timeline');
         area.innerHTML = '';
@@ -728,8 +738,8 @@ App.Studio = {
 
         // Always run shuffleQuestions to apply per-question choice shuffling (q.shuffle flag).
         // The global config.shuffleQuestions only controls question ORDER randomization.
-        let qs = item.questions || [];
-        if (!Array.isArray(qs)) qs = Object.values(qs);
+        // 保存時に1回だけにまとめた背景画像（item.images）を各問題に戻す
+        let qs = App.SetImages.unpack(item.questions || [], item.images);
         // Apply per-question choice shuffling (based on each q.shuffle flag)
         qs = this.shuffleQuestions(qs);
         // If global question order shuffle is enabled, randomize the question order too
@@ -749,7 +759,7 @@ App.Studio = {
 
         // Firebase Sync
         window.db.ref(`rooms/${roomId}/config`).set(App.Data.currentConfig);
-        window.db.ref(`rooms/${roomId}/questions`).set(App.Data.studioQuestions);
+        this.syncRoomQuestions(roomId);
         // The viewer only re-renders on a `status` change (its `config`
         // listener just updates a local copy silently) — without this, it
         // keeps showing the generic "Quiz Studio" placeholder from room
@@ -1507,8 +1517,7 @@ App.Studio = {
         App.State.currentPeriodIndex = containerIndex; // Keep container as the period index
         if (!child.progSettings) child.progSettings = { showRankingAfter: false, eliminationMode: 'none' };
 
-        let qs = child.questions || [];
-        if (!Array.isArray(qs)) qs = Object.values(qs);
+        let qs = App.SetImages.unpack(child.questions || [], child.images);
         qs = this.shuffleQuestions(qs);
         if (child.config && child.config.shuffleQuestions === true) {
             qs = this.shuffleArray([...qs]);
@@ -1526,7 +1535,7 @@ App.Studio = {
 
         // Firebase Sync
         window.db.ref(`rooms/${roomId}/config`).set(App.Data.currentConfig);
-        window.db.ref(`rooms/${roomId}/questions`).set(App.Data.studioQuestions);
+        this.syncRoomQuestions(roomId);
         window.db.ref(`rooms/${roomId}/status/programTitle`).set(App.Data.currentConfig.periodTitle);
 
         // UI Prep
@@ -2787,8 +2796,7 @@ App.Studio = {
     quickStart: function (setData) {
         console.log("Quick starting set:", setData.title);
         const unextDesign = { mainBgColor: "#0a0a0a", qTextColor: "#fff", qBgColor: "rgba(255,255,255,0.05)", qBorderColor: "#00bfff" };
-        let rawQ = setData.questions || [];
-        if (!Array.isArray(rawQ)) rawQ = Object.values(rawQ);
+        const rawQ = App.SetImages.unpack(setData.questions || [], setData.images);
         const questions = rawQ.map(q => {
             // Create a clean copy to avoid reference issues
             const newQ = Object.assign({}, q);

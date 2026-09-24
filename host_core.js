@@ -20,6 +20,43 @@ window.App.Data = {
     currentConfig: {}
 };
 
+// 背景画像の重複排除 — デザインはセット共通なのに Creator.save() が全問題に
+// 同じ design をコピーするため、画像（data: URI, 1枚100KB超）が問題数分
+// 複製されて1セット数MBになり、読込・ルームへの送信・モニターへの配信が
+// 止まったように遅くなっていた（「クイズ王は俺だ」75問で約9MB）。
+// 保存時/ルーム送信時は画像を images 配列に1回だけ持ち、各問題には
+// '@img:N' の参照だけを残す。読む側は unpack() で元に戻す。
+window.App.SetImages = {
+    PREFIX: '@img:',
+
+    pack: function (questions) {
+        const images = [];
+        const indexOf = {};
+        const list = Array.isArray(questions) ? questions : Object.values(questions || {});
+        const packed = list.map(q => {
+            const img = q && q.design && q.design.bgImage;
+            if (typeof img !== 'string' || !img.startsWith('data:')) return q;
+            if (indexOf[img] === undefined) {
+                indexOf[img] = images.length;
+                images.push(img);
+            }
+            return { ...q, design: { ...q.design, bgImage: this.PREFIX + indexOf[img] } };
+        });
+        return { questions: packed, images: images };
+    },
+
+    unpack: function (questions, images) {
+        const list = Array.isArray(questions) ? questions : Object.values(questions || {});
+        if (!images) return list;
+        const imgs = Array.isArray(images) ? images : Object.values(images);
+        return list.map(q => {
+            const ref = q && q.design && q.design.bgImage;
+            if (typeof ref !== 'string' || !ref.startsWith(this.PREFIX)) return q;
+            return { ...q, design: { ...q.design, bgImage: imgs[parseInt(ref.slice(this.PREFIX.length), 10)] || '' } };
+        });
+    }
+};
+
 window.App.Ui = {
     views: {},
 
@@ -495,6 +532,7 @@ window.App.Dashboard = {
             const sets = setSnap.val() || {};
             const progs = progSnap.val() || {};
 
+            Object.keys(sets).forEach(k => { sets[k].size = this.dataSize(sets[k]); });
             const sortedSets = Object.keys(sets).map(k => ({ ...sets[k], key: k }))
                 .sort((a, b) => getTs(b) - getTs(a));
             const sortedProgs = Object.keys(progs).map(k => ({ ...progs[k], key: k }))
@@ -580,9 +618,20 @@ window.App.Dashboard = {
             qCount: questions.length,
             config: { mode: (setData.config && setData.config.mode) || 'normal' },
             typeCat: getQCategory(questions),
+            size: this.dataSize(setData),
         };
         if (typeof setData.createdAt === 'number') meta.createdAt = setData.createdAt;
         return meta;
+    },
+
+    // セットのデータ容量（バイト）— 一覧で重いセットに気づけるように表示する。
+    dataSize: function (data) {
+        try { return new Blob([JSON.stringify(data)]).size; } catch (e) { return 0; }
+    },
+
+    formatSize: function (bytes) {
+        if (bytes >= 1024 * 1024) return (bytes / 1024 / 1024).toFixed(1) + 'MB';
+        return Math.max(1, Math.round(bytes / 1024)) + 'KB';
     },
 
     // Legacy sets saved before saved_sets_meta existed have no entry there
@@ -594,8 +643,12 @@ window.App.Dashboard = {
             const existing = snap.val() || {};
             const updates = {};
             Object.keys(sets).forEach(k => {
-                if (existing[k]) return;
-                updates[k] = this.buildSetMeta(sets[k]);
+                if (!existing[k]) {
+                    updates[k] = this.buildSetMeta(sets[k]);
+                } else if (existing[k].size !== sets[k].size) {
+                    // 容量表示を追加する前の meta / 容量が変わったセットの size を更新
+                    updates[`${k}/size`] = sets[k].size;
+                }
             });
             if (Object.keys(updates).length > 0) {
                 window.db.ref(`saved_sets_meta/${showId}`).update(updates);
@@ -663,6 +716,9 @@ window.App.Dashboard = {
 
             const modeMap = { 'normal': '一斉', 'buzz': '早押し', 'turn': '順番', 'solo': 'ソロ' };
             const modeStr = modeMap[itemMode] || '一斉';
+            // 1MBを超えると開始・配信が目に見えて遅くなるので色で知らせる
+            const sizeColor = !d.size ? '#888' : d.size >= 1024 * 1024 ? '#ff6b6b' : d.size >= 300 * 1024 ? '#ffb74d' : '#888';
+            const sizeStr = d.size ? `<span style="margin-left:6px; color:${sizeColor}; font-size:0.85em;">${this.formatSize(d.size)}</span>` : '';
 
             const div = document.createElement('div');
             div.className = 'dash-list-item item-type-set';
@@ -672,7 +728,7 @@ window.App.Dashboard = {
             div.innerHTML = `
                 <div class="item-main">
                     <div class="item-title"><span class="badge-set">SET</span> ${d.title || "Untitled"}</div>
-                    <div class="item-meta">${dateStr} / ${qCount}Q <span style="margin-left:8px; color:#ccc; background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px; font-size:0.85em;">${modeStr}</span></div>
+                    <div class="item-meta">${dateStr} / ${qCount}Q <span style="margin-left:8px; color:#ccc; background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px; font-size:0.85em;">${modeStr}</span>${sizeStr}</div>
                 </div>`;
             listEl.appendChild(div);
         });

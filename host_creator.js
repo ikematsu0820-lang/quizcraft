@@ -15,6 +15,7 @@ window.App.Creator = {
         this.editingIndex = null;
         this.editingTitle = "";
         this.activeInlinePanel = null;
+        this._savedSnapshot = null;
         window.App.Data.createdQuestions = [];
         window.App.Data.currentConfig = window.App.Config
             ? JSON.parse(JSON.stringify(window.App.Config.DEFAULT_CONFIG))
@@ -170,7 +171,9 @@ window.App.Creator = {
     loadSet: function (key, item) {
         window.App.State.editingSetId = key;
         this.editingTitle = item.title || "";
-        window.App.Data.createdQuestions = item.questions || [];
+        item.questions = window.App.SetImages.unpack(item.questions || [], item.images);
+        delete item.images;
+        window.App.Data.createdQuestions = item.questions;
         window.App.Data.currentConfig = window.App.Config
             ? { ...JSON.parse(JSON.stringify(window.App.Config.DEFAULT_CONFIG)), ...(item.config || {}) }
             : (item.config || {});
@@ -242,18 +245,38 @@ window.App.Creator = {
         // か」を選べるようリスト編集タブを既定にする（新規作成時は
         // 従来通りデザイン/テキストのまま — initWithType() 側）。
         this.toggleInlinePanel('list');
+        // 開いた直後の状態を「保存済み」として覚えておく — 何も変えずに
+        // 戻る時まで未保存の確認を出さないため（hasUnsavedWork 参照）。
+        this._savedSnapshot = this.snapshot();
+    },
+
+    snapshot: function () {
+        return JSON.stringify({
+            q: window.App.Data.createdQuestions || [],
+            d: window.App.Data.currentDesign || {},
+            c: window.App.Data.currentConfig || {}
+        });
     },
 
     // 「リストに追加」「リストを保存する」を押し忘れたまま画面を離れる
     // と内容が消えてしまう — 離れる前に確認を出すかどうかの判定に使う
     // （host_core.js の戻るボタン / 下の beforeunload 両方から参照）。
-    // リストに追加済みだが未保存の問題があるか、今書きかけの問題文が
-    // あれば「保存されていない状態」とみなす。
+    // 今書きかけの問題文があるか、リスト（＋デザイン/ルール）が最後に
+    // 保存・読み込みした時から変わっていれば「保存されていない状態」と
+    // みなす。保存済みのセットを開いて何も変えずに戻る時は確認しない。
     hasUnsavedWork: function () {
-        if ((window.App.Data.createdQuestions || []).length > 0) return true;
-        const qText = document.getElementById('question-text');
-        if (qText && qText.value.trim() !== '') return true;
-        return false;
+        const qs = window.App.Data.createdQuestions || [];
+        const qTextEl = document.getElementById('question-text');
+        const qText = qTextEl ? qTextEl.value.trim() : '';
+        if (this.editingIndex === null) {
+            if (qText !== '') return true;
+        } else {
+            // 既存の問題を編集中 — 問題文が元のままなら書きかけではない
+            const cur = qs[this.editingIndex];
+            if (cur && qText !== String(cur.q || '').trim()) return true;
+        }
+        if (this._savedSnapshot) return this.snapshot() !== this._savedSnapshot;
+        return qs.length > 0;
     },
 
     resetForm: function () {
@@ -721,6 +744,7 @@ window.App.Creator = {
         const modeBtn = document.getElementById('creator-rule-mode-btn');
         const rulesBtn = document.getElementById('creator-rule-settings-btn');
         const designBtn = document.getElementById('creator-rule-design-btn');
+        const listBtn = document.getElementById('creator-rule-list-btn');
         const editBtn = document.getElementById('creator-inline-edit-toggle');
         if (!modeBtn || !rulesBtn || !editBtn) return;
         if (!window.App.Config) return;
@@ -733,6 +757,7 @@ window.App.Creator = {
         rulesBtn.textContent = 'ルール設定';
 
         editBtn.onclick = () => this.toggleInlinePanel('edit');
+        if (listBtn) listBtn.onclick = () => this.toggleInlinePanel('list');
         if (designBtn) designBtn.onclick = () => this.toggleInlinePanel('design');
         modeBtn.onclick = () => this.toggleInlinePanel('mode');
         rulesBtn.onclick = () => this.toggleInlinePanel('rules');
@@ -2052,9 +2077,13 @@ ${spec.placeholder}" style="
         // turn-only mode even if the rules buttons were touched earlier).
         if (window.App.Config) window.App.Config.applyModeRestrictions(window.App.Data.currentConfig, window.App.Data.createdQuestions);
 
+        // 背景画像は全問題共通なので1回だけ保存する（App.SetImages 参照）。
+        // images: null で、画像を外した時に古い images も update() で消える。
+        const packed = window.App.SetImages.pack(window.App.Data.createdQuestions);
         const data = {
             title: title,
-            questions: window.App.Data.createdQuestions,
+            questions: packed.questions,
+            images: packed.images.length ? packed.images : null,
             config: window.App.Data.currentConfig,
             updatedAt: firebase.database.ServerValue.TIMESTAMP
         };
@@ -2083,6 +2112,7 @@ ${spec.placeholder}" style="
             window.App.Ui.showToast("保存しました");
             window.App.State.editingSetId = null;
             this.editingTitle = "";
+            this._savedSnapshot = null;
             window.App.Data.createdQuestions = [];
             const sel = document.getElementById('creator-q-type');
             if (sel) {

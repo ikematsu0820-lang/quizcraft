@@ -195,6 +195,7 @@ window.App.ProgConfig = {
             snapshotAt: Date.now(),
             title: setItem.title || "Untitled Stage",
             questions: JSON.parse(JSON.stringify(setItem.questions || [])),
+            images: setItem.images ? JSON.parse(JSON.stringify(setItem.images)) : null,
             config: JSON.parse(JSON.stringify(setItem.config || { mode: 'normal', gameType: 'score' })),
             progSettings: {
                 showRankingAfter: false,

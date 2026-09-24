@@ -81,6 +81,7 @@ window.App.Viewer = {
             config: window.db.ref(`rooms/${this.roomId}/config`),
             status: window.db.ref(`rooms/${this.roomId}/status`),
             questions: window.db.ref(`rooms/${this.roomId}/questions`),
+            images: window.db.ref(`rooms/${this.roomId}/images`),
             players: window.db.ref(`rooms/${this.roomId}/players`)
         };
 
@@ -88,8 +89,21 @@ window.App.Viewer = {
             this.config = snap.val() || {};
         });
 
+        // 背景画像は rooms/images に1回だけ送られ、各問題の design.bgImage
+        // には '@img:N' の参照だけが入っている（App.SetImages）— 受け取った
+        // 時点で元の画像に戻しておく。
+        let rawQuestions = [];
+        let roomImages = null;
+        const resolveQuestions = () => {
+            this.questions = window.App.SetImages.unpack(rawQuestions, roomImages);
+        };
+        refs.images.on('value', snap => {
+            roomImages = snap.val();
+            resolveQuestions();
+        });
         refs.questions.on('value', snap => {
-            this.questions = snap.val() || [];
+            rawQuestions = snap.val() || [];
+            resolveQuestions();
         });
 
         refs.status.on('value', snap => {
@@ -873,6 +887,7 @@ window.App.Viewer = {
 
         // Background
         container.style.backgroundColor = d.mainBgColor || '#0a0a0a';
+        this.setCinemaShadow(!!d.bgImage);
         if (d.bgImage) {
             container.style.backgroundImage = `url(${d.bgImage})`;
             container.style.backgroundSize = "cover";
@@ -894,6 +909,10 @@ window.App.Viewer = {
         // 背景色が無くても後ろの映像がぼやけて box の輪郭が浮かび上がって
         // 見えてしまう。背景が完全に透明を選んだ時だけ、ぼかしも一緒に消す。
         const qBackdropStyle = (d.qBgColor === 'transparent') ? ' backdrop-filter:none; -webkit-backdrop-filter:none; box-shadow:none;' : '';
+        // 文字色を透明にしても .q-area の text-shadow（黒い文字影）だけが
+        // 残り、文字がうっすら透けて見えていた — 問題文入りの画像を背景に
+        // 使うための「透明」なので、影も一緒に消して完全に見えなくする。
+        const qTextShadowStyle = (textColor === 'transparent') ? ' text-shadow:none;' : '';
 
         // Free Input — only one box (q-area; the answer itself is on each
         // player's own device, not the shared monitor), so 問題文の位置
@@ -911,7 +930,7 @@ window.App.Viewer = {
             // against the tags (no surrounding template indentation) since
             // .q-area now uses white-space:pre-wrap, which would otherwise
             // render that indentation as stray blank lines/leading spaces.
-            html += `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align}; font-size:${d.qFontSize || '6vh'}; width:80%;${qBoxSizeStyle}${qBackdropStyle}">${q.q}</div>`;
+            html += `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align}; font-size:${d.qFontSize || '6vh'}; width:80%;${qBoxSizeStyle}${qBackdropStyle}${qTextShadowStyle}">${q.q}</div>`;
 
         } else {
             // 問題文の位置: top/bottom stack the q-area above/below the
@@ -938,7 +957,7 @@ window.App.Viewer = {
                 ? `width:28vw; height:80vh; margin:0 3vw;`
                 : `width:90%;`;
             // ${q.q} sits directly against the tags — see the note above.
-            html += `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align};${d.qFontSize ? ` font-size:${d.qFontSize};` : ''} ${qAreaStyle}${qBoxSizeStyle}${qBackdropStyle}">${q.q}</div>`;
+            html += `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align};${d.qFontSize ? ` font-size:${d.qFontSize};` : ''} ${qAreaStyle}${qBoxSizeStyle}${qBackdropStyle}${qTextShadowStyle}">${q.q}</div>`;
 
             if (q.c) {
                 const rows = parseInt(d.gridRows) || 0;
@@ -1044,9 +1063,18 @@ window.App.Viewer = {
         `;
     },
 
+    // #viewer-content の映画風の黒い影（style_viewer.css）は、背景画像を
+    // 使うと画像の上に四角い枠のように浮き出てしまう — 背景画像がある
+    // 時は消して、画像がそのままクリアに映るようにする。
+    setCinemaShadow: function (hasBgImage) {
+        const content = document.getElementById('viewer-content');
+        if (content) content.style.boxShadow = hasBgImage ? 'none' : '';
+    },
+
     applyDefaultDesign: function (container, design) {
         const d = design || { mainBgColor: '#0a0a0a' };
         container.style.backgroundColor = d.mainBgColor || '#0a0a0a';
+        this.setCinemaShadow(!!d.bgImage);
         if (d.bgImage) {
             container.style.backgroundImage = `url(${d.bgImage})`;
             container.style.backgroundSize = "cover";
