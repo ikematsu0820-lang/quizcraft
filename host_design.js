@@ -58,6 +58,10 @@ App.Design = {
         qBgColor: "rgba(255, 255, 255, 0.05)",
         qBorderColor: "#00bfff",
         qFontSize: "5vh", // 中（4行）— see Q_SIZE_OPTS in renderInlineChooser
+        // 問題文の「枠」自体の大きさ（文字サイズとは別）— 空文字なら
+        // これまで通り中身に合わせた自動の高さ（＝小）。中/大はそこから
+        // 明示的に高さを大きくする。see BOX_SIZE_OPTS.
+        qBoxSize: "",
         cTextColor: "#a0a0a0",
         cBgColor: "transparent",
         cBorderColor: "#333333",
@@ -198,21 +202,27 @@ App.Design = {
             </div>
         `;
         const ALIGN_OPTS = [{ v: 'left', t: '左寄せ' }, { v: 'center', t: '中央' }, { v: 'right', t: '右寄せ' }];
-        // 問題文サイズ — px の自由入力だと、文章の長さに対してちょうどいい
-        // 大きさを毎回手探りすることになるので、想定する文章量（何行分か）
-        // を選ぶプリセットに置き換える。行数が多い想定ほど文字は小さく
-        // （大＝長文向けに小さめ、小＝短文向けに大きめ）。
+        // 問題文の文字サイズ — px の自由入力だと大きさを毎回手探りする
+        // ことになるので、Wordのフォントサイズのように選ぶだけのプリ
+        // セットにする。文字サイズと「枠の大きさ」（BOX_SIZE_OPTS）は
+        // 別の設定 — 混同しないよう、ここに行数の話は含めない。
         const Q_SIZE_OPTS = [
-            { v: '8vh', t: '小（2行）' },
-            { v: '5vh', t: '中（4行）' },
-            { v: '3.5vh', t: '大（6行）' },
+            { v: '8vh', t: '小' },
+            { v: '5vh', t: '中' },
+            { v: '3.5vh', t: '大' },
         ];
-        // 選択肢の文字サイズも同じ理由でプリセット化 — px を打ち込ませる
-        // より、Wordのフォントサイズのように選ぶだけにする。
+        // 選択肢の文字サイズも同じ理由でプリセット化。
         const C_SIZE_OPTS = [
             { v: '2.5vh', t: '小' },
             { v: '3.5vh', t: '中' },
             { v: '5vh', t: '大' },
+        ];
+        // 問題文の「枠」自体の大きさ（文字サイズとは別） — 小＝これまで
+        // 通りの自動の高さ（前回の枠の大きさ）、中＝その約2倍、大＝約3倍。
+        const BOX_SIZE_OPTS = [
+            { v: '', t: '小' },
+            { v: '40vh', t: '中' },
+            { v: '60vh', t: '大' },
         ];
 
         const gridSummary = () => {
@@ -350,6 +360,10 @@ App.Design = {
                         ['問題枠', 'qBorderColor'],
                         ['問題背景', 'qBgColor'],
                     ])}
+                    <div style="display:flex; gap:6px; margin-top:8px; align-items:center;">
+                        ${rowLabel('枠の大きさ')}
+                        ${miniSelect('大きさ', 'qBoxSize', BOX_SIZE_OPTS)}
+                    </div>
                     <div style="display:flex; gap:6px; margin-top:8px;">
                         <select data-key="layout" style="
                             flex:1; min-width:0; padding:6px 4px; background:#1e293b; border:1px solid #475569;

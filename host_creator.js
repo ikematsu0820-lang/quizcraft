@@ -926,6 +926,10 @@ window.App.Creator = {
             // transparent left it lingering as a stray blue halo, so hide
             // it explicitly whenever the border itself is 透明.
             qArea.style.boxShadow = (d.qBorderColor === 'transparent') ? 'none' : '0 0 20px rgba(0,229,255,0.2)';
+            // 枠の大きさ（文字サイズとは別設定）— 小(空文字)なら中身に
+            // 合わせた自動の高さのまま。中/大は viewer.js と同じ考え方で、
+            // このプレビュー枠自身の高さに対して比例換算する。
+            qArea.style.minHeight = d.qBoxSize ? scalePreviewFontSize(d.qBoxSize) : '';
         }
         // input/select/textarea get a global "color:#fff !important" reset
         // (style_host.css), so a plain .style.color assignment loses to it —
