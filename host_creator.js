@@ -286,6 +286,13 @@ window.App.Creator = {
         if (window.App.Design) window.App.Design._selectedObject = 'question';
 
         container.innerHTML = '';
+        // renderPreviewReveal() binds an onclick directly on this same
+        // container (to select 'reveal') — clearing innerHTML only removes
+        // its CHILDREN, not that handler, so it silently survived into the
+        // editable choice/sort/multi/assoc rebuild below and kept firing
+        // during click bubbling, overwriting whatever a choice row's own
+        // click had just selected. Drop it explicitly on every fresh render.
+        container.onclick = null;
         // Reset to flex column so choice rows can use flex:1
         container.style.display = 'flex';
         container.style.flexDirection = 'column';
@@ -802,6 +809,13 @@ window.App.Creator = {
         } else if (key === 'design' && window.App.Design && window.App.Design.renderInlineChooser) {
             window.App.Design.renderInlineChooser(document.getElementById('creator-inline-design'), window.App.Data.currentDesign, () => {
                 this.applyDesignToPreview();
+                // While 正解表示 is on, #creator-form-container holds the
+                // reveal box, not the normal editable choice rows —
+                // applyDesignToPreview() only touches the latter (and the
+                // question box/background, which it still applies fine),
+                // so a revealTextColor/revealBorderColor/revealBgColor
+                // pick never showed up on the reveal box until now.
+                if (this._previewRevealOn) this.renderPreviewReveal(this._previewRevealData);
                 onChange();
             });
         }
@@ -1646,7 +1660,7 @@ window.App.Creator = {
         container.innerHTML = `
             <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;">
                 <div style="background:${revealBg}; border:3px solid ${accent}; border-radius:12px; padding:6% 8%; text-align:center; max-width:90%; box-sizing:border-box;">
-                    <div style="font-size:clamp(0.5rem,1.1vw,0.68rem); color:${accent}; font-weight:800; margin-bottom:6px; letter-spacing:1px;">CORRECT ANSWER</div>
+                    <div style="font-size:clamp(0.5rem,1.1vw,0.68rem); color:${accent}; font-weight:800; margin-bottom:6px; letter-spacing:1px;">正解</div>
                     <div style="font-size:clamp(0.8rem,2.4vw,1.3rem); font-weight:900; color:${revealText}; word-break:break-all;">${ansStr || '（未設定）'}</div>
                 </div>
             </div>

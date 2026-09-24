@@ -1051,7 +1051,7 @@ function renderResultScreen(p) {
         </div>
         <div style="background:rgba(0,0,0,0.03); color:var(--color-text); padding:20px; border-radius:12px; font-weight:900; text-align:center; margin-top:20px; border: 1px solid rgba(0,0,0,0.05);">
             <div style="font-size:0.8em; letter-spacing:1px; margin-bottom:8px; color:var(--color-text-sub);">
-                ${(currentQuestion.mode === 'dobon' || currentQuestion.mode === 'multi' || currentQuestion.multi || roomConfig.mode === 'dobon') ? "NG ANSWER (選んではいけません)" : "CORRECT ANSWER"}
+                ${(currentQuestion.mode === 'dobon' || currentQuestion.mode === 'multi' || currentQuestion.multi || roomConfig.mode === 'dobon') ? "NG ANSWER (選んではいけません)" : "正解"}
             </div>
             <div style="font-size:${isMultiResult ? '1.0em' : '1.8em'}; line-height:1.4;">${correctText}</div>
         </div>

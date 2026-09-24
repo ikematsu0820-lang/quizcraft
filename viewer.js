@@ -343,7 +343,7 @@ window.App.Viewer = {
             const ansStr = st.correct || this.getAnswerString(q);
             const fontSize = ansStr.length > 20 ? '4vh' : ansStr.length > 10 ? '6vh' : '8vh';
 
-            const labelText = "CORRECT ANSWER";
+            const labelText = "正解";
             const labelColor = accent;
 
             answerBox.innerHTML = `
