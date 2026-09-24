@@ -1026,6 +1026,9 @@ function renderResultScreen(p) {
             }
         } else if (currentQuestion.type === 'sort') {
             myAnsText = p.lastAnswer.split('').map(char => currentQuestion.c[char.charCodeAt(0) - 65]).join(' → ');
+        } else if (typeof p.lastAnswer === 'string' && p.lastAnswer.startsWith('data:image')) {
+            // 手書き（記述式）— 描いた画像をそのまま表示。
+            myAnsText = `<img src="${p.lastAnswer}" style="max-width:100%; max-height:140px; border-radius:8px; background:#fff;">`;
         }
     }
 
@@ -1538,41 +1541,24 @@ function renderPlayerQuestion(q, roomId, playerId) {
         const isRankingType = q.type.startsWith('ranking');
         const isAssocType = q.type.startsWith('assoc');
         inputCont.classList.add('multi-mode-container');
-        // ★ For written, place Input & Submit at the TOP (below Question)
+        // ★ For written, place the handwriting pad & Submit at the TOP
+        // (below Question) — draw one answer, submit, pad clears for the
+        // next one (repeated single-entry, same shape as before).
         if (q.type === 'multi_written' || q.type === 'ranking_written' || q.type === 'assoc_written') {
-            const wrapper = document.createElement('div');
-            wrapper.style.display = 'flex';
-            wrapper.style.gap = '10px';
-            wrapper.style.marginBottom = '20px'; // Space before grid
-
-            const inp = document.createElement('input');
-            inp.type = 'text';
-            inp.placeholder = '解答を入力...';
-            inp.className = 'modern-input';
-            inp.style.margin = '0'; // Flex handles gap
-            inp.style.flex = '1';
+            const pad = createHandwritingCanvas();
+            inputCont.appendChild(pad.el);
+            requestAnimationFrame(() => pad.initSize());
 
             const sub = document.createElement('button');
-            sub.className = 'btn-primary';
+            sub.className = 'btn-primary btn-block';
             sub.textContent = '送信';
-            sub.style.width = '100px';
-
-            const sendAction = () => {
-                if (inp.value.trim() === "") return;
-                submitAnswer(roomId, playerId, inp.value.trim());
-                inp.value = ""; // Clear for next answer
-                inp.focus(); // Keep focus for rapid entry
+            sub.style.marginBottom = '20px'; // Space before grid
+            sub.onclick = () => {
+                if (!pad.hasDrawn()) return;
+                submitAnswer(roomId, playerId, pad.getDataUrl());
+                pad.clear(); // Ready for the next answer
             };
-
-            sub.onclick = sendAction;
-            // Allow Enter key
-            inp.onkeydown = (e) => {
-                if (e.key === 'Enter') sendAction();
-            }
-
-            wrapper.appendChild(inp);
-            wrapper.appendChild(sub);
-            inputCont.appendChild(wrapper);
+            inputCont.appendChild(sub);
         } else {
             // multi_oral
             const helpText = document.createElement('div');
@@ -1610,24 +1596,29 @@ function renderPlayerQuestion(q, roomId, playerId) {
         inputCont.appendChild(helpText);
     }
     else {
-        // デフォルト: 記述式 — answered by tapping/typing on the phone right
-        // here, so show the player's own name directly above the input
-        // (near the bottom of the screen, where their thumb already is)
-        // as a clear "this is your answer box" cue.
+        // デフォルト: 記述式 — 指で画面に書いて答える手書きキャンバス
+        // （キーボード入力ではない）。手書きなので文字列比較の自動採点は
+        // できず、記述式はもともと司会者の目視・手動判定。show the
+        // player's own name directly above the pad (near the bottom of the
+        // screen, where their thumb already is) as a clear "this is your
+        // answer" cue.
         const nameTag = document.createElement('div');
         nameTag.className = 'player-input-name-tag';
         nameTag.textContent = `${myName} さんの解答`;
         nameTag.style.cssText = 'text-align:center; font-size:0.85em; color:#94a3b8; margin-bottom:8px; font-weight:600;';
+        inputCont.appendChild(nameTag);
 
-        const inp = document.createElement('input');
-        inp.type = 'text'; inp.placeholder = '解答を入力...'; inp.className = 'modern-input'; inp.style.marginBottom = '15px';
+        const pad = createHandwritingCanvas();
+        inputCont.appendChild(pad.el);
+        requestAnimationFrame(() => pad.initSize());
+
         const sub = document.createElement('button');
         sub.className = 'btn-primary btn-block'; sub.textContent = '送信';
         sub.onclick = () => {
-            if (inp.value.trim() === "") return;
-            submitAnswer(roomId, playerId, inp.value.trim());
+            if (!pad.hasDrawn()) return;
+            submitAnswer(roomId, playerId, pad.getDataUrl());
         };
-        inputCont.appendChild(nameTag); inputCont.appendChild(inp); inputCont.appendChild(sub);
+        inputCont.appendChild(sub);
     }
 }
 
@@ -1659,6 +1650,88 @@ function updateMultiAnswers() {
     });
 }
 
+
+// 記述式（手書き）— 指/マウスで実際に描いて答えるキャンバス。テキスト
+// 入力ではなく、描いた内容を画像（data URL）として送信し、司会者側が
+// 目で見て手動判定する（記述式の解答はもともと手動判定）。
+// free_written / multi_written / ranking_written / assoc_written 共通で使う。
+function createHandwritingCanvas() {
+    const CANVAS_H = 180;
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'margin-bottom:15px;';
+
+    const canvas = document.createElement('canvas');
+    canvas.height = CANVAS_H;
+    canvas.style.cssText = `display:block; width:100%; height:${CANVAS_H}px; background:#fff; border:2px solid #ccc; border-radius:12px; touch-action:none; cursor:crosshair;`;
+    wrap.appendChild(canvas);
+
+    const clearBtn = document.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.textContent = '🗑 クリア';
+    clearBtn.style.cssText = 'margin-top:6px; padding:6px 14px; background:rgba(0,0,0,0.05); border:1px solid rgba(0,0,0,0.15); border-radius:8px; color:var(--color-text-sub); font-size:0.85em; cursor:pointer;';
+    wrap.appendChild(clearBtn);
+
+    const ctx = canvas.getContext('2d');
+    let hasDrawn = false;
+    let drawing = false;
+    let lastX = 0, lastY = 0;
+
+    // Canvas internal resolution needs actual pixel dimensions — sized to
+    // match its own rendered CSS width once it's actually in the DOM
+    // (clientWidth is 0 before layout), so drawing lines up 1:1 with the
+    // pointer instead of being stretched/misaligned.
+    const paintBlank = () => {
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    };
+    const initSize = () => {
+        canvas.width = canvas.clientWidth || wrap.clientWidth || 300;
+        canvas.height = CANVAS_H;
+        paintBlank();
+        ctx.strokeStyle = '#1a1a2e';
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+    };
+
+    const getPos = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    };
+    const start = (e) => {
+        e.preventDefault();
+        drawing = true;
+        hasDrawn = true;
+        const p = getPos(e);
+        lastX = p.x; lastY = p.y;
+    };
+    const move = (e) => {
+        if (!drawing) return;
+        e.preventDefault();
+        const p = getPos(e);
+        ctx.beginPath();
+        ctx.moveTo(lastX, lastY);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+        lastX = p.x; lastY = p.y;
+    };
+    const end = () => { drawing = false; };
+
+    canvas.addEventListener('pointerdown', start);
+    canvas.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', end);
+    canvas.addEventListener('pointerleave', end);
+
+    clearBtn.onclick = () => { paintBlank(); hasDrawn = false; };
+
+    return {
+        el: wrap,
+        initSize,
+        hasDrawn: () => hasDrawn,
+        getDataUrl: () => canvas.toDataURL('image/png'),
+        clear: () => clearBtn.onclick(),
+    };
+}
 
 function submitAnswer(roomId, playerId, answer) {
     if (!['answering', 'question', 'reveal_q'].includes(localStatus.step)) {

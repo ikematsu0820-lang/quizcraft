@@ -730,6 +730,9 @@ window.App.Viewer = {
             } else if (q.type === 'sort' && ans !== null && ans !== undefined) {
                 // For sort, show letters nicely e.g. "A B C D"
                 ans = ans.split('').join(' ');
+            } else if (typeof ans === 'string' && ans.startsWith('data:image')) {
+                // 手書き（記述式）の解答画像。
+                ans = `<img src="${ans}" style="max-width:90%; max-height:70%; border-radius:6px; background:#fff;">`;
             } else if (ans === null || ans === undefined || ans === "") {
                 ans = "---";
             }

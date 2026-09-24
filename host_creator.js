@@ -938,11 +938,15 @@ window.App.Creator = {
         document.querySelectorAll('#creator-form-container .choice-row').forEach(row => {
             const chk = row.querySelector('input[type="checkbox"], input[type="radio"]');
             row.style.background = this.rowBackground(chk && chk.checked);
-            if (d.cBorderColor) row.style.borderBottomColor = d.cBorderColor;
+            // Full border, not just the bottom edge — matches viewer.js's
+            // actual .choice-item (always a full border, grid or not).
+            // Border-bottom-only made each row/grid-cell look like it was
+            // lit from below instead of a flat, evenly-bordered box.
+            if (d.cBorderColor) row.style.borderColor = d.cBorderColor;
         });
         document.querySelectorAll('#creator-form-container .sort-row, #creator-form-container .multi-row, #creator-form-container .assoc-row').forEach(row => {
             if (d.cBgColor) row.style.background = d.cBgColor;
-            if (d.cBorderColor) row.style.borderBottomColor = d.cBorderColor;
+            if (d.cBorderColor) row.style.borderColor = d.cBorderColor;
         });
 
         // 選択肢/項目の配置（行数/列数）: mirrors viewer.js's .c-area grid,
@@ -999,7 +1003,7 @@ window.App.Creator = {
         row.style.cssText = `
             display:flex; align-items:center;
             background:${this.rowBackground(checked)};
-            border-bottom:1px solid ${borderC || 'rgba(255,255,255,0.1)'};
+            border:1px solid ${borderC || 'rgba(255,255,255,0.1)'};
             border-radius:6px;
             cursor:pointer; transition:background 0.2s;
             flex:1; min-height:0; overflow:hidden;
@@ -1088,7 +1092,7 @@ window.App.Creator = {
         row.style.cssText = `
             display:flex; align-items:center;
             background:linear-gradient(90deg,rgba(255,255,255,0.04) 0%,transparent 100%);
-            border-bottom:1px solid rgba(255,255,255,0.1);
+            border:1px solid rgba(255,255,255,0.1);
             border-radius:6px;
             cursor:pointer; transition:background 0.2s;
             flex:1; min-height:0; overflow:hidden;
@@ -1154,7 +1158,7 @@ window.App.Creator = {
         row.style.cssText = `
             display:flex; align-items:center;
             background:linear-gradient(90deg,rgba(255,255,255,0.04) 0%,transparent 100%);
-            border-bottom:1px solid rgba(255,255,255,0.1);
+            border:1px solid rgba(255,255,255,0.1);
             border-radius:6px;
             cursor:pointer; transition:background 0.2s;
             flex:1; min-height:0; overflow:hidden;
@@ -1187,7 +1191,7 @@ window.App.Creator = {
         row.style.cssText = `
             display:flex; align-items:center;
             background:linear-gradient(90deg,rgba(255,255,255,0.04) 0%,transparent 100%);
-            border-bottom:1px solid rgba(255,255,255,0.1);
+            border:1px solid rgba(255,255,255,0.1);
             border-radius:6px;
             cursor:pointer; transition:background 0.2s;
             flex:1; min-height:0; overflow:hidden;

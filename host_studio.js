@@ -2224,6 +2224,9 @@ App.Studio = {
                         const idx = parseInt(p.lastAnswer);
                         ansText = isNaN(idx) ? p.lastAnswer : String.fromCharCode(65 + idx);
                     }
+                } else if (typeof p.lastAnswer === 'string' && p.lastAnswer.startsWith('data:image')) {
+                    // 手書き（記述式）の解答画像。
+                    ansText = `<img src="${p.lastAnswer}" style="max-width:100%; max-height:60px; border-radius:6px; background:#fff;">`;
                 } else {
                     ansText = p.lastAnswer;
                 }
@@ -2417,6 +2420,13 @@ App.Studio = {
 
         const current = q[0];
         const next    = q[1] || null;
+        // 手書き（記述式）の解答は data:image の画像 — テキストとして
+        // エスケープ表示すると巨大な base64 文字列がそのまま出てしまうので
+        // <img> で見せる。記述式はもともと司会者の目視・手動判定。
+        const isImageAnswer = typeof current.answer === 'string' && current.answer.startsWith('data:image');
+        const answerHtml = isImageAnswer
+            ? `<img src="${current.answer}" style="max-width:100%; max-height:110px; border-radius:8px; background:#fff;">`
+            : this._esc(String(current.answer));
 
         area.innerHTML = `
             <div class="jq-label">判定キュー</div>
@@ -2433,7 +2443,7 @@ App.Studio = {
                 <div class="jq-panel jq-answer" id="jq-answer-panel">
                     <div class="jq-tag">解答</div>
                     <div class="jq-answer-text" id="jq-answer-text">
-                        ${this.judgeCurrentRevealed ? this._esc(String(current.answer)) : '<span class="jq-hidden">タップで開示</span>'}
+                        ${this.judgeCurrentRevealed ? answerHtml : '<span class="jq-hidden">タップで開示</span>'}
                     </div>
                 </div>
                 <div class="jq-panel jq-buttons">

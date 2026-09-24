@@ -805,44 +805,42 @@ window.App.Dashboard = {
         const testAction = `window.App.Dashboard.testItem('${key}', '${type}')`;
 
         const html = `
-            <div id="item-menu-modal" class="bottom-sheet-overlay" onclick="if(event.target===this)this.remove()">
-                <div class="bottom-sheet-content">
-                    <div class="bottom-sheet-header">
-                        <div class="bottom-sheet-title" onclick="window.App.Dashboard.startInlineRename(this, '${key}', '${type}')" style="cursor: pointer;">
-                            ${title} <i class="fas fa-pen" style="font-size:0.7em; margin-left:8px; opacity:0.7;"></i>
+            <div id="item-menu-modal" class="design-modal-overlay" onclick="if(event.target===this)this.remove()">
+                <div class="design-modal-content" style="max-width:340px; padding:24px !important;">
+                    <div class="item-menu-header" style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:18px;">
+                        <div class="item-menu-title" onclick="window.App.Dashboard.startInlineRename(this, '${key}', '${type}')" style="cursor:pointer; min-width:0; display:flex; align-items:center; gap:8px; font-size:1.1em; font-weight:800; color:#fff;">
+                            <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${title}</span>
+                            <i class="fas fa-pen" style="font-size:0.65em; opacity:0.6; flex-shrink:0;"></i>
                         </div>
-                        <button class="bottom-sheet-close" onclick="document.getElementById('item-menu-modal').remove()">×</button>
+                        <button onclick="document.getElementById('item-menu-modal').remove()" style="
+                            flex-shrink:0; width:28px; height:28px; border-radius:50%; background:rgba(255,255,255,0.1);
+                            border:none; color:#fff; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+                        ">×</button>
                     </div>
-                    <div class="bottom-sheet-body" style="padding: 10px 0;">
-                        <button class="sheet-btn" onclick="${startAction}; document.getElementById('item-menu-modal').remove()">
-                            <i class="fas fa-play" style="color:#00e5ff; font-size: 0.9em;"></i> スタート
+                    <div class="item-menu-body" style="display:flex; flex-direction:column; gap:8px;">
+                        <button class="item-menu-btn" onclick="${startAction}; document.getElementById('item-menu-modal').remove()">
+                            <i class="fas fa-play" style="color:#00e5ff;"></i><span>スタート</span>
                         </button>
-                        <button class="sheet-btn" onclick="${testAction}; document.getElementById('item-menu-modal').remove()">
-                            <i class="fas fa-flask" style="color:#f39c12; font-size: 0.9em;"></i> テスト
+                        <button class="item-menu-btn" onclick="${testAction}; document.getElementById('item-menu-modal').remove()">
+                            <i class="fas fa-flask" style="color:#f39c12;"></i><span>テスト</span>
                         </button>
-                        <button class="sheet-btn" onclick="${editAction}">
-                            <i class="fas fa-pen-fancy" style="color: #64b5f6; font-size: 0.9em;"></i> 編集
+                        <button class="item-menu-btn" onclick="${editAction}">
+                            <i class="fas fa-pen-fancy" style="color:#64b5f6;"></i><span>編集</span>
                         </button>
-                        <button class="sheet-btn" onclick="${copyAction}; document.getElementById('item-menu-modal').remove()">
-                            <i class="far fa-file-alt" style="color: #81c784; font-size: 0.9em;"></i> 複製
+                        <button class="item-menu-btn" onclick="${copyAction}; document.getElementById('item-menu-modal').remove()">
+                            <i class="far fa-file-alt" style="color:#81c784;"></i><span>複製</span>
                         </button>
 
-                        <div style="height: 1px; background: rgba(255,255,255,0.08); margin: 10px 0;"></div>
+                        <div style="height:1px; background:rgba(255,255,255,0.08); margin:4px 0;"></div>
 
-                        <button class="sheet-btn text-danger" onclick="${delAction}; document.getElementById('item-menu-modal').remove()">
-                            <i class="fas fa-trash-alt" style="font-size: 0.9em;"></i> 削除
+                        <button class="item-menu-btn item-menu-btn-danger" onclick="${delAction}; document.getElementById('item-menu-modal').remove()">
+                            <i class="fas fa-trash-alt"></i><span>削除</span>
                         </button>
                     </div>
                 </div>
             </div>
         `;
         document.body.insertAdjacentHTML('beforeend', html);
-
-        // Animation
-        setTimeout(() => {
-            const content = document.querySelector('#item-menu-modal .bottom-sheet-content');
-            if (content) content.classList.add('show');
-        }, 10);
     },
 
     // Quick Start: セットを直接スタジオに送る
@@ -971,11 +969,11 @@ window.App.Dashboard = {
             return;
         }
 
-        const modal = document.querySelector('#item-menu-modal .bottom-sheet-content');
+        const modal = document.querySelector('#item-menu-modal .design-modal-content');
         if (!modal) return;
 
-        const titleEl = modal.querySelector('.bottom-sheet-title');
-        const bodyEl = modal.querySelector('.bottom-sheet-body');
+        const titleEl = modal.querySelector('.item-menu-title');
+        const bodyEl = modal.querySelector('.item-menu-body');
 
         if (!titleEl || !bodyEl) return;
 
@@ -986,21 +984,17 @@ window.App.Dashboard = {
 
         // Update Title with Back Button
         titleEl.innerHTML = `
-            <div style="display:flex; align-items:center; gap:12px;">
-                <button onclick="window.App.Dashboard.openItemMenu('${key}', 'set')" style="background:none; border:none; color:#00e5ff; font-size:1.2em; cursor:pointer; padding:0; display:flex; align-items:center; opacity:0.8; transition:0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'"><i class="fas fa-chevron-left"></i></button>
-                <span>編集メニュー</span>
-            </div>
+            <button onclick="window.App.Dashboard.openItemMenu('${key}', 'set')" style="background:none; border:none; color:#00e5ff; font-size:1.2em; cursor:pointer; padding:0; display:flex; align-items:center; opacity:0.8; transition:0.2s; flex-shrink:0;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'"><i class="fas fa-chevron-left"></i></button>
+            <span>編集メニュー</span>
         `;
         titleEl.onclick = null;
         titleEl.style.cursor = 'default';
 
         // Update Body with Edit Options
         bodyEl.innerHTML = `
-            <div style="padding: 10px 0;">
-                <button class="sheet-btn" onclick="window.App.Dashboard.transitionToCreator('${key}'); document.getElementById('item-menu-modal').remove()">
-                    <i class="fas fa-edit" style="color: #64b5f6; font-size: 0.9em;"></i> 問題作成
-                </button>
-            </div>
+            <button class="item-menu-btn" onclick="window.App.Dashboard.transitionToCreator('${key}'); document.getElementById('item-menu-modal').remove()">
+                <i class="fas fa-edit" style="color:#64b5f6;"></i><span>問題作成</span>
+            </button>
         `;
     },
 

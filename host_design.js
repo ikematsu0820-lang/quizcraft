@@ -78,12 +78,13 @@ App.Design = {
         revealBgColor: ""
     },
 
-    // サウンドのデフォルト保存 — one fixed default for the 4 サウンド
-    // fields, shared app-wide (Firebase, not per-browser/per-account), so
-    // every new question/set on any device starts with the same sounds.
-    // Saved explicitly (a button in the サウンド tab); loaded into a local
-    // cache as early as possible (see preloadAppDefaultSounds below) so
-    // App.Creator.init()/loadSet() can read it synchronously.
+    // サウンドのデフォルト — one fixed default for the 4 サウンド fields,
+    // shared app-wide (Firebase, not per-browser/per-account), so every new
+    // question/set on any device starts with the same sounds. Now
+    // read-only from the Creator's side (no more "save these 4 as the
+    // default" button — サウンドライブラリ replaced the old per-question
+    // upload flow this was designed around); still preloaded as early as
+    // possible so App.Creator.init()/loadSet() can read it synchronously.
     _soundKeys: ['bgmThinking', 'seButton', 'seCorrect', 'seWrong'],
     _cachedAppDefaultSounds: null,
 
@@ -92,15 +93,6 @@ App.Design = {
         window.db.ref('app_defaults/sounds').once('value')
             .then(snap => { this._cachedAppDefaultSounds = snap.val() || {}; })
             .catch(() => { this._cachedAppDefaultSounds = this._cachedAppDefaultSounds || {}; });
-    },
-
-    saveSoundDefaults: function (design) {
-        const toSave = {};
-        this._soundKeys.forEach(k => { toSave[k] = design[k] || ''; });
-        if (!window.db) return Promise.resolve(false);
-        return window.db.ref('app_defaults/sounds').set(toSave)
-            .then(() => { this._cachedAppDefaultSounds = toSave; return true; })
-            .catch(e => { console.error('saveSoundDefaults failed:', e); return false; });
     },
 
     // this.defaults, with the app-wide サウンドのデフォルト overlaid on
@@ -380,13 +372,7 @@ App.Design = {
                         ${soundTile('正解音', 'seCorrect', '⭕')}
                         ${soundTile('不正解音', 'seWrong', '❌')}
                     </div>
-                    <p style="color:#555; font-size:0.62rem; margin:4px 0 10px;">※タップして音声を設定。BGMはモニター画面、他は各プレイヤーの端末で再生されます</p>
-                    <button type="button" id="design-save-sound-defaults-btn" style="
-                        width:100%; padding:8px; font-size:0.78rem; font-weight:bold;
-                        background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4);
-                        border-radius:8px; color:#00e5ff; cursor:pointer;
-                    ">💾 この4つをアプリ全体のデフォルトにする</button>
-                    <p style="color:#555; font-size:0.62rem; margin:4px 0 0;">※新規の問題・セットを作るとき、端末やアカウントに関係なく、ここで保存した音が最初から設定された状態で始まります</p>
+                    <p style="color:#555; font-size:0.62rem; margin:4px 0 0;">※タップして音声を設定。BGMはモニター画面、他は各プレイヤーの端末で再生されます</p>
                 `;
             },
             animation: () => `<p style="color:#666; font-size:0.8rem; text-align:center; padding:30px 0;">アニメーションは準備中です</p>`,
@@ -428,14 +414,6 @@ App.Design = {
                 btn.onclick = () => this._openSoundModal(design, btn.dataset.soundTile, btn.dataset.soundLabel, () => {
                     if (onChange) onChange();
                     renderBody();
-                });
-            });
-            body.querySelector('#design-save-sound-defaults-btn')?.addEventListener('click', () => {
-                if (window.App.Ui) window.App.Ui.showToast('保存中...');
-                this.saveSoundDefaults(design).then(ok => {
-                    if (window.App.Ui) {
-                        window.App.Ui.showToast(ok ? '✅ アプリ全体のデフォルトとして保存しました' : '⚠️ 保存に失敗しました（音声ファイルが大きすぎる可能性があります）');
-                    }
                 });
             });
         };
