@@ -538,6 +538,7 @@ window.App.Creator = {
         }
         else if (type.startsWith('multi') || type.startsWith('ranking')) {
             const isRanking = type.startsWith('ranking');
+            const isOral = type.endsWith('_oral');
             const descText = isRanking ? '1位から順番に入力' : '全ての正解を入力';
 
             container.innerHTML = `
@@ -551,8 +552,23 @@ window.App.Creator = {
             if (data && data.c && data.c.length > 0) data.c.forEach((txt, i) => this.addMultiInput(multiDiv, i, txt, isRanking));
             else for (let i = 0; i < 4; i++) this.addMultiInput(multiDiv, i, '', isRanking);
 
-            // Add-item button in options panel
+            // ランキングモード checkbox + add-item button in options panel —
+            // ランキング/通常 is now its own checkbox instead of being
+            // folded into 解答形式's dropdown as 4 separate combinations.
             if (optionsExtra) {
+                optionsExtra.innerHTML = `
+                    <div style="margin-bottom:12px;">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:#94a3b8; font-size:0.9rem;">
+                            <input type="checkbox" id="multi-ranking-mode-chk" ${isRanking ? 'checked' : ''}>
+                            <span>ランキングモードにする（回答を順位付けして答える）</span>
+                        </label>
+                    </div>
+                `;
+                optionsExtra.querySelector('#multi-ranking-mode-chk').onchange = (e) => {
+                    const newType = (e.target.checked ? 'ranking' : 'multi') + (isOral ? '_oral' : '_written');
+                    this.renderForm(newType);
+                };
+
                 const addBtnDiv = document.createElement('div');
                 addBtnDiv.style.cssText = 'margin-bottom:14px;';
                 const addBtnText = isRanking ? '＋ ランキングを追加' : '＋ 正解を追加';
@@ -564,12 +580,12 @@ window.App.Creator = {
                 optionsExtra.appendChild(addBtnDiv);
             }
 
-            // Sub-type
+            // Sub-type: just 手書き/口頭 now — ランキングかどうかは上の
+            // チェックボックスが持つので、ここは組み合わせを気にせず
+            // written/oral の2択のみ。
             setupOptSubtype([
-                { v: 'multi_written', t: '手書きで答える' },
-                { v: 'multi_oral', t: '口頭で答える' },
-                { v: 'ranking_written', t: 'ランキング・手書きで答える' },
-                { v: 'ranking_oral', t: 'ランキング・口頭で答える' }
+                { v: isRanking ? 'ranking_written' : 'multi_written', t: '手書きで答える' },
+                { v: isRanking ? 'ranking_oral' : 'multi_oral', t: '口頭で答える' },
             ], type);
         }
         else if (type === 'blackjack') {
