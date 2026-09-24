@@ -466,7 +466,7 @@ window.App.Creator = {
         }
         else if (type.startsWith('free')) {
             container.innerHTML = `
-                <div style="padding:10px;">
+                <div style="padding:10px 0;">
                     <div style="text-align:center; color:#64748b; font-size:0.8rem; margin-bottom:10px;">正解を入力</div>
                     <input type="text" id="creator-text-answer" placeholder="正解（複数ある場合はカンマ区切り）" style="
                         width:100%; padding:12px; background:#0d1b2a; border:1px dashed rgba(255,255,255,0.25);
@@ -846,6 +846,21 @@ window.App.Creator = {
         const d = window.App.Data.currentDesign || {};
 
         const screen = document.getElementById('creator-monitor-preview');
+        // qFontSize/cFontSize (小/中/大 presets, e.g. "5vh") are sized
+        // against the real production screen's actual viewport height —
+        // applied as-is here they'd be scaled against the WHOLE browser
+        // window instead of this small embedded 16:9 box. Scale
+        // proportionally against the preview box's own rendered height so
+        // the presets still look meaningfully different here too. Absolute
+        // units (legacy px designs) pass through unchanged.
+        const scalePreviewFontSize = (value) => {
+            const vhMatch = /^([\d.]+)vh$/.exec(value || '');
+            if (vhMatch && screen) {
+                const previewHeightPx = screen.getBoundingClientRect().height;
+                return `${(parseFloat(vhMatch[1]) / 100) * previewHeightPx}px`;
+            }
+            return value;
+        };
         if (screen && d.mainBgColor) {
             screen.style.backgroundColor = d.mainBgColor;
             if (d.bgImage) {
@@ -886,9 +901,17 @@ window.App.Creator = {
             }
         }
         if (formContainer) {
+            // 一問一答（手書き/口頭）は選択肢グリッドを持たず、この
+            // コンテナの中身は「正解を入力」欄だけ — 90%にして問題文の
+            // 枠と横幅を揃える（他タイプは選択肢エリアが85%/62%な
+            // ので変えない）。
+            const isFreeType = (this.currentType || '').startsWith('free');
             if (isRow) {
                 formContainer.style.width = '62%';
                 formContainer.style.alignSelf = 'stretch';
+            } else if (isFreeType) {
+                formContainer.style.width = '90%';
+                formContainer.style.alignSelf = 'center';
             } else {
                 formContainer.style.width = '85%';
                 formContainer.style.alignSelf = 'center';
@@ -911,6 +934,7 @@ window.App.Creator = {
         if (qText) {
             if (d.qTextColor) qText.style.setProperty('color', d.qTextColor, 'important');
             qText.style.setProperty('text-align', d.align || 'center', 'important');
+            if (d.qFontSize) qText.style.setProperty('font-size', scalePreviewFontSize(d.qFontSize), 'important');
         }
 
         // A/B/C/D labels stay the app's fixed cyan accent — they're an editor
@@ -929,6 +953,7 @@ window.App.Creator = {
                 el.style.setProperty('color', d.cTextColor, 'important');
                 el.style.setProperty('--creator-choice-text-color', d.cTextColor);
             }
+            if (d.cFontSize) el.style.setProperty('font-size', scalePreviewFontSize(d.cFontSize), 'important');
             el.style.setProperty('text-align', d.cAlign || 'left', 'important');
         });
 

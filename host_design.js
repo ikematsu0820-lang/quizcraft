@@ -57,11 +57,11 @@ App.Design = {
         qTextColor: "#ffffff",
         qBgColor: "rgba(255, 255, 255, 0.05)",
         qBorderColor: "#00bfff",
-        qFontSize: "36px",
+        qFontSize: "5vh", // 中（4行）— see Q_SIZE_OPTS in renderInlineChooser
         cTextColor: "#a0a0a0",
         cBgColor: "transparent",
         cBorderColor: "#333333",
-        cFontSize: "25px",
+        cFontSize: "3.5vh", // 中 — see C_SIZE_OPTS in renderInlineChooser
         align: "center",
         cAlign: "left",
         layout: "top",
@@ -198,6 +198,22 @@ App.Design = {
             </div>
         `;
         const ALIGN_OPTS = [{ v: 'left', t: '左寄せ' }, { v: 'center', t: '中央' }, { v: 'right', t: '右寄せ' }];
+        // 問題文サイズ — px の自由入力だと、文章の長さに対してちょうどいい
+        // 大きさを毎回手探りすることになるので、想定する文章量（何行分か）
+        // を選ぶプリセットに置き換える。行数が多い想定ほど文字は小さく
+        // （大＝長文向けに小さめ、小＝短文向けに大きめ）。
+        const Q_SIZE_OPTS = [
+            { v: '8vh', t: '小（2行）' },
+            { v: '5vh', t: '中（4行）' },
+            { v: '3.5vh', t: '大（6行）' },
+        ];
+        // 選択肢の文字サイズも同じ理由でプリセット化 — px を打ち込ませる
+        // より、Wordのフォントサイズのように選ぶだけにする。
+        const C_SIZE_OPTS = [
+            { v: '2.5vh', t: '小' },
+            { v: '3.5vh', t: '中' },
+            { v: '5vh', t: '大' },
+        ];
 
         const gridSummary = () => {
             const r = parseInt(design.gridRows) || 0;
@@ -240,7 +256,7 @@ App.Design = {
                         <div style="display:flex; gap:6px; margin-bottom:6px; align-items:center;">
                             ${rowLabel(choicesLabel)}
                             ${colorSwatch('文字色', 'cTextColor')}
-                            ${miniText('サイズ', 'cFontSize')}
+                            ${miniSelect('サイズ', 'cFontSize', C_SIZE_OPTS)}
                             ${miniSelect('配置', 'cAlign', ALIGN_OPTS)}
                         </div>
                     `;
@@ -272,7 +288,7 @@ App.Design = {
                     <div style="display:flex; gap:6px; margin-bottom:6px; align-items:center;">
                         ${rowLabel('問題文')}
                         ${colorSwatch('文字色', 'qTextColor')}
-                        ${miniText('サイズ', 'qFontSize')}
+                        ${miniSelect('サイズ', 'qFontSize', Q_SIZE_OPTS)}
                         ${miniSelect('配置', 'align', ALIGN_OPTS)}
                     </div>
                 `;
