@@ -237,6 +237,17 @@ window.App.bindEvents = function () {
             // that confirms before ending an in-progress quiz — don't also
             // navigate away here unconditionally.
             if (btn.id === 'host-close-studio-btn-simple') return;
+            // 「リストに追加」「リストを保存する」の押し忘れで、問題作成
+            // 画面から離れると中身が消えてしまう事故が多かった — 保存
+            // されていない問題（リストに追加済みだが未保存 / 追加すら
+            // していない書きかけ）がある間は、離れる前に必ず確認する。
+            const creatorView = document.getElementById('creator-view');
+            if (creatorView && !creatorView.classList.contains('hidden')
+                && window.App.Creator && window.App.Creator.hasUnsavedWork && window.App.Creator.hasUnsavedWork()) {
+                if (!confirm('保存されていない問題があります。このまま離れると内容が失われますが、よろしいですか？\n（「リストに追加」「リストを保存する」を押すと保存されます）')) {
+                    return;
+                }
+            }
             if (btn.classList.contains('btn-logout')) {
                 sessionStorage.removeItem('qs_show_id');
                 window.App.State.currentShowId = null;

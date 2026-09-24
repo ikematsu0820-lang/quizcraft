@@ -889,6 +889,11 @@ window.App.Viewer = {
         // 問題文の「枠」自体の大きさ（文字サイズとは別設定）— 小は空文字
         // で、これまで通り中身に合わせた自動の高さのまま変えない。
         const qBoxSizeStyle = d.qBoxSize ? ` min-height:${d.qBoxSize};` : '';
+        // 問題背景を「透明」にしても、.q-area のフロストガラス効果
+        // (backdrop-filter:blur) 自体は色と無関係に効いたままなので、
+        // 背景色が無くても後ろの映像がぼやけて box の輪郭が浮かび上がって
+        // 見えてしまう。背景が完全に透明を選んだ時だけ、ぼかしも一緒に消す。
+        const qBackdropStyle = (d.qBgColor === 'transparent') ? ' backdrop-filter:none; -webkit-backdrop-filter:none; box-shadow:none;' : '';
 
         // Free Input — only one box (q-area; the answer itself is on each
         // player's own device, not the shared monitor), so 問題文の位置
@@ -906,7 +911,7 @@ window.App.Viewer = {
             // against the tags (no surrounding template indentation) since
             // .q-area now uses white-space:pre-wrap, which would otherwise
             // render that indentation as stray blank lines/leading spaces.
-            html += `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align}; font-size:${d.qFontSize || '6vh'}; width:80%;${qBoxSizeStyle}">${q.q}</div>`;
+            html += `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align}; font-size:${d.qFontSize || '6vh'}; width:80%;${qBoxSizeStyle}${qBackdropStyle}">${q.q}</div>`;
 
         } else {
             // 問題文の位置: top/bottom stack the q-area above/below the
@@ -933,7 +938,7 @@ window.App.Viewer = {
                 ? `width:28vw; height:80vh; margin:0 3vw;`
                 : `width:90%;`;
             // ${q.q} sits directly against the tags — see the note above.
-            html += `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align};${d.qFontSize ? ` font-size:${d.qFontSize};` : ''} ${qAreaStyle}${qBoxSizeStyle}">${q.q}</div>`;
+            html += `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align};${d.qFontSize ? ` font-size:${d.qFontSize};` : ''} ${qAreaStyle}${qBoxSizeStyle}${qBackdropStyle}">${q.q}</div>`;
 
             if (q.c) {
                 const rows = parseInt(d.gridRows) || 0;

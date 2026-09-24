@@ -238,7 +238,22 @@ window.App.Creator = {
         window.App.Ui.showView(window.App.Ui.views.creator);
         this.activeInlinePanel = null;
         if (window.App.Design) window.App.Design._activeDesignTab = 'text';
-        this.toggleInlinePanel('design');
+        // 過去に作成した問題を編集する時は、真っ先に「どの問題を編集する
+        // か」を選べるようリスト編集タブを既定にする（新規作成時は
+        // 従来通りデザイン/テキストのまま — initWithType() 側）。
+        this.toggleInlinePanel('list');
+    },
+
+    // 「リストに追加」「リストを保存する」を押し忘れたまま画面を離れる
+    // と内容が消えてしまう — 離れる前に確認を出すかどうかの判定に使う
+    // （host_core.js の戻るボタン / 下の beforeunload 両方から参照）。
+    // リストに追加済みだが未保存の問題があるか、今書きかけの問題文が
+    // あれば「保存されていない状態」とみなす。
+    hasUnsavedWork: function () {
+        if ((window.App.Data.createdQuestions || []).length > 0) return true;
+        const qText = document.getElementById('question-text');
+        if (qText && qText.value.trim() !== '') return true;
+        return false;
     },
 
     resetForm: function () {
@@ -732,6 +747,7 @@ window.App.Creator = {
 
     updateInlinePanelButtonStyles: function () {
         const buttons = {
+            list: document.getElementById('creator-rule-list-btn'),
             edit: document.getElementById('creator-inline-edit-toggle'),
             design: document.getElementById('creator-rule-design-btn'),
             mode: document.getElementById('creator-rule-mode-btn'),
@@ -747,6 +763,7 @@ window.App.Creator = {
     toggleInlinePanel: function (key) {
         const area = document.getElementById('creator-inline-edit-area');
         const panels = {
+            list: document.getElementById('creator-inline-listedit'),
             edit: document.getElementById('creator-options-extra'),
             design: document.getElementById('creator-inline-design'),
             mode: document.getElementById('creator-inline-mode'),
@@ -754,14 +771,12 @@ window.App.Creator = {
         };
         // 問題編集 only — not the rule pickers. リストに追加/保存 lives
         // outside this panel entirely now, so it isn't touched here.
-        const qList = document.getElementById('creator-inline-qlist');
         const editSubtabs = document.getElementById('creator-edit-subtabs');
         const homePanel = document.getElementById('creator-edit-home-panel');
         const bulkPanel = document.getElementById('creator-bulk-panel');
         if (!area || !panels[key]) return;
 
         Object.values(panels).forEach(p => p.classList.add('hidden'));
-        if (qList) qList.classList.add('hidden');
         if (editSubtabs) editSubtabs.classList.add('hidden');
         if (homePanel) homePanel.classList.add('hidden');
         if (bulkPanel) bulkPanel.classList.add('hidden');
@@ -793,10 +808,10 @@ window.App.Creator = {
 
     // Shows either the normal per-question editor (home) or the bulk-paste
     // panel (bulk) — whichever 問題編集's own sub-tab is currently active.
+    // 作成済みの問題一覧はリスト編集タブに移管済み — ここでは触らない。
     renderEditPanelBody: function () {
         const homePanel = document.getElementById('creator-edit-home-panel');
         const bulkPanel = document.getElementById('creator-bulk-panel');
-        const qList = document.getElementById('creator-inline-qlist');
         if (this.editSubTab === 'bulk') {
             if (homePanel) homePanel.classList.add('hidden');
             if (bulkPanel) bulkPanel.classList.remove('hidden');
@@ -804,7 +819,6 @@ window.App.Creator = {
         } else {
             if (bulkPanel) bulkPanel.classList.add('hidden');
             if (homePanel) homePanel.classList.remove('hidden');
-            if (qList) { qList.classList.remove('hidden'); this.renderList(); }
         }
     },
 
@@ -834,6 +848,8 @@ window.App.Creator = {
                 if (this._previewRevealOn) this.renderPreviewReveal(this._previewRevealData);
                 onChange();
             });
+        } else if (key === 'list') {
+            this.renderList();
         }
         // 'edit' panel content is already kept current by renderForm().
     },
@@ -1934,14 +1950,16 @@ ${spec.placeholder}" style="
         }
     },
 
-    // Populates the clickable question list inside 問題編集 (creator-inline-qlist)
-    // — click a row to edit that question, per user request. Only touches
-    // the DOM when that list container actually exists/is visible.
+    // Populates the clickable question list in the リスト編集 tab
+    // (creator-inline-qlist) — click a row to edit that question.
     renderList: function () {
         const list = document.getElementById('creator-inline-qlist');
         if (!list) return;
         const questions = window.App.Data.createdQuestions;
-        if (questions.length === 0) { list.innerHTML = ''; return; }
+        if (questions.length === 0) {
+            list.innerHTML = '<p style="color:#666; font-size:0.8rem; text-align:center; padding:20px 0;">まだ問題がありません。「問題編集」で作成し、「リストに追加」するとここに表示されます。</p>';
+            return;
+        }
 
         const rows = questions.map((q, i) => {
             const displayQ = q.q.length > 20 ? q.q.substring(0, 20) + "..." : q.q;
@@ -2110,4 +2128,15 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('creator-preview-reveal-toggle')?.addEventListener('change', (e) => {
         window.App.Creator.togglePreviewReveal(e.target.checked);
     });
+});
+
+// タブを閉じる/リロードする場合も、保存されていない問題がある間はブラ
+// ウザ標準の確認ダイアログを出す（アプリ内の戻るボタンは host_core.js
+// 側の .header-back-btn ハンドラで別途確認している）。
+window.addEventListener('beforeunload', (e) => {
+    const creatorView = document.getElementById('creator-view');
+    if (creatorView && !creatorView.classList.contains('hidden') && window.App.Creator.hasUnsavedWork()) {
+        e.preventDefault();
+        e.returnValue = '';
+    }
 });
