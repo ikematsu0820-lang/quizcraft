@@ -570,51 +570,10 @@ window.App.Dashboard = {
         });
     },
 
-    _ensureFilterUi: function (listEl) {
-        if (!this.filterState) this.filterState = { mode: 'all', type: 'all' };
-        if (document.getElementById('dash-filter-container')) return;
-        const filterHtml = `
-            <div id="dash-filter-container" style="margin-bottom:15px;">
-                <!-- Row 1: Game Mode -->
-                <div id="dash-filter-mode" style="display:flex; gap:8px; overflow-x:auto; padding-bottom:8px; margin-bottom:5px;">
-                    <button class="filter-btn active" onclick="window.App.Dashboard.applyFilter('mode', 'all', this)">すべて</button>
-                    <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('mode', 'normal', this)">一斉</button>
-                    <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('mode', 'buzz', this)">早押し</button>
-                    <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('mode', 'turn', this)">順番</button>
-                    <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('mode', 'solo', this)">ソロ</button>
-                </div>
-                <!-- Row 2: Question Type -->
-                <div id="dash-filter-type" style="display:flex; gap:8px; overflow-x:auto; padding-bottom:5px;">
-                    <button class="filter-btn active" onclick="window.App.Dashboard.applyFilter('type', 'all', this)">すべて</button>
-                    <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('type', 'free', this)">一問一答</button>
-                    <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('type', 'choice', this)">選択式</button>
-                    <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('type', 'sort', this)">並び替え</button>
-                    <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('type', 'multi', this)">多答問題</button>
-                    <button class="filter-btn" onclick="window.App.Dashboard.applyFilter('type', 'assoc', this)">連想</button>
-                </div>
-            </div>
-            <style>
-                .filter-btn {
-                    background: rgba(255,255,255,0.05);
-                    border: 1px solid rgba(255,255,255,0.1);
-                    color: #aaa;
-                    padding: 5px 10px;
-                    border-radius: 12px;
-                    font-size: 0.8em;
-                    cursor: pointer;
-                    white-space: nowrap;
-                    transition: all 0.2s;
-                    flex-shrink: 0;
-                }
-                .filter-btn.active {
-                    background: rgba(0, 229, 255, 0.15);
-                    color: #00e5ff;
-                    border-color: #00e5ff;
-                    font-weight: bold;
-                }
-            </style>
-        `;
-        listEl.insertAdjacentHTML('beforebegin', filterHtml);
+    // 上部のカテゴリ（モード/形式の絞り込み）は廃止 — 常に全件表示
+    _ensureFilterUi: function () {
+        this.filterState = { mode: 'all', type: 'all' };
+        document.getElementById('dash-filter-container')?.remove();
     },
 
     // Lightweight summary written alongside every full-set save/copy so
@@ -677,20 +636,6 @@ window.App.Dashboard = {
         });
     },
 
-    applyFilter: function (category, value, btnEl) {
-        // Update state
-        if (!this.filterState) this.filterState = { mode: 'all', type: 'all' };
-        this.filterState[category] = value;
-
-        // Update UI
-        const container = category === 'mode' ? 'dash-filter-mode' : 'dash-filter-type';
-        const btns = document.querySelectorAll(`#${container} .filter-btn`);
-        btns.forEach(b => b.classList.remove('active'));
-        if (btnEl) btnEl.classList.add('active');
-
-        this.runFilter();
-    },
-
     runFilter: function () {
         const mode = this.filterState.mode;
         const type = this.filterState.type;
@@ -735,8 +680,6 @@ window.App.Dashboard = {
             const qCount = (d.qCount !== undefined) ? d.qCount
                 : Array.isArray(d.questions) ? d.questions.length : (d.questions ? Object.keys(d.questions).length : 0);
 
-            const modeMap = { 'normal': '一斉', 'buzz': '早押し', 'turn': '順番', 'solo': 'ソロ' };
-            const modeStr = modeMap[itemMode] || '一斉';
             // 1MBを超えると開始・配信が目に見えて遅くなるので色で知らせる
             const sizeColor = !d.size ? '#888' : d.size >= 1024 * 1024 ? '#ff6b6b' : d.size >= 300 * 1024 ? '#ffb74d' : '#888';
             const sizeStr = d.size ? `<span style="margin-left:6px; color:${sizeColor}; font-size:0.85em;">${this.formatSize(d.size)}</span>` : '';
@@ -749,7 +692,7 @@ window.App.Dashboard = {
             div.innerHTML = `
                 <div class="item-main">
                     <div class="item-title"><span class="badge-set">SET</span> ${d.title || "Untitled"}</div>
-                    <div class="item-meta">${dateStr} / ${qCount}Q <span style="margin-left:8px; color:#ccc; background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px; font-size:0.85em;">${modeStr}</span>${sizeStr}</div>
+                    <div class="item-meta">${dateStr} / ${qCount}Q${sizeStr}</div>
                 </div>`;
             listEl.appendChild(div);
         });

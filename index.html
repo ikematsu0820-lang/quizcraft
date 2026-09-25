@@ -8,7 +8,7 @@
     <title>Quiz Studio</title>
     <link rel="stylesheet" href="style_common.css?v=95">
     <link rel="stylesheet" href="style_host.css?v=98">
-    <link rel="stylesheet" href="style_player.css?v=96">
+    <link rel="stylesheet" href="style_player.css?v=98">
     <link rel="stylesheet" href="style_viewer.css?v=96">
 </head>
 
@@ -128,6 +128,11 @@
                     <div style="font-size:1.25rem; font-weight:bold; color:#fff;">並べ替え</div>
                 </button>
 
+                <!-- ダウト（選択式から独立） -->
+                <button class="type-select-card" data-type="dobon" style="display:flex; align-items:center; justify-content:center; padding:20px 24px; background:linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border:1px solid rgba(255,255,255,0.15); border-radius:14px; color:#fff; cursor:pointer; text-align:center; transition:all 0.2s;">
+                    <div style="font-size:1.25rem; font-weight:bold; color:#fff;">ダウト</div>
+                </button>
+
                 <!-- 多答クイズ -->
                 <button class="type-select-card" data-type="multi_group" style="display:flex; align-items:center; justify-content:center; padding:20px 24px; background:linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border:1px solid rgba(255,255,255,0.15); border-radius:14px; color:#fff; cursor:pointer; text-align:center; transition:all 0.2s;">
                     <div style="font-size:1.25rem; font-weight:bold; color:#fff;">多答クイズ</div>
@@ -202,6 +207,14 @@
                         padding:3.5% 5% 3% 5%;
                         box-sizing:border-box;
                     ">
+                        <!-- タイトル（一問一答で「タイトルを追加」をチェックした時だけ表示）
+                             — モニターでは問題文の上に出る。 -->
+                        <input type="text" id="question-title" class="hidden" placeholder="タイトルを入力" style="
+                            width:60%; align-self:center; margin-bottom:0.8%;
+                            background:rgba(0,0,0,0.45); border:1px dashed rgba(255,215,0,0.6); border-radius:6px;
+                            color:#ffd700; font-size:clamp(0.65rem,1.3vw,0.95rem); font-weight:900;
+                            text-align:center; padding:0.4% 2%; outline:none; box-sizing:border-box; font-family:inherit;
+                        ">
                         <!-- Question Area (compact, shrinks to fit its text) -->
                         <div id="creator-monitor-q-area" style="
                             width:90%; align-self:center;
@@ -231,7 +244,16 @@
                     </div>
                 </div>
 
-                <!-- Inline panel shared by 問題編集/デザイン/解答権/ルール設定 —
+                <!-- タブの外に常に出しておく問題形式ごとのオプション（ランキング
+                     モード/複数回答モード/タイトルを追加 のチェックと、＋選択肢を
+                     追加/＋正解を追加 のボタン）— renderForm() が形式に応じて
+                     中身を入れる。何も無い形式では hidden のまま。 -->
+                <div id="creator-outside-opts" class="hidden" style="
+                    display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px;
+                    padding:8px 14px; background:#161616; border-top:1px solid #2a2a2a;
+                "></div>
+
+                <!-- Inline panel shared by その他/デザイン/ルール設定 —
                      fixed height (no layout jump between panels), only one
                      of the content blocks below is shown at a time. -->
                 <div id="creator-inline-edit-area" class="hidden" style="
@@ -247,7 +269,7 @@
                         ">ホーム</button>
                         <button type="button" id="creator-edit-subtab-bulk-btn" class="creator-edit-subtab-btn" style="
                             flex:1; padding:8px 2px; font-size:0.8rem; font-weight:bold; border:none; cursor:pointer; color:#fff;
-                        ">一括編集</button>
+                        ">一括追加</button>
                     </div>
 
                     <div id="creator-edit-home-panel">
@@ -264,32 +286,41 @@
                         <div id="creator-inline-qlist"></div>
                     </div>
                     <div id="creator-inline-design" class="hidden"></div>
-                    <div id="creator-inline-mode" class="hidden">
-                        <!-- 解答形式 (subtype, e.g. 単一解答/口頭式) and 解答権
-                             (一斉解答/早押し/順番解答) side by side as two pulldowns. -->
-                        <div style="display:flex; gap:10px; margin-bottom:10px;">
-                            <div id="creator-opt-subtype-area" class="hidden" style="flex:1; min-width:0;">
-                                <label style="color:#94a3b8; font-size:0.75rem; display:block; margin-bottom:4px;">解答形式</label>
-                                <select id="creator-opt-subtype" style="
-                                    width:100%; padding:6px 8px; background:#1e293b; border:1px solid #475569;
-                                    border-radius:8px; color:#fff; font-size:0.85rem;
-                                "></select>
-                            </div>
-                            <div style="flex:1; min-width:0;">
-                                <label style="color:#94a3b8; font-size:0.75rem; display:block; margin-bottom:4px;">解答権</label>
-                                <select id="creator-mode-select" style="
-                                    width:100%; padding:6px 8px; background:#1e293b; border:1px solid #475569;
-                                    border-radius:8px; color:#fff; font-size:0.85rem;
-                                "></select>
-                            </div>
-                        </div>
-                        <div id="creator-inline-mode-body"></div>
-                    </div>
+                    <!-- ルール設定 — 解答形式/勝利条件/制限時間 の3つのサブタブ
+                         （以前の「解答方式」タブは 解答形式 サブタブへ統合）。 -->
                     <div id="creator-inline-rules" class="hidden">
-                        <div style="color:#94a3b8; font-size:0.75rem; font-weight:bold; margin-bottom:4px;">正解ボーナス</div>
-                        <div id="creator-inline-gametype"></div>
-                        <div style="color:#94a3b8; font-size:0.75rem; font-weight:bold; margin:10px 0 4px; padding-top:10px; border-top:1px dashed #333;">⏱ 制限時間</div>
-                        <div id="creator-inline-timelimit"></div>
+                        <div id="creator-rules-subtabs" style="display:flex; gap:0; margin:-4px -4px 10px; border-radius:8px; overflow:hidden; border:1px solid #333;">
+                            <button type="button" data-rules-subtab="format" class="creator-rules-subtab-btn" style="flex:1; padding:8px 2px; font-size:0.8rem; font-weight:bold; border:none; cursor:pointer; color:#fff;">解答形式</button>
+                            <button type="button" data-rules-subtab="win" class="creator-rules-subtab-btn" style="flex:1; padding:8px 2px; font-size:0.8rem; font-weight:bold; border:none; cursor:pointer; color:#fff;">勝利条件</button>
+                            <button type="button" data-rules-subtab="time" class="creator-rules-subtab-btn" style="flex:1; padding:8px 2px; font-size:0.8rem; font-weight:bold; border:none; cursor:pointer; color:#fff;">制限時間</button>
+                        </div>
+                        <div id="creator-rules-sub-format">
+                            <!-- 解答形式 (subtype, e.g. 口頭/手書き) and 解答権
+                                 side by side as two pulldowns. -->
+                            <div style="display:flex; gap:10px; margin-bottom:10px;">
+                                <div id="creator-opt-subtype-area" class="hidden" style="flex:1; min-width:0;">
+                                    <label style="color:#94a3b8; font-size:0.75rem; display:block; margin-bottom:4px;">解答形式</label>
+                                    <select id="creator-opt-subtype" style="
+                                        width:100%; padding:6px 8px; background:#1e293b; border:1px solid #475569;
+                                        border-radius:8px; color:#fff; font-size:0.85rem;
+                                    "></select>
+                                </div>
+                                <div style="flex:1; min-width:0;">
+                                    <label style="color:#94a3b8; font-size:0.75rem; display:block; margin-bottom:4px;">解答権</label>
+                                    <select id="creator-mode-select" style="
+                                        width:100%; padding:6px 8px; background:#1e293b; border:1px solid #475569;
+                                        border-radius:8px; color:#fff; font-size:0.85rem;
+                                    "></select>
+                                </div>
+                            </div>
+                            <div id="creator-inline-mode-body"></div>
+                        </div>
+                        <div id="creator-rules-sub-win" class="hidden">
+                            <div id="creator-inline-gametype"></div>
+                        </div>
+                        <div id="creator-rules-sub-time" class="hidden">
+                            <div id="creator-inline-timelimit"></div>
+                        </div>
                     </div>
                 </div>
 
@@ -309,12 +340,6 @@
                         background:#0e6b8f; border:none; border-left:1px solid rgba(255,255,255,0.15);
                         color:#fff; cursor:pointer;
                     ">デザイン</button>
-            <button id="creator-rule-mode-btn" class="creator-rule-btn" style="
-                flex:1; height:32px; box-sizing:border-box; padding:0 4px; font-size:0.8rem; font-weight:bold;
-                display:flex; align-items:center; justify-content:center;
-                background:#0e6b8f; border:none; border-left:1px solid rgba(255,255,255,0.15);
-                color:#fff; cursor:pointer;
-            ">解答方式</button>
             <button id="creator-rule-settings-btn" class="creator-rule-btn" style="
                 flex:1; height:32px; box-sizing:border-box; padding:0 4px; font-size:0.8rem; font-weight:bold;
                 display:flex; align-items:center; justify-content:center;
@@ -326,7 +351,7 @@
                 display:flex; align-items:center; justify-content:center;
                 background:#0e6b8f; border:none; border-left:1px solid rgba(255,255,255,0.15);
                 color:#fff; cursor:pointer;
-            ">問題編集</button>
+            ">その他</button>
         </div>
             </div>
 
@@ -452,6 +477,15 @@
             ">
                     START QUIZ
                 </button>
+                <!-- 一斉解答: 全員の解答をモニターに一斉オープン（正解表示の前でも
+                     後でも、出題者が押す順番を選べる）— host_studio.js が表示を制御 -->
+                <button id="console-btn-open-answers" class="hidden" style="
+                    width:100%; max-width:400px; height:40px; margin-top:8px;
+                    font-size:17px; font-weight:bold; border-radius:12px;
+                    background:linear-gradient(135deg, #9b59b6 0%, #6c3483 100%);
+                    border:none; color:#fff; cursor:pointer;
+                    box-shadow:0 4px 15px rgba(155, 89, 182, 0.35);
+                ">解答オープン</button>
                 <div id="studio-mode-display" style="display:none; margin-top:2px; color:#555; font-size:12px;"></div>
             </div>
         </div>
@@ -478,6 +512,18 @@
                         flex:1; padding:10px 4px; border-radius:10px; font-weight:bold; cursor:pointer;
                         border:2px solid #333; background:#1a1a1a; color:#ccc;
                     ">ソロモード</button>
+                </div>
+
+                <!-- 出題の進め方（このセッションだけの設定） -->
+                <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:15px; padding:10px 12px; background:#1a1a1a; border:1px solid #333; border-radius:10px;">
+                    <label style="display:flex; align-items:center; gap:8px; color:#ddd; font-size:0.9em; cursor:pointer;">
+                        <input type="checkbox" id="studio-opt-show-bridge" checked style="transform:scale(1.2); accent-color:#00e5ff;">
+                        問題の前に「第○問」（ブリッジスライド）を表示する
+                    </label>
+                    <label style="display:flex; align-items:center; gap:8px; color:#ddd; font-size:0.9em; cursor:pointer;">
+                        <input type="checkbox" id="studio-opt-shuffle" style="transform:scale(1.2); accent-color:#00e5ff;">
+                        セット内の問題の順番をシャッフルする
+                    </label>
                 </div>
 
                 <button id="studio-load-program-btn" class="btn-primary btn-block"
@@ -689,16 +735,16 @@
     <!-- Drag & Drop Library -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script src="firebase.js"></script>
-    <script src="text_config.js?v=232"></script>
-    <script src="host_core.js?v=239"></script>
+    <script src="text_config.js?v=233"></script>
+    <script src="host_core.js?v=240"></script>
     <script src="host_sound_library.js?v=3"></script>
-    <script src="host_design.js?v=255"></script>
-    <script src="host_creator.js?v=265"></script>
-    <script src="host_config.js?v=239"></script>
+    <script src="host_design.js?v=256"></script>
+    <script src="host_creator.js?v=267"></script>
+    <script src="host_config.js?v=240"></script>
     <script src="host_prog_config.js?v=231"></script>
-    <script src="host_studio.js?v=237"></script>
-    <script src="player.js?v=235"></script>
-    <script src="viewer.js?v=244"></script>
+    <script src="host_studio.js?v=238"></script>
+    <script src="player.js?v=236"></script>
+    <script src="viewer.js?v=245"></script>
 
 
     <!-- Edit Menu Modal -->
@@ -773,7 +819,7 @@
                     value="" placeholder="120px">
             </div>
             <div class="config-group" style="margin-bottom:8px;">
-                <label class="config-label" style="font-size:11px; margin-bottom:3px;">アニメーション</label>
+                <label class="config-label" style="font-size:11px; margin-bottom:3px;">モーション</label>
                 <select id="prod-title-animation" class="btn-block" style="padding:6px 8px; font-size:12px;">
                     <option value="fade">フェード</option>
                     <option value="slide">スライド</option>
@@ -836,7 +882,7 @@
                 </select>
             </div>
             <div class="config-group" style="margin-bottom:8px;">
-                <label class="config-label" style="font-size:11px; margin-bottom:3px;">アニメーション</label>
+                <label class="config-label" style="font-size:11px; margin-bottom:3px;">モーション</label>
                 <select id="prod-qnum-animation" class="btn-block" style="padding:6px 8px; font-size:12px;">
                     <option value="fade">フェード</option>
                     <option value="slide">スライド</option>
@@ -882,7 +928,7 @@
                 </select>
             </div>
             <div class="config-group">
-                <label class="config-label">アニメーション</label>
+                <label class="config-label">モーション</label>
                 <select id="prod-ranking-animation" class="btn-block">
                     <option value="fade">フェード</option>
                     <option value="cascade">カスケード</option>

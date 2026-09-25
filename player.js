@@ -91,6 +91,14 @@ function preloadPlayerSounds(roomId) {
     });
 }
 
+// 手書き（一問一答）× 早押し: 先に書いてから PUSH する。押した瞬間の
+// 絵をここに持っておき、解答権を取れたら自動で送信する。
+let _currentPad = null;
+let _pendingBuzzAnswer = null;
+function isWrittenBuzz() {
+    return roomConfig.mode === 'buzz' && currentQuestion && currentQuestion.type === 'free_written';
+}
+
 let isReanswering = false;
 let localOptimisticResult = null;
 
@@ -171,6 +179,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (buzzBtn) {
         buzzBtn.addEventListener('click', () => {
             if (!myRoomId || !myPlayerId) return;
+            if (isWrittenBuzz()) {
+                if (!_currentPad || !_currentPad.hasDrawn()) {
+                    alert('先に答えを書いてから PUSH! を押してください');
+                    return;
+                }
+                _pendingBuzzAnswer = _currentPad.getDataUrl();
+            }
             if (currentQuestion && currentQuestion.design && currentQuestion.design.seButton) {
                 playSound(currentQuestion.design.seButton);
             }
@@ -181,6 +196,33 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
+});
+
+// 横向き固定（Android の Chrome などは全画面中なら固定できる）。
+// iPhone は固定できないので、縦向きの間は案内を出す（style_player.css
+// の #player-rotate-overlay）。
+function requestLandscape() {
+    try {
+        const el = document.documentElement;
+        const fs = el.requestFullscreen ? el.requestFullscreen() : null;
+        const lock = () => {
+            if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {});
+        };
+        if (fs && fs.then) fs.then(lock).catch(() => {}); else lock();
+    } catch (e) { /* noop */ }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const overlay = document.createElement('div');
+    overlay.id = 'player-rotate-overlay';
+    overlay.innerHTML = `
+        <div style="font-size:64px; margin-bottom:16px; animation:rotateHint 1.6s ease-in-out infinite;">📱</div>
+        <div style="font-size:1.3em; font-weight:900; margin-bottom:8px;">スマホを横向きにしてください</div>
+        <div style="font-size:0.9em; opacity:0.75; margin-bottom:24px;">横向きの方が問題とボタンが見やすくなります</div>
+        <button type="button" id="player-rotate-dismiss" style="background:none; border:1px solid rgba(255,255,255,0.5); color:#fff; border-radius:10px; padding:8px 18px; font-size:0.9em;">縦のまま続ける</button>
+    `;
+    document.body.appendChild(overlay);
+    overlay.querySelector('#player-rotate-dismiss').onclick = () => overlay.classList.add('dismissed');
 });
 
 function showPlayerView(viewId) {
@@ -201,6 +243,10 @@ function joinRoom() {
         alert("部屋コードとニックネームを入力してください");
         return;
     }
+
+    // ログイン後は横向きで遊ぶ — 全画面＋横向き固定はタップ操作の中で
+    // しか要求できないので、参加ボタンを押したこの時点で要求しておく。
+    requestLandscape();
 
     const btn = document.getElementById('join-room-btn');
     btn.disabled = true;
@@ -241,6 +287,7 @@ function joinRoom() {
             buzzTime: null
         }).then(() => {
             showPlayerView('player-game-view');
+            document.body.classList.add('player-in-game'); // 縦向きなら「横向きにしてください」を出す
             document.getElementById('player-name-disp').textContent = name;
             startPlayerListener(code, myPlayerId);
         }).catch(e => {
@@ -576,9 +623,13 @@ function updateUI() {
             }
             else if (st.isBuzzActive) {
                 // 早押しボタン受付中 — 解答権を得るまでは入力欄自体を隠す
-                quizArea.classList.add('hidden');
+                // （手書きの一問一答だけは、先に書いてから押すので見せておく）
+                const writtenBuzz = isWrittenBuzz();
+                quizArea.classList.toggle('hidden', !writtenBuzz);
                 buzzArea.classList.remove('hidden');
-                toggleInputEnabled(false);
+                toggleInputEnabled(writtenBuzz);
+                const writtenSubmit = document.getElementById('written-submit-btn');
+                if (writtenSubmit) writtenSubmit.classList.toggle('hidden', writtenBuzz);
                 const btn = document.getElementById('player-buzz-btn');
 
                 if (p.buzzRest && p.buzzRest > 0) {
@@ -628,6 +679,14 @@ function updateUI() {
                 // 自分が早押し勝者 -> 解答権獲得
                 quizArea.classList.remove('hidden');
                 buzzArea.classList.add('hidden');
+                // 手書きは押した時に書いてあった答えをそのまま送る
+                if (isWrittenBuzz() && _pendingBuzzAnswer) {
+                    const ans = _pendingBuzzAnswer;
+                    _pendingBuzzAnswer = null;
+                    submitAnswer(myRoomId, myPlayerId, ans);
+                }
+                const writtenSubmit = document.getElementById('written-submit-btn');
+                if (writtenSubmit) writtenSubmit.classList.remove('hidden');
                 toggleInputEnabled(true);
                 handleNormalResponseUI(p, quizArea, waitMsg);
                 // Auto-focus input for winner
@@ -1269,6 +1328,12 @@ function renderPlayerQuestion(q, roomId, playerId) {
     const changeArea = document.getElementById('change-btn-area');
     if (changeArea) changeArea.innerHTML = '';
 
+    _currentPad = null;
+    _pendingBuzzAnswer = null;
+    // 口頭式は早押しボタンを中央の円形に
+    document.getElementById('player-buzz-btn')?.classList.toggle('buzz-round', !!(q.type && q.type.endsWith('_oral')));
+    document.body.classList.toggle('written-buzz', roomConfig.mode === 'buzz' && q.type === 'free_written');
+
     qText.textContent = q.q;
     qText.classList.add('new-q');
     setTimeout(() => qText.classList.remove('new-q'), 600);
@@ -1290,7 +1355,8 @@ function renderPlayerQuestion(q, roomId, playerId) {
 
         // Forced Single Selection for Dobon/Turn mode even if q.multi is true
         const isDobonMode = (q.mode === 'dobon' || q.mode === 'multi');
-        const isMulti = isDobonMode ? false : (q.multi || false);
+        // 複数回答モード（選択式で正解が複数）の時だけ複数選んで「決定」
+        const isMulti = isDobonMode ? false : !!q.multiCorrect;
 
         const selected = new Set();
         const btns = [];
@@ -1712,8 +1778,11 @@ function renderPlayerQuestion(q, roomId, playerId) {
         const pad = createHandwritingCanvas();
         inputCont.appendChild(pad.el);
         requestAnimationFrame(() => pad.initSize());
+        _currentPad = pad;
+        _pendingBuzzAnswer = null;
 
         const sub = document.createElement('button');
+        sub.id = 'written-submit-btn';
         sub.className = 'btn-primary btn-block'; sub.textContent = '送信';
         sub.onclick = () => {
             if (!pad.hasDrawn()) return;

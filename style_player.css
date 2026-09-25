@@ -1146,3 +1146,111 @@
 .bj-card-btn:active:not([disabled]) {
     transform: translateY(0);
 }
+
+/* =========================================================
+ * 横向きプレイ・大きいボタン・口頭式の円形ボタン
+ * =======================================================*/
+
+/* ログイン後、縦向きの間だけ「横向きにしてください」の案内（player.js）。
+   iPhone は横向き固定ができないため。「縦のまま続ける」で閉じられる。 */
+#player-rotate-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 5000;
+    background: rgba(10, 15, 25, 0.96);
+    color: #fff;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 24px;
+}
+@media (orientation: portrait) {
+    body.player-in-game #player-rotate-overlay:not(.dismissed) { display: flex; }
+}
+@keyframes rotateHint {
+    0%, 20% { transform: rotate(0deg); }
+    50%, 70% { transform: rotate(-90deg); }
+    100% { transform: rotate(0deg); }
+}
+
+/* ボタンを大きく */
+.answer-btn {
+    padding: 20px 18px;
+    font-size: 1.25em;
+    min-height: 64px;
+}
+.buzz-btn {
+    height: 96px;
+    font-size: 2.4em;
+}
+
+/* 口頭式: 早押しボタンを画面中央の大きな円に */
+.buzz-btn.buzz-round {
+    width: min(64vw, 64vh);
+    height: min(64vw, 64vh);
+    max-width: none;
+    top: 50%;
+    bottom: auto;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    border-bottom-width: 12px;
+    font-size: 2.8em;
+    flex-direction: column;
+    box-shadow: 0 16px 40px rgba(192, 57, 43, 0.35), inset 0 4px 10px rgba(255, 255, 255, 0.35);
+}
+.buzz-btn.buzz-round::after { margin: 6px 0 0 0; }
+.buzz-btn.buzz-round:active,
+.buzz-btn.buzz-round:disabled {
+    transform: translate(-50%, calc(-50% + 6px));
+}
+
+/* 横向き: 問題文を左、解答欄を右に並べ、早押しボタンは右端の縦長ボタンに */
+@media (orientation: landscape) {
+    #player-game-view {
+        padding-bottom: 16px;
+        /* 横向きでは .view の max-width:600px を外して画面幅いっぱいに使う */
+        max-width: none;
+    }
+    #player-game-view:not(.multi-layout-active) #player-quiz-area {
+        flex-direction: row;
+        gap: 16px;
+        align-items: stretch;
+    }
+    #player-game-view:not(.multi-layout-active) #question-text-disp {
+        flex: 0 0 40%;
+        margin-bottom: 0;
+        max-height: calc(100vh - 90px);
+        overflow-y: auto;
+        box-sizing: border-box;
+    }
+    #player-game-view:not(.multi-layout-active) #player-input-container {
+        flex: 1;
+        min-width: 0;
+        margin-top: 0;
+        max-height: calc(100vh - 90px);
+        overflow-y: auto;
+    }
+    .buzz-btn:not(.buzz-round) {
+        left: auto;
+        right: 16px;
+        top: 50%;
+        bottom: auto;
+        transform: translateY(-50%);
+        width: 24vw;
+        height: 62vh;
+        max-width: none;
+    }
+    .buzz-btn:not(.buzz-round):active,
+    .buzz-btn:not(.buzz-round):disabled {
+        transform: translateY(calc(-50% + 4px));
+    }
+    /* 手書き×早押しは書く欄と PUSH が同時に出るので、右端のボタンの分あける */
+    body.written-buzz #player-game-view {
+        padding-right: calc(24vw + 32px);
+    }
+    #choice-submit-footer {
+        max-width: none !important;
+    }
+}

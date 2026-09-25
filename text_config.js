@@ -51,9 +51,9 @@ const APP_TEXT = {
         BackBtn: "ダッシュボード", HeadingAdd: "ピリオドを構成に追加", LabelSet: "セットを選択", SelectDefault: "-- セットを選択 --", SelectLoading: "読み込み中...", SelectEmpty: "セットがありません",
 
         LabelMode: "解答権",
-        ModeNormal: "一斉解答 (Simultaneous)",
-        ModeBuzz: "早押し (Buzz-in)",
-        ModeTurn: "順番解答 (Turn-based)",
+        ModeNormal: "全員が同時に手元で解答",
+        ModeBuzz: "早く押した人から解答",
+        ModeTurn: "特定の人や順番で解答",
         ModeSolo: "一人挑戦 (Solo Challenge)", // ★変更
 
         LabelGameType: "ゲームルール (成果報酬)",

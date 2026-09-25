@@ -617,8 +617,14 @@ App.Studio = {
             select.disabled = false;
         });
 
+        // シャッフルの初期値は、選んだセットの作成時の設定に合わせる
+        const shuffleChk = document.getElementById('studio-opt-shuffle');
         select.onchange = () => {
             btn.disabled = (select.value === "");
+            if (shuffleChk && select.value.startsWith('set:')) {
+                const set = this.localSetsCache[select.value.slice(4)];
+                shuffleChk.checked = !!(set && set.config && set.config.shuffleQuestions === true);
+            }
         };
 
         btn.onclick = () => {
@@ -631,6 +637,10 @@ App.Studio = {
             }
 
             const showId = App.State.currentShowId;
+
+            // 読込画面で選んだ出題の進め方（このセッションだけ有効）
+            this._showBridge = document.getElementById('studio-opt-show-bridge')?.checked !== false;
+            this._shuffleOverride = document.getElementById('studio-opt-shuffle')?.checked === true;
 
             // Always fetch fresh from Firebase so eye-toggle / design changes are reflected
             // even if the studio cache was loaded before the user saved in セットデザイン
@@ -697,6 +707,27 @@ App.Studio = {
         window.db.ref(`rooms/${roomId}/questions`).set(packed.questions);
     },
 
+    // 一斉解答の「解答オープン」ボタン（メインボタンの下）— onClick を
+    // 渡すと表示、null で非表示。
+    setOpenAnswersButton: function (onClick) {
+        const btn = document.getElementById('console-btn-open-answers');
+        if (!btn) return;
+        btn.classList.toggle('hidden', !onClick);
+        btn.onclick = onClick ? (e) => { e.preventDefault(); onClick(); } : null;
+    },
+
+    // 問題の順番をシャッフルするか — 読込画面で選んだ値があればそれ、
+    // 無ければ（クイックスタート等）セット作成時の設定
+    shouldShuffleOrder: function (config) {
+        if (typeof this._shuffleOverride === 'boolean') return this._shuffleOverride;
+        return !!(config && config.shuffleQuestions === true);
+    },
+
+    // ブリッジスライド（第○問）の文言 — 問題ごとの文言が無ければ「第N問」
+    qNumLabel: function (q) {
+        return (q && q.qNumText) || `第${App.State.currentQIndex + 1}問`;
+    },
+
     renderTimeline: function () {
         const area = document.getElementById('studio-period-timeline');
         area.innerHTML = '';
@@ -749,7 +780,8 @@ App.Studio = {
         // Apply per-question choice shuffling (based on each q.shuffle flag)
         qs = this.shuffleQuestions(qs);
         // If global question order shuffle is enabled, randomize the question order too
-        if (item.config && item.config.shuffleQuestions === true) {
+        // （読込画面のチェックがあればそちらを優先）
+        if (this.shouldShuffleOrder(item.config)) {
             qs = this.shuffleArray([...qs]);
         }
         App.Data.studioQuestions = App.SetImages.unpack(qs, media.images);
@@ -831,6 +863,7 @@ App.Studio = {
 
     setStep: function (stepId) {
         this.currentStepId = stepId;
+        this.setOpenAnswersButton(null); // 解答オープンは一斉解答の出題中/正解表示後だけ
         this.clearTimeLimit(); // Always clear any running time limit timer on step change
         document.getElementById('turn-order-setup')?.remove(); // Cleanup turn setup UI
         this.updateStudioStatus(stepId); // Sync Status Indicators
@@ -980,7 +1013,8 @@ App.Studio = {
                 break;
 
             case 1: // 出題準備 (Question Number Slide)
-                if (q.isQNumHidden) {
+                // 読込画面で「第○問を表示する」を外した時も飛ばす
+                if (q.isQNumHidden || this._showBridge === false) {
                     this.setStep(2);
                     return;
                 }
@@ -999,13 +1033,13 @@ App.Studio = {
                 if (q.prodDesign) {
                     this.renderProductionMonitor('qnumber', q);
                 } else {
-                    this.renderMonitorMessage("", `第${App.State.currentQIndex + 1}問`);
+                    this.renderMonitorMessage("", this.qNumLabel(q));
                 }
 
                 window.db.ref(`rooms/${roomId}/status`).update({
                     step: 'reveal_q_num',
                     qIndex: App.State.currentQIndex,
-                    qNumLabel: `第${App.State.currentQIndex + 1}問`,
+                    qNumLabel: this.qNumLabel(q),
                     turnIndex: (App.Data.currentConfig.mode === 'turn' || App.Data.currentConfig.mode === 'solo') ? this.turnIndex : null
                 });
                 break;
@@ -1106,8 +1140,15 @@ App.Studio = {
 
                 } else {
                     // Normal Mode (Unified Flow: Question -> Answer -> Result)
+                    // 一斉解答は「解答オープン」と「正解を表示」のどちらを
+                    // 先に押すかを出題者がその場で選べる。
+                    this._answersOpened = false;
+                    this._correctShown = false;
                     btnMain.textContent = "正解を表示";
                     btnMain.onclick = () => this.setStep(5);
+                    if (App.Data.currentConfig.mode === 'normal' && !q.isResHidden) {
+                        this.setOpenAnswersButton(() => this.setStep(4));
+                    }
 
                     btnMain.classList.remove('action-ready');
                     btnMain.classList.add('action-next');
@@ -1137,10 +1178,19 @@ App.Studio = {
                     document.getElementById('studio-step-display').textContent = "Q." + (App.State.currentQIndex + 1) + " 結果発表";
                 }
 
-                btnMain.textContent = "次の問題へ";
-                btnMain.classList.remove('action-ready');
-                btnMain.classList.add('action-next');
-                btnMain.onclick = () => this.goNext();
+                this._answersOpened = true;
+                if (App.Data.currentConfig.mode === 'normal' && this._correctShown === false) {
+                    // 正解表示より先に解答オープンした — 次は正解表示
+                    btnMain.textContent = "正解を表示";
+                    btnMain.classList.remove('action-next');
+                    btnMain.classList.add('action-ready');
+                    btnMain.onclick = () => this.setStep(5);
+                } else {
+                    btnMain.textContent = "次の問題へ";
+                    btnMain.classList.remove('action-ready');
+                    btnMain.classList.add('action-next');
+                    btnMain.onclick = () => this.goNext();
+                }
 
                 syncBadge.textContent = "REVEAL";
                 syncBadge.style.background = "#9b59b6"; // Purple
@@ -1160,6 +1210,7 @@ App.Studio = {
                         (App.Data.currentConfig.answerAttempts || 'single') === 'single') {
                         this.flushPendingResults();
                     }
+                    this._correctShown = true; // 正解は非表示設定 — 表示済み扱いで先へ
                     this.setStep(4);
                     return;
                 }
@@ -1180,10 +1231,24 @@ App.Studio = {
                     document.getElementById('studio-commentary-text').textContent = q.commentary || "";
                 }
 
-                btnMain.textContent = "結果発表へ";
-                btnMain.classList.remove('action-next');
-                btnMain.classList.add('action-ready'); // Ready for next
-                btnMain.onclick = () => this.setStep(4);
+                this._correctShown = true;
+                if (App.Data.currentConfig.mode === 'normal' && this._answersOpened) {
+                    // 解答オープン済み — 正解を見せたら次の問題へ
+                    btnMain.textContent = "次の問題へ";
+                    btnMain.classList.remove('action-ready');
+                    btnMain.classList.add('action-next');
+                    btnMain.onclick = () => this.goNext();
+                } else if (App.Data.currentConfig.mode === 'normal') {
+                    btnMain.textContent = "解答オープン";
+                    btnMain.classList.remove('action-next');
+                    btnMain.classList.add('action-ready');
+                    btnMain.onclick = () => this.setStep(4);
+                } else {
+                    btnMain.textContent = "結果発表へ";
+                    btnMain.classList.remove('action-next');
+                    btnMain.classList.add('action-ready'); // Ready for next
+                    btnMain.onclick = () => this.setStep(4);
+                }
 
                 syncBadge.textContent = "ANSWER";
                 syncBadge.style.background = "#2ecc71";
@@ -1527,7 +1592,7 @@ App.Studio = {
         const media = App.SetImages.pack(App.SetImages.unpack(child.questions || [], child.images));
         let qs = media.questions;
         qs = this.shuffleQuestions(qs);
-        if (child.config && child.config.shuffleQuestions === true) {
+        if (this.shouldShuffleOrder(child.config)) {
             qs = this.shuffleArray([...qs]);
         }
         App.Data.studioQuestions = App.SetImages.unpack(qs, media.images);
@@ -2093,6 +2158,14 @@ App.Studio = {
                         } else {
                             isCor = true;
                         }
+                    } else if (q.multiCorrect && Array.isArray(q.correct)) {
+                        // 複数回答モード: 正解をすべて選び、不正解を1つも選んで
+                        // いない時だけ正解（解答は選んだ番号の配列で届く）
+                        const ans = Array.isArray(p.lastAnswer) ? p.lastAnswer
+                            : (p.lastAnswer && typeof p.lastAnswer === 'object') ? Object.values(p.lastAnswer) : [p.lastAnswer];
+                        const ansSet = new Set(ans.map(Number));
+                        const corSet = new Set(q.correct.map(Number));
+                        isCor = ansSet.size === corSet.size && [...corSet].every(c => ansSet.has(c));
                     } else {
                         // Normal Choice: Compare loosely (string vs number)
                         if (Array.isArray(q.correct)) {
@@ -2803,6 +2876,9 @@ App.Studio = {
 
     quickStart: function (setData) {
         console.log("Quick starting set:", setData.title);
+        // 読込画面を通らないので、出題の進め方はセットの設定どおりに戻す
+        this._shuffleOverride = undefined;
+        this._showBridge = true;
         const unextDesign = { mainBgColor: "#0a0a0a", qTextColor: "#fff", qBgColor: "rgba(255,255,255,0.05)", qBorderColor: "#00bfff" };
         const rawQ = App.SetImages.unpack(setData.questions || [], setData.images);
         const questions = rawQ.map(q => {

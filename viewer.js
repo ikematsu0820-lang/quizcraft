@@ -47,7 +47,14 @@ window.App.Viewer = {
     updateThinkingBgm: function (st, q) {
         const d = (q && q.design) || {};
         const want = (d.bgmThinking && d.bgmThinking.startsWith('data:')) ? d.bgmThinking : null;
-        const shouldPlay = !!(want && ['answering', 'question', 'reveal_q'].includes(st.step));
+        // 早押しで誰かが押した（ピンポン）瞬間は BGM を止める。誤答で
+        // 早押し受付に戻ったら、止めた所から続きを流す。
+        const buzzedIn = !!(this.config && this.config.mode === 'buzz' && st.currentAnswerer);
+        if (buzzedIn && want && this._bgmUrl === want && this._bgmAudio) {
+            this._bgmAudio.pause();
+            return;
+        }
+        const shouldPlay = !!(want && !buzzedIn && ['answering', 'question', 'reveal_q'].includes(st.step));
         if (shouldPlay) {
             if (this._bgmUrl !== want && this._bgmAudio) {
                 this._bgmAudio.pause();
@@ -228,11 +235,20 @@ window.App.Viewer = {
             } else if (q.prodDesign) {
                 this.renderProduction(viewContainer, mainText, 'qnumber', q, st);
             } else {
-                this.applyDefaultDesign(viewContainer, null);
+                // ブリッジスライドの色・背景（問題作成の その他 タブで設定、全問共通）
+                const d = q.design || {};
+                const bridgeDesign = {
+                    mainBgColor: d.bridgeBgColor || '#0a0a0a',
+                    bgImage: d.bridgeUseBgImage ? d.bgImage : ''
+                };
+                this.applyDefaultDesign(viewContainer, bridgeDesign);
+                const label = st.qNumLabel || `第 ${st.qIndex + 1} 問`;
+                // 文言が長い（任意の文言にした）時は文字を小さくする
+                const fontSize = label.length > 8 ? '7vw' : '12vw';
                 mainText.innerHTML = `
                     <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;">
-                        <div style="font-size:12vw; color:#fff; font-weight:900; text-shadow:0 0 30px rgba(0,0,0,0.5);">
-                            ${st.qNumLabel || `第 ${st.qIndex + 1} 問`}
+                        <div style="font-size:${fontSize}; color:${d.bridgeTextColor || '#fff'}; font-weight:900; text-align:center; padding:0 4vw; text-shadow:0 0 30px rgba(0,0,0,0.5);">
+                            ${label}
                         </div>
                     </div>
                 `;
@@ -362,10 +378,13 @@ window.App.Viewer = {
 
             // Normal choice: TV-show style reveal — light up correct, dim others
             if (q.type === 'choice' && Array.isArray(q.c) && q.c.length > 0) {
-                const correctIdx = parseInt(q.correctIndex !== undefined ? q.correctIndex : q.correct);
+                // 複数回答モードでは正解が複数 — q.correct（配列）を全部光らせる
+                const correctSet = new Set(q.multiCorrect && Array.isArray(q.correct)
+                    ? q.correct.map(Number)
+                    : [parseInt(q.correctIndex !== undefined ? q.correctIndex : q.correct)]);
                 mainText.querySelectorAll('.choice-item').forEach((el, i) => {
                     el.style.transition = 'all 0.35s ease';
-                    if (i === correctIdx) {
+                    if (correctSet.has(i)) {
                         el.style.background = 'linear-gradient(135deg, #ffd700 0%, #ffec3d 100%)';
                         el.style.color = '#1a1000';
                         el.style.border = '3px solid #fff';
@@ -796,7 +815,10 @@ window.App.Viewer = {
             card.className = 'viewer-flip-card';
 
             let ans = p.lastAnswer;
-            if (q.type === 'choice' && ans !== null && ans !== undefined) {
+            if (q.type === 'choice' && Array.isArray(ans)) {
+                // 複数回答モードは選んだ番号の配列
+                ans = ans.map(a => String.fromCharCode(65 + parseInt(a))).join(' ');
+            } else if (q.type === 'choice' && ans !== null && ans !== undefined) {
                 const idx = parseInt(ans);
                 ans = isNaN(idx) ? ans : String.fromCharCode(65 + idx);
             } else if (q.type === 'sort' && ans !== null && ans !== undefined) {
@@ -981,14 +1003,21 @@ window.App.Viewer = {
             const pos = App.Design ? App.Design.normalizeLayout(layout) : 'top';
             const isRow = (pos === 'left' || pos === 'right');
             contentBox.style.flexDirection = isRow ? 'row' : 'column';
-            contentBox.style.justifyContent = { top: 'flex-start', bottom: 'flex-end', left: 'flex-start', right: 'flex-end' }[pos];
+            contentBox.style.justifyContent = { top: 'flex-start', bottom: 'flex-end', left: 'flex-start', right: 'flex-end', center: 'center' }[pos];
             contentBox.style.alignItems = 'center';
 
             // Reusing q-area for consistent look — ${q.q} sits directly
             // against the tags (no surrounding template indentation) since
             // .q-area now uses white-space:pre-wrap, which would otherwise
             // render that indentation as stray blank lines/leading spaces.
-            html += `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align}; font-size:${d.qFontSize || '6vh'}; width:80%;${qBoxSizeStyle}${qBackdropStyle}${qTextShadowStyle}">${q.q}</div>`;
+            const qAreaHtml = `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align}; font-size:${d.qFontSize || '6vh'}; width:${q.title ? '100%' : '80%'};${qBoxSizeStyle}${qBackdropStyle}${qTextShadowStyle}">${q.q}</div>`;
+            if (q.title) {
+                // タイトル（一問一答で「タイトルを追加」した時）— 問題文の上に出す
+                const titleColor = (textColor === 'transparent') ? 'transparent' : '#ffd700';
+                html += `<div style="width:80%; display:flex; flex-direction:column; align-items:center;"><div class="q-title" style="font-size:4.5vh; font-weight:900; color:${titleColor}; margin-bottom:1.5vh; letter-spacing:0.1em;${titleColor === 'transparent' ? ' text-shadow:none;' : ' text-shadow:0 2px 12px rgba(0,0,0,0.6);'}">${q.title}</div>${qAreaHtml}</div>`;
+            } else {
+                html += qAreaHtml;
+            }
 
         } else {
             // 問題文の位置: top/bottom stack the q-area above/below the
@@ -996,7 +1025,8 @@ window.App.Viewer = {
             // always holds q-area then c-area in that DOM order — only its
             // flex-direction changes (row-reverse/column-reverse just flip
             // which side the first child lands on).
-            const pos = App.Design ? App.Design.normalizeLayout(layout) : (layout === 'split' ? 'right' : 'top');
+            let pos = App.Design ? App.Design.normalizeLayout(layout) : (layout === 'split' ? 'right' : 'top');
+            if (pos === 'center') pos = 'top'; // 中央は一問一答だけ
             const isRow = (pos === 'left' || pos === 'right');
             const wrapDirection = { top: 'column', bottom: 'column-reverse', left: 'row', right: 'row-reverse' }[pos];
 

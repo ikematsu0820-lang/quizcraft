@@ -206,9 +206,9 @@ App.Config = {
         // per-session override on top of whatever mode the set was created
         // with. See host_studio.js loadProgramList()/setupPeriod().
         const modes = [
-            { value: 'normal', label: '一斉解答', disabled: isBlackjack || isOral || isDobon || (qType && (qType.startsWith('multi') || qType.startsWith('ranking'))) },
-            { value: 'buzz', label: '早押し', disabled: isBlackjack || isDobon },
-            { value: 'turn', label: '順番解答', disabled: false }
+            { value: 'normal', label: '全員が同時に手元で解答', disabled: isBlackjack || isOral || isDobon || (qType && (qType.startsWith('multi') || qType.startsWith('ranking'))) },
+            { value: 'buzz', label: '早く押した人から解答', disabled: isBlackjack || isDobon },
+            { value: 'turn', label: '特定の人や順番で解答', disabled: false }
         ];
         let current = conf.mode || 'normal';
         if (modes.find(m => m.value === current)?.disabled) current = modes.find(m => !m.disabled).value;

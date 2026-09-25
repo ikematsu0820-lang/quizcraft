@@ -16,6 +16,9 @@ window.App.Creator = {
         this.editingTitle = "";
         this.activeInlinePanel = null;
         this._savedSnapshot = null;
+        this.currentType = null;
+        this.multiCorrect = false;
+        this.titleEnabled = false;
         window.App.Data.createdQuestions = [];
         window.App.Data.currentConfig = window.App.Config
             ? JSON.parse(JSON.stringify(window.App.Config.DEFAULT_CONFIG))
@@ -69,7 +72,8 @@ window.App.Creator = {
                 choice: 'choice_single',
                 multi_group: 'multi_written',
                 assoc_group: 'assoc_written',
-                num_group: 'blackjack'
+                num_group: 'blackjack',
+                dobon: 'choice_multi'
             };
             this.renderForm(groupDefaults[type] || type);
             // Open with デザイン (テキスト sub-tab) already active.
@@ -88,6 +92,7 @@ window.App.Creator = {
             { v: 'free', t: APP_TEXT.Creator.TypeFree },
             { v: 'choice', t: APP_TEXT.Creator.TypeChoice },
             { v: 'sort', t: APP_TEXT.Creator.TypeSort },
+            { v: 'dobon', t: 'ダウト' },
             { v: 'multi_group', t: APP_TEXT.Creator.TypeMulti },
             { v: 'assoc_group', t: APP_TEXT.Creator.TypeAssoc },
             { v: 'num_group', t: '数字予想' }
@@ -110,9 +115,8 @@ window.App.Creator = {
         // Use global shared logic to build subItems
         const getSubItems = (mainVal) => {
             if (mainVal === 'free') return [
-                { v: 'free_written', t: APP_TEXT.Creator.TypeFreeWritten },
                 { v: 'free_oral', t: APP_TEXT.Creator.TypeFreeOral },
-                { v: 'letter_select', t: APP_TEXT.Creator.TypeLetterSelect }
+                { v: 'free_written', t: APP_TEXT.Creator.TypeFreeWritten }
             ];
             if (mainVal === 'multi_group') return [
                 { v: 'multi_written', t: APP_TEXT.Creator.TypeMultiWritten },
@@ -121,8 +125,7 @@ window.App.Creator = {
                 { v: 'ranking_oral', t: APP_TEXT.Creator.TypeRankingOral }
             ];
             if (mainVal === 'choice') return [
-                { v: 'choice_single', t: "2-1) 単一解答" },
-                { v: 'choice_multi', t: "2-2) ダウト問題" }
+                { v: 'choice_single', t: "2-1) 単一解答" }
             ];
             if (mainVal === 'assoc_group') return [
                 { v: 'assoc_written', t: APP_TEXT.Creator.TypeAssocWritten },
@@ -212,8 +215,9 @@ window.App.Creator = {
             const type = firstQ.type;
 
             if (type.startsWith('choice')) {
-                sel.value = 'choice';
-                resolvedType = (firstQ.multi || firstQ.mode === 'multi') ? 'choice_multi' : 'choice_single';
+                const isDobonSet = (firstQ.multi || firstQ.mode === 'multi');
+                sel.value = isDobonSet ? 'dobon' : 'choice';
+                resolvedType = isDobonSet ? 'choice_multi' : 'choice_single';
             } else if (type.startsWith('free') || type === 'letter_select') {
                 sel.value = 'free';
                 resolvedType = type;
@@ -302,9 +306,13 @@ window.App.Creator = {
         // style instead of falling through to a blank/default form.
         const subSel = document.getElementById('creator-opt-subtype') || document.getElementById('creator-q-subtype');
         const groupDefaults = { num_group: 'blackjack' };
-        const type = (sel && (['free', 'multi_group', 'choice', 'assoc_group', 'num_group'].includes(sel.value)))
+        const type = this.currentType || ((sel && (['free', 'multi_group', 'choice', 'assoc_group', 'num_group'].includes(sel.value)))
             ? (subSel.value || groupDefaults[sel.value] || sel.value)
-            : (sel ? sel.value : 'choice');
+            : (sel ? sel.value : 'choice'));
+        const titleEl = document.getElementById('question-title');
+        if (titleEl) titleEl.value = '';
+        const qNumEl = document.getElementById('creator-qnum-text');
+        if (qNumEl) qNumEl.value = '';
         this.renderForm(type);
     },
 
@@ -339,8 +347,38 @@ window.App.Creator = {
         // Reset to flex column so choice rows can use flex:1
         container.style.display = 'flex';
         container.style.flexDirection = 'column';
+        // その他タブのブリッジスライド文言は optionsExtra ごと作り直すので、
+        // 形式の切替などで消えないよう、描き直す前の入力値を拾っておく。
+        const prevQNumText = document.getElementById('creator-qnum-text')?.value || '';
         if (optionsExtra) optionsExtra.innerHTML = '';
         if (optSubArea) optSubArea.classList.add('hidden');
+        // タブの外（プレビュー直下）のオプション行 — 形式ごとに中身を入れ直す
+        const outsideOpts = document.getElementById('creator-outside-opts');
+        if (outsideOpts) { outsideOpts.innerHTML = ''; outsideOpts.classList.add('hidden'); }
+        const addOutside = (el) => {
+            if (!outsideOpts) return;
+            outsideOpts.appendChild(el);
+            outsideOpts.classList.remove('hidden');
+        };
+        const outsideCheck = (id, label, checked, onChange) => {
+            const lbl = document.createElement('label');
+            lbl.style.cssText = 'display:flex; align-items:center; gap:6px; cursor:pointer; color:#cbd5e1; font-size:0.8rem; white-space:nowrap;';
+            lbl.innerHTML = `<input type="checkbox" id="${id}" ${checked ? 'checked' : ''} style="accent-color:#00e5ff; cursor:pointer;"><span>${label}</span>`;
+            lbl.querySelector('input').onchange = (e) => onChange(e.target.checked);
+            addOutside(lbl);
+        };
+        const outsideButton = (id, label, onClick) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.id = id;
+            btn.textContent = label;
+            btn.style.cssText = 'margin-left:auto; background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4); border-radius:8px; color:#00e5ff; padding:5px 12px; cursor:pointer; font-size:0.8rem;';
+            btn.onclick = onClick;
+            addOutside(btn);
+        };
+        // タイトル入力欄は一問一答のときだけ（下の free 分岐で表示を決める）
+        const titleInput = document.getElementById('question-title');
+        if (titleInput) titleInput.classList.add('hidden');
         // リストに追加/保存 live outside the PREVIEW bezel and stay visible
         // across all 4 tabs once question editing has started, not just
         // while 問題編集 is the active tab.
@@ -352,6 +390,11 @@ window.App.Creator = {
         // restricts 解答権 immediately, even before the first question in
         // the set has been added (deriveTypeInfo() otherwise only looks at
         // already-added questions).
+        // ダウトは選択式から独立した形式カードになった（中身は従来の
+        // choice + multi のまま）— 'dobon' は choice_multi の別名。
+        if (type === 'dobon') type = 'choice_multi';
+        // 保存済みの choice を編集で開いた時は、data からダウトかを判定
+        if (type === 'choice') type = (data ? data.multi : this.choiceSubtype === 'multi') ? 'choice_multi' : 'choice_single';
         this.currentType = type;
 
         // Handle Choice Subtypes
@@ -384,11 +427,21 @@ window.App.Creator = {
             const isDobon = (this.choiceSubtype === 'multi');
             const msg = isDobon ? "不正解をタップして選択" : "正解をタップして選択";
 
-            // Sub-type in options
-            setupOptSubtype([
-                { v: 'choice_single', t: '単一解答' },
-                { v: 'choice_multi', t: 'ダウト問題' }
-            ], isDobon ? 'choice_multi' : 'choice_single');
+            // 選択式とダウトは別の形式カードになったので、単一解答/ダウトの
+            // プルダウンは出さない。選択式は「複数回答モード」で正解を
+            // 複数にできる（正解をすべて選んだ時だけ正解）。
+            if (!isDobon) {
+                if (data) this.multiCorrect = !!data.multiCorrect;
+                outsideCheck('choice-multicorrect-chk', '複数回答モード（正解を複数にする）', !!this.multiCorrect, (on) => {
+                    this.multiCorrect = on;
+                    // 正解チェックの radio/checkbox を切り替えるため描き直す
+                    // （入力済みの選択肢と正解は引き継ぐ）
+                    const cur = this.readChoiceRows();
+                    this.renderForm('choice_single', { ...cur, multiCorrect: on });
+                });
+            } else {
+                this.multiCorrect = false;
+            }
 
             // Hint label inside the frame
             container.innerHTML = `
@@ -414,21 +467,17 @@ window.App.Creator = {
             }
             else for (let i = 0; i < 4; i++) this.addChoiceInput(choicesDiv, i);
 
-            // Add choice button + Shuffle option, same row, in options panel
+            // ＋選択肢を追加 はタブの外（プレビュー直下）、シャッフルは その他 タブ
+            outsideButton('choice-add-btn', '＋ 選択肢を追加', () => this.addChoiceInput(choicesDiv));
             if (optionsExtra) {
                 optionsExtra.innerHTML = `
-                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
-                        <button id="choice-add-btn" type="button" style="
-                            flex:1; background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4);
-                            border-radius:8px; color:#00e5ff; padding:8px 10px; cursor:pointer; font-size:0.85rem;
-                        ">＋ 選択肢を追加</button>
-                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:#94a3b8; font-size:0.8rem; white-space:nowrap; flex-shrink:0;">
+                    <div style="margin-bottom:14px;">
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:#94a3b8; font-size:0.85rem;">
                             <input type="checkbox" id="choice-shuffle-chk" ${data?.shuffle !== false ? 'checked' : ''}>
-                            <span>シャッフル</span>
+                            <span>選択肢をシャッフルする</span>
                         </label>
                     </div>
                 `;
-                optionsExtra.querySelector('#choice-add-btn').onclick = () => this.addChoiceInput(choicesDiv);
             }
         }
 
@@ -446,10 +495,11 @@ window.App.Creator = {
             `;
             this.renderLetterStepList();
 
-            // Sub-type
+            // 文字パネルは新規作成の選択肢からは外したが、保存済みの
+            // 文字パネル問題は引き続き編集できるよう、この時だけ出す。
             setupOptSubtype([
-                { v: 'free_written', t: '手書きで答える' },
                 { v: 'free_oral', t: '口頭で答える' },
+                { v: 'free_written', t: '手書きで答える' },
                 { v: 'letter_select', t: '文字パネル' }
             ], 'letter_select');
         }
@@ -522,12 +572,22 @@ window.App.Creator = {
                 input.value = Array.isArray(data.correct) ? data.correct.join(', ') : data.correct;
             }
 
-            // Sub-type
+            // Sub-type（口頭 → 手書き の順。文字パネルは廃止）
             setupOptSubtype([
-                { v: 'free_written', t: '手書きで答える' },
                 { v: 'free_oral', t: '口頭で答える' },
-                { v: 'letter_select', t: '文字パネル' }
+                { v: 'free_written', t: '手書きで答える' }
             ], type);
+
+            // タイトルを追加 — 問題文の上にタイトル名を出す（一問一答のみ）
+            if (data) this.titleEnabled = !!data.title;
+            if (titleInput) titleInput.classList.toggle('hidden', !this.titleEnabled);
+            outsideCheck('free-title-chk', 'タイトルを追加', !!this.titleEnabled, (on) => {
+                this.titleEnabled = on;
+                if (titleInput) {
+                    titleInput.classList.toggle('hidden', !on);
+                    if (on) titleInput.focus();
+                }
+            });
         }
         else if (type.startsWith('assoc')) {
             container.innerHTML = `
@@ -575,8 +635,8 @@ window.App.Creator = {
 
             // Sub-type
             setupOptSubtype([
-                { v: 'assoc_written', t: '連想・手書きで答える' },
-                { v: 'assoc_oral', t: '連想・口頭で答える' }
+                { v: 'assoc_oral', t: '連想・口頭で答える' },
+                { v: 'assoc_written', t: '連想・手書きで答える' }
             ], type);
         }
         else if (type.startsWith('multi') || type.startsWith('ranking')) {
@@ -595,40 +655,20 @@ window.App.Creator = {
             if (data && data.c && data.c.length > 0) data.c.forEach((txt, i) => this.addMultiInput(multiDiv, i, txt, isRanking));
             else for (let i = 0; i < 4; i++) this.addMultiInput(multiDiv, i, '', isRanking);
 
-            // ランキングモード checkbox + add-item button in options panel —
-            // ランキング/通常 is now its own checkbox instead of being
-            // folded into 解答形式's dropdown as 4 separate combinations.
-            if (optionsExtra) {
-                optionsExtra.innerHTML = `
-                    <div style="margin-bottom:12px;">
-                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:#94a3b8; font-size:0.9rem;">
-                            <input type="checkbox" id="multi-ranking-mode-chk" ${isRanking ? 'checked' : ''}>
-                            <span>ランキングモードにする（回答を順位付けして答える）</span>
-                        </label>
-                    </div>
-                `;
-                optionsExtra.querySelector('#multi-ranking-mode-chk').onchange = (e) => {
-                    const newType = (e.target.checked ? 'ranking' : 'multi') + (isOral ? '_oral' : '_written');
-                    this.renderForm(newType);
-                };
-
-                const addBtnDiv = document.createElement('div');
-                addBtnDiv.style.cssText = 'margin-bottom:14px;';
-                const addBtnText = isRanking ? '＋ ランキングを追加' : '＋ 正解を追加';
-                const addBtn = document.createElement('button');
-                addBtn.textContent = addBtnText;
-                addBtn.style.cssText = 'background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4); border-radius:8px; color:#00e5ff; padding:8px 20px; cursor:pointer; font-size:0.9rem; width:100%;';
-                addBtn.onclick = () => this.addMultiInput(multiDiv, undefined, '', isRanking);
-                addBtnDiv.appendChild(addBtn);
-                optionsExtra.appendChild(addBtnDiv);
-            }
+            // ランキングモードのチェックと＋正解を追加はタブの外（プレビュー直下）
+            outsideCheck('multi-ranking-mode-chk', 'ランキングモード', isRanking, (on) => {
+                const newType = (on ? 'ranking' : 'multi') + (isOral ? '_oral' : '_written');
+                this.renderForm(newType);
+            });
+            outsideButton('multi-add-btn', isRanking ? '＋ ランキングを追加' : '＋ 正解を追加',
+                () => this.addMultiInput(multiDiv, undefined, '', isRanking));
 
             // Sub-type: just 手書き/口頭 now — ランキングかどうかは上の
             // チェックボックスが持つので、ここは組み合わせを気にせず
             // written/oral の2択のみ。
             setupOptSubtype([
-                { v: isRanking ? 'ranking_written' : 'multi_written', t: '手書きで答える' },
                 { v: isRanking ? 'ranking_oral' : 'multi_oral', t: '口頭で答える' },
+                { v: isRanking ? 'ranking_written' : 'multi_written', t: '手書きで答える' },
             ], type);
         }
         else if (type === 'blackjack') {
@@ -666,9 +706,69 @@ window.App.Creator = {
             container.appendChild(addBtnWrap);
         }
 
+        // その他: ブリッジスライド（問題の前に出る「第○問」）の編集。
+        // 文言は問題ごと、色・背景はセット共通（design に保存）。
+        if (optionsExtra) {
+            const qNumVal = data ? (data.qNumText || '') : prevQNumText;
+            optionsExtra.insertAdjacentHTML('beforeend', this.bridgeSectionHtml(qNumVal));
+            this.wireBridgeSection(optionsExtra);
+        }
+
         this.renderRulesSection();
         this.applyDesignToPreview();
         this.wirePreviewObjectSelection();
+    },
+
+    // 現在の選択肢の入力状態（文字と正解）を読む — 複数回答モードの
+    // 切替で描き直す時に、入力済みの内容を引き継ぐため。
+    readChoiceRows: function () {
+        const c = [], correct = [];
+        document.querySelectorAll('#creator-choices-list .choice-row').forEach((row, i) => {
+            c.push(row.querySelector('.choice-text-input')?.value || '');
+            if (row.querySelector('.choice-correct-chk')?.checked) correct.push(i);
+        });
+        const shuffleChk = document.getElementById('choice-shuffle-chk');
+        return {
+            c, correct, multi: false,
+            shuffle: shuffleChk ? shuffleChk.checked : true,
+            qNumText: document.getElementById('creator-qnum-text')?.value || ''
+        };
+    },
+
+    bridgeSectionHtml: function (qNumText) {
+        const d = window.App.Data.currentDesign || {};
+        const esc = (v) => String(v || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+        return `
+            <div style="margin-top:6px; padding-top:10px; border-top:1px dashed #333;">
+                <div style="color:#94a3b8; font-size:0.75rem; font-weight:bold; margin-bottom:6px;">ブリッジスライド（第○問）</div>
+                <input type="text" id="creator-qnum-text" value="${esc(qNumText)}" placeholder="空欄なら「第○問」（この問題だけの文言）" style="
+                    width:100%; padding:6px 8px; margin-bottom:8px; background:#1e293b; border:1px solid #475569;
+                    border-radius:8px; color:#fff; font-size:0.85rem; box-sizing:border-box;
+                ">
+                <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; color:#94a3b8; font-size:0.78rem;">
+                    <label style="display:flex; align-items:center; gap:6px;">文字色
+                        <input type="color" id="creator-bridge-text-color" value="${esc(d.bridgeTextColor || '#ffffff')}" style="width:40px; height:26px; padding:0; border:1px solid #475569; border-radius:6px; background:#1e293b; cursor:pointer;">
+                    </label>
+                    <label style="display:flex; align-items:center; gap:6px;">背景色
+                        <input type="color" id="creator-bridge-bg-color" value="${esc(d.bridgeBgColor || '#0a0a0a')}" style="width:40px; height:26px; padding:0; border:1px solid #475569; border-radius:6px; background:#1e293b; cursor:pointer;">
+                    </label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                        <input type="checkbox" id="creator-bridge-use-bgimg" ${d.bridgeUseBgImage ? 'checked' : ''}>全体背景の画像を使う
+                    </label>
+                    <span style="color:#64748b; font-size:0.7rem;">※色・背景は全問共通</span>
+                </div>
+            </div>
+        `;
+    },
+
+    wireBridgeSection: function (root) {
+        const d = window.App.Data.currentDesign || (window.App.Data.currentDesign = {});
+        const textC = root.querySelector('#creator-bridge-text-color');
+        const bgC = root.querySelector('#creator-bridge-bg-color');
+        const useImg = root.querySelector('#creator-bridge-use-bgimg');
+        if (textC) textC.oninput = () => { d.bridgeTextColor = textC.value; };
+        if (bgC) bgC.oninput = () => { d.bridgeBgColor = bgC.value; };
+        if (useImg) useImg.onchange = () => { d.bridgeUseBgImage = useImg.checked; };
     },
 
     // プレビュー内の要素をタップすると、その要素に関係する項目だけに
@@ -746,31 +846,25 @@ window.App.Creator = {
     },
 
     renderRulesSection: function () {
-        const modeBtn = document.getElementById('creator-rule-mode-btn');
         const rulesBtn = document.getElementById('creator-rule-settings-btn');
         const designBtn = document.getElementById('creator-rule-design-btn');
         const listBtn = document.getElementById('creator-rule-list-btn');
         const editBtn = document.getElementById('creator-inline-edit-toggle');
-        if (!modeBtn || !rulesBtn || !editBtn) return;
+        if (!rulesBtn || !editBtn) return;
         if (!window.App.Config) return;
 
         const conf = window.App.Data.currentConfig;
         const questions = this.effectiveQuestionsForRestrictions();
         window.App.Config.applyModeRestrictions(conf, questions);
 
-        modeBtn.textContent = '解答方式';
-        rulesBtn.textContent = 'ルール設定';
-
         editBtn.onclick = () => this.toggleInlinePanel('edit');
         if (listBtn) listBtn.onclick = () => this.toggleInlinePanel('list');
         if (designBtn) designBtn.onclick = () => this.toggleInlinePanel('design');
-        modeBtn.onclick = () => this.toggleInlinePanel('mode');
         rulesBtn.onclick = () => this.toggleInlinePanel('rules');
 
-        // Keep an already-open 解答権 panel's radio list in sync as 回答形式
-        // changes (it only reflects restrictions from the moment it opened
-        // otherwise).
-        if (this.activeInlinePanel === 'mode') this.renderActivePanelContent('mode');
+        // Keep an already-open 解答権 pulldown in sync as 回答形式 changes
+        // (it only reflects restrictions from the moment it opened otherwise).
+        if (this.activeInlinePanel === 'rules') this.renderActivePanelContent('rules');
 
         this.updateInlinePanelButtonStyles();
     },
@@ -780,7 +874,6 @@ window.App.Creator = {
             list: document.getElementById('creator-rule-list-btn'),
             edit: document.getElementById('creator-inline-edit-toggle'),
             design: document.getElementById('creator-rule-design-btn'),
-            mode: document.getElementById('creator-rule-mode-btn'),
             rules: document.getElementById('creator-rule-settings-btn')
         };
         Object.entries(buttons).forEach(([key, btn]) => {
@@ -796,7 +889,6 @@ window.App.Creator = {
             list: document.getElementById('creator-inline-listedit'),
             edit: document.getElementById('creator-options-extra'),
             design: document.getElementById('creator-inline-design'),
-            mode: document.getElementById('creator-inline-mode'),
             rules: document.getElementById('creator-inline-rules')
         };
         // 問題編集 only — not the rule pickers. リストに追加/保存 lives
@@ -825,7 +917,22 @@ window.App.Creator = {
         this.updateInlinePanelButtonStyles();
     },
 
-    // 問題編集's own ホーム/一括編集 sub-tab bar.
+    // ルール設定の中の 解答形式/勝利条件/制限時間 サブタブ
+    rulesSubTab: 'format',
+
+    renderRulesSubtabs: function () {
+        const subs = { format: 'creator-rules-sub-format', win: 'creator-rules-sub-win', time: 'creator-rules-sub-time' };
+        Object.entries(subs).forEach(([k, id]) => {
+            document.getElementById(id)?.classList.toggle('hidden', this.rulesSubTab !== k);
+        });
+        document.querySelectorAll('.creator-rules-subtab-btn').forEach(btn => {
+            const k = btn.dataset.rulesSubtab;
+            btn.style.background = (this.rulesSubTab === k) ? '#00a8cc' : '#1e293b';
+            btn.onclick = () => { this.rulesSubTab = k; this.renderRulesSubtabs(); };
+        });
+    },
+
+    // その他's own ホーム/一括追加 sub-tab bar.
     renderEditSubtabs: function () {
         const homeBtn = document.getElementById('creator-edit-subtab-home-btn');
         const bulkBtn = document.getElementById('creator-edit-subtab-bulk-btn');
@@ -861,11 +968,13 @@ window.App.Creator = {
         const conf = window.App.Data.currentConfig;
         const questions = this.effectiveQuestionsForRestrictions();
         const onChange = () => this.renderRulesSection();
-        if (key === 'mode') {
+        if (key === 'rules') {
+            // ルール設定 = 解答形式/勝利条件/制限時間 のサブタブ（以前の
+            // 「解答方式」タブは 解答形式 サブタブに統合）
             window.App.Config.renderInlineModeChooser(document.getElementById('creator-inline-mode-body'), conf, questions, onChange);
-        } else if (key === 'rules') {
             window.App.Config.renderInlineGameTypeChooser(document.getElementById('creator-inline-gametype'), conf, onChange);
             window.App.Config.renderInlineTimeLimitChooser(document.getElementById('creator-inline-timelimit'), conf, onChange);
+            this.renderRulesSubtabs();
         } else if (key === 'design' && window.App.Design && window.App.Design.renderInlineChooser) {
             window.App.Design.renderInlineChooser(document.getElementById('creator-inline-design'), window.App.Data.currentDesign, () => {
                 this.applyDesignToPreview();
@@ -927,10 +1036,14 @@ window.App.Creator = {
         const flexWrap = document.getElementById('creator-monitor-flexwrap');
         const qArea = document.getElementById('creator-monitor-q-area');
         const formContainer = document.getElementById('creator-form-container');
-        const layout = window.App.Design ? window.App.Design.normalizeLayout(d.layout) : (d.layout || 'top');
+        const isFreeLayout = (this.currentType || '').startsWith('free');
+        let layout = window.App.Design ? window.App.Design.normalizeLayout(d.layout) : (d.layout || 'top');
+        // 中央は一問一答だけ — 他の形式では上側として描く
+        if (layout === 'center' && !isFreeLayout) layout = 'top';
         const isRow = (layout === 'left' || layout === 'right');
         if (flexWrap) {
             flexWrap.style.flexDirection = { top: 'column', bottom: 'column-reverse', left: 'row', right: 'row-reverse' }[layout] || 'column';
+            flexWrap.style.justifyContent = (layout === 'center') ? 'center' : '';
         }
         if (qArea) {
             if (isRow) {
@@ -947,6 +1060,9 @@ window.App.Creator = {
             }
         }
         if (formContainer) {
+            // 中央配置の時は「正解を入力」欄が残りの高さを取らないようにして、
+            // 問題文ごと画面の中央に寄せる
+            formContainer.style.flex = (layout === 'center') ? '0 0 auto' : '1';
             // 一問一答（手書き/口頭）は選択肢グリッドを持たず、この
             // コンテナの中身は「正解を入力」欄だけ — 90%にして問題文の
             // 枠と横幅を揃える（他タイプは選択肢エリアが85%/62%な
@@ -1120,7 +1236,8 @@ window.App.Creator = {
         inp.onblur  = () => inp.style.setProperty('color', (window.App.Data.currentDesign && window.App.Data.currentDesign.cTextColor) || '#ddd', 'important');
 
         // Correct-answer toggle
-        const inputType = (this.choiceSubtype === 'single') ? 'radio' : 'checkbox';
+        // 単一解答は radio、ダウトと複数回答モードは checkbox
+        const inputType = (this.choiceSubtype === 'single' && !this.multiCorrect) ? 'radio' : 'checkbox';
         const chk = document.createElement('input');
         chk.type  = inputType;
         chk.name  = 'creator-choice-correct-group';
@@ -1451,9 +1568,13 @@ window.App.Creator = {
         // never shows/populates a subtype dropdown for it — resolve it directly.
         const groupDefaults = { num_group: 'blackjack' };
 
-        let rawType = (sel && (['free', 'multi_group', 'choice', 'assoc_group', 'num_group'].includes(sel.value)))
+        // renderForm() が最後に描いた形式（choice_single/free_oral など）を
+        // 正とする — 選択式/ダウトは解答形式プルダウンを持たなくなったので、
+        // #creator-opt-subtype には前の形式の値が残っていることがある。
+        let rawType = this.currentType || ((sel && (['free', 'multi_group', 'choice', 'assoc_group', 'num_group'].includes(sel.value)))
             ? (subSel.value || groupDefaults[sel.value] || sel.value)
-            : (sel ? sel.value : 'choice');
+            : (sel ? sel.value : 'choice'));
+        if (rawType === 'dobon') rawType = 'choice_multi';
         let normalizedType = rawType;
         let choiceMode = 'single';
 
@@ -1469,6 +1590,16 @@ window.App.Creator = {
             q: qText,
             type: normalizedType
         };
+
+        // ブリッジスライドの文言（空欄なら「第○問」）— null で既存の値も消す
+        const qNumText = (document.getElementById('creator-qnum-text')?.value || '').trim();
+        newQ.qNumText = qNumText || null;
+
+        // タイトル（一問一答のみ）— 問題文の上に出る
+        if (normalizedType.startsWith('free')) {
+            const title = (document.getElementById('question-title')?.value || '').trim();
+            newQ.title = (this.titleEnabled && title) ? title : null;
+        }
 
         if (normalizedType === 'choice') {
             const rows = document.querySelectorAll('.choice-row');
@@ -1486,6 +1617,8 @@ window.App.Creator = {
             // Use explicit mode from dropdown
             newQ.mode = choiceMode;
             newQ.multi = (newQ.mode === 'multi');
+            // 複数回答モード（選択式のみ）— 正解をすべて選んだ時だけ正解
+            newQ.multiCorrect = (!newQ.multi && !!this.multiCorrect && corr.length > 1) ? true : null;
 
             // Save shuffle setting
             const shuffleChk = document.getElementById('choice-shuffle-chk');
@@ -1868,7 +2001,7 @@ window.App.Creator = {
         if (!panel) return;
         const target = this._bulkTarget();
         if (!target) {
-            panel.innerHTML = `<p style="color:#666; font-size:0.8rem; text-align:center; padding:30px 0;">この形式では一括編集はご利用いただけません</p>`;
+            panel.innerHTML = `<p style="color:#666; font-size:0.8rem; text-align:center; padding:30px 0;">この形式では一括追加はご利用いただけません</p>`;
             return;
         }
         const spec = this._bulkSpecs[target.specKey];
@@ -1954,6 +2087,8 @@ ${spec.placeholder}" style="
         const inlineAddBtn = document.getElementById('creator-inline-add-btn');
         if (inlineAddBtn) inlineAddBtn.textContent = APP_TEXT.Creator.BtnUpdateQ;
         document.getElementById('question-text').value = q.q;
+        const titleEl = document.getElementById('question-title');
+        if (titleEl) titleEl.value = q.title || '';
         this.renderForm(q.type, q);
         this.renderList(); // refresh row highlight to the one now being edited
         document.getElementById('creator-view').scrollIntoView({ behavior: "smooth" });
@@ -1987,7 +2122,7 @@ ${spec.placeholder}" style="
         if (!list) return;
         const questions = window.App.Data.createdQuestions;
         if (questions.length === 0) {
-            list.innerHTML = '<p style="color:#666; font-size:0.8rem; text-align:center; padding:20px 0;">まだ問題がありません。「問題編集」で作成し、「リストに追加」するとここに表示されます。</p>';
+            list.innerHTML = '<p style="color:#666; font-size:0.8rem; text-align:center; padding:20px 0;">まだ問題がありません。問題文を入力して、「リストに追加」するとここに表示されます。</p>';
             return;
         }
 

@@ -127,7 +127,9 @@ App.Design = {
     normalizeLayout: function (v) {
         if (v === 'standard') return 'top';
         if (v === 'split') return 'right';
-        if (['top', 'bottom', 'left', 'right'].includes(v)) return v;
+        // 'center' は一問一答だけの選択肢（選択肢エリアが無いので画面中央に
+        // 問題文を置ける）— 他の形式では描画側で top 扱いにする。
+        if (['top', 'bottom', 'left', 'right', 'center'].includes(v)) return v;
         return 'top';
     },
 
@@ -370,6 +372,7 @@ App.Design = {
                             border-radius:8px; color:#fff; font-size:0.72rem; box-sizing:border-box;
                         ">
                             ${[{ v: 'top', t: '問題文: 上側' }, { v: 'left', t: '問題文: 左側' }, { v: 'right', t: '問題文: 右側' }, { v: 'bottom', t: '問題文: 下側' }]
+                                .concat(((window.App.Creator && window.App.Creator.currentType) || '').startsWith('free') ? [{ v: 'center', t: '問題文: 中央' }] : [])
                                 .map(o => `<option value="${o.v}" ${design.layout === o.v ? 'selected' : ''}>${o.t}</option>`).join('')}
                         </select>
                     </div>
@@ -405,14 +408,14 @@ App.Design = {
                     <p style="color:#555; font-size:0.62rem; margin:4px 0 0;">※タップして音声を設定。BGMはモニター画面、他は各プレイヤーの端末で再生されます</p>
                 `;
             },
-            animation: () => `<p style="color:#666; font-size:0.8rem; text-align:center; padding:30px 0;">アニメーションは準備中です</p>`,
+            animation: () => `<p style="color:#666; font-size:0.8rem; text-align:center; padding:30px 0;">モーションは準備中です</p>`,
         };
 
         const tabs = [
             { key: 'text', label: 'テキスト' },
             { key: 'object', label: 'オブジェクト' },
             { key: 'sound', label: 'サウンド' },
-            { key: 'animation', label: 'アニメーション' },
+            { key: 'animation', label: 'モーション' },
         ];
         if (!bodyHtml[this._activeDesignTab]) this._activeDesignTab = 'text';
 
