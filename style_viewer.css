@@ -18,8 +18,8 @@ body {
 }
 
 #viewer-main-view {
-    background: transparent;
-    /* Rely on body gradient */
+    /* 16:9 のステージの外側は黒 */
+    background: #000;
     width: 100%;
     height: 100vh;
     position: fixed !important;
@@ -31,18 +31,20 @@ body {
     align-items: center;
 }
 
+/* 16:9 のステージ — 画面に収まる最大サイズで中央に置き、はみ出す所は
+   外側（#viewer-main-view）の黒になる。背景色・背景画像はこの中にだけ
+   塗る（viewer.js render()）。中の vh/vw は container-type:size による
+   cqh/cqw（このステージ基準）に置き換えて、画面の縦横比が16:9でなくても
+   レイアウトが16:9の中に収まるようにしている。 */
 #viewer-content {
-    width: 92%;
-    height: 90%;
+    width: min(100vw, 177.78vh);
+    height: min(100vh, 56.25vw);
     display: flex;
     flex-direction: column;
     position: relative;
-    /* Maintain 16:9 aspect ratio max */
-    max-width: 177.78vh;
-    max-height: 56.25vw;
     margin: auto;
-    /* Cinema effect */
-    box-shadow: 0 0 100px rgba(0, 0, 0, 0.8);
+    overflow: hidden;
+    container-type: size;
 }
 
 /* ステータス表示 */
@@ -72,7 +74,7 @@ body {
 
 /* 問題文エリア */
 .q-area {
-    font-size: 5vh;
+    font-size: 5cqh;
     font-weight: 800;
     line-height: 1.5;
     color: #fff;
@@ -80,8 +82,8 @@ body {
     white-space: pre-wrap;
     border: 6px solid var(--color-primary);
     background: rgba(0, 0, 0, 0.5);
-    padding: 5vh;
-    margin-bottom: 5vh;
+    padding: 5cqh;
+    margin-bottom: 5cqh;
     width: 90%;
     border-radius: 16px;
     backdrop-filter: blur(10px);
@@ -95,13 +97,13 @@ body {
     width: 85%;
     display: flex;
     flex-direction: column;
-    gap: 2vh;
+    gap: 2cqh;
 }
 
 .choice-item {
-    font-size: 3.5vh;
+    font-size: 3.5cqh;
     color: #ddd;
-    padding: 2vh 3vh;
+    padding: 2cqh 3cqh;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     background: linear-gradient(90deg, rgba(255, 255, 255, 0.02) 0%, transparent 100%);
     border-radius: 8px;
@@ -145,7 +147,7 @@ body {
     align-items: center;
     justify-content: center;
     margin-bottom: 0;
-    margin-right: 5vh;
+    margin-right: 5cqh;
 }
 
 .layout-split-list .c-area {
@@ -175,9 +177,9 @@ body {
 #viewer-panel-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    gap: 1.5vh;
-    width: 80vh;
-    height: 80vh;
+    gap: 1.5cqh;
+    width: 80cqh;
+    height: 80cqh;
     margin: auto;
 }
 
@@ -185,7 +187,7 @@ body {
     background: #222;
     border: 1px solid #444;
     color: #555;
-    font-size: 5vh;
+    font-size: 5cqh;
     font-weight: 900;
     display: flex;
     justify-content: center;
@@ -250,25 +252,25 @@ body {
 .race-lane {
     display: flex;
     align-items: center;
-    margin-bottom: 2vh;
-    padding: 1.5vh;
+    margin-bottom: 2cqh;
+    padding: 1.5cqh;
     background: rgba(255, 255, 255, 0.05);
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .race-bar {
-    height: 1.5vh;
+    height: 1.5cqh;
     background: var(--grad-primary);
-    border-radius: 1vh;
+    border-radius: 1cqh;
     box-shadow: 0 0 15px var(--color-primary);
 }
 
 .race-name {
     color: #fff;
-    font-size: 2.5vh;
+    font-size: 2.5cqh;
     font-weight: bold;
-    width: 15vw;
+    width: 15cqw;
     text-align: right;
     margin-right: 20px;
 }
@@ -276,7 +278,7 @@ body {
 .race-score {
     color: var(--color-primary);
     font-weight: 900;
-    font-size: 3vh;
+    font-size: 3cqh;
     margin-left: 15px;
 }
 
@@ -305,7 +307,7 @@ body {
     transform: translate(-50%, -50%) !important;
     width: auto !important;
     white-space: nowrap;
-    font-size: 8vh;
+    font-size: 8cqh;
     font-weight: 900;
     color: var(--color-accent);
     text-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
@@ -320,19 +322,19 @@ body {
 /* Flip Grid */
 .viewer-flip-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(28vh, 1fr));
-    gap: 2vh;
+    grid-template-columns: repeat(auto-fill, minmax(28cqh, 1fr));
+    gap: 2cqh;
     width: 90%;
-    max-height: 70vh;
+    max-height: 70cqh;
     overflow-y: hidden;
-    margin-top: 2vh;
+    margin-top: 2cqh;
 }
 
 .viewer-flip-card {
     background: rgba(255, 255, 255, 0.05);
     border: 3px solid rgba(255, 255, 255, 0.2);
     border-radius: 12px;
-    height: 15vh;
+    height: 15cqh;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -366,19 +368,19 @@ body {
     background: rgba(255, 255, 255, 0.1);
     transform: rotateY(180deg);
     color: #fff;
-    font-size: 3vh;
+    font-size: 3cqh;
     font-weight: 900;
 }
 
 .flip-name {
     position: absolute;
-    top: -1.5vh;
-    left: 1vh;
+    top: -1.5cqh;
+    left: 1cqh;
     background: var(--color-primary);
     color: #000;
-    font-size: 1.8vh;
+    font-size: 1.8cqh;
     font-weight: 800;
-    padding: 0.2vh 1vh;
+    padding: 0.2cqh 1cqh;
     border-radius: 4px;
     z-index: 10;
     transition: transform 0.8s;
@@ -394,8 +396,8 @@ body {
     display: flex;
     justify-content: space-around;
     align-items: flex-end;
-    height: 40vh;
-    margin-top: 5vh;
+    height: 40cqh;
+    margin-top: 5cqh;
 }
 
 .dist-bar-wrapper {
@@ -417,18 +419,18 @@ body {
 .dist-bar::after {
     content: attr(data-count);
     position: absolute;
-    top: -4vh;
+    top: -4cqh;
     left: 0;
     width: 100%;
     text-align: center;
-    font-size: 3vh;
+    font-size: 3cqh;
     font-weight: 900;
     color: #fff;
 }
 
 .dist-label {
-    margin-top: 2vh;
-    font-size: 4vh;
+    margin-top: 2cqh;
+    font-size: 4cqh;
     font-weight: 900;
     color: #fff;
 }

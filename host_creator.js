@@ -1898,9 +1898,14 @@ window.App.Creator = {
         const revealBg = d.revealBgColor || 'rgba(0,0,0,0.95)';
         const revealText = d.revealTextColor || '#fff';
         const ansStr = window.App.Viewer ? window.App.Viewer.getAnswerString(data) : (Array.isArray(data.correct) ? data.correct.join(' / ') : (data.correct || ''));
+        // 正解ボックスは問題文の枠と同じ横幅にする（選択肢エリアは85%
+        // なので、上下配置の時はコンテナ自体を問題文と同じ90%に広げる —
+        // 正解表示をオフにすると applyDesignToPreview() が元に戻す）。
+        const qAreaEl = document.getElementById('creator-monitor-q-area');
+        if (qAreaEl && qAreaEl.style.width === '90%') container.style.width = '90%';
         container.innerHTML = `
             <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;">
-                <div style="background:${revealBg}; border:3px solid ${accent}; border-radius:12px; padding:6% 8%; text-align:center; max-width:90%; box-sizing:border-box;">
+                <div style="background:${revealBg}; border:3px solid ${accent}; border-radius:10px; padding:4% 6%; text-align:center; width:100%; box-sizing:border-box;">
                     <div style="font-size:clamp(0.5rem,1.1vw,0.68rem); color:${accent}; font-weight:800; margin-bottom:6px; letter-spacing:1px;">正解</div>
                     <div style="font-size:clamp(0.8rem,2.4vw,1.3rem); font-weight:900; color:${revealText}; word-break:break-all;">${ansStr || '（未設定）'}</div>
                 </div>

@@ -3,19 +3,20 @@
  * =======================================================*/
 
 // サウンドライブラリ — ホストメニューの「サウンド編集」から各カテゴリ
-// （シンキングBGM/ボタンSE/正解音/不正解音）に複数の音源をアップロード
+// （シンキングBGM/問題番号音/ボタンSE/正解音/不正解音）に複数の音源をアップロード
 // して名前を付けておき、問題作成側（host_design.js の _openSoundModal）
 // はここに登録済みの音源から選ぶだけになる。app_defaults/sounds（アプリ
 // 全体のデフォルト4つ）とは別の、選べる「候補の集まり」という位置づけ。
 window.App.SoundLibrary = {
-    _keys: ['bgmThinking', 'seButton', 'seCorrect', 'seWrong'],
+    _keys: ['bgmThinking', 'seQNum', 'seButton', 'seCorrect', 'seWrong'],
     _labels: {
         bgmThinking: '🎵 シンキングBGM',
+        seQNum: '🔢 問題番号音',
         seButton: '🔘 ボタンSE',
         seCorrect: '⭕ 正解音',
         seWrong: '❌ 不正解音',
     },
-    _cache: { bgmThinking: [], seButton: [], seCorrect: [], seWrong: [] },
+    _cache: { bgmThinking: [], seQNum: [], seButton: [], seCorrect: [], seWrong: [] },
 
     // 確認再生（▶ボタン）は常にこの1本の <audio> だけを使い回す —
     // 別々に `new Audio().play()` していると連打した分だけ同時に鳴って

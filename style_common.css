@@ -40,6 +40,10 @@
 }
 
 html {
+    /* iPhone の Safari は横向きにすると文章量に応じて文字を勝手に拡大する
+       （ブロックごとに倍率が違うので画面ごとに文字サイズがバラつく）— 止める */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
     overflow-x: hidden;
     overscroll-behavior-x: none;
     -webkit-overflow-scrolling: touch;

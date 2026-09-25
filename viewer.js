@@ -41,7 +41,53 @@ window.App.Viewer = {
         (this.questions || []).forEach(q => {
             const b = q && q.design && q.design.bgmThinking;
             if (b && b.startsWith('data:') && !seen.has(b)) { seen.add(b); this.getBgmAudio(b); }
+            const s = q && q.design && q.design.seQNum;
+            if (s && s.startsWith('data:') && !seen.has(s)) { seen.add(s); this.getSeAudio(s); }
         });
+    },
+
+    // モニターで鳴らす効果音（問題番号音）— BGM と同じく曲ごとに Audio を
+    // 1つだけ作って読み込み済みにしておき、鳴らす時は頭出しして再生だけ。
+    _seCache: {}, // data:URI -> { audio, ready: Promise }
+
+    getSeAudio: function (data) {
+        if (!data) return null;
+        if (this._seCache[data]) return this._seCache[data].audio;
+        const audio = new Audio();
+        audio.preload = 'auto';
+        const entry = { audio };
+        entry.ready = fetch(data).then(r => r.blob()).then(blob => {
+            audio.src = URL.createObjectURL(blob);
+            audio.load();
+        }).catch(() => { audio.src = data; });
+        this._seCache[data] = entry;
+        return audio;
+    },
+
+    playMonitorSe: function (data) {
+        if (!data || !data.startsWith('data:')) return;
+        const audio = this.getSeAudio(data);
+        const start = () => {
+            audio.currentTime = 0;
+            audio.play().catch(err => {
+                if (err && err.name === 'NotAllowedError') this.showSoundUnlock();
+            });
+        };
+        if (audio.src) start(); else this._seCache[data].ready.then(start);
+    },
+
+    // 「第○問」の表示に切り替わった瞬間に1回だけ問題番号音を鳴らす
+    // （status はタイマー等でも何度も届くので、問題ごとに1回に絞る）。
+    _qNumSoundFor: null,
+    updateQNumSound: function (st, q) {
+        if (st.step !== 'reveal_q_num') {
+            this._qNumSoundFor = null;
+            return;
+        }
+        if (this._qNumSoundFor === st.qIndex) return;
+        this._qNumSoundFor = st.qIndex;
+        const d = (q && q.design) || {};
+        if (d.seQNum) this.playMonitorSe(d.seQNum);
     },
 
     updateThinkingBgm: function (st, q) {
@@ -149,6 +195,8 @@ window.App.Viewer = {
             players: window.db.ref(`rooms/${this.roomId}/players`)
         };
 
+        this.watchStageUnits();
+
         refs.config.on('value', snap => {
             this.config = snap.val() || {};
         });
@@ -185,9 +233,12 @@ window.App.Viewer = {
     render: function (st) {
         const mainText = document.getElementById('viewer-main-text');
         const statusDiv = document.getElementById('viewer-status');
-        const viewContainer = document.getElementById('viewer-main-view');
+        // 背景色・背景画像は画面全体ではなく16:9のステージにだけ塗る
+        // （外側は黒 — style_viewer.css #viewer-content）
+        const viewContainer = document.getElementById('viewer-content');
 
         this.updateThinkingBgm(st, this.questions[st.qIndex]);
+        this.updateQNumSound(st, this.questions[st.qIndex]);
 
         ['viewer-panel-grid', 'viewer-bomb-grid', 'viewer-multi-grid', 'viewer-race-area', 'viewer-timer-bar-area'].forEach(id => {
             const el = document.getElementById(id);
@@ -323,6 +374,9 @@ window.App.Viewer = {
 
                 this.renderQuestionLayout(viewContainer, mainText, q, st, combinedRevealed);
 
+            } else if (st.resultShowWinners) {
+                // 早押し・順番など: 正解者（または正解者なし）を発表
+                this.renderResultWinners(mainText, st.resultWinners);
             } else {
                 // Normal Player Reveal
                 this.renderQuestionLayout(viewContainer, mainText, q, st);
@@ -439,10 +493,11 @@ window.App.Viewer = {
 
             answerBox.innerHTML = `
                 <div style="font-size:3vh; color:${labelColor}; font-weight:800; margin-bottom:15px; letter-spacing:2px;">${labelText}</div>
-                <div style="font-size:${fontSize}; font-weight:900; line-height:1.2; word-break:break-all; max-width:80vw; color:${revealText};">${ansStr}</div>
+                <div style="font-size:${fontSize}; font-weight:900; line-height:1.2; word-break:break-all; max-width:100%; color:${revealText};">${ansStr}</div>
                 <div style="font-size:2.5vh; color:#aaa; font-weight:normal; margin-top:20px; border-top:1px solid #333; padding-top:20px;">${st.commentary || q.commentary || ""}</div>
             `;
             mainText.appendChild(answerBox);
+            this.fitAnswerBoxToQuestion(mainText, answerBox);
         }
         // --- 7. JUDGING (Phase 6) ---
         else if (st.step === 'judging') {
@@ -791,6 +846,62 @@ window.App.Viewer = {
                 </div>
             </div>
         `;
+    },
+
+    // 正解ボックスの横幅を問題文の枠（.q-area）と揃える。問題文が
+    // 非表示などで枠が無い時は minWidth:60vw のまま。
+    fitAnswerBoxToQuestion: function (mainText, answerBox) {
+        const fit = () => {
+            if (!answerBox.isConnected) {
+                window.removeEventListener('resize', fit);
+                return;
+            }
+            const qArea = mainText.querySelector('.q-area');
+            const w = qArea ? qArea.getBoundingClientRect().width : 0;
+            if (w > 0) {
+                answerBox.style.minWidth = '0';
+                answerBox.style.width = w + 'px';
+                answerBox.style.boxSizing = 'border-box';
+            }
+        };
+        fit();
+        window.addEventListener('resize', fit);
+    },
+
+    renderResultWinners: function (container, winners) {
+        const names = Array.isArray(winners) ? winners : (winners ? Object.values(winners) : []);
+        container.innerHTML = '';
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-family:sans-serif;padding:0 4vw;box-sizing:border-box;';
+
+        const label = document.createElement('div');
+        label.style.cssText = 'font-size:4vh;color:#ccc;font-weight:bold;letter-spacing:0.3em;margin-bottom:3vh;';
+        wrap.appendChild(label);
+
+        if (names.length === 0) {
+            label.textContent = 'RESULT';
+            const none = document.createElement('div');
+            none.style.cssText = 'font-size:11vh;font-weight:900;color:#ff5555;text-shadow:0 0 40px rgba(255,85,85,0.6);animation:resultWinnerPop 0.5s cubic-bezier(0.175,0.885,0.32,1.275);';
+            none.textContent = '正解者なし';
+            wrap.appendChild(none);
+        } else {
+            label.textContent = '正解者';
+            // 人数が多いほど文字を小さくする
+            const size = names.length === 1 ? 12 : names.length <= 3 ? 8 : names.length <= 6 ? 6 : 4.5;
+            const list = document.createElement('div');
+            list.style.cssText = 'display:flex;flex-wrap:wrap;justify-content:center;gap:2vh 4vw;max-width:90vw;';
+            names.forEach((name, i) => {
+                const el = document.createElement('div');
+                el.style.cssText = `font-size:${size}vh;font-weight:900;color:#ffd700;text-shadow:0 0 30px rgba(255,215,0,0.6);opacity:0;animation:resultWinnerPop 0.5s cubic-bezier(0.175,0.885,0.32,1.275) ${i * 0.15}s forwards;`;
+                el.textContent = name;
+                list.appendChild(el);
+            });
+            wrap.appendChild(list);
+        }
+        const style = document.createElement('style');
+        style.textContent = '@keyframes resultWinnerPop { 0%{transform:scale(0.6);opacity:0;} 100%{transform:scale(1);opacity:1;} }';
+        wrap.appendChild(style);
+        container.appendChild(wrap);
     },
 
     renderAllPlayerAnswers: function (container, mode, q) {
@@ -1149,6 +1260,37 @@ window.App.Viewer = {
                 ${commentary ? `<div style="font-size:2vh;color:#aaa;margin-top:1vh;text-align:center;max-width:90vw;">${commentary}</div>` : ''}
             </div>
         `;
+    },
+
+    // 描画コードや問題のデザイン設定（文字サイズ '6vh' 等）は vh/vw で
+    // 書かれている — そのままだと画面全体が基準になり、16:9でない画面では
+    // ステージからはみ出す。ステージ内の要素の style に入った vh/vw を
+    // cqh/cqw（#viewer-content 基準）に書き換えて、常に16:9の中に収める。
+    watchStageUnits: function () {
+        const stage = document.getElementById('viewer-content');
+        if (!stage || this._stageUnitObserver) return;
+        const UNIT = /(\d*\.?\d+)v([hw])\b/g;
+        const convert = (el) => {
+            const css = el.getAttribute && el.getAttribute('style');
+            if (!css || !/\dv[hw]/.test(css)) return;
+            // url(...)（data: の背景画像など）の中身は触らない
+            const out = css.split(/(url\([^)]*\))/).map((part, i) =>
+                (i % 2 === 1) ? part : part.replace(UNIT, '$1cq$2')).join('');
+            if (out !== css) el.setAttribute('style', out);
+        };
+        const convertTree = (node) => {
+            if (node.nodeType !== 1) return;
+            convert(node);
+            node.querySelectorAll('[style]').forEach(convert);
+        };
+        convertTree(stage);
+        this._stageUnitObserver = new MutationObserver(muts => {
+            muts.forEach(m => {
+                if (m.type === 'attributes') convert(m.target);
+                else m.addedNodes.forEach(convertTree);
+            });
+        });
+        this._stageUnitObserver.observe(stage, { subtree: true, childList: true, attributes: true, attributeFilter: ['style'] });
     },
 
     // #viewer-content の映画風の黒い影（style_viewer.css）は、背景画像を

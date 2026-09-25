@@ -1195,10 +1195,35 @@ App.Studio = {
                 syncBadge.textContent = "REVEAL";
                 syncBadge.style.background = "#9b59b6"; // Purple
 
-                window.db.ref(`rooms/${roomId}/status`).update({
-                    step: 'reveal_player',
-                    qIndex: App.State.currentQIndex
-                });
+                if (App.Data.currentConfig.mode === 'normal') {
+                    window.db.ref(`rooms/${roomId}/status`).update({
+                        step: 'reveal_player',
+                        qIndex: App.State.currentQIndex,
+                        resultShowWinners: null,
+                        resultWinners: null
+                    });
+                } else {
+                    // 早押し・順番などは各自の解答カードに意味がないので、
+                    // 正解者（または正解者なし）をモニターに出す
+                    const qIdxAtOpen = App.State.currentQIndex;
+                    window.db.ref(`rooms/${roomId}/players`).once('value', snap => {
+                        if (App.State.currentQIndex !== qIdxAtOpen) return;
+                        const winners = Object.assign({}, this._qWinners || {});
+                        snap.forEach(pSnap => {
+                            const p = pSnap.val() || {};
+                            if (p.lastResult === 'win' || p.pendingResult === 'win') {
+                                winners[pSnap.key] = p.name || '---';
+                            }
+                        });
+                        const names = Object.values(winners);
+                        window.db.ref(`rooms/${roomId}/status`).update({
+                            step: 'reveal_player',
+                            qIndex: qIdxAtOpen,
+                            resultShowWinners: true,
+                            resultWinners: names.length ? names : null
+                        });
+                    });
+                }
                 break;
 
             case 5: // 正解表示 (Answer)
@@ -1744,8 +1769,11 @@ App.Studio = {
             currentAnswerer: null,
             currentAnswererName: null,
             isBuzzActive: false, // Will be re-enabled by setStep if needed
-            takenChoices: null   // Reset taken choices for next question
+            takenChoices: null,  // Reset taken choices for next question
+            resultShowWinners: null,
+            resultWinners: null
         });
+        this._qWinners = {}; // この問題の正解者（結果発表で表示）
 
         window.db.ref(`rooms/${roomId}/players`).once('value', snap => {
             snap.forEach(p => {
@@ -1956,6 +1984,7 @@ App.Studio = {
                         totalScore: (p.totalScore || 0) + pts,
                         lastResult: 'win'
                     });
+                    this.recordWinner(turnPlayerId, p.name);
                 });
 
                 this.turnIndex = (this.turnIndex + 1) % this.turnOrder.length;
@@ -2080,6 +2109,7 @@ App.Studio = {
                 // 正解時
                 const winnerId = this.buzzWinner;
                 snap.ref.update({ periodScore: (p.periodScore || 0) + pts, lastResult: 'win' });
+                this.recordWinner(winnerId, p.name);
                 document.getElementById('studio-sub-info').classList.add('hidden');
 
                 // パネルモードの場合はパネル選択へ
@@ -2120,8 +2150,21 @@ App.Studio = {
         });
     },
 
+    // 結果発表で「正解者」として出すため記録（順番モードでは判定後に
+    // lastResult がリセットされるので、Firebase の値だけでは拾えない）
+    recordWinner: function (playerId, name) {
+        if (!playerId) return;
+        if (!this._qWinners) this._qWinners = {};
+        this._qWinners[playerId] = name || '---';
+    },
+
     judgeSolo: function (isCorrect) {
-        if (isCorrect) { this.setStep(5); } else {
+        if (isCorrect) {
+            const soloId = this.turnOrder[this.turnIndex] || this.turnOrder[0];
+            const soloP = soloId && App.Data.players && App.Data.players[soloId];
+            if (soloP) this.recordWinner(soloId, soloP.name);
+            this.setStep(5);
+        } else {
             this.soloState.lives--;
             document.getElementById('studio-life-display').textContent = this.soloState.lives;
             if (this.soloState.lives <= 0) alert("ゲームオーバー");
@@ -2616,6 +2659,7 @@ App.Studio = {
             if (!p) return;
             const pts = isCorrect ? (q.points || 1) : -(q.loss || 0);
             const result = isCorrect ? 'win' : 'lose';
+            if (isCorrect) this.recordWinner(playerId, p.name);
 
             if (isNormalFreeWritten && answerAttempts === 'single') {
                 // ★ Single attempt mode: store as pending, don't reveal to player yet

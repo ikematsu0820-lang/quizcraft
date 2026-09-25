@@ -70,6 +70,7 @@ App.Design = {
         cAlign: "left",
         layout: "top",
         bgmThinking: "",
+        seQNum: "",
         seButton: "",
         seCorrect: "",
         seWrong: "",
@@ -89,7 +90,7 @@ App.Design = {
     // default" button — サウンドライブラリ replaced the old per-question
     // upload flow this was designed around); still preloaded as early as
     // possible so App.Creator.init()/loadSet() can read it synchronously.
-    _soundKeys: ['bgmThinking', 'seButton', 'seCorrect', 'seWrong'],
+    _soundKeys: ['bgmThinking', 'seQNum', 'seButton', 'seCorrect', 'seWrong'],
     _cachedAppDefaultSounds: null,
 
     preloadAppDefaultSounds: function () {
@@ -401,11 +402,12 @@ App.Design = {
                 return `
                     <div style="display:flex; gap:6px; margin-bottom:8px;">
                         ${soundTile('シンキングBGM', 'bgmThinking', '🎵')}
+                        ${soundTile('問題番号音', 'seQNum', '🔢')}
                         ${soundTile('ボタンSE', 'seButton', '🔘')}
                         ${soundTile('正解音', 'seCorrect', '⭕')}
                         ${soundTile('不正解音', 'seWrong', '❌')}
                     </div>
-                    <p style="color:#555; font-size:0.62rem; margin:4px 0 0;">※タップして音声を設定。BGMはモニター画面、他は各プレイヤーの端末で再生されます</p>
+                    <p style="color:#555; font-size:0.62rem; margin:4px 0 0;">※タップして音声を設定。BGMと問題番号音（第○問の表示時）はモニター画面、他は各プレイヤーの端末で再生されます</p>
                 `;
             },
             animation: () => `<p style="color:#666; font-size:0.8rem; text-align:center; padding:30px 0;">モーションは準備中です</p>`,

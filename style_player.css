@@ -1206,12 +1206,31 @@
     transform: translate(-50%, calc(-50% + 6px));
 }
 
-/* 横向き: 問題文を左、解答欄を右に並べ、早押しボタンは右端の縦長ボタンに */
+/* 横向き: 問題文を左、解答欄を右に並べ、早押しボタンは右端の縦長ボタンに。
+   画面は画面の高さぴったりに固定してページ自体はスクロールさせない —
+   ページがスクロールするとアドレスバーが出たり消えたりして画面の高さ
+   （＝vh 基準のボタン等のサイズ）が変わり続けるため。長い問題文・多い
+   選択肢は、左右それぞれの枠の中だけでスクロールする。 */
 @media (orientation: landscape) {
+    body:has(#player-game-view:not(.hidden)) {
+        overflow: hidden;
+        overscroll-behavior: none;
+    }
     #player-game-view {
-        padding-bottom: 16px;
+        height: 100vh;
+        height: 100dvh;
+        min-height: 0 !important;
+        overflow: hidden;
+        padding: 10px max(16px, env(safe-area-inset-right)) 10px max(16px, env(safe-area-inset-left));
         /* 横向きでは .view の max-width:600px を外して画面幅いっぱいに使う */
         max-width: none;
+    }
+    #player-game-view .player-status-bar {
+        flex-shrink: 0;
+        margin-bottom: 10px;
+    }
+    #player-game-view #player-quiz-area {
+        min-height: 0;
     }
     #player-game-view:not(.multi-layout-active) #player-quiz-area {
         flex-direction: row;
@@ -1221,7 +1240,7 @@
     #player-game-view:not(.multi-layout-active) #question-text-disp {
         flex: 0 0 40%;
         margin-bottom: 0;
-        max-height: calc(100vh - 90px);
+        max-height: none;
         overflow-y: auto;
         box-sizing: border-box;
     }
@@ -1229,8 +1248,18 @@
         flex: 1;
         min-width: 0;
         margin-top: 0;
-        max-height: calc(100vh - 90px);
+        margin-bottom: 0;
+        max-height: none;
         overflow-y: auto;
+    }
+    /* 画面下に固定の「決定」ボタンが出ている間は、その分だけ解答欄の
+       下をあけて最後の選択肢が隠れないようにする */
+    body:has(#choice-submit-footer) #player-game-view #player-input-container {
+        padding-bottom: 72px;
+    }
+    /* 問題が変わるたびの拡大アニメーションで枠の大きさが揺れないように */
+    #player-game-view .player-q-text.new-q {
+        animation: shimmerBorder 2s infinite alternate;
     }
     .buzz-btn:not(.buzz-round) {
         left: auto;
