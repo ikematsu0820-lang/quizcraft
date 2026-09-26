@@ -1188,6 +1188,9 @@ window.App.Creator = {
             if (d.qTitleFontSize) qTitleEl.style.setProperty('font-size', scalePreviewFontSize(d.qTitleFontSize), 'important');
             else qTitleEl.style.removeProperty('font-size');
             qTitleEl.style.setProperty('text-align', d.qTitleAlign || 'center', 'important');
+            // 枠・背景（未設定なら編集用の点線枠のまま）
+            qTitleEl.style.setProperty('border', d.qTitleBorderColor ? `2px solid ${d.qTitleBorderColor}` : '1px dashed rgba(255,215,0,0.6)', 'important');
+            qTitleEl.style.setProperty('background', d.qTitleBgColor || 'rgba(0,0,0,0.45)', 'important');
         }
         const qText = document.getElementById('question-text');
         if (qText) {

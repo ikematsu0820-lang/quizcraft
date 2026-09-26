@@ -273,6 +273,14 @@ App.Design = {
         // プレビューでタップした対象に応じて、テキスト/オブジェクトタブの
         // 中身をその対象に関係する項目だけへ絞り込む。何が選ばれているか
         // 文字でも分かるよう、両タブの先頭に小さな見出しを出す。
+        // 一問一答でタイトルがある時、問題文の設定からタイトルの設定へ移るボタン
+        const qTitleJump = () => {
+            const c = window.App.Creator;
+            if (!(c && c.titleEnabled && (c.currentType || '').startsWith('free'))) return '';
+            return `<button type="button" data-select-object="qtitle" style="
+                width:100%; margin:0 0 8px; padding:5px 8px; background:rgba(255,215,0,0.08); border:1px dashed rgba(255,215,0,0.5);
+                border-radius:6px; color:#ffd700; font-size:0.7rem; cursor:pointer;">タイトルの文字・枠・背景を変える →</button>`;
+        };
         const OBJECT_TITLES = { question: '問題文', qtitle: 'タイトル', choices: choicesLabel, background: '全体背景', reveal: '正解表示' };
         const selectionHeader = (sel) => `
             <div style="display:flex; align-items:center; gap:5px; margin-bottom:8px; color:#00e5ff; font-size:0.68rem; font-weight:bold;">
@@ -331,6 +339,7 @@ App.Design = {
                 }
                 return `
                     ${selectionHeader('question')}
+                    ${qTitleJump()}
                     <div style="display:flex; gap:6px; margin-bottom:6px; align-items:center;">
                         ${colorSwatch('文字色', 'qTextColor')}
                         ${miniSelect('サイズ', 'qFontSize', Q_SIZE_OPTS)}
@@ -344,7 +353,11 @@ App.Design = {
                 if (sel === 'qtitle') {
                     return `
                         ${selectionHeader(sel)}
-                        <p style="color:#666; font-size:0.78rem; text-align:center; padding:20px 0;">タイトルに枠・背景の設定はありません（テキストタブで文字を変更できます）</p>
+                        <div style="display:flex; gap:6px;">
+                            ${colorSwatch('タイトル枠', 'qTitleBorderColor')}
+                            ${colorSwatch('タイトル背景', 'qTitleBgColor')}
+                        </div>
+                        <p style="color:#555; font-size:0.62rem; margin:4px 0 0;">※未設定の間は枠・背景なし（文字だけ）で表示されます</p>
                     `;
                 }
 
@@ -403,6 +416,7 @@ App.Design = {
 
                 return `
                     ${selectionHeader('question')}
+                    ${qTitleJump()}
                     <div style="display:flex; gap:6px;">
                         ${colorSwatch('問題枠', 'qBorderColor')}
                         ${colorSwatch('問題背景', 'qBgColor')}
@@ -600,6 +614,11 @@ App.Design = {
                     if (onChange) onChange();
                     if (sel.dataset.key === 'layout' && window.App.Creator) window.App.Creator.applyDesignToPreview();
                 };
+            });
+
+            // 問題文の設定 → タイトルの設定へ
+            body.querySelectorAll('button[data-select-object]').forEach(btn => {
+                btn.onclick = () => this.selectObject(btn.dataset.selectObject);
             });
 
             // ブリッジ/結果の画面: 背景画像を使うかのチェック、ブリッジの文言

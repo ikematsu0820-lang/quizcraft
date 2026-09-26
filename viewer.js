@@ -1225,7 +1225,7 @@ window.App.Viewer = {
             if (q.title) {
                 // タイトル（一問一答で「タイトルを追加」した時）— 問題文の上に出す
                 const titleColor = (textColor === 'transparent') ? 'transparent' : (d.qTitleColor || '#ffd700');
-                html += `<div style="width:96%; display:flex; flex-direction:column; align-items:center;"><div class="q-title" style="width:100%; text-align:${d.qTitleAlign || 'center'}; font-size:${d.qTitleFontSize || '4.5vh'}; font-weight:900; color:${titleColor}; margin-bottom:1.5vh; letter-spacing:0.1em;${titleColor === 'transparent' ? ' text-shadow:none;' : ' text-shadow:0 2px 12px rgba(0,0,0,0.6);'}">${q.title}</div>${qAreaHtml}</div>`;
+                html += `<div style="width:96%; display:flex; flex-direction:column; align-items:center;"><div class="q-title" style="width:100%; box-sizing:border-box; text-align:${d.qTitleAlign || 'center'}; font-size:${d.qTitleFontSize || '4.5vh'};${d.qTitleBorderColor ? ` border:4px solid ${d.qTitleBorderColor}; border-radius:12px; padding:1vh 2vw;` : ''}${d.qTitleBgColor ? ` background:${d.qTitleBgColor}; border-radius:12px; padding:1vh 2vw;` : ''} font-weight:900; color:${titleColor}; margin-bottom:1.5vh; letter-spacing:0.1em;${titleColor === 'transparent' ? ' text-shadow:none;' : ' text-shadow:0 2px 12px rgba(0,0,0,0.6);'}">${q.title}</div>${qAreaHtml}</div>`;
             } else {
                 html += qAreaHtml;
             }
