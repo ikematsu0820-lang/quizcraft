@@ -276,7 +276,7 @@ App.Config = {
                 const scoreType = conf.scoreType || 'uniform';
                 const optionRows = [
                     { value: 'uniform', label: '正解者全員に同得点' },
-                    { value: 'ranked', label: '解答が早い順に傾斜をかける' }
+                    { value: 'ranked', label: '正解スピードに応じて得点を傾斜' }
                 ];
                 side.innerHTML = col(`
                     <select id="score-type-select" style="${selStyle}">
