@@ -286,7 +286,11 @@ App.Config = {
         const renderDetail = () => {
             const side = container.querySelector('#gametype-chooser-side');
             const area = container.querySelector('#gametype-chooser-detail');
-            if (current === 'score') {
+            if (current === 'score' && conf.mode === 'buzz') {
+                // 早押しは解答者が1人ずつなので、得点ルール（一律/傾斜）は選ばせない
+                side.innerHTML = '';
+                area.innerHTML = '';
+            } else if (current === 'score') {
                 // 先着のみは廃止 — 保存済みで選ばれていたら一律に戻す
                 if (conf.scoreType === 'first_come') conf.scoreType = 'uniform';
                 // 連想クイズだけ「ヒント数に応じて得点を傾斜」を選べる
