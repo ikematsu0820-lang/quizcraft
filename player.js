@@ -1881,25 +1881,56 @@ function createHandwritingCanvas() {
         ctx.fillStyle = '#fff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
     };
-    const initSize = () => {
-        canvas.width = canvas.clientWidth || wrap.clientWidth || 300;
-        // 横向きの手書き問題では CSS で残りの高さいっぱいに広げている
-        // （style_player.css body.written-q）— 描画の座標が指とずれない
-        // よう、実際に表示されている高さに合わせる
-        canvas.height = canvas.clientHeight || CANVAS_H;
-        paintBlank();
+    const setPen = () => {
         ctx.strokeStyle = '#1a1a2e';
         ctx.lineWidth = 3;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
     };
+    // キャンバスの解像度は表示サイズに合わせる。問題が出た瞬間は解答
+    // エリアが隠れていて幅0のことがあり（早押しの待ち中など）、その時に
+    // 仮の幅で作ったまま表示されると、絵が引き伸ばされて粗く・指の位置と
+    // ずれて描かれていた — 表示サイズが変わるたびに合わせ直す（書いた
+    // 線はそのまま残す）。
+    const fitToDisplay = () => {
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        if (!w || !h) return; // 非表示中は何もしない（表示された時にやる）
+        if (canvas.width === w && canvas.height === h) return;
+        let keep = null;
+        if (hasDrawn && canvas.width && canvas.height) {
+            keep = document.createElement('canvas');
+            keep.width = canvas.width;
+            keep.height = canvas.height;
+            keep.getContext('2d').drawImage(canvas, 0, 0);
+        }
+        canvas.width = w;
+        canvas.height = h;
+        paintBlank();
+        if (keep) ctx.drawImage(keep, 0, 0);
+        setPen();
+    };
+    const initSize = () => {
+        canvas.width = canvas.clientWidth || wrap.clientWidth || 300;
+        // 横向きの手書き問題では CSS で残りの高さいっぱいに広げている
+        // （style_player.css body.written-q）
+        canvas.height = canvas.clientHeight || CANVAS_H;
+        paintBlank();
+        setPen();
+        fitToDisplay();
+    };
+    if (window.ResizeObserver) new ResizeObserver(() => fitToDisplay()).observe(canvas);
 
+    // 指の位置（表示上の座標）を、キャンバスの解像度に換算する
     const getPos = (e) => {
         const rect = canvas.getBoundingClientRect();
-        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        const sx = rect.width ? canvas.width / rect.width : 1;
+        const sy = rect.height ? canvas.height / rect.height : 1;
+        return { x: (e.clientX - rect.left) * sx, y: (e.clientY - rect.top) * sy };
     };
     const start = (e) => {
         e.preventDefault();
+        fitToDisplay();
         drawing = true;
         hasDrawn = true;
         const p = getPos(e);

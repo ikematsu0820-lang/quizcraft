@@ -252,6 +252,7 @@ window.App.Viewer = {
         // （外側は黒 — style_viewer.css #viewer-content）
         const viewContainer = document.getElementById('viewer-content');
 
+        this._renderSeq = (this._renderSeq || 0) + 1;
         this.updateThinkingBgm(st, this.questions[st.qIndex]);
         this.updateQNumSound(st, this.questions[st.qIndex]);
         this.updateResultSound(st, this.questions[st.qIndex]);
@@ -406,9 +407,11 @@ window.App.Viewer = {
                 this.renderResultWinners(mainText, st.resultWinners, q.design);
             } else {
                 // Normal Player Reveal
-                this.renderQuestionLayout(viewContainer, mainText, q, st);
-                // renderQuestionLayout が問題の背景を塗り直すので、結果表示の背景に戻す
-                this.applyDefaultDesign(viewContainer, resultBg);
+                // 解答オープンは問題の画面に重ねず、解答だけを大きく映す専用の画面
+                mainText.innerHTML = '';
+                mainText.style.flexDirection = 'column';
+                mainText.style.justifyContent = 'center';
+                mainText.style.alignItems = 'center';
                 this.renderAllPlayerAnswers(mainText, st.displayMode || 'flip', q);
             }
         }
@@ -958,7 +961,10 @@ window.App.Viewer = {
     },
 
     renderAllPlayerAnswers: function (container, mode, q) {
+        // 読み込み中に次の画面へ進んでいたら描かない（古い解答が上書きしないように）
+        const seq = this._renderSeq;
         window.db.ref(`rooms/${this.roomId}/players`).once('value', snap => {
+            if (seq !== this._renderSeq) return;
             const players = snap.val() || {};
             const playerList = Object.values(players);
 
@@ -970,15 +976,23 @@ window.App.Viewer = {
         });
     },
 
+    // 解答オープン: 問題の画面には重ねず、全員の解答だけを画面いっぱいに
+    // 大きく並べる専用の画面（人数に合わせて行×列を決め、カードを1枚ずつ
+    // めくって見せる）。手書きの解答は画像をカードいっぱいに映す。
     renderFlipGrid: function (container, players, q) {
+        const n = Math.max(players.length, 1);
+        const cols = n <= 3 ? n : n === 4 ? 2 : n <= 6 ? 3 : n <= 8 ? 4 : n === 9 ? 3 : n <= 12 ? 4 : n <= 16 ? 4 : n <= 20 ? 5 : 6;
+        const rows = Math.ceil(n / cols);
+        const cardH = 90 / rows; // カード1枚の高さ（cqh、隙間込みのおおよそ）
+
+        container.innerHTML = '';
         const grid = document.createElement('div');
-        grid.className = 'viewer-flip-container';
+        grid.style.cssText = `display:grid; grid-template-columns:repeat(${cols}, 1fr); grid-template-rows:repeat(${rows}, 1fr);
+            gap:1.5cqh; width:96%; height:92%; box-sizing:border-box; perspective:2000px;`;
 
         players.forEach((p, i) => {
-            const card = document.createElement('div');
-            card.className = 'viewer-flip-card';
-
             let ans = p.lastAnswer;
+            let isImage = false;
             if (q.type === 'choice' && Array.isArray(ans)) {
                 // 複数回答モードは選んだ番号の配列
                 ans = ans.map(a => String.fromCharCode(65 + parseInt(a))).join(' ');
@@ -986,24 +1000,50 @@ window.App.Viewer = {
                 const idx = parseInt(ans);
                 ans = isNaN(idx) ? ans : String.fromCharCode(65 + idx);
             } else if (q.type === 'sort' && ans !== null && ans !== undefined) {
-                // For sort, show letters nicely e.g. "A B C D"
-                ans = ans.split('').join(' ');
+                ans = String(ans).split('').join(' ');
             } else if (typeof ans === 'string' && ans.startsWith('data:image')) {
-                // 手書き（記述式）の解答画像。
-                ans = `<img src="${ans}" style="max-width:90%; max-height:70%; border-radius:6px; background:#fff;">`;
+                isImage = true;
             } else if (ans === null || ans === undefined || ans === "") {
                 ans = "---";
             }
 
-            card.innerHTML = `
-                <div class="flip-name">${p.name}</div>
-                <div class="flip-front"></div>
-                <div class="flip-back">${ans}</div>
-            `;
+            const card = document.createElement('div');
+            card.style.cssText = `position:relative; min-width:0; min-height:0; transform-style:preserve-3d;
+                transition:transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);`;
+
+            const face = 'position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; border-radius:1.2cqh; display:flex; flex-direction:column; overflow:hidden;';
+            const front = document.createElement('div');
+            front.style.cssText = face + 'background:linear-gradient(135deg, #2c3e50 0%, #000 100%); border:0.4cqh solid rgba(255,255,255,0.25); align-items:center; justify-content:center;';
+            front.innerHTML = `<div style="font-size:${Math.min(5, cardH * 0.18)}cqh; font-weight:900; color:#fff;"></div>`;
+            front.firstChild.textContent = p.name || '---';
+
+            const back = document.createElement('div');
+            back.style.cssText = face + 'transform:rotateY(180deg); background:#fff; border:0.4cqh solid var(--color-primary, #00bfff);';
+            const nameBar = document.createElement('div');
+            nameBar.style.cssText = `flex:0 0 auto; background:var(--color-primary, #00bfff); color:#000; font-weight:900;
+                font-size:${Math.min(3.2, cardH * 0.1)}cqh; padding:0.4cqh 1cqh; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;`;
+            nameBar.textContent = p.name || '---';
+            const body = document.createElement('div');
+            body.style.cssText = 'flex:1; min-height:0; display:flex; align-items:center; justify-content:center; padding:1cqh; box-sizing:border-box;';
+            if (isImage) {
+                const img = document.createElement('img');
+                img.src = ans;
+                img.style.cssText = 'max-width:100%; max-height:100%; object-fit:contain; display:block;';
+                body.appendChild(img);
+            } else {
+                const txt = String(ans);
+                // 長い解答ほど小さく（カードの高さ基準）
+                const base = cardH * 0.4;
+                const size = txt.length > 12 ? base * 0.45 : txt.length > 6 ? base * 0.65 : base;
+                body.innerHTML = `<div style="font-size:${size}cqh; font-weight:900; color:#111; text-align:center; line-height:1.15; word-break:break-all;"></div>`;
+                body.firstChild.textContent = txt;
+            }
+            back.append(nameBar, body);
+            card.append(front, back);
             grid.appendChild(card);
 
-            // Staggered Flip animation
-            setTimeout(() => card.classList.add('flipped'), 1000 + (i * 100));
+            // 1枚ずつめくる
+            setTimeout(() => { card.style.transform = 'rotateY(180deg)'; }, 800 + (i * 150));
         });
         container.appendChild(grid);
     },
