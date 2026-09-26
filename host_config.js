@@ -275,7 +275,7 @@ App.Config = {
                 if (conf.scoreType === 'first_come') conf.scoreType = 'uniform';
                 const scoreType = conf.scoreType || 'uniform';
                 const optionRows = [
-                    { value: 'uniform', label: '正解者全員に同得点を付与' },
+                    { value: 'uniform', label: '正解者全員に同得点' },
                     { value: 'ranked', label: '解答が早い順に傾斜をかける' }
                 ];
                 side.innerHTML = col(`
