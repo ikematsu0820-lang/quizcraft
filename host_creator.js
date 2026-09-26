@@ -281,6 +281,18 @@ window.App.Creator = {
         if (this.previewSlide === 'title') this.updateTitlePreview();
     },
 
+    // 問題文の入力欄の高さを中身の行数に合わせる — 既定の2行分の高さの
+    // ままだと、1行の問題文が欄の上の行に寄り、枠の上下「中央/下」に
+    // しても文字が上に見えていた
+    fitQuestionTextHeight: function () {
+        const el = document.getElementById('question-text');
+        if (!el) return;
+        el.rows = 1;
+        el.style.setProperty('height', 'auto', 'important');
+        // 非表示中（高さが測れない）は自動のまま
+        if (el.scrollHeight > 0) el.style.setProperty('height', `${el.scrollHeight}px`, 'important');
+    },
+
     snapshot: function () {
         // 画像・音声は参照に置き換えてから比べる — 元に戻した状態だと
         // 数MBのBGMが問題数分つながり、文字列の上限を超えて落ちる
@@ -1169,6 +1181,7 @@ window.App.Creator = {
             if (d.qTextColor) qText.style.setProperty('color', d.qTextColor, 'important');
             qText.style.setProperty('text-align', d.align || 'center', 'important');
             if (d.qFontSize) qText.style.setProperty('font-size', scalePreviewFontSize(d.qFontSize), 'important');
+            this.fitQuestionTextHeight();
         }
 
         // A/B/C/D labels stay the app's fixed cyan accent — they're an editor
@@ -2560,6 +2573,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('save-to-cloud-btn')?.addEventListener('click', () => window.App.Creator.save());
 
     window.App.Creator.renderPreviewSlideTabs();
+    document.getElementById('question-text')?.addEventListener('input', () => window.App.Creator.fitQuestionTextHeight());
 });
 
 // タブを閉じる/リロードする場合も、保存されていない問題がある間はブラ

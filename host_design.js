@@ -287,7 +287,7 @@ App.Design = {
                             ${rowLabel(choicesLabel)}
                             ${colorSwatch('文字色', 'cTextColor')}
                             ${miniSelect('サイズ', 'cFontSize', C_SIZE_OPTS)}
-                            ${miniSelect('配置', 'cAlign', ALIGN_OPTS)}
+                            ${miniSelect('左右', 'cAlign', ALIGN_OPTS)}
                         </div>
                     `;
                 }
@@ -304,7 +304,7 @@ App.Design = {
                             ${rowLabel('正解表示')}
                             ${colorSwatch('文字色', 'revealTextColor')}
                             ${miniSelect('サイズ', 'revealFontSize', REVEAL_SIZE_OPTS)}
-                            ${miniSelect('配置', 'revealAlign', ALIGN_OPTS)}
+                            ${miniSelect('左右', 'revealAlign', ALIGN_OPTS)}
                         </div>
                         <p style="color:#555; font-size:0.62rem; margin:4px 0 0;">※未設定の間は問題文の文字色がそのまま使われます</p>
                     `;
@@ -320,7 +320,7 @@ App.Design = {
                     <div style="display:flex; gap:6px; margin-bottom:6px; align-items:center;">
                         ${colorSwatch('文字色', 'qTextColor')}
                         ${miniSelect('サイズ', 'qFontSize', Q_SIZE_OPTS)}
-                        ${miniSelect('配置', 'align', ALIGN_OPTS)}
+                        ${miniSelect('左右', 'align', ALIGN_OPTS)}
                         ${miniSelect('上下', 'qVAlign', V_ALIGN_OPTS)}
                     </div>
                     ${(window.App.Creator && window.App.Creator.titleEnabled && ((window.App.Creator.currentType || '').startsWith('free'))) ? `
