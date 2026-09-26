@@ -1082,7 +1082,8 @@ window.App.Creator = {
                 qArea.style.alignItems = 'center';
                 qArea.style.margin = '0';
             } else {
-                qArea.style.width = '90%';
+                // モニターと同じく画面幅の96%（プレビュー枠の左右余白2%ずつの内側いっぱい）
+                qArea.style.width = '100%';
                 qArea.style.alignSelf = 'center';
                 qArea.style.display = 'block';
                 qArea.style.margin = layout === 'bottom' ? '1.2% 0 0' : '0 0 1.2%';
@@ -1092,11 +1093,8 @@ window.App.Creator = {
             // 中央配置の時は「正解を入力」欄が残りの高さを取らないようにして、
             // 問題文ごと画面の中央に寄せる
             formContainer.style.flex = (layout === 'center') ? '0 0 auto' : '1';
-            // 一問一答（手書き/口頭）は選択肢グリッドを持たず、この
-            // コンテナの中身は「正解を入力」欄だけ — 90%にして問題文の
-            // 枠と横幅を揃える（他タイプは選択肢エリアが85%/62%な
-            // ので変えない）。
-            const isFreeType = (this.currentType || '').startsWith('free');
+            // 問題文の枠・選択肢とも、モニターと同じ画面幅の96%（プレビュー
+            // 枠の左右余白2%ずつの内側いっぱい）。
             // 中央配置: モニターに出るのは問題文だけなので、「正解を入力」欄は
             // プレビュー下部に浮かせて、問題文そのものを真ん中に置く
             // （正解表示中に renderPreviewReveal が付けた top/right もここで外す）
@@ -1104,7 +1102,7 @@ window.App.Creator = {
             formContainer.style.right = '';
             if (layout === 'center') {
                 formContainer.style.position = 'absolute';
-                formContainer.style.left = '5%';
+                formContainer.style.left = '2%';
                 formContainer.style.bottom = '4%';
             } else {
                 formContainer.style.position = '';
@@ -1114,11 +1112,8 @@ window.App.Creator = {
             if (isRow) {
                 formContainer.style.width = '62%';
                 formContainer.style.alignSelf = 'stretch';
-            } else if (isFreeType) {
-                formContainer.style.width = '90%';
-                formContainer.style.alignSelf = 'center';
             } else {
-                formContainer.style.width = '85%';
+                formContainer.style.width = (layout === 'center') ? '96%' : '100%';
                 formContainer.style.alignSelf = 'center';
             }
         }
@@ -2075,7 +2070,7 @@ window.App.Creator = {
         Object.assign(container.style, { position: 'absolute', top: '0', left: '0', right: '0', bottom: '0', width: 'auto', alignSelf: 'stretch' });
         const qAreaEl = document.getElementById('creator-monitor-q-area');
         const qw = qAreaEl ? qAreaEl.offsetWidth : 0;
-        const boxWidth = (pos === 'left' || pos === 'right') ? '42%' : (qw > 0 ? qw + 'px' : '81%');
+        const boxWidth = (pos === 'left' || pos === 'right') ? '42%' : (qw > 0 ? qw + 'px' : '96%');
         const POS_CSS = {
             center: 'left:50%; top:50%; transform:translate(-50%,-50%);',
             top: 'left:50%; top:6%; transform:translateX(-50%);',

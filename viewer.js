@@ -1170,11 +1170,11 @@ window.App.Viewer = {
             // against the tags (no surrounding template indentation) since
             // .q-area now uses white-space:pre-wrap, which would otherwise
             // render that indentation as stray blank lines/leading spaces.
-            const qAreaHtml = `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align}; font-size:${d.qFontSize || '6vh'}; width:${q.title ? '100%' : '80%'};${qBoxSizeStyle}${qBackdropStyle}${qTextShadowStyle}">${q.q}</div>`;
+            const qAreaHtml = `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align}; font-size:${d.qFontSize || '6vh'}; width:${q.title ? '100%' : '96%'};${qBoxSizeStyle}${qBackdropStyle}${qTextShadowStyle}">${q.q}</div>`;
             if (q.title) {
                 // タイトル（一問一答で「タイトルを追加」した時）— 問題文の上に出す
                 const titleColor = (textColor === 'transparent') ? 'transparent' : '#ffd700';
-                html += `<div style="width:80%; display:flex; flex-direction:column; align-items:center;"><div class="q-title" style="font-size:4.5vh; font-weight:900; color:${titleColor}; margin-bottom:1.5vh; letter-spacing:0.1em;${titleColor === 'transparent' ? ' text-shadow:none;' : ' text-shadow:0 2px 12px rgba(0,0,0,0.6);'}">${q.title}</div>${qAreaHtml}</div>`;
+                html += `<div style="width:96%; display:flex; flex-direction:column; align-items:center;"><div class="q-title" style="font-size:4.5vh; font-weight:900; color:${titleColor}; margin-bottom:1.5vh; letter-spacing:0.1em;${titleColor === 'transparent' ? ' text-shadow:none;' : ' text-shadow:0 2px 12px rgba(0,0,0,0.6);'}">${q.title}</div>${qAreaHtml}</div>`;
             } else {
                 html += qAreaHtml;
             }
@@ -1203,7 +1203,7 @@ window.App.Viewer = {
 
             const qAreaStyle = isRow
                 ? `width:28vw; height:80vh; margin:0 3vw;`
-                : `width:90%;`;
+                : `width:96%;`;
             // ${q.q} sits directly against the tags — see the note above.
             html += `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align};${d.qFontSize ? ` font-size:${d.qFontSize};` : ''} ${qAreaStyle}${qBoxSizeStyle}${qBackdropStyle}${qTextShadowStyle}">${q.q}</div>`;
 
