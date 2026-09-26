@@ -41,8 +41,10 @@ window.App.Viewer = {
         (this.questions || []).forEach(q => {
             const b = q && q.design && q.design.bgmThinking;
             if (b && b.startsWith('data:') && !seen.has(b)) { seen.add(b); this.getBgmAudio(b); }
-            const s = q && q.design && q.design.seQNum;
-            if (s && s.startsWith('data:') && !seen.has(s)) { seen.add(s); this.getSeAudio(s); }
+            ['seQNum', 'seResult'].forEach(k => {
+                const s = q && q.design && q.design[k];
+                if (s && s.startsWith('data:') && !seen.has(s)) { seen.add(s); this.getSeAudio(s); }
+            });
         });
     },
 
@@ -74,6 +76,19 @@ window.App.Viewer = {
             });
         };
         if (audio.src) start(); else this._seCache[data].ready.then(start);
+    },
+
+    // 結果発表（reveal_player）に切り替わった瞬間に1回だけ結果発表音
+    _resultSoundFor: null,
+    updateResultSound: function (st, q) {
+        if (st.step !== 'reveal_player') {
+            this._resultSoundFor = null;
+            return;
+        }
+        if (this._resultSoundFor === st.qIndex) return;
+        this._resultSoundFor = st.qIndex;
+        const d = (q && q.design) || {};
+        if (d.seResult) this.playMonitorSe(d.seResult);
     },
 
     // 「第○問」の表示に切り替わった瞬間に1回だけ問題番号音を鳴らす
@@ -239,6 +254,7 @@ window.App.Viewer = {
 
         this.updateThinkingBgm(st, this.questions[st.qIndex]);
         this.updateQNumSound(st, this.questions[st.qIndex]);
+        this.updateResultSound(st, this.questions[st.qIndex]);
 
         ['viewer-panel-grid', 'viewer-bomb-grid', 'viewer-multi-grid', 'viewer-race-area', 'viewer-timer-bar-area'].forEach(id => {
             const el = document.getElementById(id);
@@ -295,7 +311,7 @@ window.App.Viewer = {
                 this.applyDefaultDesign(viewContainer, bridgeDesign);
                 const label = st.qNumLabel || `第 ${st.qIndex + 1} 問`;
                 // 文言が長い（任意の文言にした）時は文字を小さくする
-                const fontSize = label.length > 8 ? '7vw' : '12vw';
+                const fontSize = d.bridgeFontSize || (label.length > 8 ? '7vw' : '12vw');
                 mainText.innerHTML = `
                     <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;">
                         <div style="font-size:${fontSize}; color:${d.bridgeTextColor || '#fff'}; font-weight:900; text-align:center; padding:0 4vw; text-shadow:0 0 30px rgba(0,0,0,0.5);">
@@ -344,7 +360,14 @@ window.App.Viewer = {
         else if (st.step === 'reveal_player' || st.step === 'result') {
             statusDiv.textContent = "RESPONSES";
             const q = this.questions[st.qIndex] || {};
-            this.applyDefaultDesign(viewContainer, q.design);
+            // 結果表示の背景（問題作成のプレビュー「結果」で設定）— 背景色が
+            // 未設定なら全体背景の色、画像は「全体背景の画像を使う」次第
+            const rd = q.design || {};
+            const resultBg = {
+                mainBgColor: rd.resultBgColor || rd.mainBgColor,
+                bgImage: rd.resultUseBgImage === false ? '' : rd.bgImage
+            };
+            this.applyDefaultDesign(viewContainer, resultBg);
 
             if (q.isResHidden || q.isHidden) {
                 mainText.innerHTML = '';
@@ -376,10 +399,12 @@ window.App.Viewer = {
 
             } else if (st.resultShowWinners) {
                 // 早押し・順番など: 正解者（または正解者なし）を発表
-                this.renderResultWinners(mainText, st.resultWinners);
+                this.renderResultWinners(mainText, st.resultWinners, q.design);
             } else {
                 // Normal Player Reveal
                 this.renderQuestionLayout(viewContainer, mainText, q, st);
+                // renderQuestionLayout が問題の背景を塗り直すので、結果表示の背景に戻す
+                this.applyDefaultDesign(viewContainer, resultBg);
                 this.renderAllPlayerAnswers(mainText, st.displayMode || 'flip', q);
             }
         }
@@ -486,14 +511,16 @@ window.App.Viewer = {
             });
 
             const ansStr = st.correct || this.getAnswerString(q);
-            const fontSize = ansStr.length > 20 ? '4vh' : ansStr.length > 10 ? '6vh' : '8vh';
+            // 文字サイズ・配置は問題作成の正解表示の設定（自動＝長さで決める）
+            const fontSize = design.revealFontSize || (ansStr.length > 20 ? '4vh' : ansStr.length > 10 ? '6vh' : '8vh');
+            const ansAlign = design.revealAlign || 'center';
 
             const labelText = "正解";
             const labelColor = accent;
 
             answerBox.innerHTML = `
                 <div style="font-size:3vh; color:${labelColor}; font-weight:800; margin-bottom:15px; letter-spacing:2px;">${labelText}</div>
-                <div style="font-size:${fontSize}; font-weight:900; line-height:1.2; word-break:break-all; max-width:100%; color:${revealText};">${ansStr}</div>
+                <div style="font-size:${fontSize}; text-align:${ansAlign}; font-weight:900; line-height:1.2; word-break:break-all; max-width:100%; color:${revealText};">${ansStr}</div>
                 <div style="font-size:2.5vh; color:#aaa; font-weight:normal; margin-top:20px; border-top:1px solid #333; padding-top:20px;">${st.commentary || q.commentary || ""}</div>
             `;
             mainText.appendChild(answerBox);
@@ -887,14 +914,15 @@ window.App.Viewer = {
         window.addEventListener('resize', fit);
     },
 
-    renderResultWinners: function (container, winners) {
+    renderResultWinners: function (container, winners, design) {
+        const d = design || {};
         const names = Array.isArray(winners) ? winners : (winners ? Object.values(winners) : []);
         container.innerHTML = '';
         const wrap = document.createElement('div');
         wrap.style.cssText = 'width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-family:sans-serif;padding:0 4vw;box-sizing:border-box;';
 
         const label = document.createElement('div');
-        label.style.cssText = 'font-size:4vh;color:#ccc;font-weight:bold;letter-spacing:0.3em;margin-bottom:3vh;';
+        label.style.cssText = `font-size:4vh;color:${d.resultLabelColor || '#ccc'};font-weight:bold;letter-spacing:0.3em;margin-bottom:3vh;`;
         wrap.appendChild(label);
 
         if (names.length === 0) {
@@ -906,12 +934,14 @@ window.App.Viewer = {
         } else {
             label.textContent = '正解者';
             // 人数が多いほど文字を小さくする
-            const size = names.length === 1 ? 12 : names.length <= 3 ? 8 : names.length <= 6 ? 6 : 4.5;
+            // 正解者のサイズ（問題作成で 小/中/大 を選んでいればそれ）
+            const autoSize = names.length === 1 ? 12 : names.length <= 3 ? 8 : names.length <= 6 ? 6 : 4.5;
+            const size = d.resultNameSize ? parseFloat(d.resultNameSize) : autoSize;
             const list = document.createElement('div');
             list.style.cssText = 'display:flex;flex-wrap:wrap;justify-content:center;gap:2vh 4vw;max-width:90vw;';
             names.forEach((name, i) => {
                 const el = document.createElement('div');
-                el.style.cssText = `font-size:${size}vh;font-weight:900;color:#ffd700;text-shadow:0 0 30px rgba(255,215,0,0.6);opacity:0;animation:resultWinnerPop 0.5s cubic-bezier(0.175,0.885,0.32,1.275) ${i * 0.15}s forwards;`;
+                el.style.cssText = `font-size:${size}vh;font-weight:900;color:${d.resultNameColor || '#ffd700'};text-shadow:0 0 30px rgba(0,0,0,0.5);opacity:0;animation:resultWinnerPop 0.5s cubic-bezier(0.175,0.885,0.32,1.275) ${i * 0.15}s forwards;`;
                 el.textContent = name;
                 list.appendChild(el);
             });

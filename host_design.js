@@ -71,6 +71,7 @@ App.Design = {
         layout: "top",
         bgmThinking: "",
         seQNum: "",
+        seResult: "",
         seButton: "",
         seCorrect: "",
         seWrong: "",
@@ -91,7 +92,7 @@ App.Design = {
     // default" button — サウンドライブラリ replaced the old per-question
     // upload flow this was designed around); still preloaded as early as
     // possible so App.Creator.init()/loadSet() can read it synchronously.
-    _soundKeys: ['bgmThinking', 'seQNum', 'seButton', 'seCorrect', 'seWrong'],
+    _soundKeys: ['bgmThinking', 'seQNum', 'seResult', 'seButton', 'seCorrect', 'seWrong'],
     _cachedAppDefaultSounds: null,
 
     preloadAppDefaultSounds: function () {
@@ -215,6 +216,13 @@ App.Design = {
             { v: '5vh', t: '中' },
             { v: '8vh', t: '大' },
         ];
+        // 正解表示の文字サイズ — 自動＝正解の長さで決める（従来どおり）
+        const REVEAL_SIZE_OPTS = [
+            { v: '', t: '自動' },
+            { v: '4vh', t: '小' },
+            { v: '6vh', t: '中' },
+            { v: '9vh', t: '大' },
+        ];
         // 選択肢の文字サイズも同じ理由でプリセット化。
         const C_SIZE_OPTS = [
             { v: '2.5vh', t: '小' },
@@ -287,6 +295,8 @@ App.Design = {
                         <div style="display:flex; gap:6px; margin-bottom:6px; align-items:center;">
                             ${rowLabel('正解表示')}
                             ${colorSwatch('文字色', 'revealTextColor')}
+                            ${miniSelect('サイズ', 'revealFontSize', REVEAL_SIZE_OPTS)}
+                            ${miniSelect('配置', 'revealAlign', ALIGN_OPTS)}
                         </div>
                         <p style="color:#555; font-size:0.62rem; margin:4px 0 0;">※未設定の間は問題文の文字色がそのまま使われます</p>
                     `;
@@ -365,11 +375,9 @@ App.Design = {
 
                 return `
                     ${selectionHeader('question')}
-                    ${colorRow([
-                        ['問題枠', 'qBorderColor'],
-                        ['問題背景', 'qBgColor'],
-                    ])}
-                    <div style="display:flex; gap:6px; margin-top:8px;">
+                    <div style="display:flex; gap:6px;">
+                        ${colorSwatch('問題枠', 'qBorderColor')}
+                        ${colorSwatch('問題背景', 'qBgColor')}
                         ${miniSelect('枠の大きさ', 'qBoxSize', BOX_SIZE_OPTS)}
                         ${miniSelect('問題文の位置', 'layout', [{ v: 'top', t: '上側' }, { v: 'left', t: '左側' }, { v: 'right', t: '右側' }, { v: 'bottom', t: '下側' }]
                             .concat(((window.App.Creator && window.App.Creator.currentType) || '').startsWith('free') ? [{ v: 'center', t: '中央' }] : []))}
@@ -403,11 +411,105 @@ App.Design = {
                         ${soundTile('正解音', 'seCorrect', '⭕')}
                         ${soundTile('不正解音', 'seWrong', '❌')}
                     </div>
-                    <p style="color:#555; font-size:0.62rem; margin:4px 0 0;">※タップして音声を設定。BGMはモニター画面、他は各プレイヤーの端末で再生されます（問題番号音はプレビュー上の「ブリッジ」を選んで設定）</p>
+                    <p style="color:#555; font-size:0.62rem; margin:4px 0 0;">※タップして音声を設定。BGMはモニター画面、他は各プレイヤーの端末で再生されます（問題番号音・結果発表音はプレビュー上の「ブリッジ」「結果」を選んで設定）</p>
                 `;
             },
             animation: () => `<p style="color:#666; font-size:0.8rem; text-align:center; padding:30px 0;">モーションは準備中です</p>`,
         };
+
+        // プレビューで「ブリッジ」「結果」を選んでいる間は、同じ4タブの
+        // 中身をその画面用の設定に差し替える（色・背景・音はセット共通の
+        // design、ブリッジの文言だけは問題ごと — App.Creator.qNumText）。
+        const slide = (window.App.Creator && window.App.Creator.previewSlide) || 'question';
+        const slideHeader = (title) => `
+            <div style="display:flex; align-items:center; gap:5px; margin-bottom:8px; color:#00e5ff; font-size:0.68rem; font-weight:bold;">
+                <span>👆</span><span>${title}を編集中</span>
+            </div>
+        `;
+        const slideSoundTile = (label, key, icon) => {
+            const isSet = !!(design[key] || '');
+            return `
+                <button type="button" data-sound-tile="${key}" data-sound-label="${label}" style="
+                    flex:0 0 auto; min-width:90px; display:flex; flex-direction:column; align-items:center; gap:2px;
+                    padding:7px 10px; background:#1e293b; border:1px solid ${isSet ? '#00e5ff' : '#475569'};
+                    border-radius:8px; color:#fff; cursor:pointer;
+                ">
+                    <span style="font-size:1rem; line-height:1;">${icon}</span>
+                    <span style="font-size:0.56rem; color:#94a3b8; white-space:nowrap;">${label}</span>
+                    <span style="font-size:0.52rem; color:${isSet ? '#00e5ff' : '#555'};">${isSet ? 'あり' : '未設定'}</span>
+                </button>
+            `;
+        };
+        const bgImageCheck = (key, checked) => `
+            <label style="display:flex; align-items:center; gap:6px; margin-top:8px; color:#cbd5e1; font-size:0.72rem; cursor:pointer;">
+                <input type="checkbox" data-check-key="${key}" ${checked ? 'checked' : ''} style="accent-color:#00e5ff; cursor:pointer;">全体背景の画像を使う
+            </label>
+        `;
+        const esc = (v) => String(v || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+        const BRIDGE_SIZE_OPTS = [
+            { v: '', t: '自動' },
+            { v: '7vw', t: '小' },
+            { v: '10vw', t: '中' },
+            { v: '14vw', t: '大' },
+        ];
+        const RESULT_SIZE_OPTS = [
+            { v: '', t: '自動' },
+            { v: '6vh', t: '小' },
+            { v: '9vh', t: '中' },
+            { v: '12vh', t: '大' },
+        ];
+        const bridgeBody = {
+            text: () => `
+                ${slideHeader('ブリッジスライド')}
+                <input type="text" data-qnum-text value="${esc(window.App.Creator && window.App.Creator.qNumText)}" placeholder="空欄なら「第○問」（この問題だけの文言）" style="
+                    width:100%; height:${CONTROL_HEIGHT}; min-height:${CONTROL_HEIGHT}; padding:0 8px; margin:0 0 8px; background:#1e293b; border:1px solid #475569;
+                    border-radius:6px; color:#fff; box-sizing:border-box;
+                ">
+                <div style="display:flex; gap:6px; align-items:center;">
+                    ${colorSwatch('文字色', 'bridgeTextColor')}
+                    ${miniSelect('サイズ', 'bridgeFontSize', BRIDGE_SIZE_OPTS)}
+                </div>
+            `,
+            object: () => `
+                ${slideHeader('ブリッジスライド')}
+                <div style="display:flex; gap:6px;">
+                    ${colorSwatch('背景色', 'bridgeBgColor')}
+                </div>
+                ${bgImageCheck('bridgeUseBgImage', !!design.bridgeUseBgImage)}
+            `,
+            sound: () => `
+                ${slideHeader('ブリッジスライド')}
+                <div style="display:flex; gap:6px;">${slideSoundTile('問題番号音', 'seQNum', '🔢')}</div>
+                <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">※「第○問」がモニターに出た瞬間に、モニター画面で鳴ります</p>
+            `,
+            animation: bodyHtml.animation,
+        };
+        const resultBody = {
+            text: () => `
+                ${slideHeader('結果表示')}
+                <div style="display:flex; gap:6px; align-items:center;">
+                    ${colorSwatch('見出しの色', 'resultLabelColor')}
+                    ${colorSwatch('正解者の色', 'resultNameColor')}
+                    ${miniSelect('正解者のサイズ', 'resultNameSize', RESULT_SIZE_OPTS)}
+                </div>
+                <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">※早押し・順番などで出る「正解者」の画面の文字です</p>
+            `,
+            object: () => `
+                ${slideHeader('結果表示')}
+                <div style="display:flex; gap:6px;">
+                    ${colorSwatch('背景色', 'resultBgColor')}
+                </div>
+                ${bgImageCheck('resultUseBgImage', design.resultUseBgImage !== false)}
+                <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">※背景色が未設定の間は全体背景の色が使われます</p>
+            `,
+            sound: () => `
+                ${slideHeader('結果表示')}
+                <div style="display:flex; gap:6px;">${slideSoundTile('結果発表音', 'seResult', '🏆')}</div>
+                <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">※結果発表の画面に切り替わった瞬間に、モニター画面で鳴ります</p>
+            `,
+            animation: bodyHtml.animation,
+        };
+        const activeBody = slide === 'bridge' ? bridgeBody : slide === 'result' ? resultBody : bodyHtml;
 
         const tabs = [
             { key: 'text', label: 'テキスト' },
@@ -415,7 +517,7 @@ App.Design = {
             { key: 'sound', label: 'サウンド' },
             { key: 'animation', label: 'モーション' },
         ];
-        if (!bodyHtml[this._activeDesignTab]) this._activeDesignTab = 'text';
+        if (!activeBody[this._activeDesignTab]) this._activeDesignTab = 'text';
 
         const wireBody = (body) => {
             body.querySelector('#design-grid-config-btn')?.addEventListener('click', () => this._openGridModal(design, onChange));
@@ -439,6 +541,21 @@ App.Design = {
                 };
             });
 
+            // ブリッジ/結果の画面: 背景画像を使うかのチェック、ブリッジの文言
+            body.querySelectorAll('input[type="checkbox"][data-check-key]').forEach(chk => {
+                chk.onchange = () => {
+                    design[chk.dataset.checkKey] = chk.checked;
+                    if (onChange) onChange();
+                };
+            });
+            const qNumInp = body.querySelector('input[data-qnum-text]');
+            if (qNumInp) qNumInp.oninput = () => {
+                if (window.App.Creator) {
+                    window.App.Creator.qNumText = qNumInp.value;
+                    window.App.Creator.updateBridgePreview();
+                }
+            };
+
             // サウンド tab: tapping a compact tile opens the full editor
             // (URL/file/play/clear) in a popup instead of an inline card.
             body.querySelectorAll('button[data-sound-tile]').forEach(btn => {
@@ -451,7 +568,7 @@ App.Design = {
 
         const renderBody = () => {
             const body = container.querySelector('#design-subtab-body');
-            body.innerHTML = bodyHtml[this._activeDesignTab]();
+            body.innerHTML = activeBody[this._activeDesignTab]();
             wireBody(body);
         };
 

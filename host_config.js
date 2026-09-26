@@ -104,18 +104,23 @@ App.Config = {
             const buzzAction = conf.buzzWrongAction || 'next';
             const buzzPenalty = conf.buzzPenalty || 'none';
             return `
-                <label class="config-label" style="font-size:0.8em; color:#aaa;">誤答時：問題の処理</label>
-                <select id="config-buzz-wrong-action" class="btn-block config-select" style="margin-bottom:2px; padding:4px;">
-                    <option value="next" ${buzzAction === 'next' ? 'selected' : ''}>問題継続</option>
-                    <option value="end" ${buzzAction === 'end' ? 'selected' : ''}>次の問題</option>
-                </select>
-                <p style="color:#666; font-size:0.68em; margin:0 0 8px; line-height:1.3;" id="buzz-action-desc">${buzzAction === 'next' ? '他のプレイヤーが引き続き解答できます' : '誤答時にその問題を終了します'}</p>
-                <label class="config-label" style="font-size:0.8em; color:#aaa;">誤答者の処理</label>
-                <select id="config-buzz-penalty" class="btn-block config-select" style="margin-bottom:2px; padding:4px;">
-                    <option value="none" ${buzzPenalty === 'none' ? 'selected' : ''}>解答継続</option>
-                    <option value="otetski" ${buzzPenalty === 'otetski' ? 'selected' : ''}>その問題の解答権なし</option>
-                </select>
-                <p style="color:#666; font-size:0.68em; margin:0; line-height:1.3;" id="buzz-penalty-desc">${buzzPenalty === 'none' ? '誤答しても再度早押しできます' : '誤答したプレイヤーはその問題で解答できません'}</p>
+                <!-- 誤答時の2つの設定を1行に（下に小さく項目名） -->
+                <div style="display:flex; gap:8px;">
+                    <div style="flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:3px;">
+                        <select id="config-buzz-wrong-action" class="btn-block config-select" style="margin:0; padding:4px;" title="問題継続: 他のプレイヤーが引き続き解答できます／次の問題: 誤答時にその問題を終了します">
+                            <option value="next" ${buzzAction === 'next' ? 'selected' : ''}>問題継続</option>
+                            <option value="end" ${buzzAction === 'end' ? 'selected' : ''}>次の問題</option>
+                        </select>
+                        <span style="font-size:0.58rem; color:#94a3b8; white-space:nowrap;">誤答時：問題の処理</span>
+                    </div>
+                    <div style="flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:3px;">
+                        <select id="config-buzz-penalty" class="btn-block config-select" style="margin:0; padding:4px;" title="解答継続: 誤答しても再度早押しできます／その問題の解答権なし: 誤答したプレイヤーはその問題で解答できません">
+                            <option value="none" ${buzzPenalty === 'none' ? 'selected' : ''}>解答継続</option>
+                            <option value="otetski" ${buzzPenalty === 'otetski' ? 'selected' : ''}>その問題の解答権なし</option>
+                        </select>
+                        <span style="font-size:0.58rem; color:#94a3b8; white-space:nowrap;">誤答者の処理</span>
+                    </div>
+                </div>
             `;
         } else if (mode === 'turn') {
             const showRotateMode = isDobon || (qType && (qType.startsWith('multi') || qType.startsWith('ranking')));
@@ -247,43 +252,32 @@ App.Config = {
         ];
         let current = types.some(t => t.value === conf.gameType) ? conf.gameType : 'score';
 
-        const scoreDetailHtml = () => {
-            const scoreType = conf.scoreType || 'uniform';
-            const optionRows = [
-                { value: 'uniform', label: '全員一律' },
-                { value: 'ranked', label: '順位ボーナス' },
-                { value: 'first_come', label: '先着のみ' }
-            ];
-            return `
-                <label class="config-label" style="margin:0 0 4px; font-size:0.78em; display:block;">得点ルール</label>
-                <select id="score-type-select" style="
-                    width:100%; padding:6px 8px; background:#1e293b; border:1px solid #475569;
-                    border-radius:8px; color:#fff; font-size:0.85rem;
-                ">
-                    ${optionRows.map(o => `<option value="${o.value}" ${scoreType === o.value ? 'selected' : ''}>${o.label}</option>`).join('')}
-                </select>
-                <div id="score-type-sheet-detail" style="background:rgba(0,0,0,0.3); padding:8px; border-radius:6px; border:1px solid rgba(255,255,255,0.06); margin-top:8px; min-height:40px;"></div>
-            `;
-        };
-        const slotDetailHtml = () => `
-            <div style="display:flex; gap:10px; align-items:center;">
-                <div style="flex:1;">
-                    <label style="font-size:0.7em; color:#888; display:block; margin-bottom:2px;">最小値</label>
-                    <input type="number" id="conf-slot-min" value="${conf.slotMin || 1}" min="0" style="width:100%; padding:6px; background:#111; border:1px solid #444; color:#fff; border-radius:6px; font-size:0.9em; text-align:center;">
-                </div>
-                <div style="color:#555; margin-top:14px;">〜</div>
-                <div style="flex:1;">
-                    <label style="font-size:0.7em; color:#888; display:block; margin-bottom:2px;">最大値</label>
-                    <input type="number" id="conf-slot-max" value="${conf.slotMax || 10}" min="1" style="width:100%; padding:6px; background:#111; border:1px solid #444; color:#fff; border-radius:6px; font-size:0.9em; text-align:center;">
-                </div>
+        // 勝利条件と、その詳細（得点ルール／何回ミスで脱落）を1行に並べる
+        // — 下に小さく項目名。得点ルールの細かい数値だけ次の段に出す。
+        const col = (inner, caption) => `
+            <div style="flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:3px;">
+                ${inner}
+                <span style="font-size:0.58rem; color:#94a3b8; white-space:nowrap;">${caption}</span>
             </div>
         `;
+        const selStyle = 'width:100%; margin:0; padding:6px 8px; background:#1e293b; border:1px solid #475569; border-radius:8px; color:#fff; font-size:0.85rem;';
 
         const renderDetail = () => {
+            const side = container.querySelector('#gametype-chooser-side');
             const area = container.querySelector('#gametype-chooser-detail');
             if (current === 'score') {
-                area.innerHTML = scoreDetailHtml();
-                area.querySelector('#score-type-select').onchange = (e) => {
+                const scoreType = conf.scoreType || 'uniform';
+                const optionRows = [
+                    { value: 'uniform', label: '全員一律' },
+                    { value: 'ranked', label: '順位ボーナス' },
+                    { value: 'first_come', label: '先着のみ' }
+                ];
+                side.innerHTML = col(`
+                    <select id="score-type-select" style="${selStyle}">
+                        ${optionRows.map(o => `<option value="${o.value}" ${scoreType === o.value ? 'selected' : ''}>${o.label}</option>`).join('')}
+                    </select>`, '得点ルール');
+                area.innerHTML = `<div id="score-type-sheet-detail" style="background:rgba(0,0,0,0.3); padding:8px; border-radius:6px; border:1px solid rgba(255,255,255,0.06); margin-top:8px;"></div>`;
+                side.querySelector('#score-type-select').onchange = (e) => {
                     conf.scoreType = e.target.value;
                     renderDetail();
                     if (onChange) onChange();
@@ -296,33 +290,30 @@ App.Config = {
                 });
             } else if (current === 'survival') {
                 const lives = conf.survivalLives || 1;
-                area.innerHTML = `
-                    <label class="config-label" style="margin:0 0 4px; font-size:0.78em; display:block;">何回ミスしたら脱落</label>
-                    <select id="conf-survival-lives" style="
-                        width:100%; padding:6px 8px; background:#1e293b; border:1px solid #475569;
-                        border-radius:8px; color:#fff; font-size:0.85rem;
-                    ">
+                side.innerHTML = col(`
+                    <select id="conf-survival-lives" style="${selStyle}">
                         ${[1, 2, 3, 4, 5].map(n => `<option value="${n}" ${lives === n ? 'selected' : ''}>${n}回</option>`).join('')}
-                    </select>
-                    <p style="color:#666; font-size:0.72em; margin:6px 0 0;">※不正解・無回答がミスになります（1問につき1回まで）。脱落した人は以降の問題に答えられません</p>
-                `;
-                area.querySelector('#conf-survival-lives').onchange = (e) => {
+                    </select>`, '何回ミスしたら脱落');
+                area.innerHTML = `<p style="color:#666; font-size:0.72em; margin:6px 0 0;">※不正解・無回答がミスになります（1問につき1回まで）。脱落した人は以降の問題に答えられません</p>`;
+                side.querySelector('#conf-survival-lives').onchange = (e) => {
                     conf.survivalLives = parseInt(e.target.value) || 1;
                     if (onChange) onChange();
                 };
             } else {
-                area.innerHTML = '<p style="color:#666; font-size:0.8em;">追加の設定はありません</p>';
+                side.innerHTML = '';
+                area.innerHTML = '';
             }
         };
 
         const render = () => {
             container.innerHTML = `
-                <select id="gametype-chooser-select" style="
-                    width:100%; padding:6px 8px; background:#1e293b; border:1px solid #475569;
-                    border-radius:8px; color:#fff; font-size:0.85rem; margin-bottom:10px;
-                ">
-                    ${types.map(t => `<option value="${t.value}" ${t.value === current ? 'selected' : ''}>${t.label}</option>`).join('')}
-                </select>
+                <div style="display:flex; gap:8px;">
+                    ${col(`
+                        <select id="gametype-chooser-select" style="${selStyle}">
+                            ${types.map(t => `<option value="${t.value}" ${t.value === current ? 'selected' : ''}>${t.label}</option>`).join('')}
+                        </select>`, '勝利条件')}
+                    <div id="gametype-chooser-side" style="flex:1; min-width:0; display:flex;"></div>
+                </div>
                 <div id="gametype-chooser-detail"></div>
             `;
             container.querySelector('#gametype-chooser-select').onchange = (e) => {

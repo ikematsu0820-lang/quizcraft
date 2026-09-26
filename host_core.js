@@ -30,7 +30,7 @@ window.App.Data = {
 // （フィールド名は画像だけだった頃のまま images — 保存済みデータ互換）
 window.App.SetImages = {
     PREFIX: '@img:',
-    KEYS: ['bgImage', 'bgmThinking', 'seQNum', 'seButton', 'seCorrect', 'seWrong'],
+    KEYS: ['bgImage', 'bgmThinking', 'seQNum', 'seResult', 'seButton', 'seCorrect', 'seWrong'],
 
     pack: function (questions) {
         const images = [];

@@ -243,6 +243,7 @@ window.App.Creator = {
         }
 
         this.editingIndex = null;
+        this.qNumText = '';
         this.renderForm(resolvedType);
         this.renderList();
         window.App.Ui.showView(window.App.Ui.views.creator);
@@ -311,8 +312,7 @@ window.App.Creator = {
             : (sel ? sel.value : 'choice'));
         const titleEl = document.getElementById('question-title');
         if (titleEl) titleEl.value = '';
-        const qNumEl = document.getElementById('creator-qnum-text');
-        if (qNumEl) qNumEl.value = '';
+        this.qNumText = '';
         this.renderForm(type);
     },
 
@@ -350,7 +350,6 @@ window.App.Creator = {
         container.style.flexDirection = 'column';
         // その他タブのブリッジスライド文言は optionsExtra ごと作り直すので、
         // 形式の切替などで消えないよう、描き直す前の入力値を拾っておく。
-        const prevQNumText = document.getElementById('creator-qnum-text')?.value || '';
         if (optionsExtra) optionsExtra.innerHTML = '';
         if (optSubArea) optSubArea.classList.add('hidden');
         // タブの外（プレビュー直下）のオプション行 — 形式ごとに中身を入れ直す
@@ -706,14 +705,6 @@ window.App.Creator = {
             container.appendChild(addBtnWrap);
         }
 
-        // その他: ブリッジスライド（問題の前に出る「第○問」）の編集。
-        // 文言は問題ごと、色・背景はセット共通（design に保存）。
-        const bridgePanel = document.getElementById('creator-bridge-panel');
-        if (bridgePanel) {
-            const qNumVal = data ? (data.qNumText || '') : prevQNumText;
-            bridgePanel.innerHTML = this.bridgeSectionHtml(qNumVal);
-            this.wireBridgeSection(bridgePanel);
-        }
         this.updateBridgePreview();
         this.updateResultPreview();
         this.renderPreviewSlideTabs();
@@ -735,64 +726,16 @@ window.App.Creator = {
         return {
             c, correct, multi: false,
             shuffle: shuffleChk ? shuffleChk.checked : true,
-            qNumText: document.getElementById('creator-qnum-text')?.value || ''
+            qNumText: this.qNumText || ''
         };
     },
 
-    bridgeSectionHtml: function (qNumText) {
-        const d = window.App.Data.currentDesign || {};
-        const esc = (v) => String(v || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-        const hasSe = !!d.seQNum;
-        return `
-            <div>
-                <div style="display:flex; align-items:center; gap:5px; margin-bottom:8px; color:#00e5ff; font-size:0.68rem; font-weight:bold;">👆 ブリッジスライドを編集中</div>
-                <input type="text" id="creator-qnum-text" value="${esc(qNumText)}" placeholder="空欄なら「第○問」（この問題だけの文言）" style="
-                    width:100%; padding:6px 8px; margin-bottom:8px; background:#1e293b; border:1px solid #475569;
-                    border-radius:8px; color:#fff; font-size:0.85rem; box-sizing:border-box;
-                ">
-                <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; color:#94a3b8; font-size:0.78rem;">
-                    <label style="display:flex; align-items:center; gap:6px;">文字色
-                        <input type="color" id="creator-bridge-text-color" value="${esc(d.bridgeTextColor || '#ffffff')}" style="width:40px; height:26px; padding:0; border:1px solid #475569; border-radius:6px; background:#1e293b; cursor:pointer;">
-                    </label>
-                    <label style="display:flex; align-items:center; gap:6px;">背景色
-                        <input type="color" id="creator-bridge-bg-color" value="${esc(d.bridgeBgColor || '#0a0a0a')}" style="width:40px; height:26px; padding:0; border:1px solid #475569; border-radius:6px; background:#1e293b; cursor:pointer;">
-                    </label>
-                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
-                        <input type="checkbox" id="creator-bridge-use-bgimg" ${d.bridgeUseBgImage ? 'checked' : ''}>全体背景の画像を使う
-                    </label>
-                    <button type="button" id="creator-bridge-se-btn" style="
-                        display:flex; align-items:center; gap:6px; padding:5px 10px; background:#1e293b;
-                        border:1px solid ${hasSe ? '#00e5ff' : '#475569'}; border-radius:8px; color:#fff; cursor:pointer; font-size:0.78rem;
-                    ">🔢 問題番号音 <span style="color:${hasSe ? '#00e5ff' : '#64748b'}; font-size:0.7rem;">${hasSe ? 'あり' : '未設定'}</span></button>
-                    <span style="color:#64748b; font-size:0.7rem;">※色・背景・音は全問共通</span>
-                </div>
-            </div>
-        `;
-    },
+    // ブリッジスライドの文言（この問題だけ。空欄なら「第○問」）— 入力欄は
+    // デザインのパネル（ブリッジ表示中のテキストタブ）にあって描き直しで
+    // 消えるので、値はここに持つ（editQuestion/resetForm で入れ替え）。
+    qNumText: '',
 
-    wireBridgeSection: function (root) {
-        const d = window.App.Data.currentDesign || (window.App.Data.currentDesign = {});
-        const textC = root.querySelector('#creator-bridge-text-color');
-        const bgC = root.querySelector('#creator-bridge-bg-color');
-        const useImg = root.querySelector('#creator-bridge-use-bgimg');
-        const qNumInput = root.querySelector('#creator-qnum-text');
-        const seBtn = root.querySelector('#creator-bridge-se-btn');
-        if (textC) textC.oninput = () => { d.bridgeTextColor = textC.value; this.updateBridgePreview(); };
-        if (bgC) bgC.oninput = () => { d.bridgeBgColor = bgC.value; this.updateBridgePreview(); };
-        if (useImg) useImg.onchange = () => { d.bridgeUseBgImage = useImg.checked; this.updateBridgePreview(); };
-        if (qNumInput) qNumInput.addEventListener('input', () => this.updateBridgePreview());
-        // 問題番号音（「第○問」がモニターに出た瞬間に鳴る）— サウンドライブラリ
-        // から選ぶピッカーはデザインのサウンドタブと同じもの
-        if (seBtn && window.App.Design) seBtn.onclick = () => {
-            window.App.Design._openSoundModal(d, 'seQNum', '問題番号音', () => {
-                const qNumVal = qNumInput ? qNumInput.value : '';
-                root.innerHTML = this.bridgeSectionHtml(qNumVal);
-                this.wireBridgeSection(root);
-            });
-        };
-    },
-
-    // ブリッジスライドのタブを開いている間だけ、プレビューをモニターの
+    // プレビューで「ブリッジ」を選んでいる間だけ、プレビューをモニターの
     // ブリッジスライド（viewer.js reveal_q_num）と同じ見た目に差し替える
     // — 問題の編集画面の上に重ねるだけなので、閉じれば元どおり。
     updateBridgePreview: function () {
@@ -813,7 +756,7 @@ window.App.Creator = {
             preview.appendChild(overlay);
         }
         const d = window.App.Data.currentDesign || {};
-        const custom = (document.getElementById('creator-qnum-text')?.value || '').trim();
+        const custom = (this.qNumText || '').trim();
         const n = (this.editingIndex !== null && this.editingIndex !== undefined)
             ? this.editingIndex + 1
             : (window.App.Data.createdQuestions || []).length + 1;
@@ -823,7 +766,8 @@ window.App.Creator = {
         overlay.innerHTML = '';
         const text = document.createElement('div');
         // viewer.js と同じ: 長い文言（8文字超）は小さく
-        text.style.cssText = `font-size:${label.length > 8 ? '7cqw' : '12cqw'}; color:${d.bridgeTextColor || '#fff'}; font-weight:900; text-align:center; padding:0 4cqw; text-shadow:0 0 30px rgba(0,0,0,0.5); white-space:pre-wrap;`;
+        const size = d.bridgeFontSize ? d.bridgeFontSize.replace('vw', 'cqw') : (label.length > 8 ? '7cqw' : '12cqw');
+        text.style.cssText = `font-size:${size}; color:${d.bridgeTextColor || '#fff'}; font-weight:900; text-align:center; padding:0 4cqw; text-shadow:0 0 30px rgba(0,0,0,0.5); white-space:pre-wrap;`;
         text.textContent = label;
         overlay.appendChild(text);
     },
@@ -953,14 +897,12 @@ window.App.Creator = {
         const editSubtabs = document.getElementById('creator-edit-subtabs');
         const homePanel = document.getElementById('creator-edit-home-panel');
         const bulkPanel = document.getElementById('creator-bulk-panel');
-        const bridgePanel = document.getElementById('creator-bridge-panel');
         if (!area || !panels[key]) return;
 
         Object.values(panels).forEach(p => p.classList.add('hidden'));
         if (editSubtabs) editSubtabs.classList.add('hidden');
         if (homePanel) homePanel.classList.add('hidden');
         if (bulkPanel) bulkPanel.classList.add('hidden');
-        if (bridgePanel) bridgePanel.classList.add('hidden');
 
         this.activeInlinePanel = key;
         area.classList.remove('hidden');
@@ -969,12 +911,6 @@ window.App.Creator = {
             if (editSubtabs) editSubtabs.classList.remove('hidden');
             this.renderEditSubtabs();
             this.renderEditPanelBody();
-        }
-        // プレビューでブリッジスライドを表示中は、デザインのパネルの代わりに
-        // ブリッジスライドの設定を出す
-        if (key === 'design' && this.previewSlide === 'bridge' && bridgePanel) {
-            panels.design.classList.add('hidden');
-            bridgePanel.classList.remove('hidden');
         }
 
         this.renderActivePanelContent(key);
@@ -1047,6 +983,8 @@ window.App.Creator = {
                 // so a revealTextColor/revealBorderColor/revealBgColor
                 // pick never showed up on the reveal box until now.
                 if (this._previewRevealOn) this.renderPreviewReveal(this._previewRevealData);
+                this.updateBridgePreview();
+                this.updateResultPreview();
                 onChange();
             });
         } else if (key === 'list') {
@@ -1719,7 +1657,7 @@ window.App.Creator = {
         };
 
         // ブリッジスライドの文言（空欄なら「第○問」）— null で既存の値も消す
-        const qNumText = (document.getElementById('creator-qnum-text')?.value || '').trim();
+        const qNumText = (this.qNumText || '').trim();
         newQ.qNumText = qNumText || null;
 
         // タイトル（一問一答のみ）— 問題文の上に出る
@@ -1913,11 +1851,11 @@ window.App.Creator = {
         if ((slide === 'answer') !== !!this._previewRevealOn) this.togglePreviewReveal(slide === 'answer');
         // togglePreviewReveal(false) は renderForm() を通るので、その後で決める
         this.previewSlide = slide;
-        if (slide === 'bridge') {
-            // ブリッジスライドの設定はデザインのパネルの位置に出す
+        // ブリッジ/結果の画面は、デザインのパネル（テキスト/オブジェクト/
+        // サウンド）がその画面用の設定に切り替わる（App.Design.renderInlineChooser）
+        const isSlideEdit = (v) => v === 'bridge' || v === 'result';
+        if (isSlideEdit(slide) || (isSlideEdit(prev) && this.activeInlinePanel === 'design')) {
             this.toggleInlinePanel('design');
-        } else if (prev === 'bridge' && this.activeInlinePanel === 'design') {
-            this.toggleInlinePanel('design'); // 通常のデザインのパネルに戻す
         }
         this.updateBridgePreview();
         this.updateResultPreview();
@@ -1950,8 +1888,10 @@ window.App.Creator = {
             preview.appendChild(overlay);
         }
         const d = window.App.Data.currentDesign || {};
-        overlay.style.backgroundColor = d.mainBgColor || '#0a0a0a';
-        overlay.style.backgroundImage = d.bgImage ? `url(${d.bgImage})` : 'none';
+        overlay.style.backgroundColor = d.resultBgColor || d.mainBgColor || '#0a0a0a';
+        overlay.style.backgroundImage = (d.bgImage && d.resultUseBgImage !== false) ? `url(${d.bgImage})` : 'none';
+        overlay.style.cursor = 'pointer';
+        overlay.onclick = () => { if (this.activeInlinePanel !== 'design') this.toggleInlinePanel('design'); };
         const mode = (window.App.Data.currentConfig && window.App.Data.currentConfig.mode) || 'normal';
         if (mode === 'normal') {
             const cards = ['プレイヤーA', 'プレイヤーB', 'プレイヤーC', 'プレイヤーD'].map(name => `
@@ -1963,9 +1903,10 @@ window.App.Creator = {
                 <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:2cqw; width:85%;">${cards}</div>
                 <div style="margin-top:4cqh; font-size:2.6cqh; color:#94a3b8;">※本番では各プレイヤーの解答が表示されます</div>`;
         } else {
+            const nameSize = d.resultNameSize ? d.resultNameSize.replace('vh', 'cqh') : '12cqh';
             overlay.innerHTML = `
-                <div style="font-size:4cqh; color:#ccc; font-weight:bold; letter-spacing:0.3em; margin-bottom:3cqh;">正解者</div>
-                <div style="font-size:12cqh; font-weight:900; color:#ffd700; text-shadow:0 0 30px rgba(255,215,0,0.6);">プレイヤー名</div>
+                <div style="font-size:4cqh; color:${d.resultLabelColor || '#ccc'}; font-weight:bold; letter-spacing:0.3em; margin-bottom:3cqh;">正解者</div>
+                <div style="font-size:${nameSize}; font-weight:900; color:${d.resultNameColor || '#ffd700'}; text-shadow:0 0 30px rgba(0,0,0,0.5);">プレイヤー名</div>
                 <div style="margin-top:4cqh; font-size:2.6cqh; color:#94a3b8;">※正解者がいない時は「正解者なし」と表示されます</div>`;
         }
     },
@@ -2112,10 +2053,15 @@ window.App.Creator = {
             left: 'left:5%; top:50%; transform:translateY(-50%);',
             right: 'right:5%; top:50%; transform:translateY(-50%);'
         };
+        // 正解の文字サイズ（vh — モニターの高さ基準）はプレビューの高さに換算
+        const previewEl = document.getElementById('creator-monitor-preview');
+        const vh = /^([\d.]+)vh$/.exec(d.revealFontSize || '');
+        const ansFont = (vh && previewEl) ? `${(parseFloat(vh[1]) / 100) * previewEl.getBoundingClientRect().height}px` : 'clamp(0.8rem,2.4vw,1.3rem)';
+        const ansAlign = d.revealAlign || 'center';
         container.innerHTML = `
             <div style="position:absolute; ${POS_CSS[pos] || POS_CSS.center} width:${boxWidth}; background:${revealBg}; border:3px solid ${accent}; border-radius:10px; padding:3% 4%; text-align:center; box-sizing:border-box;">
                 <div style="font-size:clamp(0.5rem,1.1vw,0.68rem); color:${accent}; font-weight:800; margin-bottom:6px; letter-spacing:1px;">正解</div>
-                <div style="font-size:clamp(0.8rem,2.4vw,1.3rem); font-weight:900; color:${revealText}; word-break:break-all;">${ansStr || '（未設定）'}</div>
+                <div style="font-size:${ansFont}; text-align:${ansAlign}; font-weight:900; color:${revealText}; word-break:break-all;">${ansStr || '（未設定）'}</div>
             </div>
         `;
     },
@@ -2304,6 +2250,7 @@ ${spec.placeholder}" style="
         document.getElementById('question-text').value = q.q;
         const titleEl = document.getElementById('question-title');
         if (titleEl) titleEl.value = q.title || '';
+        this.qNumText = q.qNumText || '';
         this.renderForm(q.type, q);
         this.renderList(); // refresh row highlight to the one now being edited
         document.getElementById('creator-view').scrollIntoView({ behavior: "smooth" });
