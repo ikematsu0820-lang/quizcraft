@@ -44,7 +44,7 @@ App.Config = {
         mode: 'normal', gameType: 'score', answerAttempts: 'single',
         buzzWrongAction: 'next', buzzPenalty: 'none', buzzPenaltyTime: 3, buzzRestCount: 1, buzzTime: 0,
         normalLimit: 'unlimited', manualFlip: false, passCount: 10,
-        slotMin: 1, slotMax: 10, turnOrder: 'fixed', turnRotateMode: 'per_q',
+        slotMin: 1, slotMax: 10, survivalLives: 1, turnOrder: 'fixed', turnRotateMode: 'per_q',
         soloStyle: 'manual', soloTimeType: 'per_q', soloTimeVal: 0, soloRecovery: 0,
         scoreType: 'uniform', uniformPts: 1, rankPts: [10, 5, 3], rankOtherPts: 1, firstComeCount: 1, firstComePts: 10,
         timeLimitEnabled: 'off', timeLimitSeconds: 30
@@ -236,14 +236,16 @@ App.Config = {
         renderDetail();
     },
 
-    // 正解ボーナス — pick gameType (score/panel/slot) + its detail fields.
+    // 勝利条件 — 得点が高い人が勝ち（score）/ 最後まで残った人が勝ち
+    // （survival: 規定回数ミスすると脱落 — host_studio.js checkSurvival）。
+    // パネル・変動得点制は廃止 — 保存済みのセットでそれらを選んでいた
+    // 場合は、ここを開いた時点で「得点が高い人が勝ち」に置き換える。
     renderInlineGameTypeChooser: function (container, conf, onChange) {
         const types = [
-            { value: 'score', label: '得点制', disabled: false },
-            { value: 'panel', label: 'パネル', disabled: false },
-            { value: 'slot', label: '変動得点制', disabled: false }
+            { value: 'score', label: '得点が高い人が勝ち', disabled: false },
+            { value: 'survival', label: '最後まで残った人が勝ち', disabled: false }
         ];
-        let current = conf.gameType || 'score';
+        let current = types.some(t => t.value === conf.gameType) ? conf.gameType : 'score';
 
         const scoreDetailHtml = () => {
             const scoreType = conf.scoreType || 'uniform';
@@ -292,10 +294,22 @@ App.Config = {
                 area.querySelectorAll('#score-type-sheet-detail input').forEach(inp => {
                     inp.addEventListener('input', () => this._collectScoreDetailFromSheet(conf));
                 });
-            } else if (current === 'slot') {
-                area.innerHTML = slotDetailHtml();
-                area.querySelector('#conf-slot-min').oninput = (e) => { conf.slotMin = parseInt(e.target.value) || 1; };
-                area.querySelector('#conf-slot-max').oninput = (e) => { conf.slotMax = parseInt(e.target.value) || 10; };
+            } else if (current === 'survival') {
+                const lives = conf.survivalLives || 1;
+                area.innerHTML = `
+                    <label class="config-label" style="margin:0 0 4px; font-size:0.78em; display:block;">何回ミスしたら脱落</label>
+                    <select id="conf-survival-lives" style="
+                        width:100%; padding:6px 8px; background:#1e293b; border:1px solid #475569;
+                        border-radius:8px; color:#fff; font-size:0.85rem;
+                    ">
+                        ${[1, 2, 3, 4, 5].map(n => `<option value="${n}" ${lives === n ? 'selected' : ''}>${n}回</option>`).join('')}
+                    </select>
+                    <p style="color:#666; font-size:0.72em; margin:6px 0 0;">※不正解・無回答がミスになります（1問につき1回まで）。脱落した人は以降の問題に答えられません</p>
+                `;
+                area.querySelector('#conf-survival-lives').onchange = (e) => {
+                    conf.survivalLives = parseInt(e.target.value) || 1;
+                    if (onChange) onChange();
+                };
             } else {
                 area.innerHTML = '<p style="color:#666; font-size:0.8em;">追加の設定はありません</p>';
             }

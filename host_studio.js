@@ -303,6 +303,7 @@ App.Studio = {
         window.db.ref(`rooms/${code}/players`).on('value', snap => {
             const players = snap.val() || {};
             App.Data.players = players; // Store globally for access in setStep
+            this.checkSurvival(players);
             const count = Object.keys(players).length;
             document.getElementById('studio-player-count-display').textContent = count;
             this.updatePlayerList(players);
@@ -821,6 +822,7 @@ App.Studio = {
         }
 
         this.renderTimeline();
+        this.resetSurvival();
 
         if (item.config && item.config.mode === 'solo') {
             document.getElementById('studio-solo-info')?.classList.remove('hidden');
@@ -1651,6 +1653,7 @@ App.Studio = {
         }
 
         this.renderTimeline();
+        this.resetSurvival();
 
         if (child.config && child.config.mode === 'solo') {
             document.getElementById('studio-solo-info')?.classList.remove('hidden');
@@ -1743,6 +1746,44 @@ App.Studio = {
                 App.Dashboard.enter();
             }
         }, 1200);
+    },
+
+    // 勝利条件「最後まで残った人が勝ち」: 不正解（無回答含む）を1問につき
+    // 1回ミスとして数え、規定回数（survivalLives）に達したら脱落
+    // （isAlive:false — プレイヤー端末は GAME OVER 表示になる）。判定が
+    // 入る場所（早押し/一斉/手動/自動…）が多いので、個別に手を入れず
+    // players の変化を見て一か所で数える。
+    _survivalCounted: {},
+    checkSurvival: function (players) {
+        const conf = App.Data.currentConfig || {};
+        if (conf.gameType !== 'survival') return;
+        const roomId = App.State.currentRoomId;
+        const lives = conf.survivalLives || 1;
+        const qKey = App.State.currentQIndex;
+        Object.entries(players || {}).forEach(([pid, p]) => {
+            if (!p || p.isAlive === false || p.lastResult !== 'lose') return;
+            const key = `${qKey}:${pid}`;
+            if (this._survivalCounted[key]) return;
+            this._survivalCounted[key] = true;
+            const misses = (p.survivalMisses || 0) + 1;
+            const update = { survivalMisses: misses };
+            if (misses >= lives) {
+                update.isAlive = false;
+                App.Ui.showToast(`${p.name || '---'} さんが脱落しました`);
+            }
+            window.db.ref(`rooms/${roomId}/players/${pid}`).update(update);
+        });
+    },
+
+    // セット開始時: ミス回数を数え直す（前のセットの脱落者＝番組の
+    // 足切りで isAlive:false の人はそのまま）
+    resetSurvival: function () {
+        this._survivalCounted = {};
+        const roomId = App.State.currentRoomId;
+        if (!roomId) return;
+        window.db.ref(`rooms/${roomId}/players`).once('value', snap => {
+            snap.forEach(p => { if (p.val() && p.val().survivalMisses) p.ref.update({ survivalMisses: null }); });
+        });
     },
 
     resetPlayerStatus: function () {

@@ -368,6 +368,13 @@ window.App.Creator = {
             lbl.querySelector('input').onchange = (e) => onChange(e.target.checked);
             addOutside(lbl);
         };
+        // 形式ごとの案内文もプレビューの外に出して、行の高さを広く取る
+        const outsideHint = (text) => {
+            const hint = document.createElement('span');
+            hint.style.cssText = 'color:#64748b; font-size:0.75rem; white-space:nowrap;';
+            hint.textContent = `※${text}`;
+            addOutside(hint);
+        };
         const outsideButton = (id, label, onClick) => {
             const btn = document.createElement('button');
             btn.type = 'button';
@@ -446,10 +453,7 @@ window.App.Creator = {
 
             // 案内はプレビューの外（下のオプション行）に出して、選択肢の
             // 高さをできるだけ広く取る
-            const hint = document.createElement('span');
-            hint.style.cssText = 'color:#64748b; font-size:0.75rem; white-space:nowrap;';
-            hint.textContent = `※${msg}`;
-            addOutside(hint);
+            outsideHint(msg);
 
             // Choices list — flex column, each row gets flex:1 to auto-fill the container
             const choicesDiv = document.createElement('div');
@@ -508,17 +512,14 @@ window.App.Creator = {
         }
 
         else if (type === 'sort') {
-            container.innerHTML = `
-                <div style="display:flex; justify-content:flex-end; align-items:center; margin-bottom:6px;">
-                    <button id="btn-reset-sort-ranks" style="background:rgba(255,255,255,0.08); border:1px solid #555; border-radius:6px; color:#aaa; padding:3px 10px; font-size:0.75rem; cursor:pointer;">順序リセット</button>
-                </div>
-            `;
             const sortDiv = document.createElement('div');
             sortDiv.id = 'creator-choices-list';
             sortDiv.style.cssText = 'display:flex; flex-direction:column; gap:1%; flex:1; min-height:0; width:100%;';
             container.appendChild(sortDiv);
 
-            document.getElementById('btn-reset-sort-ranks').onclick = () => this.resetSortRanks(sortDiv);
+            // 順序リセットはプレビューの外（行の高さを広く取るため）
+            outsideHint('右の四角を正しい順にタップ');
+            outsideButton('btn-reset-sort-ranks', '順序リセット', () => this.resetSortRanks(sortDiv));
 
             // See the choice branch's comment above re: data.c.length.
             if (data && data.c && data.c.length > 0) {
@@ -593,9 +594,7 @@ window.App.Creator = {
             });
         }
         else if (type.startsWith('assoc')) {
-            container.innerHTML = `
-                <div style="text-align:center; color:rgba(255,255,255,0.25); font-size:0.7rem; margin-bottom:4px;">ヒントを入力（順番に開示）</div>
-            `;
+            outsideHint('ヒントを入力（順番に開示）');
 
             const assocDiv = document.createElement('div');
             assocDiv.id = 'creator-choices-list';
@@ -647,9 +646,7 @@ window.App.Creator = {
             const isOral = type.endsWith('_oral');
             const descText = isRanking ? '1位から順番に入力' : '全ての正解を入力';
 
-            container.innerHTML = `
-                <div style="text-align:center; color:#64748b; font-size:0.8rem; margin-bottom:10px; padding-top:6px;">${descText}</div>
-            `;
+            outsideHint(descText);
             const multiDiv = document.createElement('div');
             multiDiv.id = 'creator-choices-list';
             multiDiv.style.cssText = 'display:flex; flex-direction:column; gap:1%; flex:1; min-height:0; width:100%;';
@@ -1217,6 +1214,7 @@ window.App.Creator = {
             if (d.cBorderColor) row.style.borderColor = d.cBorderColor;
         });
         document.querySelectorAll('#creator-form-container .sort-row, #creator-form-container .multi-row, #creator-form-container .assoc-row').forEach(row => {
+            row = row.querySelector('.row-frame') || row; // 塗るのは枠
             if (d.cBgColor) row.style.background = d.cBgColor;
             if (d.cBorderColor) row.style.borderColor = d.cBorderColor;
         });
@@ -1269,7 +1267,7 @@ window.App.Creator = {
         const labels = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T'];
         const label = labels[idx] || String(idx + 1);
 
-        // .choice-row は「枠（.choice-frame）＋ 枠の右横の A/B/C/D」の横並び。
+        // .choice-row は「枠の左横の A/B/C/D ＋ 枠（.choice-frame）」の横並び。
         // 記号を枠の外に出して、枠の中は選択肢の文字だけに広く使う。
         const row = document.createElement('div');
         row.className = 'choice-row';
@@ -1295,7 +1293,7 @@ window.App.Creator = {
             frame.style.background = this.rowBackground(chk.checked);
         };
 
-        // A/B/C/D — 枠の右横
+        // A/B/C/D — 枠の左横
         const labelSpan = document.createElement('span');
         labelSpan.className = 'choice-label-text';
         labelSpan.style.cssText = `
@@ -1360,13 +1358,45 @@ window.App.Creator = {
         frame.appendChild(inp);
         frame.appendChild(chk);
         frame.appendChild(delBtn);
-        row.appendChild(frame);
         row.appendChild(labelSpan);
+        row.appendChild(frame);
 
         parent.appendChild(row);
         this.updateLabels(parent);
         this.updateRowSizes(parent);
         this.applyDesignToPreview();
+    },
+
+    // 並べ替え/多答/連想の行を選択式と同じ「左横の記号 ＋ 枠」に組み替える
+    // — 記号（.row-label）を枠の外に出し、枠（.row-frame）の中は入力欄と
+    // ボタンだけにして、文字の幅を広く取る。
+    _frameRow: function (row) {
+        const label = row.querySelector('.row-label');
+        const frame = document.createElement('div');
+        frame.className = 'row-frame';
+        frame.style.cssText = `
+            flex:1; min-width:0; display:flex; align-items:center;
+            background:linear-gradient(90deg,rgba(255,255,255,0.04) 0%,transparent 100%);
+            border:1px solid rgba(255,255,255,0.1);
+            border-radius:6px; padding:2px 10px; overflow:hidden;
+        `;
+        Array.from(row.childNodes).forEach(n => { if (n !== label) frame.appendChild(n); });
+        row.style.cssText = `
+            display:flex; align-items:stretch; gap:6px;
+            margin:0; padding:0; border:none; background:none;
+            cursor:pointer; flex:1; min-height:0;
+        `;
+        if (label) {
+            label.style.marginRight = '0';
+            label.style.flex = '0 0 auto';
+            label.style.display = 'flex';
+            label.style.alignItems = 'center';
+            label.style.justifyContent = 'center';
+            row.appendChild(label);
+        }
+        row.appendChild(frame);
+        const inp = frame.querySelector('.row-input');
+        if (inp) { inp.style.minWidth = '0'; inp.style.padding = '0'; inp.style.margin = '0'; inp.style.lineHeight = '1.2'; }
     },
 
     addSortInput: function (parent, index, text = "", rank = "") {
@@ -1391,6 +1421,7 @@ window.App.Creator = {
             <input type="hidden" class="sort-order-input" value="${rank || ''}">
             <button class="btn-remove-sort" style="background:none;border:none;color:rgba(255,255,255,0.25);font-size:0.9rem;cursor:pointer;padding:2px 4px;margin-left:4px;flex-shrink:0;">×</button>
         `;
+        this._frameRow(row);
 
         // Bind events
         const rankBox = row.querySelector('.sort-rank-box');
@@ -1454,6 +1485,7 @@ window.App.Creator = {
             <input type="text" class="multi-text-input row-input" placeholder="${placeholder}" value="${text}" style="flex:1;background:transparent;border:none;color:#ddd;font-size:min(1rem,2.8vw);outline:none;padding:2px 0;">
             <button class="btn-remove-multi" style="background:none;border:none;color:rgba(255,255,255,0.25);font-size:0.9rem;cursor:pointer;padding:2px 4px;margin-left:4px;flex-shrink:0;">×</button>
         `;
+        this._frameRow(row);
         row.querySelector('.btn-remove-multi').onclick = () => {
             row.remove();
             // Re-index labels
@@ -1485,6 +1517,7 @@ window.App.Creator = {
             <input type="text" class="assoc-text-input row-input" placeholder="ヒント内容" value="${text}" style="flex:1;background:transparent;border:none;color:#ddd;font-size:min(1rem,2.8vw);outline:none;padding:2px 0;">
             <button class="btn-remove-assoc" style="background:none;border:none;color:rgba(255,255,255,0.25);font-size:0.9rem;cursor:pointer;padding:2px 4px;margin-left:4px;flex-shrink:0;">×</button>
         `;
+        this._frameRow(row);
         row.querySelector('.btn-remove-assoc').onclick = () => {
             row.remove();
             parent.querySelectorAll('.assoc-row').forEach((r, i) => {
@@ -1615,7 +1648,7 @@ window.App.Creator = {
 
         rows.forEach(row => {
             // 選択式は枠（.choice-frame）の内側に余白を付ける（行は枠＋記号の並び）
-            const padEl = row.querySelector('.choice-frame');
+            const padEl = row.querySelector('.choice-frame, .row-frame');
             if (padEl) padEl.style.padding = '2px 10px'; // 上下は最小限（高さは文字に使う）
             else row.style.padding = `${vPad}px 10px`;
             // Scale label and input fonts — use generic selectors

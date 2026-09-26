@@ -1283,3 +1283,27 @@
         max-width: none !important;
     }
 }
+
+/* 脱落（isAlive:false — 勝利条件「最後まで残った人が勝ち」や番組の足切り）
+   — 画面全体を覆って、以降は解答・早押しできないようにする */
+.overlay-dead {
+    position: fixed;
+    inset: 0;
+    z-index: 6000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: rgba(10, 10, 15, 0.92);
+    color: #fff;
+    padding: 24px;
+}
+.overlay-dead.hidden { display: none; }
+.overlay-dead .dead-title {
+    font-size: 3em;
+    font-weight: 900;
+    color: #ff5555;
+    margin: 0 0 12px;
+    letter-spacing: 0.1em;
+}
