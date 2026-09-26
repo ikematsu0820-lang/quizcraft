@@ -2136,6 +2136,14 @@ App.Studio = {
         }
     },
 
+    // 早押しの誤答で引く点 — ルール設定「誤答者：得点の減点」（なし=0 /
+    // あり=-N点）。未設定の保存済みセットは、これまでどおり問題ごとの減点。
+    buzzWrongLoss: function (q) {
+        const d = (App.Data.currentConfig || {}).buzzDeduct;
+        if (d === undefined || d === null || d === '') return (q && q.loss) || 0;
+        return Number(d) || 0;
+    },
+
     judgeBuzz: function (isCorrect) {
         if (App.Data.currentConfig.mode === 'solo') { this.judgeSolo(isCorrect); return; }
         if (!this.buzzWinner) return;
@@ -2162,7 +2170,7 @@ App.Studio = {
                 this.buzzWinner = null;
             } else {
                 // 不正解時
-                const loss = App.Data.studioQuestions[App.State.currentQIndex].loss || 0;
+                const loss = this.buzzWrongLoss(App.Data.studioQuestions[App.State.currentQIndex]);
                 snap.ref.update({
                     lastResult: 'lose',
                     buzzTime: null,
@@ -2698,7 +2706,8 @@ App.Studio = {
         window.db.ref(`rooms/${roomId}/players/${playerId}`).once('value', snap => {
             const p = snap.val();
             if (!p) return;
-            const pts = isCorrect ? (q.points || 1) : -(q.loss || 0);
+            const loss = (config.mode === 'buzz') ? this.buzzWrongLoss(q) : (q.loss || 0);
+            const pts = isCorrect ? (q.points || 1) : -loss;
             const result = isCorrect ? 'win' : 'lose';
             if (isCorrect) this.recordWinner(playerId, p.name);
 
