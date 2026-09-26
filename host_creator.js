@@ -12,6 +12,7 @@ window.App.Creator = {
     nextSortRank: 1, // For interactive sorting
 
     init: function () {
+        this.previewSlide = 'question'; // プレビューは問題の画面から始める
         this.editingIndex = null;
         this.editingTitle = "";
         this.activeInlinePanel = null;
@@ -174,6 +175,7 @@ window.App.Creator = {
     loadSet: function (key, item) {
         window.App.State.editingSetId = key;
         this.editingTitle = item.title || "";
+        this.previewSlide = 'question'; // セットを開いたらプレビューは問題の画面から
         // init() を通らないので、ヘッダーの番組IDもここで表示する
         const showIdEl = document.getElementById('creator-show-id');
         if (showIdEl) showIdEl.textContent = window.App.State.currentShowId || '---';
