@@ -4344,3 +4344,11 @@ input:checked+.pro-slider:before {
     cursor: not-allowed;
     pointer-events: none;
 }
+
+/* 出題者画面: セットを読み込む前（読込パネルが出ている間）は、問題が
+   まだ始まっていないので、上の番号/ランプ/START QUIZ と下の問題・正解
+   カードは出さない。参加者リストは入室の確認に使うので残す。 */
+#host-control-view:has(#studio-loader-ui:not(.hidden)) .simple-studio-controls,
+#host-control-view:has(#studio-loader-ui:not(.hidden)) .console-card-wrapper {
+    display: none !important;
+}

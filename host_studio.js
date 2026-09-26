@@ -431,13 +431,13 @@ App.Studio = {
         // Map steps to indicators: 
         // 0=Start/Title, 1=QNum -> QNum Indicator
         // 2=RevealQ/Answering, 3=Closed -> Question Indicator
-        // 4=RevealP, 5=RevealC, 6=Judge -> Answer Indicator
-        // 7=Result -> Result Indicator
+        // 5=正解表示 -> Answer Indicator
+        // 4=結果発表/解答オープン -> Result Indicator
         const map = {
             'status-ind-qnum': { steps: [0, 1], hide: q.isQNumHidden || (stepId === 0 && q.isTitleHidden) },
             'status-ind-question': { steps: [2, 3], hide: q.isHidden },
-            'status-ind-answer': { steps: [4, 5, 6], hide: q.isAnsHidden },
-            'status-ind-result': { steps: [7], hide: q.isResHidden || q.isHidden }
+            'status-ind-answer': { steps: [5], hide: q.isAnsHidden },
+            'status-ind-result': { steps: [4], hide: q.isResHidden || q.isHidden }
         };
 
         for (const [id, cfg] of Object.entries(map)) {

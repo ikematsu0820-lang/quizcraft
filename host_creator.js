@@ -561,7 +561,7 @@ window.App.Creator = {
             container.innerHTML = `
                 <div style="padding:10px 0;">
                     <div style="text-align:center; color:#64748b; font-size:0.8rem; margin-bottom:10px;">正解を入力</div>
-                    <input type="text" id="creator-text-answer" placeholder="正解（複数ある場合はカンマ区切り）" style="
+                    <input type="text" id="creator-text-answer" placeholder="正解" style="
                         width:100%; padding:12px; background:#0d1b2a; border:1px dashed rgba(255,255,255,0.25);
                         border-radius:8px; color:#fff; font-size:1rem; text-align:center; outline:none; box-sizing:border-box;
                     ">
@@ -611,7 +611,7 @@ window.App.Creator = {
                 optionsExtra.innerHTML = `
                     <div style="margin-bottom:14px;">
                         <label style="color:#94a3b8; font-size:0.85rem; display:block; margin-bottom:6px;">正解キーワード</label>
-                        <input type="text" id="creator-assoc-answer" placeholder="キーワード（複数ある場合はカンマ区切り）" style="
+                        <input type="text" id="creator-assoc-answer" placeholder="キーワード" style="
                             width:100%; padding:10px; background:#1e293b; border:1px solid #475569;
                             border-radius:8px; color:#fff; font-size:0.95rem; text-align:center; outline:none; box-sizing:border-box;
                         ">
