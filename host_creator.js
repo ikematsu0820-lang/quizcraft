@@ -444,10 +444,12 @@ window.App.Creator = {
                 this.multiCorrect = false;
             }
 
-            // Hint label inside the frame
-            container.innerHTML = `
-                <div style="text-align:center; color:rgba(255,255,255,0.25); font-size:0.7rem; margin-bottom:4px;">${msg}</div>
-            `;
+            // 案内はプレビューの外（下のオプション行）に出して、選択肢の
+            // 高さをできるだけ広く取る
+            const hint = document.createElement('span');
+            hint.style.cssText = 'color:#64748b; font-size:0.75rem; white-space:nowrap;';
+            hint.textContent = `※${msg}`;
+            addOutside(hint);
 
             // Choices list — flex column, each row gets flex:1 to auto-fill the container
             const choicesDiv = document.createElement('div');
@@ -1205,6 +1207,8 @@ window.App.Creator = {
         // stays visible while editing).
         document.querySelectorAll('#creator-form-container .choice-row').forEach(row => {
             const chk = row.querySelector('input[type="checkbox"], input[type="radio"]');
+            // 塗るのは枠（.choice-frame）— 行そのものは枠と右横の記号の並び
+            row = row.querySelector('.choice-frame') || row;
             row.style.background = this.rowBackground(chk && chk.checked);
             // Full border, not just the bottom edge — matches viewer.js's
             // actual .choice-item (always a full border, grid or not).
@@ -1265,33 +1269,40 @@ window.App.Creator = {
         const labels = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T'];
         const label = labels[idx] || String(idx + 1);
 
+        // .choice-row は「枠（.choice-frame）＋ 枠の右横の A/B/C/D」の横並び。
+        // 記号を枠の外に出して、枠の中は選択肢の文字だけに広く使う。
         const row = document.createElement('div');
         row.className = 'choice-row';
-        const borderC = (window.App.Data.currentDesign || {}).cBorderColor;
         row.style.cssText = `
-            display:flex; align-items:center;
+            display:flex; align-items:stretch; gap:6px;
+            margin:0; padding:0; border:none; background:none;
+            cursor:pointer; flex:1; min-height:0;
+        `;
+        const borderC = (window.App.Data.currentDesign || {}).cBorderColor;
+        const frame = document.createElement('div');
+        frame.className = 'choice-frame';
+        frame.style.cssText = `
+            flex:1; min-width:0; display:flex; align-items:center;
             background:${this.rowBackground(checked)};
             border:1px solid ${borderC || 'rgba(255,255,255,0.1)'};
-            border-radius:6px;
-            cursor:pointer; transition:background 0.2s;
-            flex:1; min-height:0; overflow:hidden;
+            border-radius:6px; padding:0 10px;
+            transition:background 0.2s; overflow:hidden;
         `;
         row.onmouseenter = () => {
-            if (!chk.checked) row.style.background = this.rowHoverBackground(false);
+            if (!chk.checked) frame.style.background = this.rowHoverBackground(false);
         };
         row.onmouseleave = () => {
-            row.style.background = this.rowBackground(chk.checked);
+            frame.style.background = this.rowBackground(chk.checked);
         };
 
-        // Label badge — mirrors viewer .choice-prefix
+        // A/B/C/D — 枠の右横
         const labelSpan = document.createElement('span');
         labelSpan.className = 'choice-label-text';
         labelSpan.style.cssText = `
+            flex:0 0 auto; min-width:1.2em; display:flex; align-items:center; justify-content:center;
             color:#00e5ff; font-weight:900;
             font-family:'Arial Black',sans-serif;
-            margin-right:min(16px,3vw);
             font-size:min(1.1rem,3vw);
-            min-width:min(22px,4vw);
             text-shadow:0 0 8px rgba(0,229,255,0.4);
         `;
         labelSpan.textContent = label;
@@ -1304,9 +1315,9 @@ window.App.Creator = {
         inp.value = text;
         const cTextC = (window.App.Data.currentDesign || {}).cTextColor;
         inp.style.cssText = `
-            flex:1; background:transparent; border:none;
+            flex:1; min-width:0; background:transparent; border:none;
             color:${cTextC || '#ddd'}; font-size:min(1rem,2.8vw);
-            outline:none; padding:2px 0;
+            outline:none; padding:0; margin:0; line-height:1.2;
         `;
         if (cTextC) inp.style.setProperty('--creator-choice-text-color', cTextC);
         inp.onfocus = () => inp.style.setProperty('color', '#fff', 'important');
@@ -1324,9 +1335,12 @@ window.App.Creator = {
         chk.style.cssText = 'transform:scale(1.3); cursor:pointer; margin-left:8px; flex-shrink:0;';
 
         chk.onchange = () => {
-            row.style.background = chk.checked
-                ? 'linear-gradient(90deg,rgba(0,229,255,0.12) 0%,transparent 100%)'
-                : 'linear-gradient(90deg,rgba(255,255,255,0.04) 0%,transparent 100%)';
+            // 単一解答（radio）は他の行の選択が外れるので、全行を塗り直す
+            parent.querySelectorAll('.choice-row').forEach(r => {
+                const f = r.querySelector('.choice-frame');
+                const c = r.querySelector('.choice-correct-chk');
+                if (f && c) f.style.background = this.rowBackground(c.checked);
+            });
         };
 
         // Click row body to toggle correct
@@ -1343,10 +1357,11 @@ window.App.Creator = {
         delBtn.title = '削除';
         delBtn.onclick = (e) => { e.stopPropagation(); row.remove(); this.updateLabels(parent); this.updateRowSizes(parent); };
 
+        frame.appendChild(inp);
+        frame.appendChild(chk);
+        frame.appendChild(delBtn);
+        row.appendChild(frame);
         row.appendChild(labelSpan);
-        row.appendChild(inp);
-        row.appendChild(chk);
-        row.appendChild(delBtn);
 
         parent.appendChild(row);
         this.updateLabels(parent);
@@ -1599,7 +1614,10 @@ window.App.Creator = {
         const fs = Math.max(9, Math.min(16, rowH * 0.40));
 
         rows.forEach(row => {
-            row.style.padding = `${vPad}px 10px`;
+            // 選択式は枠（.choice-frame）の内側に余白を付ける（行は枠＋記号の並び）
+            const padEl = row.querySelector('.choice-frame');
+            if (padEl) padEl.style.padding = '2px 10px'; // 上下は最小限（高さは文字に使う）
+            else row.style.padding = `${vPad}px 10px`;
             // Scale label and input fonts — use generic selectors
             const label = row.querySelector('.choice-label-text, .row-label');
             const inp   = row.querySelector('.choice-text-input, .row-input');

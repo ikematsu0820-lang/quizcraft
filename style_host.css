@@ -54,6 +54,9 @@ select option {
 #creator-monitor-q-area textarea,
 #creator-form-container .choice-text-input,
 #creator-form-container .row-input {
+    /* style_common.css の入力欄の margin-bottom:15px が残ると文字が枠の
+       上に寄って見える — 上下の余白は付けない */
+    margin: 0 !important;
     background: transparent !important;
     border: none !important;
     border-radius: 0 !important;
