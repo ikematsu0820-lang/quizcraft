@@ -242,11 +242,23 @@ App.Config = {
 
         const sel = document.getElementById('creator-mode-select');
 
+        // 早押しの誤答時の設定（問題の処理/誤答者の解答権/減点）は
+        // 「誤答時処理」タブ（#creator-inline-wrong-body）に出す
+        const wrongBody = document.getElementById('creator-inline-wrong-body');
         const renderDetail = () => {
+            const isBuzz = current === 'buzz';
             container.innerHTML = `<div id="mode-chooser-detail"></div>`;
             const detailArea = container.querySelector('#mode-chooser-detail');
-            detailArea.innerHTML = this._modeDetailFieldsHtml(current, conf, qType, isDobon);
-            this._wireModeDetailFields(detailArea, current, conf);
+            if (wrongBody) {
+                wrongBody.innerHTML = isBuzz
+                    ? this._modeDetailFieldsHtml(current, conf, qType, isDobon)
+                    : '<p style="color:#666; font-size:0.8em; text-align:center; padding:12px 0;">早押し（早く押した人から解答）の時に設定できます</p>';
+                if (isBuzz) this._wireModeDetailFields(wrongBody, current, conf);
+            }
+            if (!isBuzz || !wrongBody) {
+                detailArea.innerHTML = this._modeDetailFieldsHtml(current, conf, qType, isDobon);
+                this._wireModeDetailFields(detailArea, current, conf);
+            }
         };
 
         if (sel) {

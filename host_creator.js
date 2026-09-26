@@ -942,7 +942,7 @@ window.App.Creator = {
     rulesSubTab: 'format',
 
     renderRulesSubtabs: function () {
-        const subs = { format: 'creator-rules-sub-format', win: 'creator-rules-sub-win', time: 'creator-rules-sub-time' };
+        const subs = { format: 'creator-rules-sub-format', wrong: 'creator-rules-sub-wrong', win: 'creator-rules-sub-win', time: 'creator-rules-sub-time' };
         Object.entries(subs).forEach(([k, id]) => {
             document.getElementById(id)?.classList.toggle('hidden', this.rulesSubTab !== k);
         });

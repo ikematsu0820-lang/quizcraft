@@ -296,6 +296,7 @@
                     <div id="creator-inline-rules" class="hidden">
                         <div id="creator-rules-subtabs" style="display:flex; gap:0; margin:-4px -4px 10px; border-radius:8px; overflow:hidden; border:1px solid #333;">
                             <button type="button" data-rules-subtab="format" class="creator-rules-subtab-btn" style="flex:1; padding:8px 2px; font-size:0.8rem; font-weight:bold; border:none; cursor:pointer; color:#fff;">解答形式</button>
+                            <button type="button" data-rules-subtab="wrong" class="creator-rules-subtab-btn" style="flex:1; padding:8px 2px; font-size:0.8rem; font-weight:bold; border:none; cursor:pointer; color:#fff;">誤答時処理</button>
                             <button type="button" data-rules-subtab="win" class="creator-rules-subtab-btn" style="flex:1; padding:8px 2px; font-size:0.8rem; font-weight:bold; border:none; cursor:pointer; color:#fff;">勝利条件</button>
                             <button type="button" data-rules-subtab="time" class="creator-rules-subtab-btn" style="flex:1; padding:8px 2px; font-size:0.8rem; font-weight:bold; border:none; cursor:pointer; color:#fff;">制限時間</button>
                         </div>
@@ -319,6 +320,11 @@
                                 </div>
                             </div>
                             <div id="creator-inline-mode-body"></div>
+                        </div>
+                        <!-- 誤答時処理 — 早押しの誤答時の問題/誤答者の扱い
+                             （App.Config.renderInlineModeChooser が中身を入れる） -->
+                        <div id="creator-rules-sub-wrong" class="hidden">
+                            <div id="creator-inline-wrong-body"></div>
                         </div>
                         <div id="creator-rules-sub-win" class="hidden">
                             <div id="creator-inline-gametype"></div>
@@ -744,8 +750,8 @@
     <script src="host_core.js?v=241"></script>
     <script src="host_sound_library.js?v=4"></script>
     <script src="host_design.js?v=259"></script>
-    <script src="host_creator.js?v=274"></script>
-    <script src="host_config.js?v=245"></script>
+    <script src="host_creator.js?v=275"></script>
+    <script src="host_config.js?v=246"></script>
     <script src="host_prog_config.js?v=232"></script>
     <script src="host_studio.js?v=240"></script>
     <script src="player.js?v=239"></script>
