@@ -643,9 +643,7 @@ window.App.Creator = {
         else if (type.startsWith('multi') || type.startsWith('ranking')) {
             const isRanking = type.startsWith('ranking');
             const isOral = type.endsWith('_oral');
-            const descText = isRanking ? '1位から順番に入力' : '全ての正解を入力';
 
-            outsideHint(descText);
             const multiDiv = document.createElement('div');
             multiDiv.id = 'creator-choices-list';
             multiDiv.style.cssText = 'display:flex; flex-direction:column; gap:1%; flex:1; min-height:0; width:100%;';
@@ -1420,10 +1418,11 @@ window.App.Creator = {
             cursor:pointer; transition:background 0.2s;
             flex:1; min-height:0; overflow:hidden;
         `;
-        const labelText = isRanking ? `${idx + 1}位` : `${idx + 1}`;
+        // 多答は順番が関係ないので番号は付けない（ランキングだけ「○位」）
+        const labelText = `${idx + 1}位`;
         const placeholder = isRanking ? `${idx + 1}位の答え` : 'Answer';
         row.innerHTML = `
-            <span class="multi-label row-label" style="color:#00e5ff;font-weight:900;font-family:'Arial Black',sans-serif;margin-right:min(16px,3vw);font-size:min(1.1rem,3vw);min-width:min(22px,4vw);text-shadow:0 0 8px rgba(0,229,255,0.4);">${labelText}</span>
+            ${isRanking ? `<span class="multi-label row-label" style="color:#00e5ff;font-weight:900;font-family:'Arial Black',sans-serif;margin-right:min(16px,3vw);font-size:min(1.1rem,3vw);min-width:min(22px,4vw);text-shadow:0 0 8px rgba(0,229,255,0.4);">${labelText}</span>` : ''}
             <input type="text" class="multi-text-input row-input" placeholder="${placeholder}" value="${text}" style="flex:1;background:transparent;border:none;color:#ddd;font-size:min(1rem,2.8vw);outline:none;padding:2px 0;">
             <button class="btn-remove-multi" style="background:none;border:none;color:rgba(255,255,255,0.25);font-size:0.9rem;cursor:pointer;padding:2px 4px;margin-left:4px;flex-shrink:0;">×</button>
         `;
