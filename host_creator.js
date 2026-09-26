@@ -2168,17 +2168,20 @@ window.App.Creator = {
         const spec = this._bulkSpecs[target.specKey];
         panel.innerHTML = `
             <div style="color:#94a3b8; font-size:0.75rem; font-weight:bold; margin-bottom:4px;">📋 表形式で一括追加（1行1問／${spec.hint}）</div>
-            <textarea id="creator-bulk-input" rows="4" placeholder="表計算ソフトからそのままコピペできます。例:
+            <!-- 貼り付け欄（左 3/4）と追加ボタン（右 1/4）を横並び -->
+            <div style="display:flex; gap:8px; align-items:stretch;">
+                <textarea id="creator-bulk-input" rows="4" placeholder="表計算ソフトからそのままコピペできます。例:
 ${spec.placeholder}" style="
-                width:100%; padding:8px; background:#0d1b2a; border:1px dashed rgba(255,255,255,0.25);
-                border-radius:8px; color:#fff; font-size:0.8rem; resize:vertical; box-sizing:border-box;
-                font-family:monospace; outline:none;
-            "></textarea>
-            <button id="creator-bulk-add-btn" style="
-                margin-top:6px; width:100%; padding:8px; font-size:0.85rem; font-weight:bold;
-                background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4);
-                border-radius:8px; color:#00e5ff; cursor:pointer;
-            ">＋ 一括追加</button>
+                    flex:3; min-width:0; padding:8px; background:#0d1b2a; border:1px dashed rgba(255,255,255,0.25);
+                    border-radius:8px; color:#fff; font-size:0.8rem; resize:vertical; box-sizing:border-box;
+                    font-family:monospace; outline:none; margin:0;
+                "></textarea>
+                <button id="creator-bulk-add-btn" style="
+                    flex:1; min-width:0; padding:8px 4px; font-size:0.85rem; font-weight:bold;
+                    background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4);
+                    border-radius:8px; color:#00e5ff; cursor:pointer; margin:0;
+                ">＋ 一括追加</button>
+            </div>
         `;
         panel.querySelector('#creator-bulk-add-btn').onclick = () => this.runBulkAdd();
     },
