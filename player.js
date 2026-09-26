@@ -695,6 +695,22 @@ function updateUI() {
                     if (inp) inp.focus();
                 }, 100);
             }
+            else if (st.currentAnswerer && isWrittenBuzz() && p.lastResult !== 'lose') {
+                // 手書き×早押しで他の人が解答中 — 手書き欄はそのまま使えるように
+                // しておき、書いておいて次に早押しが開いたら PUSH! で送れる
+                quizArea.classList.remove('hidden');
+                buzzArea.classList.remove('hidden');
+                toggleInputEnabled(true);
+                waitMsg.classList.add('hidden');
+                const writtenSubmit = document.getElementById('written-submit-btn');
+                if (writtenSubmit) writtenSubmit.classList.add('hidden');
+                const btn = document.getElementById('player-buzz-btn');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.textContent = '他の人が解答中';
+                    btn.style.background = '#555';
+                }
+            }
             else if (st.currentAnswerer) {
                 // 誰か他の人が解答権獲得中 -> 自分は解答権なし
                 quizArea.classList.add('hidden');
@@ -847,6 +863,13 @@ function updateUI() {
     }
     else if (st.step === 'final_ranking') {
         showFinalResult(myRoomId, myPlayerId);
+    }
+
+    // 手書きの送信ボタン: 送信済みなら出さない（答えを変更する時だけ戻す）
+    const writtenSubmitBtn = document.getElementById('written-submit-btn');
+    if (writtenSubmitBtn) {
+        if (isReanswering) writtenSubmitBtn.classList.remove('hidden');
+        else if (p.lastAnswer !== null && p.lastAnswer !== undefined && p.lastAnswer !== '') writtenSubmitBtn.classList.add('hidden');
     }
 
     // Update time limit UI based on state
@@ -1333,6 +1356,8 @@ function renderPlayerQuestion(q, roomId, playerId) {
     // 口頭式は早押しボタンを中央の円形に
     document.getElementById('player-buzz-btn')?.classList.toggle('buzz-round', !!(q.type && q.type.endsWith('_oral')));
     document.body.classList.toggle('written-buzz', roomConfig.mode === 'buzz' && q.type === 'free_written');
+    // 手書きの一問一答: 横向きでは問題文を上（約1/5）、手書き欄を下（約4/5）に
+    document.body.classList.toggle('written-q', q.type === 'free_written');
 
     qText.textContent = q.q;
     qText.classList.add('new-q');
@@ -1828,9 +1853,11 @@ function updateMultiAnswers() {
 function createHandwritingCanvas() {
     const CANVAS_H = 180;
     const wrap = document.createElement('div');
+    wrap.className = 'hw-pad';
     wrap.style.cssText = 'margin-bottom:15px;';
 
     const canvas = document.createElement('canvas');
+    canvas.className = 'hw-canvas';
     canvas.height = CANVAS_H;
     canvas.style.cssText = `display:block; width:100%; height:${CANVAS_H}px; background:#fff; border:2px solid #ccc; border-radius:12px; touch-action:none; cursor:crosshair;`;
     wrap.appendChild(canvas);
@@ -1856,7 +1883,10 @@ function createHandwritingCanvas() {
     };
     const initSize = () => {
         canvas.width = canvas.clientWidth || wrap.clientWidth || 300;
-        canvas.height = CANVAS_H;
+        // 横向きの手書き問題では CSS で残りの高さいっぱいに広げている
+        // （style_player.css body.written-q）— 描画の座標が指とずれない
+        // よう、実際に表示されている高さに合わせる
+        canvas.height = canvas.clientHeight || CANVAS_H;
         paintBlank();
         ctx.strokeStyle = '#1a1a2e';
         ctx.lineWidth = 3;
@@ -1949,4 +1979,6 @@ function submitAnswer(roomId, playerId, answer) {
         lastAnswer: answer,
         answerTime: firebase.database.ServerValue.TIMESTAMP
     });
+    // 手書きの送信ボタンは送ったら消す（残っていると送れていないように見える）
+    document.getElementById('written-submit-btn')?.classList.add('hidden');
 }
