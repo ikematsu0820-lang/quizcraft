@@ -4382,3 +4382,33 @@ input:checked+.pro-slider:before {
     padding-top: 3px !important;
     padding-bottom: 3px !important;
 }
+
+/* ルール設定の得点欄など（数値入力）はコンパクトに — 全体の入力欄
+   リセット（高さ36px）と style_common.css の margin-bottom:15px が効いて、
+   枠ばかり高く・数字が上に寄って野暮ったく見えていた */
+#creator-view #creator-inline-rules input[type="number"] {
+    height: 26px !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 6px !important;
+    line-height: 26px;
+    text-align: center !important;
+    justify-content: center;
+}
+#creator-view #score-type-sheet-detail {
+    padding: 6px 10px !important;
+    min-height: 0 !important;
+}
+#creator-view #score-type-sheet-detail > div,
+#creator-view #score-type-sheet-detail .ranked-row {
+    margin-bottom: 4px !important;
+}
+#creator-view #score-type-sheet-detail > div:last-child {
+    margin-bottom: 0 !important;
+}
+#creator-view #score-type-sheet-detail button {
+    min-height: 0 !important;
+    height: 24px;
+    padding: 0 10px !important;
+    margin: 0 !important;
+}
