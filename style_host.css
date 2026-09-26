@@ -4367,3 +4367,18 @@ input:checked+.pro-slider:before {
 #creator-view #creator-type-locked-msg {
     font-size: 0.68rem !important;
 }
+
+/* プレビュー直下のオプション行（タイトルを追加 等）は高さを節約 —
+   全体の入力欄リセット（height/min-height:36px）がチェックボックスにも
+   効いて行が高くなっていたので外す */
+#creator-view #creator-outside-opts input[type="checkbox"] {
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+#creator-view #creator-outside-opts button {
+    min-height: 0 !important;
+    padding-top: 3px !important;
+    padding-bottom: 3px !important;
+}
