@@ -266,11 +266,12 @@ App.Config = {
             const side = container.querySelector('#gametype-chooser-side');
             const area = container.querySelector('#gametype-chooser-detail');
             if (current === 'score') {
+                // 先着のみは廃止 — 保存済みで選ばれていたら一律に戻す
+                if (conf.scoreType === 'first_come') conf.scoreType = 'uniform';
                 const scoreType = conf.scoreType || 'uniform';
                 const optionRows = [
-                    { value: 'uniform', label: '全員一律' },
-                    { value: 'ranked', label: '順位ボーナス' },
-                    { value: 'first_come', label: '先着のみ' }
+                    { value: 'uniform', label: '正解者全員に同得点を付与' },
+                    { value: 'ranked', label: '解答が早い順に傾斜をかける' }
                 ];
                 side.innerHTML = col(`
                     <select id="score-type-select" style="${selStyle}">
