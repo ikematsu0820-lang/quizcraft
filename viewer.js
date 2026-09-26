@@ -1187,7 +1187,10 @@ window.App.Viewer = {
         const borderColor = d.qBorderColor || 'var(--color-primary)';
         // 問題文の「枠」自体の大きさ（文字サイズとは別設定）— 小は空文字
         // で、これまで通り中身に合わせた自動の高さのまま変えない。
-        const qBoxSizeStyle = d.qBoxSize ? ` min-height:${d.qBoxSize};` : '';
+        // 問題文の上下位置（枠を「中/大」にした時に効く）— 問題作成のデザインで設定
+        const qVAlignMap = { middle: 'center', bottom: 'flex-end' };
+        const qBoxSizeStyle = (d.qBoxSize ? ` min-height:${d.qBoxSize};` : '')
+            + (qVAlignMap[d.qVAlign] ? ` display:flex; flex-direction:column; justify-content:${qVAlignMap[d.qVAlign]};` : '');
         // 問題背景を「透明」にしても、.q-area のフロストガラス効果
         // (backdrop-filter:blur) 自体は色と無関係に効いたままなので、
         // 背景色が無くても後ろの映像がぼやけて box の輪郭が浮かび上がって
@@ -1217,8 +1220,8 @@ window.App.Viewer = {
             const qAreaHtml = `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align}; font-size:${d.qFontSize || '6vh'}; width:${q.title ? '100%' : '96%'};${qBoxSizeStyle}${qBackdropStyle}${qTextShadowStyle}">${q.q}</div>`;
             if (q.title) {
                 // タイトル（一問一答で「タイトルを追加」した時）— 問題文の上に出す
-                const titleColor = (textColor === 'transparent') ? 'transparent' : '#ffd700';
-                html += `<div style="width:96%; display:flex; flex-direction:column; align-items:center;"><div class="q-title" style="font-size:4.5vh; font-weight:900; color:${titleColor}; margin-bottom:1.5vh; letter-spacing:0.1em;${titleColor === 'transparent' ? ' text-shadow:none;' : ' text-shadow:0 2px 12px rgba(0,0,0,0.6);'}">${q.title}</div>${qAreaHtml}</div>`;
+                const titleColor = (textColor === 'transparent') ? 'transparent' : (d.qTitleColor || '#ffd700');
+                html += `<div style="width:96%; display:flex; flex-direction:column; align-items:center;"><div class="q-title" style="font-size:${d.qTitleFontSize || '4.5vh'}; font-weight:900; color:${titleColor}; margin-bottom:1.5vh; letter-spacing:0.1em;${titleColor === 'transparent' ? ' text-shadow:none;' : ' text-shadow:0 2px 12px rgba(0,0,0,0.6);'}">${q.title}</div>${qAreaHtml}</div>`;
             } else {
                 html += qAreaHtml;
             }

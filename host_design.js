@@ -201,7 +201,7 @@ App.Design = {
                     width:100%; height:${CONTROL_HEIGHT}; min-height:${CONTROL_HEIGHT}; margin:0; padding:0 2px; background:#1e293b; border:1px solid #475569;
                     border-radius:6px; color:#fff; font-size:0.66rem; box-sizing:border-box;
                 ">
-                    ${options.map(o => `<option value="${o.v}" ${design[key] === o.v ? 'selected' : ''}>${o.t}</option>`).join('')}
+                    ${options.map(o => `<option value="${o.v}" ${(design[key] ?? '') === o.v ? 'selected' : ''}>${o.t}</option>`).join('')}
                 </select>
                 <span style="font-size:0.58rem; color:#94a3b8; white-space:nowrap;">${label}</span>
             </div>
@@ -215,6 +215,14 @@ App.Design = {
             { v: '3.5vh', t: '小' },
             { v: '5vh', t: '中' },
             { v: '8vh', t: '大' },
+        ];
+        // 問題文の上下位置（枠を「中/大」にした時に効く）
+        const V_ALIGN_OPTS = [{ v: '', t: '上' }, { v: 'middle', t: '中央' }, { v: 'bottom', t: '下' }];
+        // 一問一答のタイトル（問題文の上）の文字サイズ
+        const Q_TITLE_SIZE_OPTS = [
+            { v: '3vh', t: '小' },
+            { v: '', t: '中' },
+            { v: '6.5vh', t: '大' },
         ];
         // 正解表示の文字サイズ — 自動＝正解の長さで決める（従来どおり）
         const REVEAL_SIZE_OPTS = [
@@ -310,11 +318,17 @@ App.Design = {
                 return `
                     ${selectionHeader('question')}
                     <div style="display:flex; gap:6px; margin-bottom:6px; align-items:center;">
-                        ${rowLabel('問題文')}
                         ${colorSwatch('文字色', 'qTextColor')}
                         ${miniSelect('サイズ', 'qFontSize', Q_SIZE_OPTS)}
                         ${miniSelect('配置', 'align', ALIGN_OPTS)}
+                        ${miniSelect('上下', 'qVAlign', V_ALIGN_OPTS)}
                     </div>
+                    ${(window.App.Creator && window.App.Creator.titleEnabled && ((window.App.Creator.currentType || '').startsWith('free'))) ? `
+                    <div style="display:flex; gap:6px; margin-bottom:6px; align-items:center;">
+                        ${rowLabel('タイトル')}
+                        ${colorSwatch('文字色', 'qTitleColor')}
+                        ${miniSelect('サイズ', 'qTitleFontSize', Q_TITLE_SIZE_OPTS)}
+                    </div>` : ''}
                 `;
             },
             object: () => {

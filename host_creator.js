@@ -15,6 +15,7 @@ window.App.Creator = {
         this.previewSlide = 'question'; // プレビューは問題の画面から始める
         this.editingIndex = null;
         this.editingTitle = "";
+        this.renderSetTitle();
         this.activeInlinePanel = null;
         this._savedSnapshot = null;
         this.currentType = null;
@@ -69,10 +70,11 @@ window.App.Creator = {
             // leave #creator-opt-subtype unselected. Resolve to each
             // group's default subtype up front instead.
             const groupDefaults = {
-                free: 'free_written',
+                // 解答形式は口頭がデフォルト
+                free: 'free_oral',
                 choice: 'choice_single',
-                multi_group: 'multi_written',
-                assoc_group: 'assoc_written',
+                multi_group: 'multi_oral',
+                assoc_group: 'assoc_oral',
                 num_group: 'blackjack',
                 dobon: 'choice_multi'
             };
@@ -120,17 +122,17 @@ window.App.Creator = {
                 { v: 'free_written', t: APP_TEXT.Creator.TypeFreeWritten }
             ];
             if (mainVal === 'multi_group') return [
-                { v: 'multi_written', t: APP_TEXT.Creator.TypeMultiWritten },
                 { v: 'multi_oral', t: APP_TEXT.Creator.TypeMultiOral },
-                { v: 'ranking_written', t: APP_TEXT.Creator.TypeRankingWritten },
-                { v: 'ranking_oral', t: APP_TEXT.Creator.TypeRankingOral }
+                { v: 'multi_written', t: APP_TEXT.Creator.TypeMultiWritten },
+                { v: 'ranking_oral', t: APP_TEXT.Creator.TypeRankingOral },
+                { v: 'ranking_written', t: APP_TEXT.Creator.TypeRankingWritten }
             ];
             if (mainVal === 'choice') return [
                 { v: 'choice_single', t: "2-1) 単一解答" }
             ];
             if (mainVal === 'assoc_group') return [
-                { v: 'assoc_written', t: APP_TEXT.Creator.TypeAssocWritten },
-                { v: 'assoc_oral', t: APP_TEXT.Creator.TypeAssocOral }
+                { v: 'assoc_oral', t: APP_TEXT.Creator.TypeAssocOral },
+                { v: 'assoc_written', t: APP_TEXT.Creator.TypeAssocWritten }
             ];
             if (mainVal === 'num_group') return [
                 { v: 'blackjack', t: '6-1) ブラックジャック' }
@@ -175,6 +177,7 @@ window.App.Creator = {
     loadSet: function (key, item) {
         window.App.State.editingSetId = key;
         this.editingTitle = item.title || "";
+        this.renderSetTitle();
         this.previewSlide = 'question'; // セットを開いたらプレビューは問題の画面から
         // init() を通らないので、ヘッダーの番組IDもここで表示する
         const showIdEl = document.getElementById('creator-show-id');
@@ -260,10 +263,29 @@ window.App.Creator = {
         this._savedSnapshot = this.snapshot();
     },
 
+    // 左上の見出しにセット名を出す（長い時は CSS で…省略）。タップで変更。
+    renderSetTitle: function () {
+        const el = document.getElementById('creator-set-title');
+        if (!el) return;
+        const name = (this.editingTitle || '').trim();
+        el.textContent = name ? `${name} ✎` : 'セット名を入力 ✎';
+        el.style.color = name ? '' : '#64748b';
+        el.onclick = () => this.editSetTitle();
+    },
+
+    editSetTitle: function () {
+        const name = prompt('セット名', this.editingTitle || '');
+        if (name === null) return; // キャンセル
+        this.editingTitle = name.trim();
+        this.renderSetTitle();
+        if (this.previewSlide === 'title') this.updateTitlePreview();
+    },
+
     snapshot: function () {
         // 画像・音声は参照に置き換えてから比べる — 元に戻した状態だと
         // 数MBのBGMが問題数分つながり、文字列の上限を超えて落ちる
         return JSON.stringify({
+            t: this.editingTitle || '',
             q: window.App.SetImages.pack(window.App.Data.createdQuestions || []),
             d: window.App.Data.currentDesign || {},
             c: window.App.Data.currentConfig || {}
@@ -597,6 +619,8 @@ window.App.Creator = {
                     titleInput.classList.toggle('hidden', !on);
                     if (on) titleInput.focus();
                 }
+                // デザインのテキストタブにタイトルの文字設定を出し入れする
+                if (this.activeInlinePanel === 'design') this.renderActivePanelContent('design');
             });
         }
         else if (type.startsWith('assoc')) {
@@ -1071,13 +1095,20 @@ window.App.Creator = {
                 qArea.style.width = '34%';
                 qArea.style.alignSelf = 'stretch';
                 qArea.style.display = 'flex';
-                qArea.style.alignItems = 'center';
+                qArea.style.flexDirection = 'row';
+                qArea.style.justifyContent = '';
+                // 問題文の上下位置（上/中央/下）— 左右配置の枠は縦長なので既定は中央
+                qArea.style.alignItems = { top: 'flex-start', middle: 'center', bottom: 'flex-end' }[d.qVAlign] || 'center';
                 qArea.style.margin = '0';
             } else {
                 // モニターと同じく画面幅の96%（プレビュー枠の左右余白2%ずつの内側いっぱい）
                 qArea.style.width = '100%';
                 qArea.style.alignSelf = 'center';
-                qArea.style.display = 'block';
+                // 問題文の上下位置（枠を「中/大」にした時に効く）
+                qArea.style.display = 'flex';
+                qArea.style.flexDirection = 'column';
+                qArea.style.alignItems = 'stretch';
+                qArea.style.justifyContent = { top: 'flex-start', middle: 'center', bottom: 'flex-end' }[d.qVAlign] || 'flex-start';
                 qArea.style.margin = layout === 'bottom' ? '1.2% 0 0' : '0 0 1.2%';
             }
         }
@@ -1126,6 +1157,13 @@ window.App.Creator = {
         // input/select/textarea get a global "color:#fff !important" reset
         // (style_host.css), so a plain .style.color assignment loses to it —
         // use setProperty('color', v, 'important') to win the cascade.
+        // 一問一答のタイトル（問題文の上）— 文字色・サイズ
+        const qTitleEl = document.getElementById('question-title');
+        if (qTitleEl) {
+            qTitleEl.style.setProperty('color', d.qTitleColor || '#ffd700', 'important');
+            if (d.qTitleFontSize) qTitleEl.style.setProperty('font-size', scalePreviewFontSize(d.qTitleFontSize), 'important');
+            else qTitleEl.style.removeProperty('font-size');
+        }
         const qText = document.getElementById('question-text');
         if (qText) {
             if (d.qTextColor) qText.style.setProperty('color', d.qTextColor, 'important');
@@ -2396,8 +2434,15 @@ ${spec.placeholder}" style="
             return;
         }
 
-        const title = prompt("セット名を入力してください:", this.editingTitle || "");
-        if (!title) return;
+        // セット名は左上の見出しで編集する — 保存のたびには聞かず、まだ
+        // 名前が無い時だけ入れてもらう
+        let title = (this.editingTitle || '').trim();
+        if (!title) {
+            title = (prompt("セット名を入力してください:", "") || '').trim();
+            if (!title) return;
+            this.editingTitle = title;
+            this.renderSetTitle();
+        }
 
         let showId = window.App.State.currentShowId;
         if (!showId) showId = sessionStorage.getItem('qs_show_id');
@@ -2470,6 +2515,7 @@ ${spec.placeholder}" style="
             window.App.Ui.showToast("保存しました");
             window.App.State.editingSetId = null;
             this.editingTitle = "";
+            this.renderSetTitle();
             this._savedSnapshot = null;
             window.App.Data.createdQuestions = [];
             const sel = document.getElementById('creator-q-type');
