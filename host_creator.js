@@ -613,33 +613,21 @@ window.App.Creator = {
                 for (let i = 0; i < 4; i++) this.addAssocInput(assocDiv, i, '');
             }
 
-            // Add hint button + answer input in options panel
-            if (optionsExtra) {
-                // Answer input at top of options
-                optionsExtra.innerHTML = `
-                    <div style="margin-bottom:14px;">
-                        <label style="color:#94a3b8; font-size:0.85rem; display:block; margin-bottom:6px;">正解キーワード</label>
-                        <input type="text" id="creator-assoc-answer" placeholder="キーワード" style="
-                            width:100%; padding:10px; background:#1e293b; border:1px solid #475569;
-                            border-radius:8px; color:#fff; font-size:0.95rem; text-align:center; outline:none; box-sizing:border-box;
-                        ">
-                    </div>
-                `;
-                if (data && data.correct) {
-                    optionsExtra.querySelector('#creator-assoc-answer').value =
-                        Array.isArray(data.correct) ? data.correct.join(', ') : data.correct;
-                }
+            // 正解キーワードはプレビュー直下の行に（見つけやすいように）
+            const ansWrap = document.createElement('label');
+            ansWrap.style.cssText = 'display:flex; align-items:center; gap:6px; color:#cbd5e1; font-size:0.8rem; white-space:nowrap; flex:1; min-width:180px;';
+            ansWrap.innerHTML = `<span>正解キーワード</span>`;
+            const ansInp = document.createElement('input');
+            ansInp.type = 'text';
+            ansInp.id = 'creator-assoc-answer';
+            ansInp.placeholder = '正解';
+            ansInp.style.cssText = 'flex:1; min-width:0; height:26px; min-height:0; margin:0; padding:0 8px; background:#1e293b; border:1px solid #475569; border-radius:6px; color:#fff; font-size:0.85rem; box-sizing:border-box;';
+            if (data && data.correct) ansInp.value = Array.isArray(data.correct) ? data.correct.join(', ') : data.correct;
+            ansWrap.appendChild(ansInp);
+            addOutside(ansWrap);
 
-                // Add-hint button
-                const addBtnDiv = document.createElement('div');
-                addBtnDiv.style.cssText = 'margin-bottom:14px;';
-                const addBtn = document.createElement('button');
-                addBtn.textContent = '＋ ヒントを追加';
-                addBtn.style.cssText = 'background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4); border-radius:8px; color:#00e5ff; padding:8px 20px; cursor:pointer; font-size:0.9rem; width:100%;';
-                addBtn.onclick = () => this.addAssocInput(assocDiv, undefined, '');
-                addBtnDiv.appendChild(addBtn);
-                optionsExtra.appendChild(addBtnDiv);
-            }
+            // ＋ヒントを追加も選択式と同じくプレビュー直下
+            outsideButton('assoc-add-btn', '＋ ヒントを追加', () => this.addAssocInput(assocDiv, undefined, ''));
 
             // Sub-type
             setupOptSubtype([
@@ -2062,7 +2050,8 @@ window.App.Creator = {
             return;
         }
 
-        if (type.startsWith('multi') || type.startsWith('ranking') || type.startsWith('assoc')) {
+        if (type.startsWith('multi') || type.startsWith('ranking')) {
+            // （連想クイズはモニターと同じく正解キーワードの箱を出すので、下の共通表示へ）
             // These are shown fully revealed (all green) — the real monitor
             // fills them in one at a time as players answer, which isn't
             // something a static preview can simulate.

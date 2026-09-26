@@ -26,7 +26,7 @@ App.Design = {
     // 枠＋背景＋文字色のボックスとして表示される。
     _revealColorApplies: function () {
         const t = (window.App.Creator && window.App.Creator.currentType) || '';
-        return t.startsWith('free') || t === 'letter_select' || t === 'sort';
+        return t.startsWith('free') || t.startsWith('assoc') || t === 'letter_select' || t === 'sort';
     },
 
     // 選択中のオブジェクトが今の状況（問題タイプ・正解表示のON/OFF）で
