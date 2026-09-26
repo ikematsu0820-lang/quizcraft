@@ -11,6 +11,8 @@ App.Config = {
         let qType = 'choice';
         const isDobon = questions.some(q => q.mode === 'dobon' || (q.type === 'choice' && q.mode === 'multi'));
         const isBlackjack = questions.some(q => q.type === 'blackjack');
+        // 口頭で答える問題が1問でもあれば、手元で一斉に解答する形式は不可
+        const hasOral = questions.some(q => q && typeof q.type === 'string' && q.type.endsWith('_oral'));
 
         if (questions.length > 0) {
             const type = questions[0].type;
@@ -35,7 +37,7 @@ App.Config = {
             else typeDisplay = "不明";
         }
 
-        return { typeDisplay, isOral, qType, isDobon, isBlackjack };
+        return { typeDisplay, isOral: isOral || hasOral, qType, isDobon, isBlackjack };
     },
 
     // Full set of defaults for a fresh config object, so every field has a
@@ -53,9 +55,12 @@ App.Config = {
     // Question-type-driven auto-restriction (same rules the old card list
     // used to enforce), applied directly to the persistent config object.
     applyModeRestrictions: function (conf, questions) {
-        const { qType, isDobon, isBlackjack } = this.deriveTypeInfo(questions);
+        const { qType, isDobon, isBlackjack, isOral } = this.deriveTypeInfo(questions);
         let mode = conf.mode || 'normal';
-        if (isBlackjack) {
+        if (isOral && mode === 'normal') {
+            // 口頭で答える — 手元で一斉に解答はできないので早押しにする
+            mode = 'buzz';
+        } else if (isBlackjack) {
             mode = 'turn';
         } else if (isDobon) {
             if (mode !== 'turn' && mode !== 'solo') mode = 'turn';

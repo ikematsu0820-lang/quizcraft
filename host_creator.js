@@ -840,10 +840,14 @@ window.App.Creator = {
     // type/subtype so restrictions apply immediately.
     effectiveQuestionsForRestrictions: function () {
         const real = window.App.Data.createdQuestions;
-        if (real.length > 0 || !this.currentType) return real;
+        if (!this.currentType) return real;
+        // 作成中（まだリストに無い／編集中）の問題の形式も制限の判定に含める
+        // — 先頭に置くので、解答権の候補は今編集している形式が基準になる
+        // （以前は作成済みの問題があるとそちらだけを見ていて、口頭で答えるに
+        // 切り替えても「全員が同時に手元で解答」が選べてしまっていた）
         const mode = this.currentType === 'choice_multi' ? 'multi' : undefined;
         const type = (this.currentType === 'choice_single' || this.currentType === 'choice_multi') ? 'choice' : this.currentType;
-        return [{ type, mode }];
+        return [{ type, mode }, ...real];
     },
 
     renderRulesSection: function () {
