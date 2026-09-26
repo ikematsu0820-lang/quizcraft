@@ -273,11 +273,14 @@ App.Config = {
             if (current === 'score') {
                 // 先着のみは廃止 — 保存済みで選ばれていたら一律に戻す
                 if (conf.scoreType === 'first_come') conf.scoreType = 'uniform';
+                // 連想クイズだけ「ヒント数に応じて得点を傾斜」を選べる
+                const isAssoc = ((window.App.Creator && window.App.Creator.currentType) || '').startsWith('assoc');
+                if (conf.scoreType === 'hint' && !isAssoc) conf.scoreType = 'uniform';
                 const scoreType = conf.scoreType || 'uniform';
                 const optionRows = [
                     { value: 'uniform', label: '正解者全員に同得点' },
                     { value: 'ranked', label: '正解スピードに応じて得点を傾斜' }
-                ];
+                ].concat(isAssoc ? [{ value: 'hint', label: 'ヒント数に応じて得点を傾斜' }] : []);
                 side.innerHTML = col(`
                     <select id="score-type-select" style="${selStyle}">
                         ${optionRows.map(o => `<option value="${o.value}" ${scoreType === o.value ? 'selected' : ''}>${o.label}</option>`).join('')}
@@ -424,6 +427,20 @@ App.Config = {
                 <input type="number" id="conf-score-rank-other" style="width:65px; text-align:center; padding:8px; background:#222; border:1px solid #555; color:#fff; border-radius:6px;" value="${otherPts}" min="0">
                 <span style="color:#888; font-size:0.85em;">点</span>
             </div>`;
+        } else if (scoreType === 'hint') {
+            // ヒントの数は、問題作成のプレビューにある連想クイズのヒント欄の数
+            const n = Math.max(1, document.querySelectorAll('#creator-form-container .assoc-text-input').length
+                || (Array.isArray(conf.hintPts) ? conf.hintPts.length : 4));
+            const saved = Array.isArray(conf.hintPts) ? conf.hintPts : [];
+            // 未入力の段は、少ないヒントで当てるほど高得点になる初期値
+            const pts = Array.from({ length: n }, (_, i) => (saved[i] !== undefined ? saved[i] : n - i));
+            conf.hintPts = pts;
+            html = pts.map((p, i) => `
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+                    <span style="color:#aaa; font-size:0.85em; width:90px; text-align:right;">ヒント${i + 1}までで正解</span>
+                    <input type="number" class="hint-pt-input" data-index="${i}" style="width:65px; text-align:center; padding:8px; background:#222; border:1px solid #555; color:#fff; border-radius:6px;" value="${p}" min="0">
+                    <span style="color:#aaa; font-size:0.85em;">点</span>
+                </div>`).join('');
         } else if (scoreType === 'first_come') {
             const fcCount = conf.firstComeCount || 1;
             const fcPts = conf.firstComePts !== undefined ? conf.firstComePts : 10;
@@ -479,6 +496,9 @@ App.Config = {
             }
             const otherInp = document.getElementById('conf-score-rank-other');
             if (otherInp) conf.rankOtherPts = parseInt(otherInp.value) || 0;
+        } else if (scoreType === 'hint') {
+            const inputs = document.querySelectorAll('#score-type-sheet-detail .hint-pt-input');
+            if (inputs.length > 0) conf.hintPts = Array.from(inputs).map(inp => parseInt(inp.value) || 0);
         } else if (scoreType === 'first_come') {
             const fcCount = document.getElementById('conf-score-fc-count');
             const fcPts = document.getElementById('conf-score-fc-pts');
