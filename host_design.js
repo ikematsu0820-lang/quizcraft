@@ -553,6 +553,8 @@ App.Design = {
                 <div style="display:flex; gap:6px; align-items:center;">
                     ${colorSwatch('文字色', 'titleColor')}
                     ${miniSelect('サイズ', 'titleFontSize', TITLE_SIZE_OPTS)}
+                    ${miniSelect('左右', 'titleAlign', [{ v: '', t: '中央' }, { v: 'left', t: '左寄せ' }, { v: 'right', t: '右寄せ' }])}
+                    ${miniSelect('上下', 'titleVAlign', [{ v: 'top', t: '上' }, { v: '', t: '中央' }, { v: 'bottom', t: '下' }])}
                 </div>
             `,
             object: () => `

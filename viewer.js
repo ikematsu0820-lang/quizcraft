@@ -286,10 +286,14 @@ window.App.Viewer = {
                     : null);
                 const title = (td.titleText || '').trim() || st.programTitle || this.config.periodTitle || "Quiz Studio";
                 const titleColor = td.titleColor || '#ffd700';
+                // 左右・上下（問題作成のプレビュー「タイトル」で設定。既定は中央）
+                const tAlign = td.titleAlign || 'center';
+                const tItems = { left: 'flex-start', center: 'center', right: 'flex-end' }[tAlign] || 'center';
+                const tJustify = { top: 'flex-start', bottom: 'flex-end' }[td.titleVAlign] || 'center';
 
                 mainText.innerHTML = `
-                    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; width:100%;">
-                        <div style="font-size:${td.titleFontSize || '5vw'}; font-weight:900; color:${titleColor}; text-shadow:0 0 30px rgba(0,0,0,0.5); margin-bottom:20px; text-align:center; padding:0 20px; white-space:pre-wrap;">${title}</div>
+                    <div style="display:flex; flex-direction:column; align-items:${tItems}; justify-content:${tJustify}; height:100%; width:100%; padding:5vh 4vw; box-sizing:border-box;">
+                        <div style="font-size:${td.titleFontSize || '5vw'}; font-weight:900; color:${titleColor}; text-shadow:0 0 30px rgba(0,0,0,0.5); margin-bottom:20px; text-align:${tAlign}; white-space:pre-wrap;">${title}</div>
                         <div style="font-size:2vw; color:#fff; font-family:monospace; letter-spacing:5px;">ROOM ID: ${this.roomId}</div>
                         <div style="margin-top:50px; font-size:1.5vw; color:#00bfff; animation:pulse 2s infinite;">READY TO START...</div>
                     </div>

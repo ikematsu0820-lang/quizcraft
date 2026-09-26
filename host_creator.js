@@ -1978,9 +1978,15 @@ window.App.Creator = {
             : (d.titleBgColor ? 'none' : 'radial-gradient(circle at center, #1a1a1a 0%, #000000 100%)');
         const size = d.titleFontSize ? d.titleFontSize.replace('vw', 'cqw') : '5cqw';
         const color = d.titleColor || '#ffd700';
+        // 左右・上下（viewer.js と同じ。既定は中央）
+        const tAlign = d.titleAlign || 'center';
+        overlay.style.alignItems = { left: 'flex-start', center: 'center', right: 'flex-end' }[tAlign] || 'center';
+        overlay.style.justifyContent = { top: 'flex-start', bottom: 'flex-end' }[d.titleVAlign] || 'center';
+        overlay.style.padding = '5cqh 4cqw';
+        overlay.style.boxSizing = 'border-box';
         overlay.innerHTML = '';
         const t = document.createElement('div');
-        t.style.cssText = `font-size:${size}; font-weight:900; color:${color}; text-shadow:0 0 30px rgba(0,0,0,0.5); text-align:center; padding:0 3cqw; white-space:pre-wrap; margin-bottom:3cqh;`;
+        t.style.cssText = `font-size:${size}; font-weight:900; color:${color}; text-shadow:0 0 30px rgba(0,0,0,0.5); text-align:${tAlign}; white-space:pre-wrap; margin-bottom:3cqh;`;
         t.textContent = title;
         const room = document.createElement('div');
         room.style.cssText = 'font-size:2cqw; color:#fff; font-family:monospace; letter-spacing:5px;';
