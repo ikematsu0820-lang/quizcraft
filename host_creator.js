@@ -425,7 +425,12 @@ window.App.Creator = {
             if (currentVal) optSubSel.value = currentVal;
             optSubArea.classList.remove('hidden');
             optSubSel.onchange = (e) => {
-                this.renderForm(e.target.value);
+                const newType = e.target.value;
+                // 入力中の内容（正解・項目）は引き継いで描き直す
+                const cur = this._readFormDataForPreview();
+                cur.title = this.titleEnabled ? '1' : null; // タイトル欄の表示状態だけ保つ（値は入力欄にそのまま残る）
+                this.applySubtypeToSet(newType);
+                this.renderForm(newType, cur);
             };
         };
 
@@ -710,6 +715,28 @@ window.App.Creator = {
         this.renderRulesSection();
         this.applyDesignToPreview();
         this.wirePreviewObjectSelection();
+    },
+
+    // 解答形式（口頭/手書き）はセット全体の設定 — 切り替えたら、リストに
+    // ある同じ系統の問題（一問一答/多答・ランキング/連想）もまとめて同じ
+    // 解答形式にそろえる（保存は「リストを保存する」で）。
+    applySubtypeToSet: function (newType) {
+        const m = /^(free|multi|ranking|assoc)_(oral|written)$/.exec(newType || '');
+        if (!m) return;
+        const suffix = m[2];
+        // 多答とランキングは同じ系統（ランキングモードのオン/オフだけの違い）
+        const family = (m[1] === 'multi' || m[1] === 'ranking') ? ['multi', 'ranking'] : [m[1]];
+        let changed = 0;
+        (window.App.Data.createdQuestions || []).forEach(q => {
+            const qm = /^(free|multi|ranking|assoc)_(oral|written)$/.exec((q && q.type) || '');
+            if (!qm || !family.includes(qm[1]) || qm[2] === suffix) return;
+            q.type = `${qm[1]}_${suffix}`;
+            changed++;
+        });
+        if (changed > 0) {
+            this.renderList();
+            window.App.Ui.showToast(`セット内の${changed}問を「${suffix === 'oral' ? '口頭で答える' : '手書きで答える'}」に変更しました（リストを保存すると確定します）`);
+        }
     },
 
     // 現在の選択肢の入力状態（文字と正解）を読む — 複数回答モードの
