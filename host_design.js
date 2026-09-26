@@ -35,6 +35,9 @@ App.Design = {
         let sel = this._selectedObject || 'question';
         if (sel === 'choices' && !this._hasChoicesObject()) sel = 'question';
         if (sel === 'reveal' && !(window.App.Creator && window.App.Creator._previewRevealOn)) sel = 'question';
+        // 一問一答で「タイトルを追加」がオンの時だけタイトルを選べる
+        const c = window.App.Creator;
+        if (sel === 'qtitle' && !(c && c.titleEnabled && (c.currentType || '').startsWith('free'))) sel = 'question';
         return sel;
     },
 
@@ -270,7 +273,7 @@ App.Design = {
         // プレビューでタップした対象に応じて、テキスト/オブジェクトタブの
         // 中身をその対象に関係する項目だけへ絞り込む。何が選ばれているか
         // 文字でも分かるよう、両タブの先頭に小さな見出しを出す。
-        const OBJECT_TITLES = { question: '問題文', choices: choicesLabel, background: '全体背景', reveal: '正解表示' };
+        const OBJECT_TITLES = { question: '問題文', qtitle: 'タイトル', choices: choicesLabel, background: '全体背景', reveal: '正解表示' };
         const selectionHeader = (sel) => `
             <div style="display:flex; align-items:center; gap:5px; margin-bottom:8px; color:#00e5ff; font-size:0.68rem; font-weight:bold;">
                 <span>👆</span><span>${OBJECT_TITLES[sel]}を編集中</span>
@@ -280,6 +283,17 @@ App.Design = {
         const bodyHtml = {
             text: () => {
                 const sel = this._normalizedSelection();
+                if (sel === 'qtitle') {
+                    return `
+                        ${selectionHeader(sel)}
+                        <div style="display:flex; gap:6px; margin-bottom:6px; align-items:center;">
+                            ${colorSwatch('文字色', 'qTitleColor')}
+                            ${miniSelect('サイズ', 'qTitleFontSize', Q_TITLE_SIZE_OPTS)}
+                            ${miniSelect('左右', 'qTitleAlign', ALIGN_OPTS)}
+                        </div>
+                        <p style="color:#555; font-size:0.62rem; margin:4px 0 0;">※タイトルの文言はプレビューのタイトル欄に直接入力します</p>
+                    `;
+                }
                 if (sel === 'choices') {
                     return `
                         ${selectionHeader(sel)}
@@ -323,16 +337,16 @@ App.Design = {
                         ${miniSelect('左右', 'align', ALIGN_OPTS)}
                         ${miniSelect('上下', 'qVAlign', V_ALIGN_OPTS)}
                     </div>
-                    ${(window.App.Creator && window.App.Creator.titleEnabled && ((window.App.Creator.currentType || '').startsWith('free'))) ? `
-                    <div style="display:flex; gap:6px; margin-bottom:6px; align-items:center;">
-                        ${rowLabel('タイトル')}
-                        ${colorSwatch('文字色', 'qTitleColor')}
-                        ${miniSelect('サイズ', 'qTitleFontSize', Q_TITLE_SIZE_OPTS)}
-                    </div>` : ''}
                 `;
             },
             object: () => {
                 const sel = this._normalizedSelection();
+                if (sel === 'qtitle') {
+                    return `
+                        ${selectionHeader(sel)}
+                        <p style="color:#666; font-size:0.78rem; text-align:center; padding:20px 0;">タイトルに枠・背景の設定はありません（テキストタブで文字を変更できます）</p>
+                    `;
+                }
 
                 if (sel === 'choices') {
                     return `

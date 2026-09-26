@@ -464,7 +464,6 @@ window.App.Creator = {
                 const newType = e.target.value;
                 // 入力中の内容（正解・項目）は引き継いで描き直す
                 const cur = this._readFormDataForPreview();
-                cur.title = this.titleEnabled ? '1' : null; // タイトル欄の表示状態だけ保つ（値は入力欄にそのまま残る）
                 this.applySubtypeToSet(newType);
                 this.renderForm(newType, cur);
             };
@@ -623,7 +622,10 @@ window.App.Creator = {
             ], type);
 
             // タイトルを追加 — 問題文の上にタイトル名を出す（一問一答のみ）
-            if (data) this.titleEnabled = !!data.title;
+            // _titleEnabled はプレビュー切替（正解の画面↔問題）で描き直す時の
+            // 引き継ぎ用 — これが無いと「タイトルを追加」がオフに戻り、その
+            // まま保存するとタイトル名が消えていた
+            if (data) this.titleEnabled = (data._titleEnabled !== undefined) ? !!data._titleEnabled : !!data.title;
             if (titleInput) titleInput.classList.toggle('hidden', !this.titleEnabled);
             outsideCheck('free-title-chk', 'タイトルを追加', !!this.titleEnabled, (on) => {
                 this.titleEnabled = on;
@@ -631,8 +633,8 @@ window.App.Creator = {
                     titleInput.classList.toggle('hidden', !on);
                     if (on) titleInput.focus();
                 }
-                // デザインのテキストタブにタイトルの文字設定を出し入れする
-                if (this.activeInlinePanel === 'design') this.renderActivePanelContent('design');
+                // オンにしたらタイトルを選択して、すぐ文字の設定ができるように
+                if (window.App.Design) window.App.Design.selectObject(on ? 'qtitle' : 'question');
             });
         }
         else if (type.startsWith('assoc')) {
@@ -830,6 +832,14 @@ window.App.Creator = {
     // assoc/multi のときだけ存在するので、無いタイプ（一問一答/文字
     // パネル/数字予想）ではその分岐だけ自然に効かなくなる。
     wirePreviewObjectSelection: function () {
+        // 一問一答のタイトル — タップで「タイトル」を選択（文字色/サイズ/左右）
+        const qTitleEl = document.getElementById('question-title');
+        if (qTitleEl) {
+            qTitleEl.onclick = (e) => {
+                e.stopPropagation();
+                if (window.App.Design) window.App.Design.selectObject('qtitle');
+            };
+        }
         const qAreaEl = document.getElementById('creator-monitor-q-area');
         if (qAreaEl) {
             qAreaEl.onclick = () => {
@@ -868,6 +878,8 @@ window.App.Creator = {
         const qAreaEl = document.getElementById('creator-monitor-q-area');
         const formContainerEl = document.getElementById('creator-form-container');
         if (qAreaEl) qAreaEl.style.outline = (sel === 'question') ? SELECTED : 'none';
+        const qTitleEl = document.getElementById('question-title');
+        if (qTitleEl) qTitleEl.style.outline = (sel === 'qtitle') ? SELECTED : 'none';
         if (formContainerEl) formContainerEl.style.outline = (sel === 'choices' || sel === 'reveal') ? SELECTED : 'none';
     },
 
@@ -1175,6 +1187,7 @@ window.App.Creator = {
             qTitleEl.style.setProperty('color', d.qTitleColor || '#ffd700', 'important');
             if (d.qTitleFontSize) qTitleEl.style.setProperty('font-size', scalePreviewFontSize(d.qTitleFontSize), 'important');
             else qTitleEl.style.removeProperty('font-size');
+            qTitleEl.style.setProperty('text-align', d.qTitleAlign || 'center', 'important');
         }
         const qText = document.getElementById('question-text');
         if (qText) {
@@ -1851,7 +1864,8 @@ window.App.Creator = {
         if (rawType === 'choice_single') { type = 'choice'; choiceMode = 'single'; }
         else if (rawType === 'choice_multi') { type = 'choice'; choiceMode = 'multi'; }
 
-        const data = { q: qText, type };
+        // タイトル欄のオン/オフは描き直しても保つ（値は入力欄にそのまま残る）
+        const data = { q: qText, type, _titleEnabled: !!this.titleEnabled };
 
         if (type === 'choice') {
             const opts = [], corr = [];
