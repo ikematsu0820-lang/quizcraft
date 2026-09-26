@@ -385,10 +385,29 @@ App.Design = {
                     // 画像アップロードはこのスウォッチ自身のカラーポップ
                     // オーバー内（_openColorPickerModal）に統合済み —
                     // ここでは色スウォッチを出すだけでよい。
+                    // 背景色と背景画像を同じ行に並べる
+                    const bgImg = design.bgImage || '';
+                    const hasBgImg = bgImg.startsWith('data:') || bgImg.startsWith('http');
                     return `
                         ${selectionHeader(sel)}
-                        ${colorRow([['全体背景', 'mainBgColor']])}
-                        <p style="color:#555; font-size:0.62rem; margin:8px 0 0;">※背景に画像を使いたい場合は、上のスウォッチをタップして開く画面から設定できます</p>
+                        <div style="display:flex; gap:6px;">
+                            ${colorSwatch('背景色', 'mainBgColor')}
+                            <div style="display:flex; flex-direction:column; align-items:center; gap:3px; flex:1 1 38px; min-width:0;">
+                                <div style="display:flex; width:100%; gap:4px;">
+                                    <button type="button" data-bgimg-pick title="背景に画像を使う" style="
+                                        flex:1; min-width:0; height:32px; box-sizing:border-box; padding:0; border-radius:6px; cursor:pointer;
+                                        border:1px ${hasBgImg ? 'solid #00e5ff' : 'dashed #475569'};
+                                        background:${hasBgImg ? `center/cover no-repeat url(${bgImg})` : '#1e293b'};
+                                        color:#94a3b8; font-size:0.66rem;
+                                    ">${hasBgImg ? '' : '🖼️ 画像を選ぶ'}</button>
+                                    ${hasBgImg ? `<button type="button" data-bgimg-clear title="画像を外す" style="
+                                        flex:0 0 auto; width:28px; height:32px; padding:0; border:1px dashed #ff8888; border-radius:6px;
+                                        background:none; color:#ff8888; cursor:pointer;">×</button>` : ''}
+                                </div>
+                                <span style="font-size:0.58rem; color:#94a3b8; white-space:nowrap;">背景画像</span>
+                                <input type="file" accept="image/*" data-bgimg-input style="display:none;">
+                            </div>
+                        </div>
                     `;
                 }
 
@@ -614,6 +633,29 @@ App.Design = {
                     if (onChange) onChange();
                     if (sel.dataset.key === 'layout' && window.App.Creator) window.App.Creator.applyDesignToPreview();
                 };
+            });
+
+            // 全体背景の画像（背景色の横の「背景画像」）
+            const bgPick = body.querySelector('button[data-bgimg-pick]');
+            const bgInput = body.querySelector('input[data-bgimg-input]');
+            if (bgPick && bgInput) {
+                bgPick.onclick = () => bgInput.click();
+                bgInput.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        design.bgImage = ev.target.result;
+                        if (onChange) onChange();
+                        renderBody();
+                    };
+                    reader.readAsDataURL(file);
+                };
+            }
+            body.querySelector('button[data-bgimg-clear]')?.addEventListener('click', () => {
+                design.bgImage = '';
+                if (onChange) onChange();
+                renderBody();
             });
 
             // 問題文の設定 → タイトルの設定へ
