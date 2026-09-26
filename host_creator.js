@@ -708,10 +708,12 @@ window.App.Creator = {
 
         // その他: ブリッジスライド（問題の前に出る「第○問」）の編集。
         // 文言は問題ごと、色・背景はセット共通（design に保存）。
-        if (optionsExtra) {
+        const bridgePanel = document.getElementById('creator-bridge-panel');
+        if (bridgePanel) {
             const qNumVal = data ? (data.qNumText || '') : prevQNumText;
-            optionsExtra.insertAdjacentHTML('beforeend', this.bridgeSectionHtml(qNumVal));
-            this.wireBridgeSection(optionsExtra);
+            bridgePanel.innerHTML = this.bridgeSectionHtml(qNumVal);
+            this.wireBridgeSection(bridgePanel);
+            this.updateBridgePreview();
         }
 
         this.renderRulesSection();
@@ -738,9 +740,9 @@ window.App.Creator = {
     bridgeSectionHtml: function (qNumText) {
         const d = window.App.Data.currentDesign || {};
         const esc = (v) => String(v || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+        const hasSe = !!d.seQNum;
         return `
-            <div style="margin-top:6px; padding-top:10px; border-top:1px dashed #333;">
-                <div style="color:#94a3b8; font-size:0.75rem; font-weight:bold; margin-bottom:6px;">ブリッジスライド（第○問）</div>
+            <div>
                 <input type="text" id="creator-qnum-text" value="${esc(qNumText)}" placeholder="空欄なら「第○問」（この問題だけの文言）" style="
                     width:100%; padding:6px 8px; margin-bottom:8px; background:#1e293b; border:1px solid #475569;
                     border-radius:8px; color:#fff; font-size:0.85rem; box-sizing:border-box;
@@ -755,7 +757,11 @@ window.App.Creator = {
                     <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
                         <input type="checkbox" id="creator-bridge-use-bgimg" ${d.bridgeUseBgImage ? 'checked' : ''}>全体背景の画像を使う
                     </label>
-                    <span style="color:#64748b; font-size:0.7rem;">※色・背景は全問共通</span>
+                    <button type="button" id="creator-bridge-se-btn" style="
+                        display:flex; align-items:center; gap:6px; padding:5px 10px; background:#1e293b;
+                        border:1px solid ${hasSe ? '#00e5ff' : '#475569'}; border-radius:8px; color:#fff; cursor:pointer; font-size:0.78rem;
+                    ">🔢 問題番号音 <span style="color:${hasSe ? '#00e5ff' : '#64748b'}; font-size:0.7rem;">${hasSe ? 'あり' : '未設定'}</span></button>
+                    <span style="color:#64748b; font-size:0.7rem;">※色・背景・音は全問共通</span>
                 </div>
             </div>
         `;
@@ -766,9 +772,55 @@ window.App.Creator = {
         const textC = root.querySelector('#creator-bridge-text-color');
         const bgC = root.querySelector('#creator-bridge-bg-color');
         const useImg = root.querySelector('#creator-bridge-use-bgimg');
-        if (textC) textC.oninput = () => { d.bridgeTextColor = textC.value; };
-        if (bgC) bgC.oninput = () => { d.bridgeBgColor = bgC.value; };
-        if (useImg) useImg.onchange = () => { d.bridgeUseBgImage = useImg.checked; };
+        const qNumInput = root.querySelector('#creator-qnum-text');
+        const seBtn = root.querySelector('#creator-bridge-se-btn');
+        if (textC) textC.oninput = () => { d.bridgeTextColor = textC.value; this.updateBridgePreview(); };
+        if (bgC) bgC.oninput = () => { d.bridgeBgColor = bgC.value; this.updateBridgePreview(); };
+        if (useImg) useImg.onchange = () => { d.bridgeUseBgImage = useImg.checked; this.updateBridgePreview(); };
+        if (qNumInput) qNumInput.addEventListener('input', () => this.updateBridgePreview());
+        // 問題番号音（「第○問」がモニターに出た瞬間に鳴る）— サウンドライブラリ
+        // から選ぶピッカーはデザインのサウンドタブと同じもの
+        if (seBtn && window.App.Design) seBtn.onclick = () => {
+            window.App.Design._openSoundModal(d, 'seQNum', '問題番号音', () => {
+                const qNumVal = qNumInput ? qNumInput.value : '';
+                root.innerHTML = this.bridgeSectionHtml(qNumVal);
+                this.wireBridgeSection(root);
+            });
+        };
+    },
+
+    // ブリッジスライドのタブを開いている間だけ、プレビューをモニターの
+    // ブリッジスライド（viewer.js reveal_q_num）と同じ見た目に差し替える
+    // — 問題の編集画面の上に重ねるだけなので、閉じれば元どおり。
+    updateBridgePreview: function () {
+        const preview = document.getElementById('creator-monitor-preview');
+        if (!preview) return;
+        let overlay = document.getElementById('creator-bridge-preview');
+        const show = this.activeInlinePanel === 'edit' && this.editSubTab === 'bridge';
+        if (!show) {
+            if (overlay) overlay.remove();
+            return;
+        }
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'creator-bridge-preview';
+            overlay.style.cssText = 'position:absolute; inset:0; z-index:50; display:flex; align-items:center; justify-content:center; container-type:size; background-size:cover; background-position:center;';
+            preview.appendChild(overlay);
+        }
+        const d = window.App.Data.currentDesign || {};
+        const custom = (document.getElementById('creator-qnum-text')?.value || '').trim();
+        const n = (this.editingIndex !== null && this.editingIndex !== undefined)
+            ? this.editingIndex + 1
+            : (window.App.Data.createdQuestions || []).length + 1;
+        const label = custom || `第 ${n} 問`;
+        overlay.style.backgroundColor = d.bridgeBgColor || '#0a0a0a';
+        overlay.style.backgroundImage = (d.bridgeUseBgImage && d.bgImage) ? `url(${d.bgImage})` : 'none';
+        overlay.innerHTML = '';
+        const text = document.createElement('div');
+        // viewer.js と同じ: 長い文言（8文字超）は小さく
+        text.style.cssText = `font-size:${label.length > 8 ? '7cqw' : '12cqw'}; color:${d.bridgeTextColor || '#fff'}; font-weight:900; text-align:center; padding:0 4cqw; text-shadow:0 0 30px rgba(0,0,0,0.5); white-space:pre-wrap;`;
+        text.textContent = label;
+        overlay.appendChild(text);
     },
 
     // プレビュー内の要素をタップすると、その要素に関係する項目だけに
@@ -896,12 +948,14 @@ window.App.Creator = {
         const editSubtabs = document.getElementById('creator-edit-subtabs');
         const homePanel = document.getElementById('creator-edit-home-panel');
         const bulkPanel = document.getElementById('creator-bulk-panel');
+        const bridgePanel = document.getElementById('creator-bridge-panel');
         if (!area || !panels[key]) return;
 
         Object.values(panels).forEach(p => p.classList.add('hidden'));
         if (editSubtabs) editSubtabs.classList.add('hidden');
         if (homePanel) homePanel.classList.add('hidden');
         if (bulkPanel) bulkPanel.classList.add('hidden');
+        if (bridgePanel) bridgePanel.classList.add('hidden');
 
         this.activeInlinePanel = key;
         area.classList.remove('hidden');
@@ -913,6 +967,7 @@ window.App.Creator = {
         }
 
         this.renderActivePanelContent(key);
+        this.updateBridgePreview();
 
         this.updateInlinePanelButtonStyles();
     },
@@ -936,11 +991,14 @@ window.App.Creator = {
     renderEditSubtabs: function () {
         const homeBtn = document.getElementById('creator-edit-subtab-home-btn');
         const bulkBtn = document.getElementById('creator-edit-subtab-bulk-btn');
+        const bridgeBtn = document.getElementById('creator-edit-subtab-bridge-btn');
         if (!homeBtn || !bulkBtn) return;
-        homeBtn.style.background = (this.editSubTab === 'home') ? '#00a8cc' : '#1e293b';
-        bulkBtn.style.background = (this.editSubTab === 'bulk') ? '#00a8cc' : '#1e293b';
-        homeBtn.onclick = () => { this.editSubTab = 'home'; this.renderEditSubtabs(); this.renderEditPanelBody(); };
-        bulkBtn.onclick = () => { this.editSubTab = 'bulk'; this.renderEditSubtabs(); this.renderEditPanelBody(); };
+        const tabs = { home: homeBtn, bulk: bulkBtn, bridge: bridgeBtn };
+        Object.entries(tabs).forEach(([k, btn]) => {
+            if (!btn) return;
+            btn.style.background = (this.editSubTab === k) ? '#00a8cc' : '#1e293b';
+            btn.onclick = () => { this.editSubTab = k; this.renderEditSubtabs(); this.renderEditPanelBody(); };
+        });
     },
 
     // Shows either the normal per-question editor (home) or the bulk-paste
@@ -949,14 +1007,12 @@ window.App.Creator = {
     renderEditPanelBody: function () {
         const homePanel = document.getElementById('creator-edit-home-panel');
         const bulkPanel = document.getElementById('creator-bulk-panel');
-        if (this.editSubTab === 'bulk') {
-            if (homePanel) homePanel.classList.add('hidden');
-            if (bulkPanel) bulkPanel.classList.remove('hidden');
-            this.renderBulkPanel();
-        } else {
-            if (bulkPanel) bulkPanel.classList.add('hidden');
-            if (homePanel) homePanel.classList.remove('hidden');
-        }
+        const bridgePanel = document.getElementById('creator-bridge-panel');
+        if (homePanel) homePanel.classList.toggle('hidden', this.editSubTab !== 'home');
+        if (bulkPanel) bulkPanel.classList.toggle('hidden', this.editSubTab !== 'bulk');
+        if (bridgePanel) bridgePanel.classList.toggle('hidden', this.editSubTab !== 'bridge');
+        if (this.editSubTab === 'bulk') this.renderBulkPanel();
+        this.updateBridgePreview();
     },
 
     // Renders the given panel's content. Called on open (toggleInlinePanel)
@@ -1068,6 +1124,20 @@ window.App.Creator = {
             // 枠と横幅を揃える（他タイプは選択肢エリアが85%/62%な
             // ので変えない）。
             const isFreeType = (this.currentType || '').startsWith('free');
+            // 中央配置: モニターに出るのは問題文だけなので、「正解を入力」欄は
+            // プレビュー下部に浮かせて、問題文そのものを真ん中に置く
+            // （正解表示中に renderPreviewReveal が付けた top/right もここで外す）
+            formContainer.style.top = '';
+            formContainer.style.right = '';
+            if (layout === 'center') {
+                formContainer.style.position = 'absolute';
+                formContainer.style.left = '5%';
+                formContainer.style.bottom = '4%';
+            } else {
+                formContainer.style.position = '';
+                formContainer.style.left = '';
+                formContainer.style.bottom = '';
+            }
             if (isRow) {
                 formContainer.style.width = '62%';
                 formContainer.style.alignSelf = 'stretch';
@@ -1898,17 +1968,26 @@ window.App.Creator = {
         const revealBg = d.revealBgColor || 'rgba(0,0,0,0.95)';
         const revealText = d.revealTextColor || '#fff';
         const ansStr = window.App.Viewer ? window.App.Viewer.getAnswerString(data) : (Array.isArray(data.correct) ? data.correct.join(' / ') : (data.correct || ''));
-        // 正解ボックスは問題文の枠と同じ横幅にする（選択肢エリアは85%
-        // なので、上下配置の時はコンテナ自体を問題文と同じ90%に広げる —
-        // 正解表示をオフにすると applyDesignToPreview() が元に戻す）。
+        // モニターと同じく、正解ボックスは問題の画面に重ねて「正解の位置」
+        // （中央/上/下/左/右）に出す — コンテナをプレビュー全体に広げて、
+        // その中で絶対配置する（正解表示をオフにすると applyDesignToPreview()
+        // が元に戻す）。横幅は中央/上/下なら問題文の枠と同じ、左右は半分弱。
+        const pos = d.revealLayout || 'center';
+        Object.assign(container.style, { position: 'absolute', top: '0', left: '0', right: '0', bottom: '0', width: 'auto' });
         const qAreaEl = document.getElementById('creator-monitor-q-area');
-        if (qAreaEl && qAreaEl.style.width === '90%') container.style.width = '90%';
+        const qw = qAreaEl ? qAreaEl.offsetWidth : 0;
+        const boxWidth = (pos === 'left' || pos === 'right') ? '42%' : (qw > 0 ? qw + 'px' : '81%');
+        const POS_CSS = {
+            center: 'left:50%; top:50%; transform:translate(-50%,-50%);',
+            top: 'left:50%; top:6%; transform:translateX(-50%);',
+            bottom: 'left:50%; bottom:6%; transform:translateX(-50%);',
+            left: 'left:5%; top:50%; transform:translateY(-50%);',
+            right: 'right:5%; top:50%; transform:translateY(-50%);'
+        };
         container.innerHTML = `
-            <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;">
-                <div style="background:${revealBg}; border:3px solid ${accent}; border-radius:10px; padding:4% 6%; text-align:center; width:100%; box-sizing:border-box;">
-                    <div style="font-size:clamp(0.5rem,1.1vw,0.68rem); color:${accent}; font-weight:800; margin-bottom:6px; letter-spacing:1px;">正解</div>
-                    <div style="font-size:clamp(0.8rem,2.4vw,1.3rem); font-weight:900; color:${revealText}; word-break:break-all;">${ansStr || '（未設定）'}</div>
-                </div>
+            <div style="position:absolute; ${POS_CSS[pos] || POS_CSS.center} width:${boxWidth}; background:${revealBg}; border:3px solid ${accent}; border-radius:10px; padding:3% 4%; text-align:center; box-sizing:border-box;">
+                <div style="font-size:clamp(0.5rem,1.1vw,0.68rem); color:${accent}; font-weight:800; margin-bottom:6px; letter-spacing:1px;">正解</div>
+                <div style="font-size:clamp(0.8rem,2.4vw,1.3rem); font-weight:900; color:${revealText}; word-break:break-all;">${ansStr || '（未設定）'}</div>
             </div>
         `;
     },

@@ -497,7 +497,7 @@ window.App.Viewer = {
                 <div style="font-size:2.5vh; color:#aaa; font-weight:normal; margin-top:20px; border-top:1px solid #333; padding-top:20px;">${st.commentary || q.commentary || ""}</div>
             `;
             mainText.appendChild(answerBox);
-            this.fitAnswerBoxToQuestion(mainText, answerBox);
+            this.placeAnswerBox(mainText, answerBox, design.revealLayout || 'center');
         }
         // --- 7. JUDGING (Phase 6) ---
         else if (st.step === 'judging') {
@@ -848,20 +848,39 @@ window.App.Viewer = {
         `;
     },
 
-    // 正解ボックスの横幅を問題文の枠（.q-area）と揃える。問題文が
-    // 非表示などで枠が無い時は minWidth:60vw のまま。
-    fitAnswerBoxToQuestion: function (mainText, answerBox) {
+    // 正解ボックスを「正解の位置」（中央/上/下/左/右 — 問題作成のデザイン
+    // で設定）に置き、横幅を問題文の枠（.q-area）と揃える（左右の時は
+    // 半分弱）。style_viewer.css の「正解オーバーレイ」が位置と幅を
+    // !important で中央固定にしているので、こちらも important で上書きする。
+    placeAnswerBox: function (mainText, answerBox, pos) {
+        const POS = {
+            center: { left: '50%', top: '50%', right: 'auto', bottom: 'auto', transform: 'translate(-50%, -50%)' },
+            top: { left: '50%', top: '6%', right: 'auto', bottom: 'auto', transform: 'translateX(-50%)' },
+            bottom: { left: '50%', top: 'auto', right: 'auto', bottom: '6%', transform: 'translateX(-50%)' },
+            left: { left: '4%', top: '50%', right: 'auto', bottom: 'auto', transform: 'translateY(-50%)' },
+            right: { left: 'auto', top: '50%', right: '4%', bottom: 'auto', transform: 'translateY(-50%)' }
+        };
+        const p = POS[pos] || POS.center;
+        Object.keys(p).forEach(k => answerBox.style.setProperty(k, p[k], 'important'));
+        answerBox.style.setProperty('white-space', 'normal', 'important');
+        answerBox.style.boxSizing = 'border-box';
+        const isSide = (pos === 'left' || pos === 'right');
         const fit = () => {
             if (!answerBox.isConnected) {
                 window.removeEventListener('resize', fit);
                 return;
             }
+            if (isSide) {
+                answerBox.style.minWidth = '0';
+                answerBox.style.setProperty('width', '44%', 'important');
+                return;
+            }
+            // 問題文が非表示などで枠が無い時は minWidth:60vw のまま
             const qArea = mainText.querySelector('.q-area');
             const w = qArea ? qArea.getBoundingClientRect().width : 0;
             if (w > 0) {
                 answerBox.style.minWidth = '0';
-                answerBox.style.width = w + 'px';
-                answerBox.style.boxSizing = 'border-box';
+                answerBox.style.setProperty('width', w + 'px', 'important');
             }
         };
         fit();

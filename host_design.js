@@ -80,7 +80,8 @@ App.Design = {
         // 触った時だけ独自に上書きできる。
         revealTextColor: "",
         revealBorderColor: "",
-        revealBgColor: ""
+        revealBgColor: "",
+        revealLayout: "center"
     },
 
     // サウンドのデフォルト — one fixed default for the 4 サウンド fields,
@@ -347,12 +348,17 @@ App.Design = {
                             <p style="color:#666; font-size:0.78rem; text-align:center; padding:20px 0;">この問題形式の正解表示は、色が決まった専用の演出のため変更できません</p>
                         `;
                     }
+                    // 正解の位置は中央に大きく出す正解表示だけ（並べ替えは
+                    // 順番のリストを画面いっぱいに出す専用の演出）
+                    const isSortType = ((window.App.Creator && window.App.Creator.currentType) || '') === 'sort';
+                    const REVEAL_LAYOUT_OPTS = [{ v: 'center', t: '中央' }, { v: 'top', t: '上側' }, { v: 'bottom', t: '下側' }, { v: 'left', t: '左側' }, { v: 'right', t: '右側' }];
                     return `
                         ${selectionHeader(sel)}
-                        ${colorRow([
-                            ['正解枠', 'revealBorderColor'],
-                            ['正解背景', 'revealBgColor'],
-                        ])}
+                        <div style="display:flex; gap:6px; margin-bottom:8px;">
+                            ${colorSwatch('正解枠', 'revealBorderColor')}
+                            ${colorSwatch('正解背景', 'revealBgColor')}
+                            ${isSortType ? '' : miniSelect('正解の位置', 'revealLayout', REVEAL_LAYOUT_OPTS)}
+                        </div>
                         <p style="color:#555; font-size:0.62rem; margin:4px 0 0;">※未設定の間は問題枠・問題背景の色がそのまま使われます</p>
                     `;
                 }
@@ -363,19 +369,10 @@ App.Design = {
                         ['問題枠', 'qBorderColor'],
                         ['問題背景', 'qBgColor'],
                     ])}
-                    <div style="display:flex; gap:6px; margin-top:8px; align-items:center;">
-                        ${rowLabel('枠の大きさ')}
-                        ${miniSelect('大きさ', 'qBoxSize', BOX_SIZE_OPTS)}
-                    </div>
                     <div style="display:flex; gap:6px; margin-top:8px;">
-                        <select data-key="layout" style="
-                            flex:1; min-width:0; padding:6px 4px; background:#1e293b; border:1px solid #475569;
-                            border-radius:8px; color:#fff; font-size:0.72rem; box-sizing:border-box;
-                        ">
-                            ${[{ v: 'top', t: '問題文: 上側' }, { v: 'left', t: '問題文: 左側' }, { v: 'right', t: '問題文: 右側' }, { v: 'bottom', t: '問題文: 下側' }]
-                                .concat(((window.App.Creator && window.App.Creator.currentType) || '').startsWith('free') ? [{ v: 'center', t: '問題文: 中央' }] : [])
-                                .map(o => `<option value="${o.v}" ${design.layout === o.v ? 'selected' : ''}>${o.t}</option>`).join('')}
-                        </select>
+                        ${miniSelect('枠の大きさ', 'qBoxSize', BOX_SIZE_OPTS)}
+                        ${miniSelect('問題文の位置', 'layout', [{ v: 'top', t: '上側' }, { v: 'left', t: '左側' }, { v: 'right', t: '右側' }, { v: 'bottom', t: '下側' }]
+                            .concat(((window.App.Creator && window.App.Creator.currentType) || '').startsWith('free') ? [{ v: 'center', t: '中央' }] : []))}
                     </div>
                 `;
             },
@@ -402,12 +399,11 @@ App.Design = {
                 return `
                     <div style="display:flex; gap:6px; margin-bottom:8px;">
                         ${soundTile('シンキングBGM', 'bgmThinking', '🎵')}
-                        ${soundTile('問題番号音', 'seQNum', '🔢')}
                         ${soundTile('ボタンSE', 'seButton', '🔘')}
                         ${soundTile('正解音', 'seCorrect', '⭕')}
                         ${soundTile('不正解音', 'seWrong', '❌')}
                     </div>
-                    <p style="color:#555; font-size:0.62rem; margin:4px 0 0;">※タップして音声を設定。BGMと問題番号音（第○問の表示時）はモニター画面、他は各プレイヤーの端末で再生されます</p>
+                    <p style="color:#555; font-size:0.62rem; margin:4px 0 0;">※タップして音声を設定。BGMはモニター画面、他は各プレイヤーの端末で再生されます（問題番号音は 問題編集 › ブリッジスライド で設定）</p>
                 `;
             },
             animation: () => `<p style="color:#666; font-size:0.8rem; text-align:center; padding:30px 0;">モーションは準備中です</p>`,

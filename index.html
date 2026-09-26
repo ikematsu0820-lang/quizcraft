@@ -270,6 +270,9 @@
                         <button type="button" id="creator-edit-subtab-bulk-btn" class="creator-edit-subtab-btn" style="
                             flex:1; padding:8px 2px; font-size:0.8rem; font-weight:bold; border:none; cursor:pointer; color:#fff;
                         ">一括追加</button>
+                        <button type="button" id="creator-edit-subtab-bridge-btn" class="creator-edit-subtab-btn" style="
+                            flex:1; padding:8px 2px; font-size:0.8rem; font-weight:bold; border:none; cursor:pointer; color:#fff;
+                        ">ブリッジスライド</button>
                     </div>
 
                     <div id="creator-edit-home-panel">
@@ -279,6 +282,10 @@
                          format depends on the current question type
                          (populated by App.Creator.renderBulkPanel()). -->
                     <div id="creator-bulk-panel" class="hidden"></div>
+                    <!-- ブリッジスライド（問題の前に出る「第○問」）の編集 —
+                         開いている間はプレビューもブリッジスライドの画面になる
+                         （App.Creator.updateBridgePreview）。 -->
+                    <div id="creator-bridge-panel" class="hidden"></div>
                     <!-- リスト編集 — 作成済みの問題一覧（クリックで編集）。
                          以前は問題編集/ホームの中にあったが、独立タブへ
                          移管（populated by App.Creator.renderList()）。 -->
