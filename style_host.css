@@ -4352,3 +4352,15 @@ input:checked+.pro-slider:before {
 #host-control-view:has(#studio-loader-ui:not(.hidden)) .console-card-wrapper {
     display: none !important;
 }
+
+/* 問題作成画面: タブの文字・ヘッダー（問題作成/形式選択に戻る）・16:9の
+   プレビュー（モニターの見た目を再現するので触らない）以外の文字は、
+   プレビュー右上の切替と同じくらいの小さめの大きさに統一する。 */
+#creator-view #creator-outside-opts *,
+#creator-view #creator-inline-edit-area *:not(.creator-edit-subtab-btn):not(.creator-rules-subtab-btn):not(.design-subtab-btn),
+#creator-view #creator-inline-listactions button,
+#creator-view #creator-q-type,
+#creator-view #creator-q-subtype,
+#creator-view #creator-type-locked-msg {
+    font-size: 0.68rem !important;
+}
