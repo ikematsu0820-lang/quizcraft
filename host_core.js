@@ -149,6 +149,30 @@ window.App.init = function () {
         return;
     }
 
+    // 出題者画面の別タブ（読込画面で「読み込む」を押した時に開く —
+    // host_studio.js openHostTab）: 同じルームを引き継いで選んだセットを読み込む
+    const hostLoad = urlParams.get('hostLoad');
+    if (hostLoad) {
+        const sid = urlParams.get('sid');
+        if (sid) {
+            window.App.State.currentShowId = sid;
+            sessionStorage.setItem('qs_show_id', sid);
+        }
+        this.Ui.showView(this.Ui.views.hostControl);
+        if (window.App.Studio && window.App.Studio.startHandoff) {
+            window.App.Studio.startHandoff({
+                room: hostLoad,
+                src: urlParams.get('src') || '',
+                bridge: urlParams.get('bridge') !== '0',
+                shuffle: urlParams.get('shuffle') === '1',
+                solo: urlParams.get('solo') === '1'
+            });
+        }
+        // 再読み込みで同じ引き継ぎがもう一度走らないよう、URL から外しておく
+        history.replaceState(null, '', window.location.pathname);
+        return;
+    }
+
     if (testHost) {
         const tp = parseInt(urlParams.get('tp') || '2');
         this.Ui.showView(this.Ui.views.hostControl);

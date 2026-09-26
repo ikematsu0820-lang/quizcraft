@@ -216,6 +216,15 @@ App.Studio = {
             App.Ui.showView(App.Ui.views.hostControl);
             this.enterHostMode(this.isQuick);
 
+            // 別タブで開かれた出題者画面: 読込画面で選ばれた内容をすぐ読み込む
+            if (this._handoff) {
+                const h = this._handoff;
+                this._forcedMode = h.solo ? 'solo' : null;
+                this._showBridge = h.bridge;
+                this._shuffleOverride = h.shuffle;
+                this.loadSelection(h.src);
+            }
+
             // ★ Unified Mode: ルーム作成完了後にビューアを接続し、トグルUIを表示
             if (window.App.isUnifiedMode && window.App.Viewer && window.App.Viewer.connect) {
                 window.App.Viewer.connect(code);
@@ -637,62 +646,116 @@ App.Studio = {
                 if (!ok) return;
             }
 
-            const showId = App.State.currentShowId;
-
             // 読込画面で選んだ出題の進め方（このセッションだけ有効）
             this._showBridge = document.getElementById('studio-opt-show-bridge')?.checked !== false;
             this._shuffleOverride = document.getElementById('studio-opt-shuffle')?.checked === true;
 
-            // Always fetch fresh from Firebase so eye-toggle / design changes are reflected
-            // even if the studio cache was loaded before the user saved in セットデザイン
-            const applyAndFinalize = () => {
-                document.getElementById('studio-loader-ui').classList.add('hidden');
-                this.renderTimeline();
-                const btnMain = document.getElementById('btn-phase-main');
-                btnMain.textContent = "番組を開始";
-                btnMain.classList.remove('hidden');
-                btnMain.className = 'btn-block btn-large-action action-ready';
-                btnMain.onclick = null;
-                btnMain.onclick = () => {
-                    try { this.setupPeriod(0); } catch (e) { alert("開始エラー: " + e.message); }
-                };
-                this.syncMainButton();
-                this.openMonitorTab();
-            };
+            // PC: 出題の操作（番組を開始/次へ…）は別タブで行う — このタブは
+            // メニューに戻す。タッチ端末（isUnifiedMode）はタブを分けない。
+            if (!window.App.isUnifiedMode && this.openHostTab(val)) return;
 
-            if (val.startsWith('set:')) {
-                const key = val.slice(4);
-                btn.disabled = true;
-                btn.textContent = '読込中...';
-                window.db.ref(`saved_sets/${showId}/${key}`).once('value').then(snap => {
-                    btn.disabled = false;
-                    btn.textContent = '読み込む';
-                    const freshSet = snap.val();
-                    if (!freshSet) { alert('セットデータが見つかりません'); return; }
-                    freshSet.key = key;
-                    this.localSetsCache[key] = freshSet;
-                    App.Data.periodPlaylist = [freshSet];
-                    applyAndFinalize();
-                });
-            } else if (val.startsWith('prog:')) {
-                const key = val.slice(5);
-                btn.disabled = true;
-                btn.textContent = '読込中...';
-                window.db.ref(`saved_programs/${showId}/${key}`).once('value').then(snap => {
-                    btn.disabled = false;
-                    btn.textContent = '読み込む';
-                    const freshProg = snap.val();
-                    if (!freshProg) { alert('プログラムデータが見つかりません'); return; }
-                    this.localProgramsCache[key] = freshProg;
-                    App.Data.periodPlaylist = freshProg.playlist || [];
-                    if (App.Data.periodPlaylist.length === 0) {
-                        alert("⚠️ このプログラムにはセットが登録されていません。");
-                        return;
-                    }
-                    applyAndFinalize();
-                });
-            }
+            this.loadSelection(val);
         };
+    },
+
+    // 読込画面で選んだセット/プログラムを、同じルームのまま別タブの出題者
+    // 画面で開く（host_core.js の ?hostLoad= で startHandoff が受け取る）。
+    // 開けたら true — ポップアップがブロックされた時はこのタブで続ける。
+    openHostTab: function (val) {
+        const code = App.State.currentRoomId;
+        if (!code) return false;
+        const params = new URLSearchParams({
+            hostLoad: code,
+            sid: App.State.currentShowId || '',
+            src: val,
+            bridge: this._showBridge ? '1' : '0',
+            shuffle: this._shuffleOverride ? '1' : '0',
+            solo: this._forcedMode === 'solo' ? '1' : '0'
+        });
+        const win = window.open(`${window.location.origin}${window.location.pathname}?${params.toString()}`, '_blank');
+        if (!win) {
+            App.Ui.showToast('別タブを開けなかったので、このタブで進めます（ポップアップを許可してください）');
+            return false;
+        }
+        // このタブはルームから手を離してメニューへ（host_ended は送らない —
+        // ルームは別タブがそのまま使う）
+        window.db.ref(`rooms/${code}/players`).off();
+        App.State.currentRoomId = null;
+        App.State.currentQIndex = 0;
+        App.State.currentPeriodIndex = 0;
+        App.Data.studioQuestions = [];
+        this.isQuick = false;
+        App.Dashboard.enter();
+        App.Ui.showToast('出題の操作画面を別タブで開きました');
+        return true;
+    },
+
+    // 別タブ側: 読込画面で選ばれた内容でルームを引き継いで、すぐ読み込む
+    startHandoff: function (opts) {
+        this._handoff = opts;
+        App.State.reuseRoomId = opts.room;
+        this.startRoom(false);
+    },
+
+    loadSelection: function (val) {
+        const btn = document.getElementById('studio-load-program-btn');
+        const showId = App.State.currentShowId;
+        const setBusy = (busy) => {
+            if (!btn) return;
+            btn.disabled = busy;
+            btn.textContent = busy ? '読込中...' : '読み込む';
+        };
+        const isHandoff = !!this._handoff;
+
+        // Always fetch fresh from Firebase so eye-toggle / design changes are reflected
+        // even if the studio cache was loaded before the user saved in セットデザイン
+        const applyAndFinalize = () => {
+            document.getElementById('studio-loader-ui').classList.add('hidden');
+            this.renderTimeline();
+            const btnMain = document.getElementById('btn-phase-main');
+            btnMain.textContent = "番組を開始";
+            btnMain.classList.remove('hidden');
+            btnMain.className = 'btn-block btn-large-action action-ready';
+            btnMain.onclick = null;
+            btnMain.onclick = () => {
+                // 別タブで開いた時は、ボタンを押した瞬間（ブラウザが新しい
+                // タブを許可するタイミング）にモニターを開く
+                if (isHandoff) this.openMonitorTab();
+                try { this.setupPeriod(0); } catch (e) { alert("開始エラー: " + e.message); }
+            };
+            this.syncMainButton();
+            if (isHandoff) App.Ui.showToast('「番組を開始」を押すとモニター画面が開きます');
+            else this.openMonitorTab();
+        };
+
+        if (val.startsWith('set:')) {
+            const key = val.slice(4);
+            setBusy(true);
+            window.db.ref(`saved_sets/${showId}/${key}`).once('value').then(snap => {
+                setBusy(false);
+                const freshSet = snap.val();
+                if (!freshSet) { alert('セットデータが見つかりません'); return; }
+                freshSet.key = key;
+                if (this.localSetsCache) this.localSetsCache[key] = freshSet;
+                App.Data.periodPlaylist = [freshSet];
+                applyAndFinalize();
+            });
+        } else if (val.startsWith('prog:')) {
+            const key = val.slice(5);
+            setBusy(true);
+            window.db.ref(`saved_programs/${showId}/${key}`).once('value').then(snap => {
+                setBusy(false);
+                const freshProg = snap.val();
+                if (!freshProg) { alert('プログラムデータが見つかりません'); return; }
+                if (this.localProgramsCache) this.localProgramsCache[key] = freshProg;
+                App.Data.periodPlaylist = freshProg.playlist || [];
+                if (App.Data.periodPlaylist.length === 0) {
+                    alert("⚠️ このプログラムにはセットが登録されていません。");
+                    return;
+                }
+                applyAndFinalize();
+            });
+        }
     },
 
     // 問題をルームへ送る。背景画像は全問題で同じなので images に1回だけ
