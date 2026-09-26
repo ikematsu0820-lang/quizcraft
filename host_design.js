@@ -509,7 +509,38 @@ App.Design = {
             `,
             animation: bodyHtml.animation,
         };
-        const activeBody = slide === 'bridge' ? bridgeBody : slide === 'result' ? resultBody : bodyHtml;
+        const TITLE_SIZE_OPTS = [
+            { v: '', t: '自動' },
+            { v: '3.5vw', t: '小' },
+            { v: '5vw', t: '中' },
+            { v: '7vw', t: '大' },
+        ];
+        const titleBody = {
+            text: () => `
+                ${slideHeader('タイトル画面')}
+                <input type="text" data-key="titleText" value="${esc(design.titleText)}" placeholder="空欄ならセット名（${esc((window.App.Creator && window.App.Creator.editingTitle) || '未設定')}）" style="
+                    width:100%; height:${CONTROL_HEIGHT}; min-height:${CONTROL_HEIGHT}; padding:0 8px; margin:0 0 8px; background:#1e293b; border:1px solid #475569;
+                    border-radius:6px; color:#fff; box-sizing:border-box;
+                ">
+                <div style="display:flex; gap:6px; align-items:center;">
+                    ${colorSwatch('文字色', 'titleColor')}
+                    ${miniSelect('サイズ', 'titleFontSize', TITLE_SIZE_OPTS)}
+                </div>
+            `,
+            object: () => `
+                ${slideHeader('タイトル画面')}
+                <div style="display:flex; gap:6px;">
+                    ${colorSwatch('背景色', 'titleBgColor')}
+                </div>
+                ${bgImageCheck('titleUseBgImage', !!design.titleUseBgImage)}
+            `,
+            sound: () => `
+                ${slideHeader('タイトル画面')}
+                <p style="color:#666; font-size:0.78rem; text-align:center; padding:20px 0;">タイトル画面のサウンドは準備中です</p>
+            `,
+            animation: bodyHtml.animation,
+        };
+        const activeBody = slide === 'bridge' ? bridgeBody : slide === 'result' ? resultBody : slide === 'title' ? titleBody : bodyHtml;
 
         const tabs = [
             { key: 'text', label: 'テキスト' },

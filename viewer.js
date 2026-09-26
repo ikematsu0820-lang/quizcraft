@@ -277,14 +277,18 @@ window.App.Viewer = {
             } else if (firstQ.prodDesign && (firstQ.prodDesign.titleText || firstQ.prodDesign.titleBgColor || firstQ.isTitleHidden === false)) {
                 this.renderProduction(viewContainer, mainText, 'title', firstQ, st);
             } else {
-                this.applyDefaultDesign(viewContainer, null);
-                const title = st.programTitle || this.config.periodTitle || "Quiz Studio";
+                // タイトル画面の文言・色・サイズ・背景（問題作成のプレビュー
+                // 「タイトル」で設定 — 未設定なら従来どおり）
+                const td = firstQ.design || {};
+                this.applyDefaultDesign(viewContainer, (td.titleBgColor || td.titleUseBgImage)
+                    ? { mainBgColor: td.titleBgColor || '#0a0a0a', bgImage: td.titleUseBgImage ? td.bgImage : '' }
+                    : null);
+                const title = (td.titleText || '').trim() || st.programTitle || this.config.periodTitle || "Quiz Studio";
+                const titleColor = td.titleColor || '#ffd700';
 
                 mainText.innerHTML = `
                     <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; width:100%;">
-                        <div style="font-size:5vw; font-weight:900; color:#ffd700; text-shadow:0 0 30px rgba(255,215,0,0.5); margin-bottom:20px; text-align:center; padding:0 20px;">
-                            ${title}
-                        </div>
+                        <div style="font-size:${td.titleFontSize || '5vw'}; font-weight:900; color:${titleColor}; text-shadow:0 0 30px rgba(0,0,0,0.5); margin-bottom:20px; text-align:center; padding:0 20px; white-space:pre-wrap;">${title}</div>
                         <div style="font-size:2vw; color:#fff; font-family:monospace; letter-spacing:5px;">ROOM ID: ${this.roomId}</div>
                         <div style="margin-top:50px; font-size:1.5vw; color:#00bfff; animation:pulse 2s infinite;">READY TO START...</div>
                     </div>

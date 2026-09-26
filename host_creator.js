@@ -710,6 +710,7 @@ window.App.Creator = {
 
         this.updateBridgePreview();
         this.updateResultPreview();
+        this.updateTitlePreview();
         this.renderPreviewSlideTabs();
 
         this.renderRulesSection();
@@ -1014,6 +1015,7 @@ window.App.Creator = {
                 if (this._previewRevealOn) this.renderPreviewReveal(this._previewRevealData);
                 this.updateBridgePreview();
                 this.updateResultPreview();
+                this.updateTitlePreview();
                 onChange();
             });
         } else if (key === 'list') {
@@ -1878,12 +1880,13 @@ window.App.Creator = {
         this.previewSlide = slide;
         // ブリッジ/結果の画面は、デザインのパネル（テキスト/オブジェクト/
         // サウンド）がその画面用の設定に切り替わる（App.Design.renderInlineChooser）
-        const isSlideEdit = (v) => v === 'bridge' || v === 'result';
+        const isSlideEdit = (v) => v === 'bridge' || v === 'result' || v === 'title';
         if (isSlideEdit(slide) || (isSlideEdit(prev) && this.activeInlinePanel === 'design')) {
             this.toggleInlinePanel('design');
         }
         this.updateBridgePreview();
         this.updateResultPreview();
+        this.updateTitlePreview();
         this.renderPreviewSlideTabs();
     },
 
@@ -1894,6 +1897,43 @@ window.App.Creator = {
             btn.style.color = on ? '#fff' : '#94a3b8';
             btn.onclick = () => this.setPreviewSlide(btn.dataset.previewSlide);
         });
+    },
+
+    // タイトル画面（viewer.js standby — 番組開始前にモニターに出る画面）。
+    // 文言が空欄ならセット名。色・サイズ・背景は design（セット共通）。
+    updateTitlePreview: function () {
+        const preview = document.getElementById('creator-monitor-preview');
+        if (!preview) return;
+        let overlay = document.getElementById('creator-title-preview');
+        if (this.previewSlide !== 'title') {
+            if (overlay) overlay.remove();
+            return;
+        }
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'creator-title-preview';
+            overlay.style.cssText = 'position:absolute; inset:0; z-index:50; display:flex; flex-direction:column; align-items:center; justify-content:center; container-type:size; background-size:cover; background-position:center; cursor:pointer;';
+            overlay.onclick = () => { if (this.activeInlinePanel !== 'design') this.toggleInlinePanel('design'); };
+            preview.appendChild(overlay);
+        }
+        const d = window.App.Data.currentDesign || {};
+        const title = (d.titleText || '').trim() || this.editingTitle || 'Quiz Studio';
+        overlay.style.backgroundColor = d.titleBgColor || '#0a0a0a';
+        overlay.style.backgroundImage = (d.titleUseBgImage && d.bgImage) ? `url(${d.bgImage})`
+            : (d.titleBgColor ? 'none' : 'radial-gradient(circle at center, #1a1a1a 0%, #000000 100%)');
+        const size = d.titleFontSize ? d.titleFontSize.replace('vw', 'cqw') : '5cqw';
+        const color = d.titleColor || '#ffd700';
+        overlay.innerHTML = '';
+        const t = document.createElement('div');
+        t.style.cssText = `font-size:${size}; font-weight:900; color:${color}; text-shadow:0 0 30px rgba(0,0,0,0.5); text-align:center; padding:0 3cqw; white-space:pre-wrap; margin-bottom:3cqh;`;
+        t.textContent = title;
+        const room = document.createElement('div');
+        room.style.cssText = 'font-size:2cqw; color:#fff; font-family:monospace; letter-spacing:5px;';
+        room.textContent = 'ROOM ID: XXXXXX';
+        const ready = document.createElement('div');
+        ready.style.cssText = 'margin-top:6cqh; font-size:1.5cqw; color:#00bfff;';
+        ready.textContent = 'READY TO START...';
+        overlay.append(t, room, ready);
     },
 
     // 結果の画面（viewer.js reveal_player）の見本 — 一斉解答（規定）は
