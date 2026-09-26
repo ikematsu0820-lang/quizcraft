@@ -329,8 +329,9 @@ window.App.Creator = {
         // leaving the checkbox showing ON while a different question's
         // (now stale) editable form is what's actually displayed.
         this._previewRevealOn = false;
-        const revealToggle = document.getElementById('creator-preview-reveal-toggle');
-        if (revealToggle) revealToggle.checked = false;
+        // 正解の画面は編集中の入力欄と入れ替わる表示なので、描き直したら
+        // 問題の画面に戻す（ブリッジ/結果は上に重ねるだけなのでそのまま）
+        if (this.previewSlide === 'answer') this.previewSlide = 'question';
         // Same idea for the tap-to-select-object state — a fresh render
         // means whatever was selected before (e.g. 選択肢, or 正解表示 if
         // that was on) may no longer apply to this type/state.
@@ -713,8 +714,10 @@ window.App.Creator = {
             const qNumVal = data ? (data.qNumText || '') : prevQNumText;
             bridgePanel.innerHTML = this.bridgeSectionHtml(qNumVal);
             this.wireBridgeSection(bridgePanel);
-            this.updateBridgePreview();
         }
+        this.updateBridgePreview();
+        this.updateResultPreview();
+        this.renderPreviewSlideTabs();
 
         this.renderRulesSection();
         this.applyDesignToPreview();
@@ -743,6 +746,7 @@ window.App.Creator = {
         const hasSe = !!d.seQNum;
         return `
             <div>
+                <div style="display:flex; align-items:center; gap:5px; margin-bottom:8px; color:#00e5ff; font-size:0.68rem; font-weight:bold;">👆 ブリッジスライドを編集中</div>
                 <input type="text" id="creator-qnum-text" value="${esc(qNumText)}" placeholder="空欄なら「第○問」（この問題だけの文言）" style="
                     width:100%; padding:6px 8px; margin-bottom:8px; background:#1e293b; border:1px solid #475569;
                     border-radius:8px; color:#fff; font-size:0.85rem; box-sizing:border-box;
@@ -796,7 +800,7 @@ window.App.Creator = {
         const preview = document.getElementById('creator-monitor-preview');
         if (!preview) return;
         let overlay = document.getElementById('creator-bridge-preview');
-        const show = this.activeInlinePanel === 'edit' && this.editSubTab === 'bridge';
+        const show = this.previewSlide === 'bridge';
         if (!show) {
             if (overlay) overlay.remove();
             return;
@@ -804,7 +808,9 @@ window.App.Creator = {
         if (!overlay) {
             overlay = document.createElement('div');
             overlay.id = 'creator-bridge-preview';
-            overlay.style.cssText = 'position:absolute; inset:0; z-index:50; display:flex; align-items:center; justify-content:center; container-type:size; background-size:cover; background-position:center;';
+            overlay.style.cssText = 'position:absolute; inset:0; z-index:50; display:flex; align-items:center; justify-content:center; container-type:size; background-size:cover; background-position:center; cursor:pointer;';
+            // タップでブリッジスライドの設定（デザインのパネル）を開く
+            overlay.onclick = () => { if (this.activeInlinePanel !== 'design') this.toggleInlinePanel('design'); };
             preview.appendChild(overlay);
         }
         const d = window.App.Data.currentDesign || {};
@@ -965,9 +971,14 @@ window.App.Creator = {
             this.renderEditSubtabs();
             this.renderEditPanelBody();
         }
+        // プレビューでブリッジスライドを表示中は、デザインのパネルの代わりに
+        // ブリッジスライドの設定を出す
+        if (key === 'design' && this.previewSlide === 'bridge' && bridgePanel) {
+            panels.design.classList.add('hidden');
+            bridgePanel.classList.remove('hidden');
+        }
 
         this.renderActivePanelContent(key);
-        this.updateBridgePreview();
 
         this.updateInlinePanelButtonStyles();
     },
@@ -991,9 +1002,8 @@ window.App.Creator = {
     renderEditSubtabs: function () {
         const homeBtn = document.getElementById('creator-edit-subtab-home-btn');
         const bulkBtn = document.getElementById('creator-edit-subtab-bulk-btn');
-        const bridgeBtn = document.getElementById('creator-edit-subtab-bridge-btn');
         if (!homeBtn || !bulkBtn) return;
-        const tabs = { home: homeBtn, bulk: bulkBtn, bridge: bridgeBtn };
+        const tabs = { home: homeBtn, bulk: bulkBtn };
         Object.entries(tabs).forEach(([k, btn]) => {
             if (!btn) return;
             btn.style.background = (this.editSubTab === k) ? '#00a8cc' : '#1e293b';
@@ -1007,12 +1017,9 @@ window.App.Creator = {
     renderEditPanelBody: function () {
         const homePanel = document.getElementById('creator-edit-home-panel');
         const bulkPanel = document.getElementById('creator-bulk-panel');
-        const bridgePanel = document.getElementById('creator-bridge-panel');
         if (homePanel) homePanel.classList.toggle('hidden', this.editSubTab !== 'home');
         if (bulkPanel) bulkPanel.classList.toggle('hidden', this.editSubTab !== 'bulk');
-        if (bridgePanel) bridgePanel.classList.toggle('hidden', this.editSubTab !== 'bridge');
         if (this.editSubTab === 'bulk') this.renderBulkPanel();
-        this.updateBridgePreview();
     },
 
     // Renders the given panel's content. Called on open (toggleInlinePanel)
@@ -1620,8 +1627,7 @@ window.App.Creator = {
         // 読み取り前に一旦編集画面へ戻す。
         if (this._previewRevealOn) {
             this.togglePreviewReveal(false);
-            const toggle = document.getElementById('creator-preview-reveal-toggle');
-            if (toggle) toggle.checked = false;
+            this.renderPreviewSlideTabs();
         }
 
         const qText = document.getElementById('question-text').value.trim();
@@ -1845,6 +1851,74 @@ window.App.Creator = {
     // how the correct answer looks once revealed on the real monitor
     // (viewer.js's reveal_correct step), so both can be checked without
     // leaving the Creator or starting a real room.
+    // プレビューに出す画面 — モニターに出る順の4つ（ブリッジスライド/
+    // 問題/正解/結果）を上部のボタンで行き来する。正解は編集欄を正解
+    // ボックスに差し替える表示（togglePreviewReveal）、ブリッジと結果は
+    // 問題の画面の上に重ねるだけ（updateBridgePreview/updateResultPreview）。
+    previewSlide: 'question',
+
+    setPreviewSlide: function (slide) {
+        const prev = this.previewSlide;
+        if ((slide === 'answer') !== !!this._previewRevealOn) this.togglePreviewReveal(slide === 'answer');
+        // togglePreviewReveal(false) は renderForm() を通るので、その後で決める
+        this.previewSlide = slide;
+        if (slide === 'bridge') {
+            // ブリッジスライドの設定はデザインのパネルの位置に出す
+            this.toggleInlinePanel('design');
+        } else if (prev === 'bridge' && this.activeInlinePanel === 'design') {
+            this.toggleInlinePanel('design'); // 通常のデザインのパネルに戻す
+        }
+        this.updateBridgePreview();
+        this.updateResultPreview();
+        this.renderPreviewSlideTabs();
+    },
+
+    renderPreviewSlideTabs: function () {
+        document.querySelectorAll('#creator-preview-slide-tabs [data-preview-slide]').forEach(btn => {
+            const on = btn.dataset.previewSlide === this.previewSlide;
+            btn.style.background = on ? '#00a8cc' : '#1e293b';
+            btn.style.color = on ? '#fff' : '#94a3b8';
+            btn.onclick = () => this.setPreviewSlide(btn.dataset.previewSlide);
+        });
+    },
+
+    // 結果の画面（viewer.js reveal_player）の見本 — 一斉解答（規定）は
+    // 各プレイヤーの解答カード、早押し・順番などは正解者の名前が出る。
+    updateResultPreview: function () {
+        const preview = document.getElementById('creator-monitor-preview');
+        if (!preview) return;
+        let overlay = document.getElementById('creator-result-preview');
+        if (this.previewSlide !== 'result') {
+            if (overlay) overlay.remove();
+            return;
+        }
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'creator-result-preview';
+            overlay.style.cssText = 'position:absolute; inset:0; z-index:50; display:flex; flex-direction:column; align-items:center; justify-content:center; container-type:size; background-size:cover; background-position:center; font-family:sans-serif;';
+            preview.appendChild(overlay);
+        }
+        const d = window.App.Data.currentDesign || {};
+        overlay.style.backgroundColor = d.mainBgColor || '#0a0a0a';
+        overlay.style.backgroundImage = d.bgImage ? `url(${d.bgImage})` : 'none';
+        const mode = (window.App.Data.currentConfig && window.App.Data.currentConfig.mode) || 'normal';
+        if (mode === 'normal') {
+            const cards = ['プレイヤーA', 'プレイヤーB', 'プレイヤーC', 'プレイヤーD'].map(name => `
+                <div style="background:#fff; color:#111; border-radius:1.5cqh; padding:2cqh 1cqw; text-align:center; box-shadow:0 1cqh 3cqh rgba(0,0,0,0.4);">
+                    <div style="font-size:3cqh; color:#666; margin-bottom:1cqh;">${name}</div>
+                    <div style="font-size:6cqh; font-weight:900;">解答</div>
+                </div>`).join('');
+            overlay.innerHTML = `
+                <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:2cqw; width:85%;">${cards}</div>
+                <div style="margin-top:4cqh; font-size:2.6cqh; color:#94a3b8;">※本番では各プレイヤーの解答が表示されます</div>`;
+        } else {
+            overlay.innerHTML = `
+                <div style="font-size:4cqh; color:#ccc; font-weight:bold; letter-spacing:0.3em; margin-bottom:3cqh;">正解者</div>
+                <div style="font-size:12cqh; font-weight:900; color:#ffd700; text-shadow:0 0 30px rgba(255,215,0,0.6);">プレイヤー名</div>
+                <div style="margin-top:4cqh; font-size:2.6cqh; color:#94a3b8;">※正解者がいない時は「正解者なし」と表示されます</div>`;
+        }
+    },
+
     togglePreviewReveal: function (on) {
         this._previewRevealOn = on;
         if (on) {
@@ -1973,7 +2047,10 @@ window.App.Creator = {
         // その中で絶対配置する（正解表示をオフにすると applyDesignToPreview()
         // が元に戻す）。横幅は中央/上/下なら問題文の枠と同じ、左右は半分弱。
         const pos = d.revealLayout || 'center';
-        Object.assign(container.style, { position: 'absolute', top: '0', left: '0', right: '0', bottom: '0', width: 'auto' });
+        // align-self は外す — 絶対配置の要素にも効き、'center'（通常時の値）
+        // のままだと上下いっぱいに広がらず高さ0に潰れて、選択枠の線だけが
+        // 横一本に見えていた
+        Object.assign(container.style, { position: 'absolute', top: '0', left: '0', right: '0', bottom: '0', width: 'auto', alignSelf: 'stretch' });
         const qAreaEl = document.getElementById('creator-monitor-q-area');
         const qw = qAreaEl ? qAreaEl.offsetWidth : 0;
         const boxWidth = (pos === 'left' || pos === 'right') ? '42%' : (qw > 0 ? qw + 'px' : '81%');
@@ -2379,9 +2456,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('cancel-update-btn')?.addEventListener('click', () => window.App.Creator.resetForm());
     document.getElementById('save-to-cloud-btn')?.addEventListener('click', () => window.App.Creator.save());
 
-    document.getElementById('creator-preview-reveal-toggle')?.addEventListener('change', (e) => {
-        window.App.Creator.togglePreviewReveal(e.target.checked);
-    });
+    window.App.Creator.renderPreviewSlideTabs();
 });
 
 // タブを閉じる/リロードする場合も、保存されていない問題がある間はブラ

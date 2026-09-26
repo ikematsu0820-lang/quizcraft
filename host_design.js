@@ -403,7 +403,7 @@ App.Design = {
                         ${soundTile('正解音', 'seCorrect', '⭕')}
                         ${soundTile('不正解音', 'seWrong', '❌')}
                     </div>
-                    <p style="color:#555; font-size:0.62rem; margin:4px 0 0;">※タップして音声を設定。BGMはモニター画面、他は各プレイヤーの端末で再生されます（問題番号音は 問題編集 › ブリッジスライド で設定）</p>
+                    <p style="color:#555; font-size:0.62rem; margin:4px 0 0;">※タップして音声を設定。BGMはモニター画面、他は各プレイヤーの端末で再生されます（問題番号音はプレビュー上の「ブリッジ」を選んで設定）</p>
                 `;
             },
             animation: () => `<p style="color:#666; font-size:0.8rem; text-align:center; padding:30px 0;">モーションは準備中です</p>`,

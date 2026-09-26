@@ -188,10 +188,14 @@
                     <span style="width:8px;height:8px;border-radius:50%;background:#444;display:inline-block;"></span>
                     <span style="width:8px;height:8px;border-radius:50%;background:#444;display:inline-block;"></span>
                     <span style="color:#444;font-size:0.65rem;margin-left:6px;letter-spacing:0.1em;">PREVIEW</span>
-                    <label style="margin-left:auto; display:flex; align-items:center; gap:4px; color:#aaa; font-size:0.68rem; cursor:pointer; user-select:none;">
-                        <input type="checkbox" id="creator-preview-reveal-toggle" style="width:11px; height:11px; accent-color:#00e5ff; cursor:pointer;">
-                        正解表示
-                    </label>
+                    <!-- プレビューに出す画面の切替（モニターに出る順）—
+                         App.Creator.setPreviewSlide() -->
+                    <div id="creator-preview-slide-tabs" style="margin-left:auto; display:flex; gap:0; border:1px solid #333; border-radius:6px; overflow:hidden;">
+                        <button type="button" data-preview-slide="bridge" style="padding:3px 8px; font-size:0.66rem; font-weight:bold; border:none; cursor:pointer; color:#fff; background:#1e293b;">ブリッジ</button>
+                        <button type="button" data-preview-slide="question" style="padding:3px 8px; font-size:0.66rem; font-weight:bold; border:none; cursor:pointer; color:#fff; background:#1e293b;">問題</button>
+                        <button type="button" data-preview-slide="answer" style="padding:3px 8px; font-size:0.66rem; font-weight:bold; border:none; cursor:pointer; color:#fff; background:#1e293b;">正解</button>
+                        <button type="button" data-preview-slide="result" style="padding:3px 8px; font-size:0.66rem; font-weight:bold; border:none; cursor:pointer; color:#fff; background:#1e293b;">結果</button>
+                    </div>
                 </div>
 
                 <!-- Strict 16:9 screen -->
@@ -270,9 +274,6 @@
                         <button type="button" id="creator-edit-subtab-bulk-btn" class="creator-edit-subtab-btn" style="
                             flex:1; padding:8px 2px; font-size:0.8rem; font-weight:bold; border:none; cursor:pointer; color:#fff;
                         ">一括追加</button>
-                        <button type="button" id="creator-edit-subtab-bridge-btn" class="creator-edit-subtab-btn" style="
-                            flex:1; padding:8px 2px; font-size:0.8rem; font-weight:bold; border:none; cursor:pointer; color:#fff;
-                        ">ブリッジスライド</button>
                     </div>
 
                     <div id="creator-edit-home-panel">
@@ -283,8 +284,8 @@
                          (populated by App.Creator.renderBulkPanel()). -->
                     <div id="creator-bulk-panel" class="hidden"></div>
                     <!-- ブリッジスライド（問題の前に出る「第○問」）の編集 —
-                         開いている間はプレビューもブリッジスライドの画面になる
-                         （App.Creator.updateBridgePreview）。 -->
+                         プレビューで「ブリッジ」を選んでいる間、デザインの
+                         パネルの代わりにこれを出す（App.Creator.toggleInlinePanel）。 -->
                     <div id="creator-bridge-panel" class="hidden"></div>
                     <!-- リスト編集 — 作成済みの問題一覧（クリックで編集）。
                          以前は問題編集/ホームの中にあったが、独立タブへ
