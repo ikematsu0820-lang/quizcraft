@@ -2330,7 +2330,8 @@ window.App.Creator = {
         if (t === 'sort') return { specKey: 'sort', type: 'sort' };
         if (t.startsWith('multi') || t.startsWith('ranking')) return { specKey: 'multi', type: t };
         if (t.startsWith('assoc')) return { specKey: 'assoc', type: t };
-        if (t === 'free_written') return { specKey: 'free_written', type: 'free_written' };
+        // 一問一答は口頭/手書きどちらでも（口頭がデフォルトになったので）
+        if (t === 'free_written' || t === 'free_oral') return { specKey: 'free_written', type: t };
         return null;
     },
 
