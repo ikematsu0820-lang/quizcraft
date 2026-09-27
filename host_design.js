@@ -720,7 +720,7 @@ App.Design = {
                     <button type="button" class="design-subtab-btn" data-tab="${t.key}" style="
                         flex:1; height:32px; box-sizing:border-box; padding:0 2px; font-size:0.72rem; font-weight:bold; border:none; cursor:pointer;
                         display:flex; align-items:center; justify-content:center;
-                        background:${this._activeDesignTab === t.key ? '#00a8cc' : '#1e293b'}; color:#fff;
+                        background:${this._activeDesignTab === t.key ? '#2d3748' : '#161b22'}; color:${this._activeDesignTab === t.key ? '#e2e8f0' : '#8b95a5'};
                     ">${t.label}</button>
                 `).join('')}
             </div>
@@ -730,7 +730,8 @@ App.Design = {
             btn.onclick = () => {
                 this._activeDesignTab = btn.dataset.tab;
                 container.querySelectorAll('.design-subtab-btn').forEach(b => {
-                    b.style.background = (b.dataset.tab === this._activeDesignTab) ? '#00a8cc' : '#1e293b';
+                    b.style.background = (b.dataset.tab === this._activeDesignTab) ? '#2d3748' : '#161b22';
+                    b.style.color = (b.dataset.tab === this._activeDesignTab) ? '#e2e8f0' : '#8b95a5';
                 });
                 renderBody();
             };

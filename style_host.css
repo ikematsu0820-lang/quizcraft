@@ -4475,3 +4475,22 @@ input:checked+.pro-slider:before {
 #creator-view:has(#creator-outside-opts.hidden) #creator-monitor-preview {
     border-bottom: 3px solid #e5e7eb;
 }
+
+/* 問題作成: プレビュー側（白枠の中の入力行）は明るめに — 文字ははっきり
+   白、入力欄は薄いグレー。パネル側（下のタブ類）は暗めにして目立たせない */
+#creator-view #creator-outside-opts {
+    background: #2b313b !important;
+}
+#creator-view #creator-outside-opts label,
+#creator-view #creator-outside-opts label span,
+#creator-view #creator-outside-opts > span {
+    color: #fff !important;
+}
+#creator-view #creator-outside-opts input[type="text"] {
+    background: #d9dde3 !important;
+    color: #111 !important;
+    border: 1px solid #b8bec8 !important;
+}
+#creator-view #creator-outside-opts input[type="text"]::placeholder {
+    color: #6b7280 !important;
+}
