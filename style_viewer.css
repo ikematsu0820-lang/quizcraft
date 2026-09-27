@@ -117,10 +117,8 @@ body {
     border-bottom: none;
 }
 
-.choice-item:hover {
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.1) 0%, transparent 100%);
-    transform: translateX(10px);
-}
+/* モニターは会場のPCでカーソルが画面に残っていることがあるので、
+   マウスが乗った時の動き（右にずれる等）は付けない */
 
 .choice-prefix {
     color: var(--color-primary);

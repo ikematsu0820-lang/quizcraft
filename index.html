@@ -11,9 +11,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@800;900&display=swap">
     <link rel="stylesheet" href="style_common.css?v=96">
-    <link rel="stylesheet" href="style_host.css?v=109">
+    <link rel="stylesheet" href="style_host.css?v=110">
     <link rel="stylesheet" href="style_player.css?v=100">
-    <link rel="stylesheet" href="style_viewer.css?v=98">
+    <link rel="stylesheet" href="style_viewer.css?v=99">
 </head>
 
 <body>
@@ -100,7 +100,8 @@
         <div class="view-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #333; padding-bottom:12px; margin-bottom:20px;">
             <div>
                 <h2 style="margin:0; font-size:1.5rem;">問題形式の選択</h2>
-                <div style="font-size:0.85rem; color:#aaa; margin-top:2px;">ID: <span id="select-type-show-id" style="color:#00e5ff; font-weight:bold;">---</span></div>
+                <!-- 番組IDの表示は不要（要素はスクリプトが値を入れるので残して非表示） -->
+                <div style="display:none;">ID: <span id="select-type-show-id">---</span></div>
             </div>
             <button class="header-back-btn back-to-menu" style="background:rgba(255,255,255,0.1); border:1px solid #555; color:#fff; padding:8px 16px; border-radius:8px; cursor:pointer;">← メニューに戻る</button>
         </div>
@@ -471,7 +472,7 @@
                 </div>
                 <button type="button" id="console-participants-toggle" style="
                     flex:0 0 auto; min-width:130px; padding:0 14px; border-radius:12px; cursor:pointer;
-                    background:#cbd5e1; color:#111; border:2px solid #475569; font-size:15px; font-weight:bold;
+                    background:#2d3748; color:#e2e8f0; border:1px solid #475569; font-size:15px; font-weight:bold;
                 ">参加者リスト</button>
                 </div>
 
@@ -775,15 +776,15 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
     <script src="firebase.js"></script>
     <script src="text_config.js?v=234"></script>
-    <script src="host_core.js?v=248"></script>
+    <script src="host_core.js?v=249"></script>
     <script src="host_sound_library.js?v=7"></script>
     <script src="host_design.js?v=275"></script>
     <script src="host_creator.js?v=300"></script>
-    <script src="host_config.js?v=252"></script>
+    <script src="host_config.js?v=253"></script>
     <script src="host_prog_config.js?v=232"></script>
     <script src="host_studio.js?v=251"></script>
     <script src="player.js?v=243"></script>
-    <script src="viewer.js?v=262"></script>
+    <script src="viewer.js?v=263"></script>
 
 
     <!-- Edit Menu Modal -->

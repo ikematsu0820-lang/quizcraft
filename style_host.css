@@ -4353,7 +4353,8 @@ input:checked+.pro-slider:before {
    カードは出さない。参加者リストは入室の確認に使うので残す。 */
 #host-control-view:has(#studio-loader-ui:not(.hidden)) .simple-studio-controls,
 #host-control-view:has(#studio-loader-ui:not(.hidden)) .console-card-wrapper,
-#host-control-view:has(#studio-loader-ui:not(.hidden)) .studio-bottom-bar {
+#host-control-view:has(#studio-loader-ui:not(.hidden)) .studio-bottom-bar,
+#host-control-view:has(#studio-loader-ui:not(.hidden)) .simple-player-section {
     display: none !important;
 }
 
@@ -4501,4 +4502,18 @@ input:checked+.pro-slider:before {
 #host-control-view.show-participants .simple-studio-main > *:not(#console-participants-page),
 #host-control-view.show-participants .studio-bottom-bar {
     display: none !important;
+}
+
+/* 問題作成のプレビュー内のチェック（選択肢の正解など）— 全体の入力欄リセット
+   （背景・枠・高さ36px）が効いて、チェックの後ろに黒い四角が出ていた */
+#creator-view #creator-form-container input[type="checkbox"],
+#creator-view #creator-form-container input[type="radio"] {
+    background: none !important;
+    border: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    display: inline-block !important;
 }

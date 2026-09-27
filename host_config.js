@@ -96,7 +96,7 @@ App.Config = {
     _modeDetailFieldsHtml: function (mode, conf, qType, isDobon) {
         if (mode === 'normal') {
             return `
-                <label class="config-label" style="margin:0; font-size:0.8em;">解答権</label>
+                <label class="config-label" style="margin:0; font-size:0.8em;">解答回数</label>
                 <div style="display:flex; gap:6px; margin:6px 0 6px;">
                     <button type="button" class="mode-segmented-btn ans-attempt-btn ${(conf.answerAttempts || 'single') === 'single' ? 'active' : ''}" data-val="single" style="flex:1; padding:6px 4px; font-size:0.8em;">
                         <span class="label">1回のみ</span>

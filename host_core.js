@@ -203,6 +203,23 @@ window.App.init = function () {
         return;
     }
 
+    // 参加用QR（モニターのタイトル画面）などの ?room=CODE — 司会者用のログイン
+    // 画面ではなく、部屋コードが入った参加画面（名前を入れるだけ）を直接出す。
+    // テストプレイの回答者（autoName 付き）は player.js が自動で参加させる。
+    const roomParam = urlParams.get('room');
+    if (roomParam) {
+        const code = roomParam.trim().toUpperCase();
+        const roomIdInput = document.getElementById('room-id-input');
+        if (roomIdInput) roomIdInput.value = code;
+        const roomCodeInput = document.getElementById('room-code-input');
+        if (roomCodeInput) roomCodeInput.value = code;
+        this.Ui.showView(this.Ui.views.respondent);
+        if (!urlParams.get('autoName')) {
+            setTimeout(() => document.getElementById('player-name-input')?.focus(), 300);
+        }
+        return;
+    }
+
     // 出題者画面の別タブ（読込画面で「読み込む」を押した時に開く —
     // host_studio.js openHostTab）: 同じルームを引き継いで選んだセットを読み込む
     const hostLoad = urlParams.get('hostLoad');
