@@ -291,10 +291,15 @@ window.App.Creator = {
     fitQuestionTextHeight: function () {
         const el = document.getElementById('question-text');
         if (!el) return;
-        el.rows = 1;
+        // 高さは px で固定せず行数（rows）で合わせる — 文字サイズが後から
+        // 変わっても（プレビューが表示された時の換算など）高さが自動で追従する
         el.style.setProperty('height', 'auto', 'important');
-        // 非表示中（高さが測れない）は自動のまま
-        if (el.scrollHeight > 0) el.style.setProperty('height', `${el.scrollHeight}px`, 'important');
+        el.rows = 1;
+        if (el.scrollHeight > 0) {
+            const cs = getComputedStyle(el);
+            const lh = parseFloat(cs.lineHeight) || (parseFloat(cs.fontSize) * 1.3) || 20;
+            el.rows = Math.max(1, Math.round(el.scrollHeight / lh));
+        }
     },
 
     snapshot: function () {
@@ -1091,14 +1096,31 @@ window.App.Creator = {
         // proportionally against the preview box's own rendered height so
         // the presets still look meaningfully different here too. Absolute
         // units (legacy px designs) pass through unchanged.
+        // プレビューがまだ表示されていない（高さ0）時に換算すると文字が
+        // 0px になり、過去の問題を開いた直後に枠が細く文字が消えていた —
+        // その時は換算しない（表示されたら下の ResizeObserver で描き直す）
+        const previewHeightPx = screen ? screen.getBoundingClientRect().height : 0;
         const scalePreviewFontSize = (value) => {
             const vhMatch = /^([\d.]+)vh$/.exec(value || '');
             if (vhMatch && screen) {
-                const previewHeightPx = screen.getBoundingClientRect().height;
+                if (!previewHeightPx) return '';
                 return `${(parseFloat(vhMatch[1]) / 100) * previewHeightPx}px`;
             }
             return value;
         };
+        if (screen && !this._previewResizeObs && window.ResizeObserver) {
+            let lastH = previewHeightPx;
+            this._previewResizeObs = new ResizeObserver(() => {
+                const h = screen.getBoundingClientRect().height;
+                if (h && Math.abs(h - lastH) > 1) {
+                    lastH = h;
+                    this.applyDesignToPreview();
+                    const list = document.getElementById('creator-choices-list');
+                    if (list) this.updateRowSizes(list);
+                }
+            });
+            this._previewResizeObs.observe(screen);
+        }
         if (screen && d.mainBgColor) {
             screen.style.backgroundColor = d.mainBgColor;
             if (d.bgImage) {
@@ -1530,7 +1552,7 @@ window.App.Creator = {
         `;
         // 多答は順番が関係ないので番号は付けない（ランキングだけ「○位」）
         const labelText = `${idx + 1}位`;
-        const placeholder = isRanking ? `${idx + 1}位の答え` : 'Answer';
+        const placeholder = isRanking ? `${idx + 1}位の答え` : '正解';
         row.innerHTML = `
             ${isRanking ? `<span class="multi-label row-label" style="color:#00e5ff;font-weight:900;font-family:'Arial Black',sans-serif;margin-right:min(16px,3vw);font-size:min(1.1rem,3vw);min-width:min(22px,4vw);text-shadow:0 0 8px rgba(0,229,255,0.4);">${labelText}</span>` : ''}
             <input type="text" class="multi-text-input row-input" placeholder="${placeholder}" value="${text}" style="flex:1;background:transparent;border:none;color:#ddd;font-size:min(1rem,2.8vw);outline:none;padding:2px 0;">
