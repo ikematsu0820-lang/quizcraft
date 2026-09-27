@@ -330,7 +330,7 @@ App.Design = {
                         <div style="display:flex; gap:6px; margin-bottom:6px; align-items:center;">
                             ${rowLabel('記号')}
                             ${colorSwatch('文字色', 'cPrefixColor')}
-                            ${miniSelect('種類', 'cPrefixType', [{ v: '', t: 'A B C' }, { v: 'lower', t: 'a b c' }, { v: 'number', t: '1 2 3' }, { v: 'roman', t: 'I II III' }])}
+                            ${miniSelect('種類', 'cPrefixType', [{ v: '', t: 'A B C' }, { v: 'lower', t: 'a b c' }, { v: 'number', t: '1 2 3' }])}
                         </div>` : ''}
                     `;
                 }

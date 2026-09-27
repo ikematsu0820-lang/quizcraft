@@ -1262,8 +1262,6 @@ window.App.Creator = {
             el.textContent = window.App.ChoiceLabel(i, d.cPrefixType);
             el.style.color = prefixColor;
             el.style.textShadow = d.cPrefixColor ? 'none' : '0 0 8px rgba(0,229,255,0.4)';
-            // ローマ数字は幅が変わるので、記号の列の幅をそろえて枠の左端を合わせる
-            el.style.minWidth = d.cPrefixType === 'roman' ? '2.6em' : '1.2em';
         });
         if (!this.oxMode) {
             document.querySelectorAll('#creator-form-container .choice-row .choice-text-input').forEach((inp, i) => {

@@ -71,20 +71,14 @@ window.App.QuizCheck = {
     }
 };
 
-// 選択肢の記号（A B C / a b c / 1 2 3 / I II III）— 問題作成のデザイン
+// 選択肢の記号（A B C / a b c / 1 2 3）— 問題作成のデザイン
 // 「記号」の種類（design.cPrefixType）。作成画面・モニター・回答者・
 // 出題者画面のどこでも同じ記号になるよう、ここで作る。
 window.App.ChoiceLabel = function (i, type) {
     const n = i + 1;
     if (type === 'lower') return String.fromCharCode(97 + i);
     if (type === 'number') return String(n);
-    if (type === 'roman') {
-        const map = [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']];
-        let r = '', x = n;
-        map.forEach(([v, s]) => { while (x >= v) { r += s; x -= v; } });
-        return r;
-    }
-    return String.fromCharCode(65 + i);
+    return String.fromCharCode(65 + i); // 大文字（以前のローマ数字の設定もここ）
 };
 
 window.App.SetImages = {
