@@ -2703,7 +2703,9 @@ App.Studio = {
             listEl.appendChild(btn);
         });
 
-        // 解答ボード
+        // 解答ボード — 口頭で答える形式は解答が画面に届かないので出さない
+        const isOralQ = !!(q && typeof q.type === 'string' && q.type.endsWith('_oral'));
+        board.style.display = isOralQ ? 'none' : 'flex';
         const sel = sortedPlayers.find(p => p.id === this._deskSelected) || null;
         if (!sel) {
             const anyAnswered = sortedPlayers.some(p => hasAns(p) && !resultOf(p));
