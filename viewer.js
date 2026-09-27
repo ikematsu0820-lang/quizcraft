@@ -141,6 +141,26 @@ window.App.Viewer = {
         }
     },
 
+    // 参加用QRコード（タイトル画面の右下）— 回答者がスマホで読み取ると、
+    // ルームIDが入った参加画面（player.js の ?room=）が開く
+    joinQrHtml: function () {
+        if (typeof qrcode === 'undefined' || !this.roomId) return '';
+        const url = `${window.location.origin}${window.location.pathname}?room=${this.roomId}`;
+        let svg = '';
+        try {
+            const qr = qrcode(0, 'M');
+            qr.addData(url);
+            qr.make();
+            svg = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
+        } catch (e) { return ''; }
+        return `
+            <div style="position:absolute; right:3vh; bottom:3vh; display:flex; flex-direction:column; align-items:center; gap:1vh;
+                background:#fff; padding:1.5vh; border-radius:1.5vh; box-shadow:0 0 30px rgba(0,0,0,0.5);">
+                <div style="width:22vh; height:22vh;">${svg.replace('<svg ', '<svg style="width:100%;height:100%;display:block;" ')}</div>
+                <div style="font-size:2vh; font-weight:900; color:#111; white-space:nowrap;">スマホで読み取って参加</div>
+            </div>`;
+    },
+
     // モニターのタブは自動で開かれるため、ブラウザの自動再生制限で音が
     // 止められることがある — その時だけ、クリックで音を有効にする案内を
     // 出す（クリックした瞬間に BGM を再開）。
@@ -296,6 +316,7 @@ window.App.Viewer = {
                         <div style="font-size:${td.titleFontSize || '5vw'}; font-weight:900; color:${titleColor}; text-shadow:0 0 30px rgba(0,0,0,0.5); margin-bottom:20px; text-align:${tAlign}; white-space:pre-wrap;">${title}</div>
                         <div style="font-size:2vw; color:#fff; font-family:monospace; letter-spacing:5px;">ROOM ID: ${this.roomId}</div>
                         <div style="margin-top:50px; font-size:1.5vw; color:#00bfff; animation:pulse 2s infinite;">READY TO START...</div>
+                        ${this.joinQrHtml()}
                     </div>
                     <style>@keyframes pulse { 0%{opacity:0.6;} 50%{opacity:1;} 100%{opacity:0.6;} }</style>
                 `;

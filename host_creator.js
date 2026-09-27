@@ -2038,6 +2038,19 @@ window.App.Creator = {
         ready.style.cssText = 'margin-top:6cqh; font-size:1.5cqw; color:#00bfff;';
         ready.textContent = 'READY TO START...';
         overlay.append(t, room, ready);
+        // 右下の参加用QRコード（本番では実際のルームの参加URL）
+        if (typeof qrcode !== 'undefined') {
+            try {
+                const qr = qrcode(0, 'M');
+                qr.addData(`${window.location.origin}${window.location.pathname}?room=XXXXXX`);
+                qr.make();
+                const box = document.createElement('div');
+                box.style.cssText = 'position:absolute; right:3cqh; bottom:3cqh; background:#fff; padding:1.5cqh; border-radius:1.5cqh; display:flex; flex-direction:column; align-items:center; gap:1cqh;';
+                box.innerHTML = `<div style="width:22cqh; height:22cqh;">${qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true }).replace('<svg ', '<svg style="width:100%;height:100%;display:block;" ')}</div>
+                    <div style="font-size:2cqh; font-weight:900; color:#111; white-space:nowrap;">スマホで読み取って参加</div>`;
+                overlay.appendChild(box);
+            } catch (e) { /* noop */ }
+        }
     },
 
     // 結果の画面（viewer.js reveal_player）の見本 — 一斉解答（規定）は
