@@ -967,7 +967,9 @@ App.Design = {
                     `).join('')}
                     ${items.length === 0 ? '<p style="color:#666; font-size:0.78rem; text-align:center; margin:8px 0;">まだ音源が登録されていません</p>' : ''}
                 </div>
-                <p style="color:#666; font-size:0.66rem; margin:0 0 12px; line-height:1.4;">※音源の追加・削除は、ホストメニューの「サウンド編集」から行えます</p>
+                <button type="button" id="sound-modal-upload-btn" style="width:100%; margin:0 0 8px; padding:9px; border-radius:8px; background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4); color:#00e5ff; cursor:pointer; font-size:0.85rem;">＋ ファイルから追加（MP3など）</button>
+                <input type="file" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg" id="sound-modal-file-input" style="display:none;">
+                <p style="color:#666; font-size:0.66rem; margin:0 0 12px; line-height:1.4;">※追加した音源はサウンド編集の一覧にも入り、他のセットでも使えます</p>
                 <button type="button" id="sound-modal-close-btn" style="width:100%; padding:10px; border-radius:8px; background:#333; border:none; color:#ccc; cursor:pointer;">閉じる</button>
             </div>
         `;
@@ -996,6 +998,30 @@ App.Design = {
             };
         });
         overlay.querySelector('#sound-modal-close-btn').onclick = close;
+
+        // ここから直接ファイルを追加 — サウンドライブラリ（同じカテゴリ）に登録して、
+        // そのままこの項目に設定する
+        const fileInput = overlay.querySelector('#sound-modal-file-input');
+        overlay.querySelector('#sound-modal-upload-btn').onclick = () => fileInput.click();
+        fileInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const data = ev.target.result;
+                const name = (file.name || '無題').replace(/\.[^.]+$/, '');
+                design[key] = data;
+                close();
+                if (onChange) onChange();
+                if (window.db) {
+                    window.db.ref(`sound_library/${key}`).push().set({ name, data })
+                        .then(() => window.App.Ui && window.App.Ui.showToast('✅ 音源を追加して設定しました'))
+                        .catch(() => window.App.Ui && window.App.Ui.showToast('⚠️ サウンド編集への登録に失敗しました（この問題には設定済み）'));
+                }
+            };
+            reader.onerror = () => window.App.Ui && window.App.Ui.showToast('⚠️ ファイルを読み込めませんでした');
+            reader.readAsDataURL(file);
+        };
     },
 
     // 選択肢の配置 popup — rows × cols must cover every choice already

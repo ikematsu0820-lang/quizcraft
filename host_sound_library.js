@@ -115,7 +115,7 @@ window.App.SoundLibrary = {
                         flex:0 0 auto; padding:8px 14px; background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4);
                         border-radius:8px; color:#00e5ff; cursor:pointer; font-size:0.85rem; white-space:nowrap;
                     ">＋ 追加</button>
-                    <input type="file" accept="audio/*" data-file-input="${key}" style="display:none;">
+                    <input type="file" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg" data-file-input="${key}" style="display:none;">
                 </div>
             </div>
         `;
