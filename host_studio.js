@@ -55,7 +55,9 @@ App.Studio = {
         container = document.createElement('div');
         container.id = 'unified-toggle-container';
         container.dataset.view = 'host';
-        container.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:9999; display:flex; gap:6px; background:rgba(0,0,0,0.75); padding:8px 10px; border-radius:30px; backdrop-filter:blur(10px); box-shadow:0 8px 24px rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.1); white-space:nowrap;';
+        // モニター画面（#viewer-main-view）は z-index が最大値なので、同じ値にして
+        // 後から body に足すこの切替をその上に出す（下に隠れて司会者に戻れなかった）
+        container.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:2147483647; display:flex; gap:6px; background:rgba(0,0,0,0.75); padding:8px 10px; border-radius:30px; backdrop-filter:blur(10px); box-shadow:0 8px 24px rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.1); white-space:nowrap;';
 
         const activeStyle = 'background:linear-gradient(135deg, #00bfff 0%, #0077aa 100%); color:#fff; border-radius:20px; padding:10px 18px; font-weight:bold; border:none; box-shadow:0 0 15px rgba(0,191,255,0.4); cursor:pointer; font-size:0.95em;';
         const inactiveStyle = 'background:transparent; color:#aaa; border-radius:20px; padding:10px 18px; font-weight:normal; border:none; cursor:pointer; transition:all 0.2s; font-size:0.95em;';
@@ -148,7 +150,7 @@ App.Studio = {
                 const backBtn = document.createElement('button');
                 backBtn.id = 'viewer-back-to-host-btn';
                 backBtn.textContent = '🎤 出題者画面へ';
-                backBtn.style.cssText = 'position:fixed; bottom:80px; left:50%; transform:translateX(-50%); z-index:10000; background:linear-gradient(135deg,#00bfff 0%,#0077aa 100%); color:#fff; border:none; border-radius:24px; padding:12px 28px; font-size:1em; font-weight:bold; box-shadow:0 4px 16px rgba(0,0,0,0.4); cursor:pointer; white-space:nowrap;';
+                backBtn.style.cssText = 'position:fixed; bottom:80px; left:50%; transform:translateX(-50%); z-index:2147483647; background:linear-gradient(135deg,#00bfff 0%,#0077aa 100%); color:#fff; border:none; border-radius:24px; padding:12px 28px; font-size:1em; font-weight:bold; box-shadow:0 4px 16px rgba(0,0,0,0.4); cursor:pointer; white-space:nowrap;';
                 backBtn.onclick = () => switchView('host');
 
                 // Show only when viewer-main-view is visible
