@@ -1239,7 +1239,9 @@ window.App.Viewer = {
         const qVAlignStyle = qVAlignMap[d.qVAlign] ? ` display:flex; flex-direction:column; justify-content:${qVAlignMap[d.qVAlign]};` : '';
         const qBoxSizeStyle = (d.qBoxSize ? ` min-height:${d.qBoxSize};` : '') + qVAlignStyle;
         // 問題文を左右に置いた時は、枠の大きさ（小/中/大）は横幅で決める
-        const rowQW = ({ '40vh': 45, '60vh': 60 })[d.qBoxSize] || 30;
+        const rowQW = ({ '40vh': 45, '60vh': 60 })[d.qBoxSize] || 10;
+        // 縦書き（問題作成のテキスト「向き」）
+        const qWritingStyle = d.qWritingMode === 'vertical' ? ' writing-mode:vertical-rl; text-orientation:mixed;' : '';
         const rowQStyle = ` width:${rowQW}vw; height:80vh; margin:0 2vw; box-sizing:border-box;${qVAlignStyle}`;
         // 問題背景を「透明」にしても、.q-area のフロストガラス効果
         // (backdrop-filter:blur) 自体は色と無関係に効いたままなので、
@@ -1268,7 +1270,7 @@ window.App.Viewer = {
             // .q-area now uses white-space:pre-wrap, which would otherwise
             // render that indentation as stray blank lines/leading spaces.
             const qSizeStyle = isRow ? (q.title ? ` width:100%; height:70vh;${qVAlignStyle}` : rowQStyle) : ` width:${q.title ? '100%' : '96%'};${qBoxSizeStyle}`;
-            const qAreaHtml = `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align}; font-size:${d.qFontSize || '6vh'};${qSizeStyle}${qBackdropStyle}${qTextShadowStyle}">${q.q}</div>`;
+            const qAreaHtml = `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align}; font-size:${d.qFontSize || '6vh'};${qSizeStyle}${qWritingStyle}${qBackdropStyle}${qTextShadowStyle}">${q.q}</div>`;
             if (q.title) {
                 // タイトル（一問一答で「タイトルを追加」した時）— 問題文の上に出す
                 const titleColor = (textColor === 'transparent') ? 'transparent' : (d.qTitleColor || '#ffd700');
@@ -1301,7 +1303,7 @@ window.App.Viewer = {
 
             const qAreaStyle = isRow ? rowQStyle : ` width:96%;${qBoxSizeStyle}`;
             // ${q.q} sits directly against the tags — see the note above.
-            html += `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align}; font-size:${d.qFontSize || '6vh'};${qAreaStyle}${qBackdropStyle}${qTextShadowStyle}">${q.q}</div>`;
+            html += `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align}; font-size:${d.qFontSize || '6vh'};${qAreaStyle}${qWritingStyle}${qBackdropStyle}${qTextShadowStyle}">${q.q}</div>`;
 
             if (q.c) {
                 const rows = parseInt(d.gridRows) || 0;

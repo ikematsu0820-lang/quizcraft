@@ -117,17 +117,19 @@ App.Config = {
                     ${inner}
                     ${caption ? `<span style="font-size:0.58rem; color:#94a3b8; white-space:nowrap;">${caption}</span>` : ''}
                 </div>`;
-            const heading = (t) => `<div style="color:#94a3b8; font-size:0.72rem; font-weight:bold; margin:0 0 4px;">${t}</div>`;
+            // 行の左に置く項目名（長い時は2行に折り返す）
+            const rowHead = (t) => `<div style="flex:0 0 72px; color:#94a3b8; font-size:0.72rem; font-weight:bold; line-height:1.3; align-self:flex-start; padding-top:6px;">${t}</div>`;
             return `
-                ${heading('問題に対する処理')}
-                <div style="display:flex; gap:8px; margin-bottom:10px;">
+                <!-- 項目名はプルダウンの左に（長ければ2行） -->
+                <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+                    ${rowHead('問題に対する処理')}
                     ${col(`<select id="config-buzz-wrong-action" class="btn-block config-select" style="margin:0; padding:4px;">
                         <option value="next" ${buzzAction === 'next' ? 'selected' : ''}>問題を継続する</option>
                         <option value="end" ${buzzAction === 'end' ? 'selected' : ''}>次の問題に進む</option>
                     </select>`, '')}
                 </div>
-                ${heading('誤答者に対する処理')}
-                <div style="display:flex; gap:8px;">
+                <div style="display:flex; gap:8px; align-items:center;">
+                    ${rowHead('誤答者に対する処理')}
                     ${col(`<select id="config-buzz-penalty" class="btn-block config-select" style="margin:0; padding:4px;">
                         <option value="none" ${buzzPenalty === 'none' ? 'selected' : ''}>解答権あり</option>
                         <option value="otetski" ${buzzPenalty === 'otetski' ? 'selected' : ''}>解答権なし</option>
@@ -142,6 +144,7 @@ App.Config = {
                         </select>`, '減点')}
                     </div>
                 </div>
+                <button type="button" id="config-buzz-wrong-detail-btn" style="width:100%; margin-top:10px; padding:6px; border-radius:8px; background:#232a35; border:1px dashed #475569; color:#94a3b8; font-size:0.8rem; cursor:pointer;">誤答時の詳細設定</button>
             `;
         } else if (mode === 'turn') {
             const showRotateMode = isDobon || (qType && (qType.startsWith('multi') || qType.startsWith('ranking')));
@@ -201,6 +204,8 @@ App.Config = {
                 if (desc) desc.textContent = buzzActionSel.value === 'next' ? '他のプレイヤーが引き続き解答できます' : '誤答時にその問題を終了します';
             };
         }
+        const wrongDetailBtn = area.querySelector('#config-buzz-wrong-detail-btn');
+        if (wrongDetailBtn) wrongDetailBtn.onclick = () => App.Ui.showToast('誤答時の詳細設定は準備中です');
         const buzzDeductSel = area.querySelector('#config-buzz-deduct');
         const buzzDeductOn = area.querySelector('#config-buzz-deduct-on');
         const buzzDeductWrap = area.querySelector('#config-buzz-deduct-wrap');

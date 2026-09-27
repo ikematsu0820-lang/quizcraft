@@ -366,6 +366,7 @@ App.Design = {
                         ${miniSelect('サイズ', 'qFontSize', Q_SIZE_OPTS)}
                         ${miniSelect('左右', 'align', ALIGN_OPTS)}
                         ${miniSelect('上下', 'qVAlign', V_ALIGN_OPTS)}
+                        ${miniSelect('向き', 'qWritingMode', [{ v: '', t: '横書き' }, { v: 'vertical', t: '縦書き' }])}
                     </div>
                 `;
             },

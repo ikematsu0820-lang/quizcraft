@@ -291,6 +291,7 @@ window.App.Creator = {
     fitQuestionTextHeight: function () {
         const el = document.getElementById('question-text');
         if (!el) return;
+        if (((window.App.Data.currentDesign || {}).qWritingMode) === 'vertical') return; // 縦書きは枠いっぱい
         // 高さは px で固定せず行数（rows）で合わせる — 文字サイズが後から
         // 変わっても（プレビューが表示された時の換算など）高さが自動で追従する
         el.style.setProperty('height', 'auto', 'important');
@@ -1164,7 +1165,7 @@ window.App.Creator = {
         if (qArea) {
             if (isRow) {
                 // 左右に置いた時の枠の大きさ（小/中/大）は横幅（モニターと同じ割合）
-                qArea.style.width = `${({ '40vh': 45, '60vh': 60 })[d.qBoxSize] || 30}%`;
+                qArea.style.width = `${({ '40vh': 45, '60vh': 60 })[d.qBoxSize] || 10}%`;
                 qArea.style.alignSelf = 'stretch';
                 qArea.style.display = 'flex';
                 qArea.style.flexDirection = 'row';
@@ -1172,10 +1173,13 @@ window.App.Creator = {
                 // 問題文の上下位置（上/中央/下）— 左右配置の枠は縦長なので既定は中央
                 qArea.style.alignItems = { top: 'flex-start', middle: 'center', bottom: 'flex-end' }[d.qVAlign] || 'center';
                 qArea.style.margin = '0';
+                // 左右に置いた時は枠が細い（小=約10%）ので、内側の余白を詰める
+                qArea.style.padding = '2% 0.6%';
             } else {
                 // モニターと同じく画面幅の96%（プレビュー枠の左右余白2%ずつの内側いっぱい）
                 qArea.style.width = '100%';
                 qArea.style.alignSelf = 'center';
+                qArea.style.padding = '';
                 // 問題文の上下位置（枠を「中/大」にした時に効く）
                 qArea.style.display = 'flex';
                 qArea.style.flexDirection = 'column';
@@ -1205,7 +1209,7 @@ window.App.Creator = {
                 formContainer.style.bottom = '';
             }
             if (isRow) {
-                formContainer.style.width = `${97 - (({ '40vh': 45, '60vh': 60 })[d.qBoxSize] || 30)}%`;
+                formContainer.style.width = `${97 - (({ '40vh': 45, '60vh': 60 })[d.qBoxSize] || 10)}%`;
                 formContainer.style.alignSelf = 'stretch';
             } else {
                 formContainer.style.width = (layout === 'center') ? '96%' : '100%';
@@ -1246,7 +1250,18 @@ window.App.Creator = {
             if (d.qTextColor) qText.style.setProperty('color', d.qTextColor, 'important');
             qText.style.setProperty('text-align', d.align || 'center', 'important');
             if (d.qFontSize) qText.style.setProperty('font-size', scalePreviewFontSize(d.qFontSize), 'important');
-            this.fitQuestionTextHeight();
+            // 縦書き — 枠の高さいっぱいに縦に流す
+            if (d.qWritingMode === 'vertical') {
+                qText.style.setProperty('writing-mode', 'vertical-rl', 'important');
+                qText.style.setProperty('max-height', 'none', 'important');
+                qText.style.setProperty('min-height', isRow ? '0' : '6em', 'important');
+                qText.style.setProperty('height', '100%', 'important');
+                qText.style.setProperty('width', '100%', 'important');
+                qText.style.setProperty('align-self', 'stretch', 'important');
+            } else {
+                ['writing-mode', 'max-height', 'min-height', 'width', 'align-self'].forEach(k => qText.style.removeProperty(k));
+                this.fitQuestionTextHeight();
+            }
         }
 
         // A/B/C/D labels stay the app's fixed cyan accent — they're an editor
