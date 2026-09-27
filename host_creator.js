@@ -975,7 +975,7 @@ window.App.Creator = {
             if (!btn) return;
             const isActive = this.activeInlinePanel === key;
             // パネル側のタブは暗め（明るいのは「リストに追加」「リストを保存する」だけ）
-            btn.style.background = isActive ? '#334155' : '#161b22';
+            btn.style.background = isActive ? '#334155' : '#232a35';
             btn.style.color = isActive ? '#f1f5f9' : '#8b95a5';
         });
     },
@@ -1024,7 +1024,7 @@ window.App.Creator = {
         });
         document.querySelectorAll('.creator-rules-subtab-btn').forEach(btn => {
             const k = btn.dataset.rulesSubtab;
-            btn.style.background = (this.rulesSubTab === k) ? '#2d3748' : '#161b22';
+            btn.style.background = (this.rulesSubTab === k) ? '#2d3748' : '#232a35';
             btn.style.color = (this.rulesSubTab === k) ? '#e2e8f0' : '#8b95a5';
             btn.onclick = () => { this.rulesSubTab = k; this.renderRulesSubtabs(); };
         });
@@ -1038,7 +1038,7 @@ window.App.Creator = {
         const tabs = { home: homeBtn, bulk: bulkBtn };
         Object.entries(tabs).forEach(([k, btn]) => {
             if (!btn) return;
-            btn.style.background = (this.editSubTab === k) ? '#2d3748' : '#161b22';
+            btn.style.background = (this.editSubTab === k) ? '#2d3748' : '#232a35';
             btn.style.color = (this.editSubTab === k) ? '#e2e8f0' : '#8b95a5';
             btn.onclick = () => { this.editSubTab = k; this.renderEditSubtabs(); this.renderEditPanelBody(); };
         });
