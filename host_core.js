@@ -57,6 +57,11 @@ window.App.QuizCheck = {
             if (c.length < 1) miss.push('正解');
         } else if (t === 'letter_select') {
             if (arr(q.steps).length === 0) miss.push('文字');
+        } else if (t === 'numgame') {
+            const items = arr(q.items).filter(it => it && String(it.name || '').trim());
+            if (items.length < 2) miss.push('項目（2つ以上）');
+            if (items.some(it => it.value === '' || it.value === null || it.value === undefined || isNaN(Number(it.value)))) miss.push('数（未入力の項目あり）');
+            if (!(Number(q.target) > 0)) miss.push('目標の数');
         } else if (t === 'blackjack') {
             if (c.length < 2) miss.push('カード（2枚以上）');
         }

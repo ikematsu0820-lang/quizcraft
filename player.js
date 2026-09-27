@@ -504,8 +504,15 @@ function updateUI() {
         oralArea.classList.add('hidden');
     }
 
+    // 数字予想の画面は、そのゲーム中だけ出す
+    const ngBox = document.getElementById('player-numgame');
+    if (ngBox) ngBox.classList.toggle('hidden', st.step !== 'numgame');
+
     // --- 状態ごとのUI制御 ---
-    if (st.step === 'selecting_set') {
+    if (st.step === 'numgame') {
+        renderPlayerNumGame(st, p);
+    }
+    else if (st.step === 'selecting_set') {
         // マルチコンテナ: 司会者がセットを選択中
         lobby.classList.remove('hidden');
         quizArea.classList.add('hidden');
@@ -1051,6 +1058,81 @@ function showLoserMessage(lobby, buzzArea) {
     lobby.innerHTML = `<div style="text-align:center; color:#e94560; font-weight:bold; font-size:1.5em; margin-top:30px;">❌ 不正解</div><p style="text-align:center; color:#aaa;">この問題の解答権はありません</p>`;
     buzzArea.classList.add('hidden');
     // クイズエリアは隠さない（見学できるように）
+}
+
+
+// 数字予想（numgame）: 自分の番に項目をタップして選ぶ（近づけた人が勝ちは
+// ストップも可）。選んだ項目は players/{me}/ngPick に書き、出題者側が処理する。
+let _ngPendingSeq = null;
+function renderPlayerNumGame(st, p) {
+    const ng = st.ng || {};
+    let box = document.getElementById('player-numgame');
+    if (!box) {
+        box = document.createElement('div');
+        box.id = 'player-numgame';
+        const gv = document.getElementById('player-game-view');
+        const bar = document.getElementById('player-status-bar');
+        gv.insertBefore(box, bar ? bar.nextSibling : gv.firstChild);
+    }
+    box.classList.remove('hidden');
+    const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const unit = esc(ng.unit || '');
+    const isBJ = ng.rule !== 'burst';
+    const items = ng.items || [];
+    const values = ng.values || {};
+    const used = new Set((ng.used || []).map(Number));
+    const out = ng.out || {};
+    const myTotal = (ng.totals || {})[myPlayerId] || 0;
+    const isMyTurn = ng.turn === myPlayerId && !ng.finished;
+    // 選んだ後、出題者側が処理するまでは押せないように
+    if (_ngPendingSeq !== null && ng.seq !== _ngPendingSeq) _ngPendingSeq = null;
+    const canPick = isMyTurn && !ng.resolved && !out[myPlayerId] && _ngPendingSeq === null;
+
+    let status;
+    if (ng.finished) {
+        const r = ng.result || {};
+        const iWon = (r.winners || []).includes(myName);
+        const iLost = !isBJ && r.loser === myName;
+        status = `<div class="ng-status ${iWon ? 'win' : (iLost || isBJ) ? 'lose' : ''}">${isBJ ? (iWon ? '🏆 あなたの勝ち！' : '結果発表') : (iLost ? '💥 あなたの負け…' : '🎉 セーフ！')}<small>${esc(r.text || '')}</small></div>`;
+    } else if (isMyTurn && ng.resolved) {
+        status = `<div class="ng-status">選びました。次の人を待っています</div>`;
+    } else if (isMyTurn) {
+        status = `<div class="ng-status mine">あなたの番です！ 項目を選んでください</div>`;
+    } else if (out[myPlayerId]) {
+        status = `<div class="ng-status">${out[myPlayerId] === 'bust' ? '目標を超えました…' : 'ストップしました'}（${myTotal}${unit}）</div>`;
+    } else {
+        status = `<div class="ng-status">${esc((ng.names || {})[ng.turn] || '他のプレイヤー')} さんの番です</div>`;
+    }
+    const score = isBJ
+        ? `あなたの合計 <b>${myTotal}${unit}</b> ／ 目標 ${ng.target}${unit}`
+        : `全体の合計 <b>${ng.shared || 0}${unit}</b> ／ ${ng.target}${unit} を超えたら負け`;
+
+    box.innerHTML = `
+        <div class="ng-head"><div class="ng-theme">${esc(ng.theme || '')}</div><div class="ng-score">${score}</div></div>
+        ${status}
+        ${isBJ && canPick ? '<button type="button" class="ng-stand-btn">ここでストップ</button>' : ''}
+        <div class="ng-grid">${items.map((name, i) => {
+            const u = used.has(i);
+            return `<button type="button" class="ng-item ${u ? 'used' : ''}" data-i="${i}" ${u || !canPick ? 'disabled' : ''}>
+                <span>${esc(name)}</span>${u ? `<b>${values[i] ?? ''}${unit}</b>` : ''}</button>`;
+        }).join('')}</div>`;
+    box.querySelectorAll('.ng-item:not(.used)').forEach(b => {
+        b.onclick = () => {
+            if (!canPick) return;
+            const i = parseInt(b.dataset.i);
+            if (!confirm(`「${items[i]}」を選びますか？`)) return;
+            _ngPendingSeq = ng.seq || 0;
+            window.db.ref(`rooms/${myRoomId}/players/${myPlayerId}/ngPick`).set({ idx: i, t: firebase.database.ServerValue.TIMESTAMP });
+            renderPlayerNumGame(st, p);
+        };
+    });
+    const stand = box.querySelector('.ng-stand-btn');
+    if (stand) stand.onclick = () => {
+        if (!confirm(`ここでストップしますか？（合計 ${myTotal}${ng.unit || ''}）`)) return;
+        _ngPendingSeq = ng.seq || 0;
+        window.db.ref(`rooms/${myRoomId}/players/${myPlayerId}/ngPick`).set({ stand: true, t: firebase.database.ServerValue.TIMESTAMP });
+        renderPlayerNumGame(st, p);
+    };
 }
 
 // 自分の解答を短い文字で（解答済みの表示用）— 手書きは「手書きの解答」

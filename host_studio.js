@@ -313,6 +313,7 @@ App.Studio = {
             const players = snap.val() || {};
             App.Data.players = players; // Store globally for access in setStep
             this.checkSurvival(players);
+            if (this._ng) this.processNumGamePick(players);
             const count = Object.keys(players).length;
             document.getElementById('studio-player-count-display').textContent = count;
             this.updatePlayerList(players);
@@ -1139,6 +1140,11 @@ App.Studio = {
                 }
 
                 const currentQ = App.Data.studioQuestions[App.State.currentQIndex];
+                // 数字予想は1問の中でゲームを最後まで進める（専用の進行）
+                if (currentQ.type === 'numgame') {
+                    this.startNumGame(currentQ);
+                    break;
+                }
                 if (!currentQ.prodDesign) {
                     this.renderQuestionMonitor(currentQ); // Fallback standard
                 } else {
@@ -1879,6 +1885,7 @@ App.Studio = {
     },
 
     resetPlayerStatus: function () {
+        if (this._ng) { this._ng = null; this.renderNumGameConsole(); }
         this._nominatedId = null;
         this._deskSelected = null; // 新しい問題では解答ボードは「回答待ち」から
         const roomId = App.State.currentRoomId;
@@ -2456,6 +2463,7 @@ App.Studio = {
 
     getAnswerString: function (q) {
         if (!q) return "";
+        if (q.type === 'numgame') return `${(q.items || []).length}項目・目標${q.target || 0}${q.unit || ''}`;
         if (q.type === 'choice' && q.c) {
             if (Array.isArray(q.correct)) return q.correct.map(i => q.c[i]).join(' / ');
             const idx = q.correctIndex !== undefined ? q.correctIndex : q.correct;
@@ -2654,6 +2662,275 @@ App.Studio = {
         this.renderAnswerDesk(sortedPlayers);
 
         // 判定は解答ボード（renderAnswerDesk）で行う — 以前の判定キューは使わない
+    },
+
+    // =========================================================
+    // 数字予想（numgame）— 項目ごとの数（例: チェーン店の店舗数）を順番に
+    // 選んで足していくゲーム。1問の中でゲームが最後まで進む。
+    //   blackjack: 各自が自分の合計に足す。目標を超えたら脱落、ストップ可。
+    //              最後に目標以下で一番近い人が勝ち
+    //   burst:     全員で1つの合計に足していく。目標を超えさせた人が負け
+    // 状態は rooms/{id}/status/ng に置き、モニター（viewer.js）と回答者
+    // （player.js）はそれを表示する。回答者は自分の番に players/{me}/ngPick
+    // へ選んだ項目（またはストップ）を書き、出題者側がここで処理する。
+    // =========================================================
+    _ng: null,
+
+    startNumGame: function (q) {
+        const roomId = App.State.currentRoomId;
+        const players = App.Data.players || {};
+        let order = (this.turnOrder && this.turnOrder.length) ? this.turnOrder.filter(id => players[id]) : Object.keys(players);
+        order = order.filter(id => (players[id] || {}).isAlive !== false);
+        const names = {};
+        order.forEach(id => { names[id] = (players[id] && players[id].name) || '---'; });
+        const items = (q.items || []).map(it => ({ name: String(it.name || ''), value: Number(it.value) || 0 }));
+        this._ng = {
+            rule: q.ngRule === 'burst' ? 'burst' : 'blackjack',
+            target: Number(q.target) || 100,
+            unit: q.unit || '',
+            theme: q.q || '',
+            items,
+            used: [],
+            values: {},
+            order,
+            names,
+            totals: {},
+            shared: 0,
+            out: {},
+            turnIdx: 0,
+            resolved: false,
+            last: null,
+            seq: 0,
+            finished: false,
+            result: null,
+            showResult: false,
+            history: []
+        };
+        order.forEach(id => { this._ng.totals[id] = 0; });
+        // 前のゲームの選択が残らないように
+        order.forEach(id => window.db.ref(`rooms/${roomId}/players/${id}/ngPick`).remove());
+        if (!order.length) App.Ui.showToast('参加者がいません（入室を待ってから開始してください）');
+        this.pushNumGame();
+        this.renderNumGameConsole();
+    },
+
+    // 今の番の人（脱落・ストップした人は飛ばす）
+    ngCurrentId: function () {
+        const ng = this._ng;
+        if (!ng || ng.finished || !ng.order.length) return null;
+        return ng.order[ng.turnIdx % ng.order.length] || null;
+    },
+
+    ngActiveIds: function () {
+        const ng = this._ng;
+        return ng.order.filter(id => !ng.out[id]);
+    },
+
+    pushNumGame: function () {
+        const ng = this._ng;
+        if (!ng) return;
+        const roomId = App.State.currentRoomId;
+        const cur = this.ngCurrentId();
+        window.db.ref(`rooms/${roomId}/status`).update({
+            step: 'numgame',
+            qIndex: App.State.currentQIndex,
+            currentAnswerer: cur,
+            currentAnswererName: cur ? ng.names[cur] : null,
+            isTurnMode: true,
+            ng: {
+                rule: ng.rule, target: ng.target, unit: ng.unit, theme: ng.theme,
+                items: ng.items.map(it => it.name),
+                values: ng.values, used: ng.used.length ? ng.used : null,
+                order: ng.order, names: ng.names, totals: ng.totals, shared: ng.shared,
+                out: Object.keys(ng.out).length ? ng.out : null,
+                turn: cur, resolved: ng.resolved, last: ng.last, seq: ng.seq,
+                finished: ng.finished, result: ng.result, showResult: ng.showResult,
+                history: ng.history.slice(-8)
+            }
+        });
+        this.updateNumGameMainButton();
+    },
+
+    // 回答者が選んだ項目（players/{id}/ngPick）を処理する（players の購読から呼ぶ）
+    processNumGamePick: function (players) {
+        const ng = this._ng;
+        if (!ng || ng.finished || ng.resolved || this.currentStepId !== 2) return;
+        const cur = this.ngCurrentId();
+        const pick = cur && players && players[cur] && players[cur].ngPick;
+        if (!pick) return;
+        window.db.ref(`rooms/${App.State.currentRoomId}/players/${cur}/ngPick`).remove();
+        if (pick.stand) this.ngStand(cur);
+        else this.ngApplyPick(cur, parseInt(pick.idx));
+    },
+
+    ngApplyPick: function (pid, idx) {
+        const ng = this._ng;
+        if (!ng || ng.finished || ng.resolved || pid !== this.ngCurrentId()) return;
+        if (isNaN(idx) || idx < 0 || idx >= ng.items.length || ng.used.includes(idx)) return;
+        const item = ng.items[idx];
+        ng.used.push(idx);
+        ng.values[idx] = item.value;
+        let total, bust = false;
+        if (ng.rule === 'burst') {
+            ng.shared += item.value;
+            total = ng.shared;
+            bust = ng.shared > ng.target;
+        } else {
+            ng.totals[pid] = (ng.totals[pid] || 0) + item.value;
+            total = ng.totals[pid];
+            bust = total > ng.target;
+            if (bust) ng.out[pid] = 'bust';
+        }
+        ng.seq += 1;
+        ng.last = { pid, name: ng.names[pid], idx, item: item.name, value: item.value, total, bust };
+        ng.history.push({ name: ng.names[pid], item: item.name, value: item.value });
+        ng.resolved = true;
+        if (ng.rule === 'burst' && bust) this.ngFinish({ loser: pid });
+        else if (ng.used.length >= ng.items.length) this.ngFinish({});
+        else if (ng.rule === 'blackjack' && !this.ngActiveIds().length) this.ngFinish({});
+        this.pushNumGame();
+        this.renderNumGameConsole();
+    },
+
+    // 近づけた人が勝ち: この人はここで止める
+    ngStand: function (pid) {
+        const ng = this._ng;
+        if (!ng || ng.finished || ng.rule !== 'blackjack' || pid !== this.ngCurrentId()) return;
+        ng.out[pid] = 'stand';
+        ng.seq += 1;
+        ng.last = { pid, name: ng.names[pid], stand: true, total: ng.totals[pid] || 0 };
+        ng.resolved = true;
+        if (!this.ngActiveIds().length) this.ngFinish({});
+        this.pushNumGame();
+        this.renderNumGameConsole();
+    },
+
+    // 次の人へ（脱落・ストップした人は飛ばす）
+    ngAdvance: function () {
+        const ng = this._ng;
+        if (!ng || ng.finished) return;
+        const n = ng.order.length;
+        for (let k = 1; k <= n; k++) {
+            const i = (ng.turnIdx + k) % n;
+            if (ng.rule === 'burst' || !ng.out[ng.order[i]]) { ng.turnIdx = i; break; }
+        }
+        ng.resolved = false;
+        this.pushNumGame();
+        this.renderNumGameConsole();
+    },
+
+    ngFinish: function ({ loser }) {
+        const ng = this._ng;
+        ng.finished = true;
+        if (ng.rule === 'burst') {
+            ng.result = loser
+                ? { loser: ng.names[loser], winners: ng.order.filter(id => id !== loser).map(id => ng.names[id]), text: `${ng.names[loser]} さんが ${ng.target}${ng.unit} を超えました` }
+                : { winners: [], text: '最後まで誰も超えませんでした' };
+        } else {
+            let best = -1;
+            ng.order.forEach(id => { const t = ng.totals[id] || 0; if (t <= ng.target && t > best) best = t; });
+            const winners = best < 0 ? [] : ng.order.filter(id => (ng.totals[id] || 0) === best).map(id => ng.names[id]);
+            ng.result = { winners, best, text: winners.length ? `${ng.target}${ng.unit} に一番近い ${best}${ng.unit}` : '全員が目標を超えました' };
+        }
+        // 勝った人に得点（問題の配点）
+        const q = App.Data.studioQuestions[App.State.currentQIndex] || {};
+        const pts = q.points || 1;
+        const roomId = App.State.currentRoomId;
+        ng.order.forEach(id => {
+            const win = (ng.result.winners || []).includes(ng.names[id]);
+            window.db.ref(`rooms/${roomId}/players/${id}`).once('value', snap => {
+                const p = snap.val();
+                if (!p) return;
+                snap.ref.update(win
+                    ? { lastResult: 'win', periodScore: (p.periodScore || 0) + pts, totalScore: (p.totalScore || 0) + pts }
+                    : { lastResult: 'lose' });
+            });
+        });
+    },
+
+    updateNumGameMainButton: function () {
+        const ng = this._ng;
+        const btnMain = document.getElementById('btn-phase-main');
+        if (!ng || !btnMain || this.currentStepId !== 2) return;
+        btnMain.classList.remove('action-ready');
+        btnMain.classList.add('action-next');
+        if (ng.finished && !ng.showResult) {
+            btnMain.textContent = '結果発表';
+            btnMain.onclick = () => { ng.showResult = true; this.pushNumGame(); this.renderNumGameConsole(); };
+        } else if (ng.finished) {
+            btnMain.textContent = '次の問題へ';
+            btnMain.onclick = () => { this._ng = null; this.renderNumGameConsole(); this.goNext(); };
+        } else if (ng.resolved) {
+            btnMain.textContent = '次の人へ';
+            btnMain.onclick = () => this.ngAdvance();
+        } else {
+            const cur = this.ngCurrentId();
+            btnMain.textContent = cur ? `${ng.names[cur]} さんの選択待ち` : '参加者待ち';
+            btnMain.onclick = () => App.Ui.showToast('回答者が選ぶか、下の一覧から代わりに選んでください');
+        }
+        this.syncMainButton();
+    },
+
+    // 出題者画面: 順番・合計・項目の一覧（押すと今の番の人の代わりに選べる）
+    renderNumGameConsole: function () {
+        const view = document.getElementById('host-control-view');
+        let box = document.getElementById('numgame-console');
+        const ng = this._ng;
+        if (view) view.classList.toggle('numgame-active', !!ng);
+        if (!ng) { if (box) box.remove(); return; }
+        if (!box) {
+            box = document.createElement('div');
+            box.id = 'numgame-console';
+            box.style.cssText = 'width:100%; max-width:600px; margin:0 0 12px;';
+            const main = document.querySelector('#host-control-view .simple-studio-main');
+            const card = document.querySelector('#host-control-view .console-card-wrapper');
+            if (main) main.insertBefore(box, card || null);
+        }
+        const esc = (v) => this._esc(v);
+        const cur = this.ngCurrentId();
+        const isBJ = ng.rule === 'blackjack';
+        const unit = esc(ng.unit);
+        const players = ng.order.map(id => {
+            const out = ng.out[id];
+            const t = ng.totals[id] || 0;
+            return `<div style="display:flex; align-items:center; gap:8px; padding:6px 10px; border-radius:8px; background:${id === cur && !ng.finished ? 'rgba(251,191,36,0.2)' : '#1f2430'}; border:1px solid ${id === cur && !ng.finished ? '#fbbf24' : '#333'};">
+                <span style="flex:1; color:#fff; font-weight:bold; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${id === cur && !ng.finished ? '▶ ' : ''}${esc(ng.names[id])}</span>
+                ${isBJ ? `<span style="color:${out === 'bust' ? '#f87171' : '#fbbf24'}; font-weight:900;">${t}${unit}</span>` : ''}
+                ${out === 'bust' ? '<span style="color:#f87171; font-size:11px;">超えた</span>' : out === 'stand' ? '<span style="color:#94a3b8; font-size:11px;">ストップ</span>' : ''}
+            </div>`;
+        }).join('');
+        const last = ng.last;
+        const lastHtml = last ? (last.stand
+            ? `<b>${esc(last.name)}</b> さんがストップ（合計 ${last.total}${unit}）`
+            : `<b>${esc(last.name)}</b>：${esc(last.item)} ＝ <b style="color:#fbbf24;">${last.value}${unit}</b>（${isBJ ? '合計' : '全体'} ${last.total}${unit}）${last.bust ? ' <b style="color:#f87171;">超えた！</b>' : ''}`)
+            : 'まだ誰も選んでいません';
+        const canHostPick = !ng.finished && !ng.resolved && !!cur;
+        const grid = ng.items.map((it, i) => {
+            const used = ng.used.includes(i);
+            return `<button type="button" data-ng-idx="${i}" ${used || !canHostPick ? 'disabled' : ''} style="padding:6px 4px; border-radius:6px; font-size:12px; cursor:${used || !canHostPick ? 'default' : 'pointer'};
+                background:${used ? '#111' : '#232a35'}; color:${used ? '#64748b' : '#e2e8f0'}; border:1px solid ${used ? '#222' : '#475569'}; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                ${esc(it.name)}<br><span style="color:${used ? '#fbbf24' : '#64748b'}; font-weight:bold;">${used ? `${it.value}${unit}` : `(${it.value})`}</span></button>`;
+        }).join('');
+        const resultHtml = ng.finished ? `<div style="margin-top:8px; padding:10px; border-radius:8px; background:rgba(34,197,94,0.15); border:1px solid #22c55e; color:#fff;">
+            <b>結果：</b>${esc(ng.result.text)}<br>${isBJ
+                ? `勝ち：${(ng.result.winners || []).map(esc).join('、') || 'なし'}`
+                : (ng.result.loser ? `負け：${esc(ng.result.loser)}` : '引き分け')}</div>` : '';
+        box.innerHTML = `
+            <div style="color:#94a3b8; font-size:12px; margin-bottom:6px; border-bottom:1px solid #333; padding-bottom:5px;">
+                数字予想 ／ ${isBJ ? `近づけた人が勝ち（目標 ${ng.target}${unit}・超えたら脱落）` : `超えたら負け（${ng.target}${unit} を超えさせた人の負け）`}
+                ${!isBJ ? `<span style="float:right; color:#fbbf24; font-weight:bold;">いまの合計 ${ng.shared}${unit}</span>` : ''}
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:6px; margin-bottom:8px;">${players}</div>
+            <div style="color:#e2e8f0; font-size:14px; padding:8px 10px; background:#1a1a1a; border-radius:8px; margin-bottom:8px;">${lastHtml}</div>
+            ${resultHtml}
+            ${isBJ && canHostPick ? `<button type="button" id="ng-host-stand" style="margin:0 0 8px; padding:6px 14px; border-radius:8px; background:#334155; color:#e2e8f0; border:1px solid #475569; cursor:pointer;">${esc(ng.names[cur])} さんをストップにする</button>` : ''}
+            <div style="color:#64748b; font-size:11px; margin-bottom:4px;">項目（押すと今の番の人の代わりに選べます・かっこ内は出題者だけに見える数）</div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(92px, 1fr)); gap:4px; max-height:240px; overflow-y:auto;">${grid}</div>`;
+        box.querySelectorAll('[data-ng-idx]').forEach(b => {
+            b.onclick = () => { const c = this.ngCurrentId(); if (c) this.ngApplyPick(c, parseInt(b.dataset.ngIdx)); };
+        });
+        const standBtn = box.querySelector('#ng-host-stand');
+        if (standBtn) standBtn.onclick = () => { const c = this.ngCurrentId(); if (c) this.ngStand(c); };
     },
 
     // 参加者と解答ボード。解答を送ってきた人（未判定）は名前が赤く光り、

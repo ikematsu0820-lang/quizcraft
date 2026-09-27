@@ -76,7 +76,7 @@ window.App.Creator = {
                 choice: 'choice_single',
                 multi_group: 'multi_oral',
                 assoc_group: 'assoc_oral',
-                num_group: 'blackjack',
+                num_group: 'numgame',
                 dobon: 'choice_multi'
             };
             this.renderForm(groupDefaults[type] || type);
@@ -136,7 +136,7 @@ window.App.Creator = {
                 { v: 'assoc_written', t: APP_TEXT.Creator.TypeAssocWritten }
             ];
             if (mainVal === 'num_group') return [
-                { v: 'blackjack', t: '6-1) ブラックジャック' }
+                { v: 'numgame', t: '数字予想' }
             ];
             return [];
         };
@@ -236,9 +236,9 @@ window.App.Creator = {
             } else if (type.startsWith('assoc')) {
                 sel.value = 'assoc_group';
                 resolvedType = type;
-            } else if (type === 'blackjack') {
+            } else if (type === 'blackjack' || type === 'numgame') {
                 sel.value = 'num_group';
-                resolvedType = 'blackjack';
+                resolvedType = type;
             } else {
                 sel.value = type; // e.g. 'sort' — no subtype of its own
                 resolvedType = type;
@@ -352,7 +352,7 @@ window.App.Creator = {
         // from the question just added) so the next question keeps the same
         // style instead of falling through to a blank/default form.
         const subSel = document.getElementById('creator-opt-subtype') || document.getElementById('creator-q-subtype');
-        const groupDefaults = { num_group: 'blackjack' };
+        const groupDefaults = { num_group: 'numgame' };
         const type = this.currentType || ((sel && (['free', 'multi_group', 'choice', 'assoc_group', 'num_group'].includes(sel.value)))
             ? (subSel.value || groupDefaults[sel.value] || sel.value)
             : (sel ? sel.value : 'choice'));
@@ -727,6 +727,43 @@ window.App.Creator = {
                 { v: isRanking ? 'ranking_oral' : 'multi_oral', t: '口頭で答える' },
                 { v: isRanking ? 'ranking_written' : 'multi_written', t: '手書きで答える' },
             ], type);
+        }
+        else if (type === 'numgame') {
+            // 数字予想: テーマ（問題文）＋ 項目と数の一覧（50〜100個も想定）。
+            // 遊び方（ルール・目標・単位）はプレビュー直下の行で。
+            const items = (data && Array.isArray(data.items) && data.items.length) ? data.items
+                : [{ name: '', value: '' }, { name: '', value: '' }, { name: '', value: '' }, { name: '', value: '' }];
+            container.innerHTML = '';
+            container.style.overflowY = 'auto';
+            const list = document.createElement('div');
+            list.id = 'ng-items-list';
+            list.style.cssText = 'display:grid; grid-template-columns:1fr 1fr; gap:4px 8px; width:100%; align-content:start;';
+            container.appendChild(list);
+            items.forEach(it => this.addNumGameRow(list, it.name, it.value));
+
+            const ruleSel = document.createElement('select');
+            ruleSel.id = 'ng-rule';
+            ruleSel.innerHTML = `<option value="blackjack">近づけた人が勝ち</option><option value="burst">超えたら負け</option>`;
+            ruleSel.value = (data && data.ngRule === 'burst') ? 'burst' : 'blackjack';
+            ruleSel.title = '近づけた人が勝ち: 各自の合計を目標に近づける（超えたら脱落・ストップ可）／超えたら負け: 全員で足していき、目標を超えさせた人の負け';
+            ruleSel.style.cssText = 'height:26px; min-height:0; margin:0; padding:0 6px; width:auto;';
+            const target = document.createElement('input');
+            target.type = 'number'; target.id = 'ng-target'; target.min = '1';
+            target.value = (data && data.target) || 100;
+            target.style.cssText = 'width:80px; height:26px; min-height:0; margin:0; padding:0 6px;';
+            const unit = document.createElement('input');
+            unit.type = 'text'; unit.id = 'ng-unit'; unit.placeholder = '単位（例: 店舗）';
+            unit.value = (data && data.unit) || '';
+            unit.style.cssText = 'width:110px; height:26px; min-height:0; margin:0; padding:0 6px;';
+            const wrap = (label, el) => { const l = document.createElement('label'); l.style.cssText = 'display:flex; align-items:center; gap:4px; color:#fff; font-size:0.8rem; white-space:nowrap;'; l.append(label, el); return l; };
+            addOutside(wrap('ルール', ruleSel));
+            addOutside(wrap('目標', target));
+            addOutside(wrap('単位', unit));
+            outsideButton('ng-paste-btn', 'まとめて貼り付け', () => this.openNumGamePaste(list));
+            const addBtn = document.getElementById('ng-paste-btn');
+            outsideButton('ng-add-btn', '＋ 項目を追加', () => this.addNumGameRow(list, '', ''));
+            const add2 = document.getElementById('ng-add-btn');
+            if (add2 && addBtn) add2.style.marginLeft = '4px';
         }
         else if (type === 'blackjack') {
             const targetVal = data ? data.target : 21;
@@ -1647,6 +1684,77 @@ window.App.Creator = {
         this.applyDesignToPreview();
     },
 
+    // 数字予想の項目1行（項目名・数・削除）
+    addNumGameRow: function (list, name, value) {
+        const row = document.createElement('div');
+        row.className = 'ng-row';
+        row.style.cssText = 'display:flex; align-items:center; gap:4px; min-width:0;';
+        const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+        row.innerHTML = `
+            <span class="ng-no" style="flex:0 0 1.8em; color:#64748b; font-size:0.7rem; text-align:right;"></span>
+            <input type="text" class="ng-name row-input" placeholder="項目名" value="${esc(name)}" style="flex:1; min-width:0; height:24px !important; min-height:0; margin:0; padding:0 6px !important; background:rgba(255,255,255,0.06) !important; border:1px solid #334155 !important; border-radius:4px; color:#fff; font-size:0.78rem;">
+            <input type="number" class="ng-value" placeholder="数" value="${esc(value)}" style="flex:0 0 70px; width:70px; height:24px; min-height:0; margin:0; padding:0 6px; background:rgba(255,255,255,0.06) !important; border:1px solid #334155 !important; border-radius:4px; color:#fbbf24 !important; font-size:0.78rem; text-align:right !important;">
+            <button type="button" class="ng-del" title="削除" style="flex:0 0 auto; background:none; border:none; color:rgba(255,255,255,0.35); cursor:pointer; padding:0 4px;">×</button>`;
+        row.querySelector('.ng-del').onclick = () => { row.remove(); this.renumberNumGame(list); };
+        list.appendChild(row);
+        this.renumberNumGame(list);
+        return row;
+    },
+    renumberNumGame: function (list) {
+        list.querySelectorAll('.ng-row .ng-no').forEach((el, i) => { el.textContent = i + 1; });
+    },
+    // 入力済みの項目（項目名が空の行は飛ばす）。keepEmpty はプレビュー用に空欄も残す
+    readNumGameItems: function (keepEmpty) {
+        const items = [];
+        document.querySelectorAll('#ng-items-list .ng-row').forEach(row => {
+            const name = (row.querySelector('.ng-name')?.value || '').trim();
+            const raw = (row.querySelector('.ng-value')?.value || '').trim();
+            if (!name && !keepEmpty) return;
+            items.push({ name, value: raw === '' ? '' : Number(raw) });
+        });
+        return items;
+    },
+    // 表計算ソフトからまとめて貼り付け（1行1項目: 項目名[タブ]数）
+    openNumGamePaste: function (list) {
+        const existing = document.getElementById('ng-paste-modal');
+        if (existing) existing.remove();
+        const overlay = document.createElement('div');
+        overlay.id = 'ng-paste-modal';
+        overlay.className = 'design-modal-overlay';
+        overlay.innerHTML = `
+            <div class="design-modal-content" style="max-width:420px; padding:20px !important;">
+                <h3 class="modal-title" style="font-size:1rem; margin-bottom:8px;">項目をまとめて貼り付け</h3>
+                <p style="color:#94a3b8; font-size:0.75rem; margin:0 0 8px;">1行に1項目。項目名[タブ]数 の形で、表計算ソフトの2列をそのまま貼り付けられます（数のカンマは無視します）</p>
+                <textarea id="ng-paste-text" placeholder="マクドナルド	2900
+スターバックス	1900" style="width:100%; height:180px !important; min-height:180px !important; padding:8px; box-sizing:border-box; font-family:monospace; font-size:0.8rem; background:#0d1b2a; color:#fff; border:1px solid #475569; border-radius:8px; resize:vertical;"></textarea>
+                <label style="display:flex; align-items:center; gap:6px; color:#cbd5e1; font-size:0.78rem; margin:8px 0;"><input type="checkbox" id="ng-paste-replace"> 今の一覧を置き換える（外すと末尾に追加）</label>
+                <div style="display:flex; gap:8px;">
+                    <button type="button" id="ng-paste-cancel" style="flex:1; padding:9px; border-radius:8px; background:#333; border:none; color:#ccc; cursor:pointer;">閉じる</button>
+                    <button type="button" id="ng-paste-ok" style="flex:2; padding:9px; border-radius:8px; background:linear-gradient(135deg,#00c6ff,#0072ff); border:none; color:#fff; font-weight:bold; cursor:pointer;">追加する</button>
+                </div>
+            </div>`;
+        document.body.appendChild(overlay);
+        const close = () => overlay.remove();
+        overlay.querySelector('#ng-paste-cancel').onclick = close;
+        overlay.querySelector('#ng-paste-ok').onclick = () => {
+            const text = overlay.querySelector('#ng-paste-text').value;
+            // 「項目名 ＋ 区切り（タブ/空白/カンマ）＋ 数」— 数の中のカンマ（2,900）は外す
+            const rows = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => {
+                const m = /^(.*?)[\t\s,，]+(-?[\d,，.]+)\s*$/.exec(l);
+                if (!m) return null;
+                const name = m[1].trim();
+                const num = Number(m[2].replace(/[,，]/g, ''));
+                return (name && !isNaN(num)) ? { name, value: num } : null;
+            }).filter(Boolean);
+            if (!rows.length) { alert('「項目名[タブ]数」の行が見つかりませんでした'); return; }
+            if (overlay.querySelector('#ng-paste-replace').checked) list.innerHTML = '';
+            else list.querySelectorAll('.ng-row').forEach(r => { if (!r.querySelector('.ng-name').value.trim() && !r.querySelector('.ng-value').value.trim()) r.remove(); });
+            rows.forEach(r => this.addNumGameRow(list, r.name, r.value));
+            window.App.Ui.showToast(`${rows.length}項目を追加しました`);
+            close();
+        };
+    },
+
     addBjCardInput: function (parent, index, text = "", value = "") {
         const idx = (index !== undefined) ? index : parent.children.length;
         const row = document.createElement('div');
@@ -1808,7 +1916,7 @@ window.App.Creator = {
         const subSel = document.getElementById('creator-opt-subtype') || document.getElementById('creator-q-subtype');
         // 'num_group' has exactly one leaf subtype ('blackjack') so renderForm
         // never shows/populates a subtype dropdown for it — resolve it directly.
-        const groupDefaults = { num_group: 'blackjack' };
+        const groupDefaults = { num_group: 'numgame' };
 
         // renderForm() が最後に描いた形式（choice_single/free_oral など）を
         // 正とする — 選択式/ダウトは解答形式プルダウンを持たなくなったので、
@@ -1917,6 +2025,12 @@ window.App.Creator = {
             const opts = [];
             document.querySelectorAll('.multi-text-input').forEach(inp => { if (inp.value.trim()) opts.push(inp.value.trim()); });
             newQ.c = opts; newQ.correct = opts;
+        } else if (normalizedType === 'numgame') {
+            newQ.items = this.readNumGameItems();
+            newQ.target = parseInt(document.getElementById('ng-target')?.value) || 0;
+            newQ.unit = (document.getElementById('ng-unit')?.value || '').trim();
+            newQ.ngRule = document.getElementById('ng-rule')?.value === 'burst' ? 'burst' : 'blackjack';
+            newQ.correct = null;
         } else if (normalizedType === 'blackjack') {
             const target = parseInt(document.getElementById('bj-target')?.value) || 21;
             const cardTexts = [], cardValues = [];
@@ -1942,7 +2056,7 @@ window.App.Creator = {
         const qText = (document.getElementById('question-text') || {}).value || '';
         const sel = document.getElementById('creator-q-type');
         const subSel = document.getElementById('creator-opt-subtype') || document.getElementById('creator-q-subtype');
-        const groupDefaults = { num_group: 'blackjack' };
+        const groupDefaults = { num_group: 'numgame' };
 
         // 今描いている形式（this.currentType）を最優先 — 読込用の形式プルダウン
         // には前の形式が残っていることがあり、選択式の「正解」画面が一問一答
@@ -1999,6 +2113,11 @@ window.App.Creator = {
             const opts = [];
             document.querySelectorAll('.multi-text-input').forEach(inp => { if (inp.value.trim()) opts.push(inp.value.trim()); });
             data.c = opts; data.correct = opts;
+        } else if (type === 'numgame') {
+            data.items = this.readNumGameItems(true);
+            data.target = parseInt(document.getElementById('ng-target')?.value) || 0;
+            data.unit = (document.getElementById('ng-unit')?.value || '').trim();
+            data.ngRule = document.getElementById('ng-rule')?.value === 'burst' ? 'burst' : 'blackjack';
         } else if (type === 'blackjack') {
             data.target = parseInt(document.getElementById('bj-target')?.value) || 21;
             const cardTexts = [];
@@ -2240,6 +2359,20 @@ window.App.Creator = {
             return;
         }
 
+        if (type === 'numgame') {
+            // 数字予想は正解の一枚絵がない — 項目の数が1つずつ公開されていく
+            const unitTxt = data.unit || '';
+            container.innerHTML = `
+                <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;">
+                    <div style="text-align:center;">
+                        <div style="font-size:0.62rem; color:#888; letter-spacing:1px; margin-bottom:4px;">${data.ngRule === 'burst' ? 'この数を超えさせたら負け' : 'この数に一番近づけた人が勝ち'}</div>
+                        <div style="font-size:clamp(1.4rem,5vw,2.4rem); font-weight:900; color:#ffd700;">${data.target || 0}${unitTxt}</div>
+                        <p style="color:#666; font-size:0.62rem; margin-top:6px;">項目の数は、選ばれるたびにモニターで1つずつ公開されます（${(data.items || []).length}項目）</p>
+                    </div>
+                </div>
+            `;
+            return;
+        }
         if (type === 'blackjack') {
             // No fixed "correct answer" to reveal — it's a live card draw
             // against a target, so just surface the target number instead.

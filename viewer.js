@@ -592,6 +592,10 @@ window.App.Viewer = {
             this.renderBombGrid(st.cards);
         }
         // --- BLACKJACK FINAL RESULT ---
+        else if (st.step === 'numgame') {
+            statusDiv.textContent = "NUMBER GAME";
+            this.renderNumGame(viewContainer, mainText, st);
+        }
         else if (st.step === 'bj_result') {
             statusDiv.textContent = "RESULT";
             this.applyDefaultDesign(viewContainer, null);
@@ -1377,7 +1381,125 @@ window.App.Viewer = {
         contentBox.innerHTML = html;
     },
 
+    // 数字予想（numgame）のモニター: 左に各プレイヤーの合計（超えたら負けは
+    // 全体の合計）、右に項目の盤面（選ばれた項目は数を表示）。選ばれた瞬間は
+    // 項目名と数を大きく公開し、最後は結果発表。
+    _ngSeqShown: 0,
+    renderNumGame: function (container, mainText, st) {
+        const ng = st.ng || {};
+        const q = this.questions[st.qIndex] || {};
+        const d = q.design || {};
+        this.applyDefaultDesign(container, { mainBgColor: d.mainBgColor || '#0a0a0a', bgImage: d.bgImage });
+        const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const unit = esc(ng.unit || '');
+        const isBJ = ng.rule !== 'burst';
+        const items = ng.items || [];
+        const values = ng.values || {};
+        const used = new Set((ng.used || []).map(Number));
+        const out = ng.out || {};
+        const order = ng.order || [];
+        const names = ng.names || {};
+        const totals = ng.totals || {};
+        mainText.style.flexDirection = 'column';
+        mainText.style.justifyContent = 'flex-start';
+        mainText.style.alignItems = 'stretch';
+
+        // 結果発表
+        if (ng.finished && ng.showResult) {
+            const r = ng.result || {};
+            const big = isBJ
+                ? ((r.winners || []).length ? `🏆 ${(r.winners || []).map(esc).join('・')}` : '勝者なし')
+                : (r.loser ? `💥 ${esc(r.loser)}` : '引き分け');
+            mainText.innerHTML = `
+                <div style="height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; font-family:'M PLUS 1p',sans-serif; padding:0 4vw;">
+                    <div style="font-size:4vh; color:#ccc; font-weight:900; letter-spacing:0.2em; margin-bottom:2vh;">${isBJ ? '勝者' : '負け'}</div>
+                    <div style="font-size:11vh; font-weight:900; color:${isBJ ? '#ffd700' : '#ff5a5a'}; line-height:1.15; text-shadow:0 0 40px rgba(0,0,0,0.6);">${big}</div>
+                    <div style="font-size:3.4vh; color:#fff; margin-top:3vh; font-weight:bold;">${esc(r.text || '')}</div>
+                    ${isBJ ? `<div style="display:flex; flex-wrap:wrap; justify-content:center; gap:1.5vh 2vw; margin-top:4vh;">${order.map(id => `
+                        <div style="padding:1vh 2vw; border-radius:1.2vh; background:rgba(255,255,255,0.08); border:0.3vh solid ${out[id] === 'bust' ? '#ff5a5a' : 'rgba(255,255,255,0.25)'}; color:#fff; font-size:3vh; font-weight:bold;">
+                            ${esc(names[id])}：<span style="color:${out[id] === 'bust' ? '#ff5a5a' : '#ffd700'};">${totals[id] || 0}${unit}</span></div>`).join('')}</div>` : ''}
+                </div>`;
+            return;
+        }
+
+        // 左: 合計の一覧（超えたら負けは全体の合計を大きく）
+        const scoreHtml = isBJ
+            ? order.map(id => {
+                const isTurn = id === ng.turn && !ng.finished;
+                const t = totals[id] || 0;
+                const st2 = out[id];
+                return `<div style="display:flex; align-items:center; gap:1vw; padding:1.2vh 1.2vw; border-radius:1.2vh; margin-bottom:1vh;
+                        background:${isTurn ? 'rgba(255,215,0,0.18)' : 'rgba(255,255,255,0.06)'}; border:0.3vh solid ${isTurn ? '#ffd700' : 'transparent'}; opacity:${st2 ? 0.6 : 1};">
+                    <span style="flex:1; min-width:0; color:#fff; font-size:3vh; font-weight:900; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${isTurn ? '▶ ' : ''}${esc(names[id])}</span>
+                    <span style="color:${st2 === 'bust' ? '#ff5a5a' : '#ffd700'}; font-size:3.6vh; font-weight:900;">${t}<span style="font-size:0.55em;">${unit}</span></span>
+                    ${st2 ? `<span style="font-size:1.8vh; color:${st2 === 'bust' ? '#ff5a5a' : '#aaa'}; font-weight:bold;">${st2 === 'bust' ? '超えた' : 'ストップ'}</span>` : ''}
+                </div>`;
+            }).join('')
+            : `<div style="text-align:center; margin-bottom:2vh;">
+                    <div style="color:#ccc; font-size:2.4vh; font-weight:bold;">いまの合計</div>
+                    <div style="color:${(ng.shared || 0) > ng.target ? '#ff5a5a' : '#ffd700'}; font-size:10vh; font-weight:900; line-height:1.1;">${ng.shared || 0}<span style="font-size:0.35em;">${unit}</span></div>
+                    <div style="height:1.6vh; border-radius:1vh; background:rgba(255,255,255,0.12); overflow:hidden; margin-top:1vh;"><div style="height:100%; width:${Math.min(100, Math.round((ng.shared || 0) / (ng.target || 1) * 100))}%; background:linear-gradient(90deg,#22c55e,#fbbf24,#ef4444);"></div></div>
+                </div>` + order.map(id => {
+                    const isTurn = id === ng.turn && !ng.finished;
+                    return `<div style="padding:0.8vh 1vw; border-radius:1vh; margin-bottom:0.8vh; background:${isTurn ? 'rgba(255,215,0,0.18)' : 'rgba(255,255,255,0.06)'}; border:0.3vh solid ${isTurn ? '#ffd700' : 'transparent'}; color:#fff; font-size:2.6vh; font-weight:bold;">${isTurn ? '▶ ' : ''}${esc(names[id])}</div>`;
+                }).join('');
+
+        // 右: 項目の盤面
+        const cols = items.length > 60 ? 8 : items.length > 30 ? 6 : items.length > 12 ? 5 : 4;
+        const cell = items.map((name, i) => {
+            const isUsed = used.has(i);
+            const isLast = ng.last && ng.last.idx === i;
+            return `<div style="border-radius:0.9vh; padding:0.5vh 0.4vw; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:0; overflow:hidden;
+                    background:${isLast ? '#ffd700' : isUsed ? 'rgba(255,255,255,0.08)' : 'linear-gradient(135deg,#2563eb,#7c3aed)'}; color:${isLast ? '#1a1000' : isUsed ? '#888' : '#fff'};">
+                <div style="font-size:${cols >= 8 ? 1.5 : cols >= 6 ? 1.8 : 2.2}vh; font-weight:bold; line-height:1.15; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%;">${esc(name)}</div>
+                ${isUsed ? `<div style="font-size:${cols >= 8 ? 1.7 : 2.2}vh; font-weight:900; color:${isLast ? '#1a1000' : '#ffd700'};">${values[i] ?? ''}${unit}</div>` : ''}
+            </div>`;
+        }).join('');
+        const rows = Math.ceil(items.length / cols) || 1;
+
+        mainText.innerHTML = `
+            <div style="display:flex; flex-direction:column; height:100%; padding:2vh 2vw; box-sizing:border-box; font-family:'M PLUS 1p',sans-serif;">
+                <div style="display:flex; align-items:baseline; gap:2vw; margin-bottom:1.5vh;">
+                    <div style="flex:1; min-width:0; color:#fff; font-size:3.4vh; font-weight:900; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(ng.theme || q.q || '')}</div>
+                    <div style="color:#ffd700; font-size:3vh; font-weight:900; white-space:nowrap;">${isBJ ? `目標 ${ng.target}${unit}（超えたら脱落）` : `${ng.target}${unit} を超えたら負け`}</div>
+                </div>
+                <div style="flex:1; min-height:0; display:flex; gap:2vw;">
+                    <div style="flex:0 0 26%; overflow:hidden;">${scoreHtml}</div>
+                    <div style="flex:1; min-width:0; display:grid; grid-template-columns:repeat(${cols}, 1fr); grid-template-rows:repeat(${rows}, 1fr); gap:0.6vh;">${cell}</div>
+                </div>
+            </div>`;
+
+        // 選ばれた瞬間: 項目名と数を大きく公開（同じ選択は1回だけ）
+        const last = ng.last;
+        if (last && ng.seq && ng.seq !== this._ngSeqShown) {
+            this._ngSeqShown = ng.seq;
+            const ov = document.createElement('div');
+            ov.style.cssText = 'position:fixed; inset:0; z-index:3000; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.72); pointer-events:none;';
+            ov.innerHTML = last.stand
+                ? `<div style="text-align:center; color:#fff; font-family:'M PLUS 1p',sans-serif;"><div style="font-size:5vh; font-weight:900;">${esc(last.name)} さんは</div><div style="font-size:13vh; font-weight:900; color:#94a3b8;">ストップ</div><div style="font-size:5vh; font-weight:900; color:#ffd700;">合計 ${last.total}${unit}</div></div>`
+                : `<div style="text-align:center; color:#fff; font-family:'M PLUS 1p',sans-serif;">
+                    <div style="font-size:4vh; font-weight:bold; color:#ccc;">${esc(last.name)} さんが選んだのは</div>
+                    <div style="font-size:9vh; font-weight:900; margin:1vh 0;">${esc(last.item)}</div>
+                    <div class="ng-count" style="font-size:16vh; font-weight:900; color:#ffd700; line-height:1;">0${unit}</div>
+                    <div style="font-size:4.5vh; font-weight:900; margin-top:2vh; color:${last.bust ? '#ff5a5a' : '#fff'};">${isBJ ? `合計 ${last.total}${unit}` : `全体 ${last.total}${unit}`}${last.bust ? '　超えた！' : ''}</div>
+                </div>`;
+            document.getElementById('viewer-content')?.appendChild(ov);
+            const counter = ov.querySelector('.ng-count');
+            if (counter) {
+                const to = Number(last.value) || 0, start = performance.now(), dur = 1200;
+                const tick = (now) => {
+                    const t = Math.min(1, (now - start) / dur);
+                    counter.innerHTML = `${Math.round(to * (1 - Math.pow(1 - t, 3))).toLocaleString()}${unit}`;
+                    if (t < 1) requestAnimationFrame(tick);
+                };
+                requestAnimationFrame(tick);
+            }
+            setTimeout(() => { ov.style.transition = 'opacity 0.4s'; ov.style.opacity = '0'; setTimeout(() => ov.remove(), 450); }, 3200);
+        }
+    },
+
     getAnswerString: function (q) {
+        if (q && q.type === 'numgame') return `${(q.items || []).length}項目・目標${q.target || 0}${q.unit || ''}`;
         if (!q) return "";
         if (q.type === 'choice' && q.c) {
             if (Array.isArray(q.correct)) return q.correct.map(idx => q.c[idx]).join(' / ');

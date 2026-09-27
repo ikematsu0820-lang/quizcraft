@@ -1598,3 +1598,48 @@ body.written-buzz #player-game-view .hw-actions { justify-content: flex-end; }
 #player-game-view .player-multi-item.is-revealed .multi-text-revealed,
 #player-game-view .player-multi-item .multi-text-revealed { color: #fff !important; font-weight: 900; }
 #player-game-view .player-multi-item.is-missed { background: rgba(225, 29, 72, 0.55) !important; }
+
+
+/* =========================================================
+ * 数字予想（numgame）の回答者画面
+ * =======================================================*/
+#player-numgame { display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0; }
+#player-numgame.hidden { display: none !important; }
+#player-numgame .ng-head {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px;
+    background: rgba(255, 255, 255, 0.96); color: #1f2937; border-radius: 14px; padding: 8px 14px;
+    box-shadow: 0 6px 18px rgba(30, 27, 75, 0.3);
+}
+#player-numgame .ng-theme { flex: 1; min-width: 0; font-weight: 900; }
+#player-numgame .ng-score { font-size: 0.9em; color: #374151; }
+#player-numgame .ng-score b { color: #d97706; font-size: 1.15em; }
+#player-numgame .ng-status {
+    text-align: center; font-weight: 900; color: #fff; padding: 6px 10px; border-radius: 12px;
+    background: rgba(255, 255, 255, 0.16);
+}
+#player-numgame .ng-status small { display: block; font-weight: bold; opacity: 0.9; font-size: 0.8em; margin-top: 2px; }
+#player-numgame .ng-status.mine { background: #fbbf24; color: #1f2937; animation: pulse 1.4s infinite; }
+#player-numgame .ng-status.win { background: #059669; font-size: 1.3em; }
+#player-numgame .ng-status.lose { background: rgba(225, 29, 72, 0.8); font-size: 1.2em; }
+#player-numgame .ng-stand-btn {
+    align-self: center; padding: 8px 22px; border-radius: 999px; border: none; font-weight: 900;
+    background: #fff; color: #7c3aed; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); cursor: pointer;
+}
+#player-numgame .ng-grid {
+    flex: 1; min-height: 0; overflow-y: auto;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; align-content: start;
+    padding-bottom: 8px;
+}
+#player-numgame .ng-item {
+    min-height: 52px; padding: 6px; border: none; border-radius: 10px; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    background: linear-gradient(135deg, #2563eb, #7c3aed); color: #fff; font-weight: bold; font-size: 0.85em;
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.22);
+}
+#player-numgame .ng-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+#player-numgame .ng-item:disabled:not(.used) { opacity: 0.55; cursor: default; }
+#player-numgame .ng-item.used { background: rgba(255, 255, 255, 0.12); color: rgba(255, 255, 255, 0.6); box-shadow: none; }
+#player-numgame .ng-item.used b { color: #fbbf24; }
+@media (orientation: landscape) {
+    #player-numgame .ng-grid { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); }
+}

@@ -10,7 +10,8 @@ App.Config = {
         let isOral = false;
         let qType = 'choice';
         const isDobon = questions.some(q => q.mode === 'dobon' || (q.type === 'choice' && q.mode === 'multi'));
-        const isBlackjack = questions.some(q => q.type === 'blackjack');
+        // 数字予想（numgame）も順番に回すゲームなので同じ扱い（解答権は順番のみ）
+        const isBlackjack = questions.some(q => q.type === 'blackjack' || q.type === 'numgame');
         // 口頭で答える問題が1問でもあれば、手元で一斉に解答する形式は不可
         const hasOral = questions.some(q => q && typeof q.type === 'string' && q.type.endsWith('_oral'));
 

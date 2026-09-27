@@ -4517,3 +4517,6 @@ input:checked+.pro-slider:before {
     backdrop-filter: none !important;
     display: inline-block !important;
 }
+
+/* 出題者画面: 数字予想の間は解答ボードの代わりにゲームの進行を出す */
+#host-control-view.numgame-active .simple-player-section { display: none !important; }
