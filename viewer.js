@@ -1225,7 +1225,7 @@ window.App.Viewer = {
             if (q.title) {
                 // タイトル（一問一答で「タイトルを追加」した時）— 問題文の上に出す
                 const titleColor = (textColor === 'transparent') ? 'transparent' : (d.qTitleColor || '#ffd700');
-                html += `<div style="width:96%; display:flex; flex-direction:column; align-items:center;"><div class="q-title" style="width:100%; box-sizing:border-box; text-align:${d.qTitleAlign || 'center'}; font-size:${d.qTitleFontSize || '4.5vh'};${d.qTitleBorderColor ? ` border:4px solid ${d.qTitleBorderColor}; border-radius:12px; padding:1vh 2vw;` : ''}${d.qTitleBgColor ? ` background:${d.qTitleBgColor}; border-radius:12px; padding:1vh 2vw;` : ''} font-weight:900; color:${titleColor}; margin-bottom:1.5vh; letter-spacing:0.1em;${titleColor === 'transparent' ? ' text-shadow:none;' : ' text-shadow:0 2px 12px rgba(0,0,0,0.6);'}">${q.title}</div>${qAreaHtml}</div>`;
+                html += `<div style="width:96%; display:flex; flex-direction:column; align-items:center;"><div class="q-title" style="width:100%; box-sizing:border-box; text-align:${d.qTitleAlign || 'center'}; font-size:${d.qTitleFontSize || '4vh'};${d.qTitleBorderColor ? ` border:4px solid ${d.qTitleBorderColor}; border-radius:12px; padding:1vh 2vw;` : ''}${d.qTitleBgColor ? ` background:${d.qTitleBgColor}; border-radius:12px; padding:1vh 2vw;` : ''} font-weight:900; color:${titleColor}; margin-bottom:1.5vh; letter-spacing:0.1em;${titleColor === 'transparent' ? ' text-shadow:none;' : ' text-shadow:0 2px 12px rgba(0,0,0,0.6);'}">${q.title}</div>${qAreaHtml}</div>`;
             } else {
                 html += qAreaHtml;
             }
@@ -1256,7 +1256,7 @@ window.App.Viewer = {
                 ? `width:28vw; height:80vh; margin:0 3vw;`
                 : `width:96%;`;
             // ${q.q} sits directly against the tags — see the note above.
-            html += `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align};${d.qFontSize ? ` font-size:${d.qFontSize};` : ''} ${qAreaStyle}${qBoxSizeStyle}${qBackdropStyle}${qTextShadowStyle}">${q.q}</div>`;
+            html += `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align}; font-size:${d.qFontSize || '6vh'}; ${qAreaStyle}${qBoxSizeStyle}${qBackdropStyle}${qTextShadowStyle}">${q.q}</div>`;
 
             if (q.c) {
                 const rows = parseInt(d.gridRows) || 0;
@@ -1297,7 +1297,7 @@ window.App.Viewer = {
 
                     const prefixLabel = q.type.startsWith('ranking') ? `${i + 1}位` : String.fromCharCode(65 + i);
 
-                    html += `<div class="choice-item" style="${colorStyle} ${bgStyle} ${bStyle} ${transformStyle}${d.cFontSize ? ` font-size:${d.cFontSize};` : ''} transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+                    html += `<div class="choice-item" style="${colorStyle} ${bgStyle} ${bStyle} ${transformStyle} font-size:${d.cFontSize || '4vh'}; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
                         <span class="choice-prefix" style="color:${isRevealed || isMissed ? '#fff' : '#00e5ff'}; ${isMultiType && !q.type.startsWith('ranking') && !isAssoc ? 'display:none;' : ''}">${prefixLabel}</span>
                         <span style="flex:1; text-align:${d.cAlign || 'left'}; ${isHidden ? 'visibility:hidden;' : ''}">${c}</span>
                     </div>`;

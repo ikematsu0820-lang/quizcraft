@@ -200,6 +200,9 @@ window.App.Creator = {
         window.App.Data.currentDesign.layout = firstQForDesign.layout || window.App.Data.currentDesign.layout || 'standard';
         window.App.Data.currentDesign.align = firstQForDesign.align || window.App.Data.currentDesign.align || 'center';
         window.App.Data.currentDesign.cAlign = firstQForDesign.cAlign || window.App.Data.currentDesign.cAlign || 'left';
+        // 文字の小/中/大を共通の大きさに読み替える（保存済みの確認用スナップ
+        // ショットより前に — 開いただけで「未保存」扱いにならないように）
+        if (window.App.Design) window.App.Design.normalizeFontSizes(window.App.Data.currentDesign);
 
         const btnSave = document.getElementById('save-to-cloud-btn');
         if (btnSave) btnSave.textContent = APP_TEXT.Creator.BtnUpdate;

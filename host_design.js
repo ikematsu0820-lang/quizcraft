@@ -41,6 +41,27 @@ App.Design = {
         return sel;
     },
 
+    // 文字サイズの小/中/大 — 問題文・選択肢・正解・一問一答のタイトルで
+    // 共通（以前は部品ごとに「中」の大きさが違っていた）
+    FONT_SIZES: [
+        { v: '4vh', t: '小' },
+        { v: '6vh', t: '中' },
+        { v: '9vh', t: '大' },
+    ],
+
+    // 以前の部品ごとの値を、同じ呼び名（小/中/大）の共通の大きさに読み替える
+    // （未設定は既定: 問題文=中、選択肢=小、タイトル=小）
+    normalizeFontSizes: function (design) {
+        if (!design) return design;
+        const Q = { '3.5vh': '4vh', '5vh': '6vh', '8vh': '9vh' };
+        const C = { '2.5vh': '4vh', '3.5vh': '6vh', '5vh': '9vh' };
+        const T = { '3vh': '4vh', '4.5vh': '4vh', '6.5vh': '9vh' };
+        design.qFontSize = Q[design.qFontSize] || design.qFontSize || '6vh';
+        design.cFontSize = C[design.cFontSize] || design.cFontSize || '4vh';
+        design.qTitleFontSize = T[design.qTitleFontSize] || design.qTitleFontSize || '4vh';
+        return design;
+    },
+
     selectObject: function (obj) {
         this._selectedObject = obj;
         if (window.App.Creator) {
@@ -60,7 +81,7 @@ App.Design = {
         qTextColor: "#ffffff",
         qBgColor: "rgba(255, 255, 255, 0.05)",
         qBorderColor: "#00bfff",
-        qFontSize: "5vh", // 中（4行）— see Q_SIZE_OPTS in renderInlineChooser
+        qFontSize: "6vh", // 中 — 小/中/大は FONT_SIZES（全部品共通）
         // 問題文の「枠」自体の大きさ（文字サイズとは別）— 空文字なら
         // これまで通り中身に合わせた自動の高さ（＝小）。中/大はそこから
         // 明示的に高さを大きくする。see BOX_SIZE_OPTS.
@@ -68,7 +89,8 @@ App.Design = {
         cTextColor: "#a0a0a0",
         cBgColor: "transparent",
         cBorderColor: "#333333",
-        cFontSize: "3.5vh", // 中 — see C_SIZE_OPTS in renderInlineChooser
+        cFontSize: "4vh", // 小 — 選択肢は行が多いので既定は小
+        qTitleFontSize: "4vh", // 小
         align: "center",
         cAlign: "left",
         layout: "top",
@@ -155,6 +177,7 @@ App.Design = {
     renderInlineChooser: function (container, design, onChange) {
         if (!container) return;
         design.layout = this.normalizeLayout(design.layout);
+        this.normalizeFontSizes(design);
 
         // Compact color swatches, 3-5 per row (no hex text field taking up
         // room — the current value is still available as a hover tooltip).
@@ -214,32 +237,17 @@ App.Design = {
         // ことになるので、Wordのフォントサイズのように選ぶだけのプリ
         // セットにする。文字サイズと「枠の大きさ」（BOX_SIZE_OPTS）は
         // 別の設定 — 混同しないよう、ここに行数の話は含めない。
-        const Q_SIZE_OPTS = [
-            { v: '3.5vh', t: '小' },
-            { v: '5vh', t: '中' },
-            { v: '8vh', t: '大' },
-        ];
+        // 文字の小/中/大は、問題文・選択肢・正解・タイトルで共通の大きさ
+        // （App.Design.FONT_SIZES）— 形式や部品によって意味が変わらないように
+        const Q_SIZE_OPTS = this.FONT_SIZES;
         // 問題文の上下位置（枠を「中/大」にした時に効く）
         const V_ALIGN_OPTS = [{ v: '', t: '上' }, { v: 'middle', t: '中央' }, { v: 'bottom', t: '下' }];
         // 一問一答のタイトル（問題文の上）の文字サイズ
-        const Q_TITLE_SIZE_OPTS = [
-            { v: '3vh', t: '小' },
-            { v: '', t: '中' },
-            { v: '6.5vh', t: '大' },
-        ];
+        const Q_TITLE_SIZE_OPTS = this.FONT_SIZES;
         // 正解表示の文字サイズ — 自動＝正解の長さで決める（従来どおり）
-        const REVEAL_SIZE_OPTS = [
-            { v: '', t: '自動' },
-            { v: '4vh', t: '小' },
-            { v: '6vh', t: '中' },
-            { v: '9vh', t: '大' },
-        ];
+        const REVEAL_SIZE_OPTS = [{ v: '', t: '自動' }].concat(this.FONT_SIZES);
         // 選択肢の文字サイズも同じ理由でプリセット化。
-        const C_SIZE_OPTS = [
-            { v: '2.5vh', t: '小' },
-            { v: '3.5vh', t: '中' },
-            { v: '5vh', t: '大' },
-        ];
+        const C_SIZE_OPTS = this.FONT_SIZES;
         // 問題文の「枠」自体の大きさ（文字サイズとは別） — 小＝これまで
         // 通りの自動の高さ（前回の枠の大きさ）、中＝その約2倍、大＝約3倍。
         const BOX_SIZE_OPTS = [
