@@ -4439,3 +4439,23 @@ input:checked+.pro-slider:before {
 #select-type-view h3 {
     margin-bottom: 14px !important;
 }
+
+/* 問題作成のパネル内タブ（デザイン: テキスト/オブジェクト…、ルール設定:
+   解答形式/誤答時処理…、その他: ホーム/一括追加）の高さ・文字をそろえる */
+#creator-view .design-subtab-btn,
+#creator-view .creator-rules-subtab-btn,
+#creator-view .creator-edit-subtab-btn {
+    height: 26px !important;
+    min-height: 0 !important;
+    padding: 0 2px !important;
+    font-size: 0.72rem !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+}
+#creator-view #creator-rules-subtabs,
+#creator-view #creator-edit-subtabs,
+#creator-view #creator-inline-design > div:first-child {
+    margin: -4px -4px 10px !important;
+}
