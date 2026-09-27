@@ -57,6 +57,10 @@ App.Config = {
     applyModeRestrictions: function (conf, questions) {
         const { qType, isDobon, isBlackjack, isOral } = this.deriveTypeInfo(questions);
         let mode = conf.mode || 'normal';
+        const firstType = ((questions || [])[0] || {}).type || '';
+        // 選択式に「特定の人や順番で解答」は無い／指名は対応する形式だけ
+        if (mode === 'turn' && firstType === 'choice' && !isDobon) mode = 'normal';
+        if (mode === 'nominate' && (isBlackjack || isDobon || !(firstType.startsWith('free') || firstType.startsWith('assoc') || firstType === 'choice' || firstType === 'sort' || firstType === 'letter_select'))) mode = 'buzz';
         if (isOral && mode === 'normal') {
             // 口頭で答える — 手元で一斉に解答はできないので早押しにする
             mode = 'buzz';
@@ -251,11 +255,17 @@ App.Config = {
         // by the host at load time (プログラム/セットの読込 screen), as a
         // per-session override on top of whatever mode the set was created
         // with. See host_studio.js loadProgramList()/setupPeriod().
+        const firstType = ((questions || [])[0] || {}).type || '';
+        const isPlainChoice = firstType === 'choice' && !isDobon;
+        // 指名された人のみ解答 — 一問一答・連想・選択式・並べ替えで使える
+        const canNominate = !isBlackjack && !isDobon && (firstType.startsWith('free') || firstType.startsWith('assoc') || firstType === 'choice' || firstType === 'sort' || firstType === 'letter_select');
         const modes = [
             { value: 'normal', label: '全員が同時に手元で解答', disabled: isBlackjack || isOral || isDobon || (qType && (qType.startsWith('multi') || qType.startsWith('ranking'))) },
             { value: 'buzz', label: '早く押した人から解答', disabled: isBlackjack || isDobon },
-            { value: 'turn', label: '特定の人や順番で解答', disabled: false }
-        ];
+            { value: 'nominate', label: '指名された人のみ解答', disabled: !canNominate },
+            // 選択式は「特定の人や順番で解答」を使わない（ダウトは順番で使う）
+            { value: 'turn', label: '特定の人や順番で解答', disabled: isPlainChoice }
+        ].filter(m => !(m.value === 'turn' && isPlainChoice) && !(m.value === 'nominate' && !canNominate));
         let current = conf.mode || 'normal';
         if (modes.find(m => m.value === current)?.disabled) current = modes.find(m => !m.disabled).value;
         conf.mode = current;

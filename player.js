@@ -579,7 +579,16 @@ function updateUI() {
         const isMultipleAttempts = (roomConfig.mode === 'normal' && roomConfig.answerAttempts === 'multiple');
 
         // ★ Turn Mode: Only currentAnswerer can answer
-        if (st.isTurnMode && st.currentAnswerer && st.currentAnswerer !== myPlayerId) {
+        // 指名された人のみ解答: 指名されるまで（currentAnswerer が空の間）も誰も答えられない
+        if (st.isNominateMode && st.currentAnswerer !== myPlayerId && p.lastResult !== 'win' && p.lastResult !== 'lose') {
+            buzzArea.classList.add('hidden');
+            toggleInputEnabled(false);
+            const changeArea = document.getElementById('change-btn-area');
+            if (changeArea) changeArea.innerHTML = '';
+            waitMsg.classList.remove('hidden');
+            waitMsg.style.background = ''; waitMsg.style.color = ''; waitMsg.style.border = ''; waitMsg.style.padding = '';
+            waitMsg.innerHTML = st.currentAnswerer ? `${st.currentAnswererName || '他のプレイヤー'} さんが解答中です` : '司会者の指名を待っています';
+        } else if (st.isTurnMode && st.currentAnswerer && st.currentAnswerer !== myPlayerId) {
             buzzArea.classList.add('hidden');
             toggleInputEnabled(false);
             const changeArea = document.getElementById('change-btn-area');

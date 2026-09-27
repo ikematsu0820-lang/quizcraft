@@ -1243,11 +1243,17 @@ App.Studio = {
                     syncBadge.textContent = "ACTIVE";
                     syncBadge.style.background = "#e74c3c";
 
+                    // 指名された人のみ解答: 出題者が参加者リストから指名するまで誰も答えられない
+                    const isNominate = App.Data.currentConfig.mode === 'nominate';
+                    this._nominatedId = null;
                     window.db.ref(`rooms/${roomId}/status`).update({
                         step: 'reveal_q',
                         qIndex: App.State.currentQIndex,
-                        qText: currentQ.q
+                        qText: currentQ.q,
+                        isNominateMode: isNominate,
+                        ...(isNominate ? { isTurnMode: true, currentAnswerer: null, currentAnswererName: null } : {})
                     });
+                    if (isNominate) App.Ui.showToast('「参加者リスト」で名前を押して解答者を指名してください');
 
                     // Start time limit for normal mode
                     this.startTimeLimit(roomId);
@@ -1873,6 +1879,7 @@ App.Studio = {
     },
 
     resetPlayerStatus: function () {
+        this._nominatedId = null;
         this._deskSelected = null; // 新しい問題では解答ボードは「回答待ち」から
         const roomId = App.State.currentRoomId;
         this.revealedMultiIndices = {}; // Reset multi-answer reveal state
@@ -1898,6 +1905,7 @@ App.Studio = {
             currentAnswererName: null,
             isBuzzActive: false, // Will be re-enabled by setStep if needed
             takenChoices: null,  // Reset taken choices for next question
+            isNominateMode: null, // 指名モードは出題時（step 2）に付け直す
             resultShowWinners: null,
             resultWinners: null
         });
@@ -2665,6 +2673,7 @@ App.Studio = {
         const mode = (App.Data.currentConfig || {}).mode;
         let activeId = null;
         if (mode === 'buzz') activeId = this.buzzWinner || null;
+        else if (mode === 'nominate') activeId = this._nominatedId || null;
         else if ((mode === 'turn' || mode === 'solo') && [2, 3].includes(this.currentStepId) && this.turnOrder && this.turnOrder.length) {
             activeId = this.turnOrder[this.turnIndex] || null;
         }
@@ -2769,11 +2778,30 @@ App.Studio = {
         grid.innerHTML = players.length ? players.map(p => {
             const answered = p.lastAnswer !== null && p.lastAnswer !== undefined && p.lastAnswer !== '';
             const out = p.isAlive === false;
-            return `<div style="padding:10px 8px; border-radius:10px; background:#222; border:1px solid ${answered ? '#ef4444' : '#444'}; text-align:center; opacity:${out ? 0.45 : 1};">
+            const canNominate = (App.Data.currentConfig || {}).mode === 'nominate' && [2, 3].includes(this.currentStepId) && !out;
+            const nominated = this._nominatedId === p.id;
+            return `<div ${canNominate ? `data-nominate="${p.id}"` : ''} style="padding:10px 8px; border-radius:10px; background:${nominated ? 'rgba(239,68,68,0.25)' : '#222'}; border:1px solid ${nominated ? '#ef4444' : answered ? '#ef4444' : '#444'}; text-align:center; opacity:${out ? 0.45 : 1}; cursor:${canNominate ? 'pointer' : 'default'};">
                 <div style="color:#fff; font-weight:900; font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${this._esc(p.name || '---')}</div>
-                <div style="color:#94a3b8; font-size:11px; margin-top:4px;">${p.periodScore || 0}点${out ? '・脱落' : ''}${answered ? '・解答済み' : ''}</div>
+                <div style="color:#94a3b8; font-size:11px; margin-top:4px;">${p.periodScore || 0}点${out ? '・脱落' : ''}${answered ? '・解答済み' : ''}${nominated ? '・指名中' : canNominate ? '・押して指名' : ''}</div>
             </div>`;
         }).join('') : '<div style="color:#666; font-size:12px;">まだ参加者がいません</div>';
+        grid.querySelectorAll('[data-nominate]').forEach(el => {
+            el.onclick = () => this.nominatePlayer(el.dataset.nominate);
+        });
+    },
+
+    // 指名された人のみ解答: 参加者リストで押した人に解答権を渡す
+    nominatePlayer: function (playerId) {
+        const roomId = App.State.currentRoomId;
+        if (!roomId || (App.Data.currentConfig || {}).mode !== 'nominate') return;
+        if (![2, 3].includes(this.currentStepId)) { App.Ui.showToast('問題を表示してから指名してください'); return; }
+        const p = (App.Data.players || {})[playerId];
+        if (!p) return;
+        this._nominatedId = playerId;
+        this._deskSelected = playerId;
+        window.db.ref(`rooms/${roomId}/status`).update({ currentAnswerer: playerId, currentAnswererName: p.name || '---', isTurnMode: true });
+        App.Ui.showToast(`${p.name || '---'} さんを指名しました`);
+        this.toggleParticipantsPage(false);
     },
 
     // 解答ボード ⇔ 参加者のページ
