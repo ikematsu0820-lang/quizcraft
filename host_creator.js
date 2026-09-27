@@ -1605,6 +1605,9 @@ window.App.Creator = {
             parent.querySelectorAll('.multi-row').forEach((r, i) => {
                 const lbl = r.querySelector('.multi-label');
                 if (lbl) lbl.textContent = isRanking ? `${i + 1}位` : `${i + 1}`;
+                // 入力欄の見本の文字（○位の答え）も番号に合わせて振り直す
+                const inp = r.querySelector('.multi-text-input');
+                if (inp) inp.placeholder = isRanking ? `${i + 1}位の答え` : '正解';
             });
             this.updateRowSizes(parent);
         };
