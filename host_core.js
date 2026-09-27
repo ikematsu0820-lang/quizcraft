@@ -28,6 +28,49 @@ window.App.Data = {
 // 保存時/ルーム送信時はこれらを images 配列に1回だけ持ち、各問題には
 // '@img:N' の参照だけを残す。読む側は unpack() で元に戻す。
 // （フィールド名は画像だけだった頃のまま images — 保存済みデータ互換）
+// 問題が完成しているか — 作りかけ（正解が未入力など）でもリストに追加・
+// 保存はできるが、未完成の問題があるセットは出題できない。足りない
+// ものを配列で返す（空配列なら完成）。問題作成のリストの赤表示と、出題者
+// 画面の読み込み時のチェックで共通に使う。
+window.App.QuizCheck = {
+    missing: function (q) {
+        const miss = [];
+        if (!q) return ['問題'];
+        if (!String(q.q || '').trim()) miss.push('問題文');
+        const t = q.type || '';
+        const arr = (v) => Array.isArray(v) ? v : (v === undefined || v === null || v === '' ? [] : (typeof v === 'object' ? Object.values(v) : [v]));
+        const c = arr(q.c);
+        const correct = arr(q.correct);
+        if (t === 'choice') {
+            if (c.length < 2) miss.push('選択肢（2つ以上）');
+            if (correct.length === 0) miss.push(q.multi ? 'ダウト（×の選択肢）' : '正解');
+        } else if (t === 'sort') {
+            if (c.length < 2) miss.push('項目（2つ以上）');
+            if (typeof q.correct !== 'string' || q.correct.length !== c.length) miss.push('並び順');
+        } else if (t === 'free_written') {
+            if (correct.length === 0) miss.push('正解');
+        } else if (t.startsWith('assoc')) {
+            if (c.length < 1) miss.push('ヒント');
+            if (t === 'assoc_written' && correct.length === 0) miss.push('正解');
+        } else if (t.startsWith('multi') || t.startsWith('ranking')) {
+            if (c.length < 1) miss.push('正解');
+        } else if (t === 'letter_select') {
+            if (arr(q.steps).length === 0) miss.push('文字');
+        } else if (t === 'blackjack') {
+            if (c.length < 2) miss.push('カード（2枚以上）');
+        }
+        return miss;
+    },
+    // セット（問題の配列）の未完成の問題 → [{ no: 1始まり, missing: [...] }]
+    incompleteIn: function (questions) {
+        const list = Array.isArray(questions) ? questions : Object.values(questions || {});
+        return list.map((q, i) => ({ no: i + 1, missing: this.missing(q) })).filter(x => x.missing.length > 0);
+    },
+    describe: function (items) {
+        return items.slice(0, 5).map(x => `Q${x.no}: ${x.missing.join('・')}`).join('\n') + (items.length > 5 ? `\n…ほか${items.length - 5}問` : '');
+    }
+};
+
 window.App.SetImages = {
     PREFIX: '@img:',
     KEYS: ['bgImage', 'bgmThinking', 'seQNum', 'seResult', 'seButton', 'seCorrect', 'seWrong'],
@@ -985,6 +1028,14 @@ window.App.Dashboard = {
     testItem: function (key, type) {
         const data = this.itemCache && this.itemCache[key];
         if (!data) return;
+        // 未完成の問題があるセットはテストプレイもできない
+        if (type === 'set' && data.questions && window.App.QuizCheck) {
+            const bad = window.App.QuizCheck.incompleteIn(data.questions);
+            if (bad.length) {
+                alert(`未完成の問題があるため、このセットは出題できません。\n問題作成で完成させてください。\n\n${window.App.QuizCheck.describe(bad)}`);
+                return;
+            }
+        }
 
         const countStr = prompt("テストプレイのプレイヤー数を入力してください (1〜8)", "2");
         if (countStr === null) return;

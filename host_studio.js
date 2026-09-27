@@ -595,7 +595,8 @@ App.Studio = {
                     this.localSetsCache[set.key] = set;
                     const opt = document.createElement('option');
                     opt.value = `set:${set.key}`;
-                    opt.textContent = `${set.title} (${set.questions?.length || 0}Q)`;
+                    const badN = App.QuizCheck ? App.QuizCheck.incompleteIn(set.questions || []).length : 0;
+                    opt.textContent = `${badN ? '⚠️未完成 ' : ''}${set.title} (${set.questions?.length || 0}Q)`;
                     setGroup.appendChild(opt);
                 });
             }
@@ -646,6 +647,11 @@ App.Studio = {
                 if (!ok) return;
             }
 
+            // 未完成の問題（正解が未入力など）があるセットは出題できない
+            const cached = val.startsWith('set:') ? [this.localSetsCache[val.slice(4)]]
+                : ((this.localProgramsCache[val.slice(5)] || {}).playlist || []);
+            if (!this.checkPlayable(cached)) return;
+
             // 読込画面で選んだ出題の進め方（このセッションだけ有効）
             this._showBridge = document.getElementById('studio-opt-show-bridge')?.checked !== false;
             this._shuffleOverride = document.getElementById('studio-opt-shuffle')?.checked === true;
@@ -688,6 +694,21 @@ App.Studio = {
         App.Dashboard.enter();
         App.Ui.showToast('出題の操作画面を別タブで開きました');
         return true;
+    },
+
+    // セット（プログラムなら全セット）に未完成の問題が無いか。あれば
+    // 足りないものを出して false（出題させない）
+    checkPlayable: function (sets) {
+        if (!App.QuizCheck) return true;
+        const msgs = [];
+        (sets || []).forEach(set => {
+            if (!set) return;
+            const bad = App.QuizCheck.incompleteIn(set.questions || []);
+            if (bad.length) msgs.push(`【${set.title || 'セット'}】\n${App.QuizCheck.describe(bad)}`);
+        });
+        if (!msgs.length) return true;
+        alert(`未完成の問題があるため、このセットは出題できません。\n問題作成で完成させてから、もう一度読み込んでください。\n\n${msgs.join('\n\n')}`);
+        return false;
     },
 
     // 別タブ側: 読込画面で選ばれた内容でルームを引き継いで、すぐ読み込む
@@ -737,6 +758,7 @@ App.Studio = {
                 if (!freshSet) { alert('セットデータが見つかりません'); return; }
                 freshSet.key = key;
                 if (this.localSetsCache) this.localSetsCache[key] = freshSet;
+                if (!this.checkPlayable([freshSet])) return;
                 App.Data.periodPlaylist = [freshSet];
                 applyAndFinalize();
             });
@@ -753,6 +775,7 @@ App.Studio = {
                     alert("⚠️ このプログラムにはセットが登録されていません。");
                     return;
                 }
+                if (!this.checkPlayable(App.Data.periodPlaylist)) return;
                 applyAndFinalize();
             });
         }

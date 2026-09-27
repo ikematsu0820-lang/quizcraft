@@ -1811,8 +1811,8 @@ window.App.Creator = {
                     if (row.querySelector('.choice-correct-chk').checked) corr.push(opts.length - 1);
                 }
             });
-            if (opts.length < 2 || corr.length === 0) { alert(APP_TEXT.Creator.AlertLessChoice); return null; }
-            newQ.c = opts; newQ.correct = corr; newQ.correctIndex = corr[0];
+            // 足りなくても追加・保存はできる（未完成としてリストで赤く表示）
+            newQ.c = opts; newQ.correct = corr; newQ.correctIndex = corr.length ? corr[0] : null;
 
             // Use explicit mode from dropdown
             newQ.mode = choiceMode;
@@ -1828,10 +1828,6 @@ window.App.Creator = {
 
         }
         else if (normalizedType === 'letter_select') {
-            if (this.currentLetterSteps.length === 0) {
-                alert("少なくとも1文字のステップを作成してください");
-                return null;
-            }
             newQ.steps = this.currentLetterSteps;
             newQ.correct = this.currentLetterSteps.map(s => s.correct).join('');
 
@@ -1852,15 +1848,14 @@ window.App.Creator = {
                 }
             });
 
-            if (opts.length < 2) return null;
             newQ.c = opts;
-
-            if (!allRanked) {
-                alert("すべての項目の並び順（番号）を指定してください。");
-                return null;
+            // 並び順が全部決まっていない時は正解なし（未完成として保存できる）
+            if (allRanked) {
+                items.sort((a, b) => a.rank - b.rank);
+                newQ.correct = items.map(o => o.label).join('');
+            } else {
+                newQ.correct = '';
             }
-            items.sort((a, b) => a.rank - b.rank);
-            newQ.correct = items.map(o => o.label).join('');
 
             const sortShuffleChk = document.getElementById('sort-shuffle-chk');
             const doShuffle = sortShuffleChk ? sortShuffleChk.checked : true;
@@ -1868,21 +1863,17 @@ window.App.Creator = {
             newQ.shuffle = doShuffle;
         } else if (normalizedType.startsWith('free')) {
             const ans = document.getElementById('creator-text-answer').value.trim();
-            if (normalizedType === 'free_written' && !ans) { alert(APP_TEXT.Creator.AlertNoTextAns); return null; }
             newQ.correct = ans ? ans.split(',').map(s => s.trim()).filter(s => s) : [];
         } else if (normalizedType.startsWith('assoc')) {
             const ans = document.getElementById('creator-assoc-answer').value.trim();
-            if (normalizedType === 'assoc_written' && !ans) { alert(APP_TEXT.Creator.AlertNoTextAns); return null; }
             newQ.correct = ans ? ans.split(',').map(s => s.trim()).filter(s => s) : [];
 
             const opts = [];
             document.querySelectorAll('.assoc-text-input').forEach(inp => { if (inp.value.trim()) opts.push(inp.value.trim()); });
-            if (opts.length < 1) return null; // require at least 1 hint maybe? or 5? Let's say at least 1 for flexibility.
             newQ.c = opts;
         } else if (normalizedType.startsWith('multi') || normalizedType.startsWith('ranking')) {
             const opts = [];
             document.querySelectorAll('.multi-text-input').forEach(inp => { if (inp.value.trim()) opts.push(inp.value.trim()); });
-            if (opts.length < 1) return null;
             newQ.c = opts; newQ.correct = opts;
         } else if (normalizedType === 'blackjack') {
             const target = parseInt(document.getElementById('bj-target')?.value) || 21;
@@ -1893,7 +1884,6 @@ window.App.Creator = {
                 const val = parseInt(valInp?.value) || 0;
                 if (txt) { cardTexts.push(txt); cardValues.push(val); }
             });
-            if (cardTexts.length < 2) { alert('カードを2枚以上追加してください'); return null; }
             newQ.target = target;
             newQ.c = cardTexts;
             newQ.values = cardValues;
@@ -2276,6 +2266,8 @@ window.App.Creator = {
             q.align = 'center';
 
             window.App.Data.createdQuestions.push(q);
+            const addMissing = window.App.QuizCheck ? window.App.QuizCheck.missing(q) : [];
+            if (addMissing.length) setTimeout(() => window.App.Ui.showToast(`未完成のまま追加しました（${addMissing.join('・')}）`), 50);
             // 次の問題を書けるよう、プレビューは問題の画面に戻す（結果/ブリッジ等の
             // 見本が重なったままだと問題文の入力欄が覆われて打てなかった）
             if (this.previewSlide !== 'question') this.setPreviewSlide('question');
@@ -2495,14 +2487,17 @@ ${spec.placeholder}" style="
             const displayQ = q.q.length > 20 ? q.q.substring(0, 20) + "..." : q.q;
             const shuffleIcon = (q.type === 'choice' || q.type === 'sort') && q.shuffle !== false ? ' 🔀' : '';
             const isEditing = this.editingIndex === i;
+            // 未完成（正解が未入力など）の問題は赤く — このままだと出題できない
+            const missing = window.App.QuizCheck ? window.App.QuizCheck.missing(q) : [];
+            const bad = missing.length > 0;
             return `
                 <div class="creator-qlist-row" data-idx="${i}" style="
                     display:flex; align-items:center; gap:8px; padding:6px 8px; margin-bottom:4px;
                     border-radius:8px; cursor:pointer;
-                    border:1px solid ${isEditing ? '#00e5ff' : '#333'};
-                    background:${isEditing ? 'rgba(0,229,255,0.08)' : '#1a1a1a'};
+                    border:1px solid ${isEditing ? '#00e5ff' : bad ? '#ef4444' : '#333'};
+                    background:${bad ? 'rgba(239,68,68,0.14)' : isEditing ? 'rgba(0,229,255,0.08)' : '#1a1a1a'};
                 ">
-                    <span style="flex:1; font-size:0.8rem; color:${isEditing ? '#00e5ff' : '#ddd'};">Q${i + 1}. ${displayQ}${shuffleIcon}</span>
+                    <span style="flex:1; min-width:0; font-size:0.8rem; color:${isEditing ? '#00e5ff' : bad ? '#fca5a5' : '#ddd'};">Q${i + 1}. ${displayQ}${shuffleIcon}${bad ? `<span style="margin-left:8px; font-size:0.7rem; color:#f87171; font-weight:bold;">未完成：${missing.join('・')}</span>` : ''}</span>
                     <button class="creator-qlist-del" data-idx="${i}" title="削除" style="
                         background:none; border:none; color:rgba(255,255,255,0.35); font-size:0.9rem; cursor:pointer; padding:2px 6px; flex-shrink:0;
                     ">×</button>
@@ -2510,8 +2505,10 @@ ${spec.placeholder}" style="
             `;
         }).join('');
 
+        const badCount = window.App.QuizCheck ? window.App.QuizCheck.incompleteIn(questions).length : 0;
         list.innerHTML = `
             <div style="color:#94a3b8; font-size:0.75rem; font-weight:bold; margin-bottom:6px;">📋 作成済みの問題（クリックで編集） (${questions.length})</div>
+            ${badCount ? `<div style="color:#f87171; font-size:0.72rem; margin-bottom:6px;">⚠️ 未完成の問題が${badCount}問あります。保存はできますが、完成させるまでこのセットは出題できません</div>` : ''}
             ${rows}
         `;
 
@@ -2621,7 +2618,8 @@ ${spec.placeholder}" style="
             if (window.App.Dashboard && window.App.Dashboard.buildSetMeta) {
                 window.db.ref(`saved_sets_meta/${showId}/${ref.key}`).set(window.App.Dashboard.buildSetMeta(data));
             }
-            window.App.Ui.showToast("保存しました");
+            const savedBad = window.App.QuizCheck ? window.App.QuizCheck.incompleteIn(data.questions).length : 0;
+            window.App.Ui.showToast(savedBad ? `保存しました（未完成の問題が${savedBad}問あるため、このままでは出題できません）` : "保存しました");
             window.App.State.editingSetId = null;
             this.editingTitle = "";
             this.renderSetTitle();
