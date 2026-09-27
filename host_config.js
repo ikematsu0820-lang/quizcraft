@@ -151,8 +151,12 @@ App.Config = {
                 <button type="button" id="config-buzz-wrong-detail-btn" style="width:100%; height:26px; margin-top:10px; padding:0; border-radius:8px; background:#232a35; border:1px dashed #475569; color:#94a3b8; font-size:0.8rem; cursor:pointer; box-sizing:border-box;">誤答時の詳細設定</button>
             `;
         } else if (mode === 'turn') {
-            const showRotateMode = isDobon || (qType && (qType.startsWith('multi') || qType.startsWith('ranking')));
-            if (!showRotateMode) return '<p style="color:#666; font-size:0.8em;">追加の設定はありません</p>';
+            // 回し方（ダウトが出るまで回す）はダウトの時だけ — 多答では毎問次の人から
+            const showRotateMode = isDobon;
+            if (!showRotateMode) {
+                conf.turnRotateMode = 'per_q';
+                return '<p style="color:#666; font-size:0.8em;">追加の設定はありません</p>';
+            }
             const currentRotate = conf.turnRotateMode || 'per_q';
             return `
                 <label class="config-label" style="font-size:0.8em;">解答者の回し方</label>
