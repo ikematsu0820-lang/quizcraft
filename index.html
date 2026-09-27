@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@800;900&display=swap">
     <link rel="stylesheet" href="style_common.css?v=96">
-    <link rel="stylesheet" href="style_host.css?v=100">
+    <link rel="stylesheet" href="style_host.css?v=101">
     <link rel="stylesheet" href="style_player.css?v=100">
     <link rel="stylesheet" href="style_viewer.css?v=98">
 </head>
@@ -160,7 +160,8 @@
             <div style="min-width:0; flex:1; margin-right:12px;">
                 <!-- セット名（長い時は…で省略）— タップで名前を変更（App.Creator.editSetTitle） -->
                 <h2 id="creator-set-title" title="タップしてセット名を変更" style="margin:0; font-size:1.3rem; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;">問題作成</h2>
-                <div style="font-size:0.8rem; color:#aaa; margin-top:2px;">ID: <span id="creator-show-id" style="color:#00e5ff; font-weight:bold;">---</span></div>
+                <!-- 番組IDの表示は不要（要素はスクリプトが値を入れるので残して非表示） -->
+                <div style="display:none;">ID: <span id="creator-show-id">---</span></div>
             </div>
             <button id="creator-back-btn" class="header-back-btn back-to-select-type" style="background:rgba(255,255,255,0.1); border:1px solid #555; color:#fff; padding:8px 16px; border-radius:8px; cursor:pointer;">← 形式選択に戻る</button>
         </div>

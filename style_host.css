@@ -4412,3 +4412,17 @@ input:checked+.pro-slider:before {
     padding: 0 10px !important;
     margin: 0 !important;
 }
+
+/* 問題作成の見出し（セット名）と「形式選択に戻る」は、プレビュー直下の
+   「＋ 正解を追加」などと同じ大きさの文字に */
+#creator-view #creator-set-title,
+#creator-view #creator-back-btn {
+    font-size: 0.68rem !important;
+}
+#creator-view #creator-back-btn {
+    padding: 5px 12px !important;
+}
+#creator-view .view-header {
+    padding-bottom: 8px !important;
+    margin-bottom: 10px !important;
+}
