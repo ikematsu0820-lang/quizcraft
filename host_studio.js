@@ -2672,11 +2672,15 @@ App.Studio = {
         const hasAns = (p) => p && ((p.lastAnswer !== null && p.lastAnswer !== undefined && p.lastAnswer !== '') || isActive(p));
         if (activeId && isActive(sortedPlayers.find(p => p.id === activeId))) this._deskSelected = activeId;
 
+        this.renderParticipantsPage(sortedPlayers);
+
+        // 左の欄は解答した人（と早押しで解答権を取った人）だけ — 全員は「参加者を見る」
+        const shown = sortedPlayers.filter(p => hasAns(p) || resultOf(p));
         listEl.innerHTML = '';
-        if (!sortedPlayers.length) {
-            listEl.innerHTML = '<div style="color:#666; font-size:12px; text-align:center; padding:10px 0;">まだ参加者がいません</div>';
+        if (!shown.length) {
+            listEl.innerHTML = '<div style="color:#666; font-size:12px; text-align:center; padding:10px 0;">まだ解答した人はいません</div>';
         }
-        sortedPlayers.forEach(p => {
+        shown.forEach(p => {
             const btn = document.createElement('button');
             btn.type = 'button';
             const answered = hasAns(p);
@@ -2752,6 +2756,33 @@ App.Studio = {
                 this._deskSelected = next ? next.id : sel.id;
             };
         });
+    },
+
+    // 「参加者を見る」のページ — 全員の名前と得点（解答済みは印付き）
+    renderParticipantsPage: function (players) {
+        const grid = document.getElementById('console-participants-grid');
+        const title = document.getElementById('console-participants-title');
+        if (!grid) return;
+        if (title) title.textContent = `参加者（${players.length}人）`;
+        grid.innerHTML = players.length ? players.map(p => {
+            const answered = p.lastAnswer !== null && p.lastAnswer !== undefined && p.lastAnswer !== '';
+            const out = p.isAlive === false;
+            return `<div style="padding:10px 8px; border-radius:10px; background:#222; border:1px solid ${answered ? '#ef4444' : '#444'}; text-align:center; opacity:${out ? 0.45 : 1};">
+                <div style="color:#fff; font-weight:900; font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${this._esc(p.name || '---')}</div>
+                <div style="color:#94a3b8; font-size:11px; margin-top:4px;">${p.periodScore || 0}点${out ? '・脱落' : ''}${answered ? '・解答済み' : ''}</div>
+            </div>`;
+        }).join('') : '<div style="color:#666; font-size:12px;">まだ参加者がいません</div>';
+    },
+
+    // 解答ボード ⇔ 参加者のページ
+    toggleParticipantsPage: function (show) {
+        this._showParticipants = (show === undefined) ? !this._showParticipants : !!show;
+        const page = document.getElementById('console-participants-page');
+        const desk = document.querySelector('#host-control-view .simple-player-section');
+        const btn = document.getElementById('console-participants-toggle');
+        if (page) page.classList.toggle('hidden', !this._showParticipants);
+        if (desk) desk.classList.toggle('hidden', this._showParticipants);
+        if (btn) btn.textContent = this._showParticipants ? '解答を見る' : '参加者を見る';
     },
 
     renderJudgeQueue: function () {
@@ -3923,6 +3954,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         App.Dashboard.enter();
     });
+    document.getElementById('console-participants-toggle')?.addEventListener('click', () => App.Studio.toggleParticipantsPage());
     document.getElementById('btn-phase-main')?.addEventListener('click', () => {
         if (App.Studio.onMainAction) App.Studio.onMainAction();
     });
