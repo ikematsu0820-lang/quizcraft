@@ -115,7 +115,7 @@ App.Config = {
             const col = (inner, caption) => `
                 <div style="flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:3px;">
                     ${inner}
-                    <span style="font-size:0.58rem; color:#94a3b8; white-space:nowrap;">${caption}</span>
+                    ${caption ? `<span style="font-size:0.58rem; color:#94a3b8; white-space:nowrap;">${caption}</span>` : ''}
                 </div>`;
             const heading = (t) => `<div style="color:#94a3b8; font-size:0.72rem; font-weight:bold; margin:0 0 4px;">${t}</div>`;
             return `
@@ -124,7 +124,7 @@ App.Config = {
                     ${col(`<select id="config-buzz-wrong-action" class="btn-block config-select" style="margin:0; padding:4px;">
                         <option value="next" ${buzzAction === 'next' ? 'selected' : ''}>問題を継続する</option>
                         <option value="end" ${buzzAction === 'end' ? 'selected' : ''}>次の問題に進む</option>
-                    </select>`, '誤答があった時')}
+                    </select>`, '')}
                 </div>
                 ${heading('誤答者に対する処理')}
                 <div style="display:flex; gap:8px;">
