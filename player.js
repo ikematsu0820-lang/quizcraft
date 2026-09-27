@@ -298,6 +298,39 @@ function joinRoom() {
     });
 }
 
+// 待機画面（対戦相手が揃うまで）に、入室した人の名前を並べる。参加者の
+// データ（手書きの解答画像など）を問題中まで受け続けると重いので、待機
+// 画面を出している間だけ購読する（updateUI の standby 分岐から呼ぶ）。
+let _lobbyRosterRef = null;
+let _lobbyRoster = [];
+function watchLobbyRoster(on) {
+    if (on && !_lobbyRosterRef && myRoomId) {
+        _lobbyRosterRef = window.db.ref(`rooms/${myRoomId}/players`);
+        _lobbyRosterRef.on('value', snap => {
+            const val = snap.val() || {};
+            _lobbyRoster = Object.keys(val).map(id => ({ id, name: (val[id] && val[id].name) || '---' }));
+            renderLobbyRoster();
+        });
+    } else if (!on && _lobbyRosterRef) {
+        _lobbyRosterRef.off();
+        _lobbyRosterRef = null;
+    }
+}
+function renderLobbyRoster() {
+    const el = document.getElementById('player-lobby-roster');
+    if (!el) return;
+    const esc = (v) => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    el.innerHTML = _lobbyRoster.length ? `
+        <div style="margin-top:14px; text-align:center;">
+            <div style="font-size:0.8em; color:#94a3b8; margin-bottom:8px;">入室した人（${_lobbyRoster.length}人）</div>
+            <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:8px;">
+                ${_lobbyRoster.map(p => `<span style="padding:6px 14px; border-radius:999px; font-weight:bold; font-size:0.9em;
+                    background:${p.id === myPlayerId ? '#0984e3' : '#fff'}; color:${p.id === myPlayerId ? '#fff' : '#2d3436'};
+                    border:1px solid ${p.id === myPlayerId ? '#0984e3' : 'rgba(0,0,0,0.12)'};">${esc(p.name)}${p.id === myPlayerId ? '（あなた）' : ''}</span>`).join('')}
+            </div>
+        </div>` : '';
+}
+
 function startPlayerListener(roomId, playerId) {
     const statusRef = window.db.ref(`rooms/${roomId}/status`);
     const myRef = window.db.ref(`rooms/${roomId}/players/${playerId}`);
@@ -403,6 +436,8 @@ function showGlobalBuzzNotification(answererId) {
 function updateUI() {
     const st = localStatus;
     const p = localPlayerData;
+    // 入室者の名前の購読は待機画面の間だけ
+    if (st.step !== 'standby' && st.step !== 'reveal_q_num') watchLobbyRoster(false);
 
     const badge = document.getElementById('alive-badge');
     if (p.isAlive) {
@@ -528,12 +563,16 @@ function updateUI() {
             <div class="standby-info" style="margin-top:20px; opacity:0.6;">
                 <p style="font-size:0.9em; margin:0;">${turnOrderHtml ? '準備が整うまでお待ちください' : '対戦相手が揃うまでお待ちください...'}</p>
             </div>
+            <div id="player-lobby-roster"></div>
         `;
+        renderLobbyRoster();
+        watchLobbyRoster(true);
         isReanswering = false;
         if (changeArea) changeArea.innerHTML = '';
         quizArea.classList.add('hidden');
     }
     else if (st.step === 'reveal_q' || st.step === 'question') {
+        watchLobbyRoster(false);
         // 出題中 (Simplified Flow: Allow answering immediately)
         quizArea.classList.remove('hidden');
 
