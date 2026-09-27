@@ -38,8 +38,8 @@ App.Studio = {
     soloState: { lives: 3, timeBank: 60, challengerIndex: 0 },
 
     setupUnifiedToggle: function() {
-        // テストナビが存在する間は unified-toggle を表示しない
-        if (document.getElementById('global-test-nav')) return;
+        // テストプレイの画面切替（プルダウン）がある間は unified-toggle を表示しない
+        if (document.getElementById('test-view-select')) return;
 
         let container = document.getElementById('unified-toggle-container');
         if (container) {

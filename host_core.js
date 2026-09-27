@@ -433,36 +433,24 @@ window.App.bindEvents = function () {
 
 window.App._showTestNavBar = function (testId, playerCount) {
     playerCount = Math.max(1, Math.min(8, playerCount || 2));
-    // Estimate nav height: 3 rows of ~28px buttons + padding
-    const NAV_H = 100;
     const baseUrl = window.location.origin + window.location.pathname;
 
-    // Hide ROOM ID header (not needed in test mode), but keep ダッシュボード accessible via nav bar
+    // Hide ROOM ID header (not needed in test mode)
     const studioHeader = document.querySelector('.simple-studio-header');
     if (studioHeader) studioHeader.style.display = 'none';
 
-    // Hide unified toggle while test nav is active (test nav replaces it)
+    // Hide unified toggle while test mode is active (the switcher replaces it)
     const unifiedToggle = document.getElementById('unified-toggle-container');
     if (unifiedToggle) unifiedToggle.style.display = 'none';
 
-    // --- Global fixed nav bar at BOTTOM (persists across all view switches) ---
-    const nav = document.createElement('div');
-    nav.id = 'global-test-nav';
-    nav.style.cssText = `position:fixed;bottom:0;left:0;width:100%;min-height:${NAV_H}px;z-index:99999;display:flex;align-items:center;flex-wrap:wrap;gap:4px;padding:6px 10px;background:#1a0800;border-top:2px solid #ff6600;box-sizing:border-box;`;
-    nav.innerHTML = `<span style="color:#ff6600;font-size:10px;font-weight:900;letter-spacing:1px;flex-shrink:0;margin-right:6px;">🧪 TEST</span>`;
-    document.body.appendChild(nav);
-
-    // --- Full-screen iframe overlay (leaves bottom nav bar visible) ---
+    // 画面の切り替え（モニター/出題者/テスト回答者）は、画面下のバーではなく
+    // 進行ボタン（問題を表示する 等）の右横のプルダウンで選ぶ。モニターや
+    // 回答者の画面を出している間は、プルダウンを右下に浮かせて戻れるようにする。
     const iframeOverlay = document.createElement('div');
     iframeOverlay.id = 'test-iframe-overlay';
-    iframeOverlay.style.cssText = `position:fixed;top:0;left:0;width:100%;height:calc(100vh - ${NAV_H}px);z-index:99998;display:none;background:#000;`;
+    iframeOverlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100vh;z-index:99998;display:none;background:#000;';
     document.body.appendChild(iframeOverlay);
 
-    // Push host control content up to clear bottom nav bar
-    const hostView = document.getElementById('host-control-view');
-    if (hostView) hostView.style.paddingBottom = NAV_H + 'px';
-
-    // Create all iframes (lazy: src set only when first activated)
     const makeIframe = () => {
         const f = document.createElement('iframe');
         f.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:none;';
@@ -471,27 +459,66 @@ window.App._showTestNavBar = function (testId, playerCount) {
     };
     const viewerIframe = makeIframe();
     const playerIframes = Array.from({ length: playerCount }, () => makeIframe());
-
     let viewerLoaded = false;
     const playerLoaded = Array(playerCount).fill(false);
 
-    // --- Tab switching (iframe show/hide only — no showView calls) ---
-    const switchTo = (tabId) => {
-        nav.querySelectorAll('.test-tab').forEach(b => {
-            b.style.background = b.dataset.tab === tabId ? '#ff6600' : 'rgba(255,255,255,0.13)';
-        });
+    const select = document.createElement('select');
+    select.id = 'test-view-select';
+    select.title = 'テストプレイの画面を切り替え';
+    select.innerHTML = `
+        <option value="host">🎤 出題者</option>
+        <option value="viewer">📺 モニター</option>
+        ${Array.from({ length: playerCount }, (_, i) => `<option value="player-${i + 1}">👤 テスト${i + 1}</option>`).join('')}
+        <option value="dashboard">↩ ダッシュボードに戻る</option>`;
+    select.style.cssText = 'flex:0 0 150px; width:150px !important; max-width:150px; height:auto; min-height:36px; padding:0 10px; border-radius:12px; font-size:14px; font-weight:bold; cursor:pointer; background:#1a0800 !important; color:#ffb27a !important; border:2px solid #ff6600 !important; margin:0;';
 
-        // Hide iframe overlay for host tab
-        if (tabId === 'host') {
-            iframeOverlay.style.display = 'none';
+    // 出題者画面では進行ボタンの右横、それ以外は右下に浮かせる
+    const dock = document.createElement('div');
+    dock.id = 'test-view-dock';
+    dock.style.cssText = 'position:fixed; right:12px; bottom:12px; z-index:99999; display:none;';
+    document.body.appendChild(dock);
+    const placeBesideMainButton = () => {
+        const mainBtn = document.getElementById('console-btn-phase-main');
+        if (!mainBtn) return false;
+        let row = document.getElementById('test-main-row');
+        if (!row) {
+            row = document.createElement('div');
+            row.id = 'test-main-row';
+            row.style.cssText = 'display:flex; gap:8px; align-items:stretch; width:100%; max-width:560px;';
+            mainBtn.parentNode.insertBefore(row, mainBtn);
+            row.appendChild(mainBtn);
+            mainBtn.style.flex = '1';
+        }
+        row.appendChild(select);
+        return true;
+    };
+
+    const switchTo = (tabId) => {
+        if (tabId === 'dashboard') {
+            select.value = 'host';
+            if (confirm('ダッシュボードに戻りますか？テストセッションが終了します。')) {
+                select.remove();
+                dock.remove();
+                iframeOverlay.remove();
+                const tog = document.getElementById('unified-toggle-container');
+                if (tog) tog.style.display = 'flex';
+                if (window.App.Dashboard) window.App.Dashboard.enter();
+            } else {
+                switchTo('host');
+            }
             return;
         }
-
-        // Show iframe overlay
+        if (tabId === 'host') {
+            iframeOverlay.style.display = 'none';
+            dock.style.display = 'none';
+            if (!placeBesideMainButton()) { dock.appendChild(select); dock.style.display = 'block'; }
+            return;
+        }
         iframeOverlay.style.display = 'block';
+        dock.appendChild(select);
+        dock.style.display = 'block';
         viewerIframe.style.display = 'none';
         playerIframes.forEach(f => f.style.display = 'none');
-
         if (tabId === 'viewer') {
             if (!viewerLoaded) { viewerIframe.src = `${baseUrl}?vcode=${testId}`; viewerLoaded = true; }
             viewerIframe.style.display = 'block';
@@ -504,41 +531,8 @@ window.App._showTestNavBar = function (testId, playerCount) {
             if (playerIframes[idx]) playerIframes[idx].style.display = 'block';
         }
     };
-
-    const addTab = (tabId, label, active) => {
-        const btn = document.createElement('button');
-        btn.className = 'test-tab';
-        btn.dataset.tab = tabId;
-        btn.textContent = label;
-        btn.style.cssText = `padding:4px 12px;border-radius:14px;font-size:11px;font-weight:700;cursor:pointer;border:none;color:#fff;white-space:nowrap;flex-shrink:0;background:${active ? '#ff6600' : 'rgba(255,255,255,0.13)'};`;
-        btn.onclick = () => switchTo(tabId);
-        nav.appendChild(btn);
-    };
-
-    addTab('viewer', '📺 モニター', false);
-    addTab('host', '🎤 出題者', true);
-    for (let i = 1; i <= playerCount; i++) {
-        addTab(`player-${i}`, `👤 テスト${i}`, false);
-    }
-
-    // ダッシュボードボタン（右端に配置）
-    const dashBtn = document.createElement('button');
-    dashBtn.textContent = 'ダッシュボード';
-    dashBtn.style.cssText = 'margin-left:auto;padding:4px 12px;border-radius:14px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid #555;color:#ccc;background:rgba(255,255,255,0.08);white-space:nowrap;flex-shrink:0;';
-    dashBtn.onclick = () => {
-        if (confirm('ダッシュボードに戻りますか？テストセッションが終了します。')) {
-            document.getElementById('global-test-nav')?.remove();
-            document.getElementById('test-iframe-overlay')?.remove();
-            // Restore host-control-view padding
-            const hv = document.getElementById('host-control-view');
-            if (hv) hv.style.paddingBottom = '';
-            // Restore unified toggle if present
-            const tog = document.getElementById('unified-toggle-container');
-            if (tog) tog.style.display = 'flex';
-            if (window.App.Dashboard) window.App.Dashboard.enter();
-        }
-    };
-    nav.appendChild(dashBtn);
+    select.onchange = () => switchTo(select.value);
+    switchTo('host');
 };
 
 window.App.Dashboard = {
