@@ -2382,10 +2382,10 @@ window.App.Creator = {
         const spec = this._bulkSpecs[target.specKey];
         panel.innerHTML = `
             <div style="color:#94a3b8; font-size:0.75rem; font-weight:bold; margin-bottom:4px;">表形式で一括追加（1行1問／${spec.hint}）</div>
-            <!-- 貼り付け欄（最初から数行分の高さ）の真下に追加ボタン -->
+            <!-- 貼り付け欄はパネルの残りの高さいっぱい（ボタンがスクロールせずに見える範囲）、その真下に追加ボタン -->
             <textarea id="creator-bulk-input" placeholder="表計算ソフトからそのままコピペできます。例:
 ${spec.placeholder}" style="
-                display:block; width:100%; height:110px !important; min-height:110px !important; padding:8px; background:#0d1b2a; border:1px dashed rgba(255,255,255,0.25);
+                display:block; width:100%; flex:1; height:auto !important; min-height:40px !important; padding:8px; background:#0d1b2a; border:1px dashed rgba(255,255,255,0.25);
                 border-radius:8px; color:#fff; font-size:0.8rem; resize:vertical; box-sizing:border-box;
                 font-family:monospace; outline:none; margin:0 0 6px;
             "></textarea>

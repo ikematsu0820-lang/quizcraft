@@ -4484,3 +4484,15 @@ input:checked+.pro-slider:before {
 #creator-view #creator-inline-edit-area {
     background: #1c212a !important;
 }
+
+/* 一括追加: パネル（高さ固定）の中で、見出し・貼り付け欄・追加ボタンが
+   スクロールせずに収まるよう、貼り付け欄が残りの高さを使う */
+#creator-view #creator-bulk-panel:not(.hidden) {
+    display: flex;
+    flex-direction: column;
+    height: calc(100% - 36px);
+    min-height: 0;
+}
+#creator-view #creator-bulk-panel textarea {
+    resize: none !important;
+}
