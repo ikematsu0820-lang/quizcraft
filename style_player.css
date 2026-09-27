@@ -1343,13 +1343,7 @@
         min-height: 0;
         height: auto !important;
     }
-    body.written-q .hw-pad > button {
-        align-self: flex-start;
-    }
-    /* 早押しは左下に PUSH! を置くので、クリアは右側へ */
-    body.written-buzz .hw-pad > button {
-        align-self: flex-end;
-    }
+
     /* 早押し: 右端の縦長ボタンをやめて左下に小さく（手書き欄の下、
        クリアボタンと同じ段の左側） */
     body.written-buzz #player-game-view {
@@ -1371,3 +1365,236 @@
         transform: translateY(3px);
     }
 }
+
+
+/* =========================================================
+ * カラフルデザイン（回答者画面）— クイズ番組らしく、グラデーション背景に
+ * 白いカード、選択肢は色のはっきりしたタイル
+ * =======================================================*/
+#player-game-view,
+#respondent-view {
+    background: linear-gradient(135deg, #4338ca 0%, #7c3aed 48%, #db2777 100%) !important;
+    background-attachment: fixed !important;
+    color: #fff !important;
+}
+#respondent-view .landing-title,
+#respondent-view .landing-subtitle { color: #fff !important; -webkit-text-fill-color: #fff !important; }
+#respondent-view .login-form-area {
+    background: rgba(255, 255, 255, 0.96) !important;
+    border: none !important;
+    box-shadow: 0 12px 32px rgba(30, 27, 75, 0.35) !important;
+}
+#respondent-view #join-room-btn {
+    background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%) !important;
+    color: #fff !important;
+    box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4) !important;
+}
+
+/* ヘッダー（名前・得点） */
+#player-game-view .player-status-bar {
+    background: rgba(255, 255, 255, 0.96) !important;
+    border: none !important;
+    box-shadow: 0 6px 18px rgba(30, 27, 75, 0.3) !important;
+}
+#player-game-view .player-name { color: #4338ca !important; text-shadow: none !important; }
+#player-game-view .score-header { color: #1f2937 !important; }
+#player-game-view .score-header span { color: #f59e0b !important; }
+/* 「○○の番です」— 読みやすい黄色の札に */
+#player-game-view .turn-header-badge {
+    background: #fbbf24 !important;
+    color: #1f2937 !important;
+    border: none !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* 問題文 */
+#player-game-view .player-q-text {
+    background: #fff !important;
+    color: #1f2937 !important;
+    border: none !important;
+    border-left: 6px solid #fbbf24 !important;
+    border-radius: 16px !important;
+    box-shadow: 0 8px 22px rgba(30, 27, 75, 0.3) !important;
+}
+
+/* 待機・案内メッセージ */
+#player-game-view .wait-msg {
+    background: rgba(255, 255, 255, 0.95) !important;
+    color: #047857 !important;
+    border: none !important;
+    box-shadow: 0 8px 22px rgba(30, 27, 75, 0.3) !important;
+}
+#player-game-view .player-sort-help {
+    background: rgba(255, 255, 255, 0.18) !important;
+    border: 1px dashed rgba(255, 255, 255, 0.6) !important;
+    color: #fff !important;
+}
+#player-game-view .prep-title,
+#player-game-view .prep-qnum { color: #fff !important; text-shadow: 0 4px 16px rgba(30, 27, 75, 0.45); }
+#player-game-view .standby-info {
+    background: rgba(255, 255, 255, 0.16) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    color: #fff !important;
+    opacity: 1 !important;
+}
+#player-lobby-roster div { color: rgba(255, 255, 255, 0.9) !important; }
+
+/* 選択肢 — 色のはっきりしたタイル（白文字） */
+#player-game-view .answer-btn {
+    border: none !important;
+    border-radius: 14px !important;
+    color: #fff !important;
+    font-weight: 900 !important;
+    box-shadow: 0 6px 0 rgba(0, 0, 0, 0.22), 0 10px 20px rgba(30, 27, 75, 0.25) !important;
+}
+#player-game-view .answer-btn .choice-prefix {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 1.6em; height: 1.6em; padding: 0 0.3em; border-radius: 8px;
+    background: rgba(255, 255, 255, 0.95); color: #1f2937 !important; font-family: inherit !important;
+}
+#player-game-view .btn-blue   { background: #2563eb !important; }
+#player-game-view .btn-red    { background: #e11d48 !important; }
+#player-game-view .btn-green  { background: #059669 !important; }
+#player-game-view .btn-yellow { background: #f59e0b !important; }
+#player-game-view .btn-purple { background: #7c3aed !important; }
+#player-game-view .btn-teal   { background: #0d9488 !important; }
+#player-game-view .btn-neutral { background: #475569 !important; }
+#player-game-view .answer-btn.btn-selected {
+    outline: 4px solid #fff;
+    outline-offset: -4px;
+    transform: scale(1.02);
+    filter: none !important;
+}
+#player-game-view .btn-disabled-choice { background: rgba(255, 255, 255, 0.25) !important; color: rgba(255, 255, 255, 0.7) !important; }
+
+/* 選択式の「決定」ボタンの帯 */
+#choice-submit-footer {
+    background: rgba(30, 27, 75, 0.55) !important;
+    border-top: none !important;
+    backdrop-filter: blur(10px);
+}
+#choice-submit-footer .btn-primary {
+    background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%) !important;
+    color: #fff !important;
+    font-weight: 900 !important;
+}
+
+/* 手書き: クリアと送信を1行に */
+#player-game-view .hw-actions {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+}
+#player-game-view .hw-actions > button:first-child { flex: 0 0 auto; margin: 0 !important; }
+#player-game-view .hw-actions .btn-primary {
+    flex: 1; margin: 0 !important;
+    background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%) !important;
+    color: #fff !important; font-weight: 900 !important;
+}
+#player-game-view .hw-pad { margin-bottom: 6px !important; }
+#player-game-view .hw-canvas { border: none !important; box-shadow: 0 8px 22px rgba(30, 27, 75, 0.3); }
+#player-game-view .player-input-name-tag { color: rgba(255, 255, 255, 0.85) !important; }
+body.written-buzz #player-game-view .hw-actions { justify-content: flex-end; }
+
+/* 結果（〇✕・正解・自分の答え） */
+#player-game-view .result-correct-box,
+#player-game-view .result-answers > div {
+    background: #fff !important;
+    color: #1f2937 !important;
+    border: none !important;
+    box-shadow: 0 8px 22px rgba(30, 27, 75, 0.3);
+}
+#player-game-view .result-answers > div + div { margin-top: 8px; }
+
+@media (orientation: landscape) {
+    /* 早押しボタン用の下の余白は横向きでは不要（ボタンは右端／左下に出る） */
+    #player-game-view { padding-bottom: 10px !important; }
+    #player-game-view .player-status-bar { margin-bottom: 8px !important; padding-top: 6px !important; padding-bottom: 6px !important; }
+
+    /* 選択肢は 2×2 のタイルで、スクロールせずに全部見える */
+    #player-game-view:not(.multi-layout-active) #player-input-container:has(.player-choice-list) {
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    #player-game-view .player-choice-list {
+        flex: 1;
+        min-height: 0;
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        grid-auto-rows: 1fr;
+        gap: 8px;
+        padding-bottom: 0 !important;
+    }
+    #player-game-view .player-choice-list .answer-btn {
+        margin: 0 !important;
+        min-height: 0 !important;
+        height: 100%;
+        padding: 6px 10px !important;
+        display: flex !important;
+        align-items: center;
+        gap: 8px;
+        overflow: hidden;
+    }
+    /* 「決定」の帯が出ている間は、問題文も選択肢もその上までに収める */
+    body:has(#choice-submit-footer:not([style*="display: none"])) #player-game-view #player-input-container {
+        padding-bottom: 0 !important;
+    }
+    body:has(#choice-submit-footer:not([style*="display: none"])) #player-game-view #player-quiz-area {
+        padding-bottom: 58px !important;
+    }
+    #choice-submit-footer { padding-top: 6px !important; padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px)) !important; }
+
+    /* 手書き: 名前の札は隠して手書き欄を広く */
+    body.written-q .player-input-name-tag { display: none !important; }
+
+    /* 結果: 判定を左、正解・自分の答えを右に並べて一度に見せる */
+    #player-game-view .result-wrap {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        height: 100%;
+    }
+    #player-game-view .result-judge { flex: 0 0 36%; }
+    #player-game-view .result-judge .result-symbol { font-size: 64px; margin-bottom: 6px; }
+    #player-game-view .result-judge .result-badge { font-size: 1.1em; padding: 6px 18px; }
+    #player-game-view .result-answers { flex: 1; min-width: 0; }
+    #player-game-view .result-answers > div { padding: 10px 12px !important; margin-top: 0 !important; }
+    #player-game-view .result-answers > div + div { margin-top: 8px !important; }
+    #player-game-view .result-correct-box > div:last-child { font-size: 1.4em !important; }
+
+    /* 待機画面: タイトルを詰めて、入室した人の名前も画面内に */
+    #player-game-view .prep-display-box { margin: 6px auto !important; gap: 4px !important; }
+    #player-game-view .prep-title { font-size: 1.7em !important; }
+    #player-game-view .prep-qnum { font-size: 2.4em !important; }
+    #player-game-view .standby-info { margin: 8px 0 !important; padding: 8px !important; }
+    #player-lobby-roster > div { margin-top: 6px !important; }
+}
+
+/* 手書きのクリアボタン（紫の背景の上でも読めるように） */
+#player-game-view .hw-actions > button:first-child {
+    background: rgba(255, 255, 255, 0.9) !important;
+    color: #374151 !important;
+    border: none !important;
+    font-weight: bold;
+}
+
+/* 多答・ランキング・連想の答えの一覧（紫の背景の上でも読めるように） */
+#player-game-view .player-multi-item {
+    background: rgba(255, 255, 255, 0.16) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    color: #fff !important;
+    box-shadow: none !important;
+}
+#player-game-view .player-multi-item .multi-text-hidden { color: rgba(255, 255, 255, 0.55) !important; }
+#player-game-view .player-multi-item .multi-index {
+    background: rgba(255, 255, 255, 0.9) !important;
+    color: #4338ca !important;
+}
+#player-game-view .player-multi-item.is-revealed {
+    background: #059669 !important;
+    border-color: #fff !important;
+}
+#player-game-view .player-multi-item.is-revealed .multi-text-revealed,
+#player-game-view .player-multi-item .multi-text-revealed { color: #fff !important; font-weight: 900; }
+#player-game-view .player-multi-item.is-missed { background: rgba(225, 29, 72, 0.55) !important; }

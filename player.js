@@ -913,6 +913,19 @@ function updateUI() {
         showFinalResult(myRoomId, myPlayerId);
     }
 
+    // 選択式の「決定」ボタン: 解答を受け付けている間（自分が答えられて、まだ
+    // 答えていない時）だけ出す — 正解発表の後や、解答済み・他の人の番の間に
+    // 残っていると押せそうに見えて紛らわしい
+    const choiceFooter = document.getElementById('choice-submit-footer');
+    if (choiceFooter) {
+        const answering = ['reveal_q', 'question', 'answering'].includes(st.step);
+        const answered = p.lastAnswer !== null && p.lastAnswer !== undefined && p.lastAnswer !== '' && !isReanswering;
+        const lockedOut = (st.isNominateMode && st.currentAnswerer !== myPlayerId)
+            || (st.isTurnMode && st.currentAnswerer && st.currentAnswerer !== myPlayerId)
+            || !!p.lastResult || p.isAlive === false;
+        choiceFooter.style.display = (answering && !answered && !lockedOut) ? '' : 'none';
+    }
+
     // 手書きの送信ボタン: 送信済みなら出さない（答えを変更する時だけ戻す）
     const writtenSubmitBtn = document.getElementById('written-submit-btn');
     if (writtenSubmitBtn) {
@@ -1040,6 +1053,20 @@ function showLoserMessage(lobby, buzzArea) {
     // クイズエリアは隠さない（見学できるように）
 }
 
+// 自分の解答を短い文字で（解答済みの表示用）— 手書きは「手書きの解答」
+function describeMyAnswer(ans) {
+    if (ans === null || ans === undefined || ans === '') return '';
+    const q = currentQuestion || {};
+    const esc = (v) => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    if (typeof ans === 'string' && ans.startsWith('data:image')) return '手書きの解答';
+    if (q.type === 'choice') {
+        const arr = Array.isArray(ans) ? ans : [ans];
+        return arr.map(a => { const i = parseInt(a); return isNaN(i) ? esc(a) : `${App.ChoiceLabel(i, (q.design || {}).cPrefixType)} ${esc((q.c || [])[i] || '')}`; }).join(' / ');
+    }
+    if (q.type === 'sort' && typeof ans === 'string') return ans.split('').map(ch => esc((q.c || [])[ch.charCodeAt(0) - 65] || ch)).join(' → ');
+    return esc(ans);
+}
+
 function handleNormalResponseUI(p, quizArea, waitMsg) {
     // 既に解答済みなら待機表示
     if (p.lastAnswer != null) {
@@ -1061,7 +1088,8 @@ function handleNormalResponseUI(p, quizArea, waitMsg) {
             waitMsg.style.color = "#00b894";
             waitMsg.style.border = "1px solid #00b894";
             waitMsg.style.padding = "15px";
-            waitMsg.innerHTML = "<b>ANSWERED</b><br>発表を待っています...";
+            const mine = describeMyAnswer(p.lastAnswer);
+            waitMsg.innerHTML = `<b>ANSWERED</b><br>${mine ? `あなたの解答：${mine}<br>` : ''}発表を待っています...`;
 
             if (isMulti) {
                 const oralArea = document.getElementById('player-oral-done-area');
@@ -1279,11 +1307,14 @@ function renderResultScreen(p) {
     }
 
     const isMultiResult = currentQuestion.type && (currentQuestion.type.startsWith('multi') || currentQuestion.type.startsWith('ranking') || currentQuestion.type.startsWith('assoc'));
+    // 横向きでも〇✕・正解・自分の答えが一度に見えるよう、判定を左、答えを右に
     ansBox.innerHTML = `
-        <div style="display:flex; flex-direction:column; align-items:center; margin-bottom:20px;">
+        <div class="result-wrap">
+        <div class="result-judge" style="display:flex; flex-direction:column; align-items:center;">
             ${judgeHtml}
         </div>
-        <div style="background:rgba(0,0,0,0.03); color:var(--color-text); padding:20px; border-radius:12px; font-weight:900; text-align:center; margin-top:20px; border: 1px solid rgba(0,0,0,0.05);">
+        <div class="result-answers">
+        <div class="result-correct-box" style="background:rgba(0,0,0,0.03); color:var(--color-text); padding:20px; border-radius:12px; font-weight:900; text-align:center; border: 1px solid rgba(0,0,0,0.05);">
             <div style="font-size:0.8em; letter-spacing:1px; margin-bottom:8px; color:var(--color-text-sub);">
                 ${(currentQuestion.mode === 'dobon' || currentQuestion.mode === 'multi' || currentQuestion.multi || roomConfig.mode === 'dobon') ? "NG ANSWER (選んではいけません)" : "正解"}
             </div>
@@ -1292,6 +1323,8 @@ function renderResultScreen(p) {
         <div style="background:rgba(0,0,0,0.05); color:var(--color-text); padding:12px; border-radius:12px; font-weight:bold; text-align:center; margin-top:12px;">
             <div style="font-size:0.7em; color:var(--color-text-sub); margin-bottom:4px; letter-spacing:1px;">YOUR ANSWER</div>
             <div style="font-size:1.2em; ${p.lastResult === 'lose' ? 'text-decoration:line-through; color:#ff6b6b;' : 'color:var(--color-text);'}">${myAnsText}</div>
+        </div>
+        </div>
         </div>
     `;
     document.getElementById('question-text-disp').textContent = currentQuestion.q;
@@ -1476,6 +1509,7 @@ function renderPlayerQuestion(q, roomId, playerId) {
 
         // Scrollable choice list — bottom padding so last item clears the fixed footer
         const choiceList = document.createElement('div');
+        choiceList.className = 'player-choice-list';
         choiceList.style.paddingBottom = 'calc(72px + env(safe-area-inset-bottom, 0px))';
         // まるばつモード: ○ と × を左右に大きく並べる
         const isOx = !!q.ox && !isDobonMode;
@@ -1868,7 +1902,13 @@ function renderPlayerQuestion(q, roomId, playerId) {
             if (!pad.hasDrawn()) return;
             submitAnswer(roomId, playerId, pad.getDataUrl());
         };
-        inputCont.appendChild(sub);
+        // クリアと送信は1行に並べて、手書き欄の高さをできるだけ広く取る
+        const actions = document.createElement('div');
+        actions.className = 'hw-actions';
+        const clearBtn = pad.el.querySelector('button');
+        if (clearBtn) actions.appendChild(clearBtn);
+        actions.appendChild(sub);
+        inputCont.appendChild(actions);
     }
 }
 
