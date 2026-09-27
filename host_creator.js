@@ -407,6 +407,20 @@ window.App.Creator = {
             lbl.querySelector('input').onchange = (e) => onChange(e.target.checked);
             addOutside(lbl);
         };
+        // 正解の入力欄（一問一答・連想クイズ）— プレビュー直下の行に置く
+        const outsideAnswerInput = (id, value) => {
+            const wrap = document.createElement('label');
+            wrap.style.cssText = 'display:flex; align-items:center; gap:6px; color:#cbd5e1; font-size:0.8rem; white-space:nowrap; flex:1; min-width:180px;';
+            wrap.innerHTML = `<span>正解</span>`;
+            const inp = document.createElement('input');
+            inp.type = 'text';
+            inp.id = id;
+            inp.placeholder = '正解を入力';
+            inp.value = value || '';
+            inp.style.cssText = 'flex:1; min-width:0; height:26px; min-height:0; margin:0; padding:0 8px; background:#1e293b; border:1px solid #475569; border-radius:6px; color:#fff; font-size:0.85rem; box-sizing:border-box;';
+            wrap.appendChild(inp);
+            addOutside(wrap);
+        };
         // 形式ごとの案内文もプレビューの外に出して、行の高さを広く取る
         const outsideHint = (text) => {
             const hint = document.createElement('span');
@@ -621,19 +635,9 @@ window.App.Creator = {
             }
         }
         else if (type.startsWith('free')) {
-            container.innerHTML = `
-                <div style="padding:10px 0;">
-                    <div style="text-align:center; color:#64748b; font-size:0.8rem; margin-bottom:10px;">正解を入力</div>
-                    <input type="text" id="creator-text-answer" placeholder="正解" style="
-                        width:100%; padding:12px; background:#0d1b2a; border:1px dashed rgba(255,255,255,0.25);
-                        border-radius:8px; color:#fff; font-size:1rem; text-align:center; outline:none; box-sizing:border-box;
-                    ">
-                </div>
-            `;
-            const input = container.querySelector('#creator-text-answer');
-            if (data && data.correct) {
-                input.value = Array.isArray(data.correct) ? data.correct.join(', ') : data.correct;
-            }
+            // 正解はプレビュー直下の行に（連想クイズと同じ）— プレビューには問題文だけ
+            container.innerHTML = '';
+            const freeAnsCorrect = (data && data.correct) ? (Array.isArray(data.correct) ? data.correct.join(', ') : data.correct) : '';
 
             // Sub-type（口頭 → 手書き の順。文字パネルは廃止）
             setupOptSubtype([
@@ -656,9 +660,9 @@ window.App.Creator = {
                 // オンにしたらタイトルを選択して、すぐ文字の設定ができるように
                 if (window.App.Design) window.App.Design.selectObject(on ? 'qtitle' : 'question');
             });
+            outsideAnswerInput('creator-text-answer', freeAnsCorrect);
         }
         else if (type.startsWith('assoc')) {
-            outsideHint('ヒントを入力（順番に開示）');
 
             const assocDiv = document.createElement('div');
             assocDiv.id = 'creator-choices-list';
@@ -672,17 +676,7 @@ window.App.Creator = {
             }
 
             // 正解キーワードはプレビュー直下の行に（見つけやすいように）
-            const ansWrap = document.createElement('label');
-            ansWrap.style.cssText = 'display:flex; align-items:center; gap:6px; color:#cbd5e1; font-size:0.8rem; white-space:nowrap; flex:1; min-width:180px;';
-            ansWrap.innerHTML = `<span>正解キーワード</span>`;
-            const ansInp = document.createElement('input');
-            ansInp.type = 'text';
-            ansInp.id = 'creator-assoc-answer';
-            ansInp.placeholder = '正解';
-            ansInp.style.cssText = 'flex:1; min-width:0; height:26px; min-height:0; margin:0; padding:0 8px; background:#1e293b; border:1px solid #475569; border-radius:6px; color:#fff; font-size:0.85rem; box-sizing:border-box;';
-            if (data && data.correct) ansInp.value = Array.isArray(data.correct) ? data.correct.join(', ') : data.correct;
-            ansWrap.appendChild(ansInp);
-            addOutside(ansWrap);
+            outsideAnswerInput('creator-assoc-answer', (data && data.correct) ? (Array.isArray(data.correct) ? data.correct.join(', ') : data.correct) : '');
 
             // ＋ヒントを追加も選択式と同じくプレビュー直下
             outsideButton('assoc-add-btn', '＋ ヒントを追加', () => this.addAssocInput(assocDiv, undefined, ''));
