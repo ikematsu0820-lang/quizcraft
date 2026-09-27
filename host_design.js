@@ -49,16 +49,18 @@ App.Design = {
         { v: '9vh', t: '大' },
     ],
 
-    // 以前の部品ごとの値を、同じ呼び名（小/中/大）の共通の大きさに読み替える
-    // （未設定は既定: 問題文=中、選択肢=小、タイトル=小）
+    // 以前の部品ごとの値を、同じ呼び名（小/中/大）の共通の大きさに読み替え、
+    // 未設定のものは全部「中」にする（「自動」を選んだもの = '' はそのまま）
     normalizeFontSizes: function (design) {
         if (!design) return design;
         const Q = { '3.5vh': '4vh', '5vh': '6vh', '8vh': '9vh' };
         const C = { '2.5vh': '4vh', '3.5vh': '6vh', '5vh': '9vh' };
         const T = { '3vh': '4vh', '4.5vh': '4vh', '6.5vh': '9vh' };
         design.qFontSize = Q[design.qFontSize] || design.qFontSize || '6vh';
-        design.cFontSize = C[design.cFontSize] || design.cFontSize || '4vh';
-        design.qTitleFontSize = T[design.qTitleFontSize] || design.qTitleFontSize || '4vh';
+        design.cFontSize = C[design.cFontSize] || design.cFontSize || '6vh';
+        design.qTitleFontSize = T[design.qTitleFontSize] || design.qTitleFontSize || '6vh';
+        const MID = { revealFontSize: '6vh', bridgeFontSize: '10vw', titleFontSize: '5vw', resultNameSize: '9vh' };
+        Object.keys(MID).forEach(k => { if (design[k] === undefined || design[k] === null) design[k] = MID[k]; });
         return design;
     },
 
@@ -89,8 +91,13 @@ App.Design = {
         cTextColor: "#a0a0a0",
         cBgColor: "transparent",
         cBorderColor: "#333333",
-        cFontSize: "4vh", // 小 — 選択肢は行が多いので既定は小
-        qTitleFontSize: "4vh", // 小
+        // 文字サイズは全部「中」が既定
+        cFontSize: "6vh",
+        qTitleFontSize: "6vh",
+        revealFontSize: "6vh",
+        bridgeFontSize: "10vw",
+        titleFontSize: "5vw",
+        resultNameSize: "9vh",
         align: "center",
         cAlign: "left",
         layout: "top",
