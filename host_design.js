@@ -967,8 +967,9 @@ App.Design = {
                     `).join('')}
                     ${items.length === 0 ? '<p style="color:#666; font-size:0.78rem; text-align:center; margin:8px 0;">まだ音源が登録されていません</p>' : ''}
                 </div>
-                <button type="button" id="sound-modal-upload-btn" style="width:100%; margin:0 0 8px; padding:9px; border-radius:8px; background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4); color:#00e5ff; cursor:pointer; font-size:0.85rem;">＋ ファイルから追加（MP3など）</button>
-                <input type="file" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg" id="sound-modal-file-input" style="display:none;">
+                <label style="display:block; position:relative; overflow:hidden; box-sizing:border-box; width:100%; margin:0 0 8px; padding:9px; border-radius:8px; background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4); color:#00e5ff; cursor:pointer; font-size:0.85rem; text-align:center;">＋ ファイルから追加（MP3など）
+                    <input type="file" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg" id="sound-modal-file-input" style="position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%;">
+                </label>
                 <p style="color:#666; font-size:0.66rem; margin:0 0 12px; line-height:1.4;">※追加した音源はサウンド編集の一覧にも入り、他のセットでも使えます</p>
                 <button type="button" id="sound-modal-close-btn" style="width:100%; padding:10px; border-radius:8px; background:#333; border:none; color:#ccc; cursor:pointer;">閉じる</button>
             </div>
@@ -1002,7 +1003,6 @@ App.Design = {
         // ここから直接ファイルを追加 — サウンドライブラリ（同じカテゴリ）に登録して、
         // そのままこの項目に設定する
         const fileInput = overlay.querySelector('#sound-modal-file-input');
-        overlay.querySelector('#sound-modal-upload-btn').onclick = () => fileInput.click();
         fileInput.onchange = (e) => {
             const file = e.target.files[0];
             if (!file) return;

@@ -111,31 +111,37 @@ window.App.SoundLibrary = {
                         flex:1; min-width:0; padding:8px; background:#0d1b2a; border:1px solid #475569;
                         border-radius:8px; color:#fff; font-size:0.85rem; box-sizing:border-box;
                     ">
-                    <button type="button" data-upload-btn="${key}" style="
-                        flex:0 0 auto; padding:8px 14px; background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4);
+                    <!-- label の中にファイル選択を入れて、押すとブラウザが直接ファイル選択を
+                         開く（見えない input をスクリプトで押す方式は、ブラウザによって
+                         開かないことがあった） -->
+                    <label style="
+                        flex:0 0 auto; position:relative; overflow:hidden; padding:8px 14px; background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4);
                         border-radius:8px; color:#00e5ff; cursor:pointer; font-size:0.85rem; white-space:nowrap;
-                    ">＋ 追加</button>
-                    <input type="file" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg" data-file-input="${key}" style="display:none;">
+                    ">＋ 追加
+                        <input type="file" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg" data-file-input="${key}" style="position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%;">
+                    </label>
                 </div>
             </div>
         `;
     },
 
     _wireBody: function (container) {
-        container.querySelectorAll('[data-upload-btn]').forEach(btn => {
-            btn.onclick = () => container.querySelector(`[data-file-input="${btn.dataset.uploadBtn}"]`)?.click();
-        });
         container.querySelectorAll('[data-file-input]').forEach(inp => {
             inp.onchange = (e) => {
                 const key = inp.dataset.fileInput;
                 const file = e.target.files[0];
                 if (!file) return;
                 const nameInput = container.querySelector(`[data-name-input="${key}"]`);
-                const name = (nameInput && nameInput.value.trim()) || file.name || '無題';
+                const name = (nameInput && nameInput.value.trim()) || (file.name || '無題').replace(/\.[^.]+$/, '');
+                if (window.App.Ui) window.App.Ui.showToast(`読み込み中...（${file.name}）`);
                 const reader = new FileReader();
                 reader.onload = (ev) => {
                     this._addSound(key, name, ev.target.result);
                     if (nameInput) nameInput.value = '';
+                    inp.value = '';
+                };
+                reader.onerror = () => {
+                    if (window.App.Ui) window.App.Ui.showToast('⚠️ ファイルを読み込めませんでした');
                     inp.value = '';
                 };
                 reader.readAsDataURL(file);
@@ -161,10 +167,17 @@ window.App.SoundLibrary = {
         if (!window.db) return;
         if (window.App.Ui) window.App.Ui.showToast('追加中...');
         const ref = window.db.ref(`sound_library/${key}`).push();
+        // 通信が止まって返ってこない時も分かるように
+        const slow = setTimeout(() => {
+            if (window.App.Ui) window.App.Ui.showToast('⏳ 保存に時間がかかっています（通信状況を確認してください）');
+        }, 15000);
         ref.set({ name, data }).then(() => {
+            clearTimeout(slow);
             if (window.App.Ui) window.App.Ui.showToast('✅ 追加しました');
-        }).catch(() => {
-            if (window.App.Ui) window.App.Ui.showToast('⚠️ 追加に失敗しました（ファイルが大きすぎる可能性があります）');
+        }).catch((err) => {
+            clearTimeout(slow);
+            console.error('sound upload failed', err);
+            if (window.App.Ui) window.App.Ui.showToast(`⚠️ 追加に失敗しました（${(err && (err.code || err.message)) || '原因不明'}）`);
         });
     },
 };
