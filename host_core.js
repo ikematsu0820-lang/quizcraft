@@ -47,11 +47,12 @@ window.App.QuizCheck = {
         } else if (t === 'sort') {
             if (c.length < 2) miss.push('項目（2つ以上）');
             if (typeof q.correct !== 'string' || q.correct.length !== c.length) miss.push('並び順');
-        } else if (t === 'free_written') {
+        } else if (t.startsWith('free')) {
+            // 口頭でも手書きでも、正解が入っていなければ未完成
             if (correct.length === 0) miss.push('正解');
         } else if (t.startsWith('assoc')) {
             if (c.length < 1) miss.push('ヒント');
-            if (t === 'assoc_written' && correct.length === 0) miss.push('正解');
+            if (correct.length === 0) miss.push('正解');
         } else if (t.startsWith('multi') || t.startsWith('ranking')) {
             if (c.length < 1) miss.push('正解');
         } else if (t === 'letter_select') {
