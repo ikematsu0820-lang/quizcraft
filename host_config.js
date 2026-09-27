@@ -144,7 +144,7 @@ App.Config = {
                         </select>`, '減点')}
                     </div>
                 </div>
-                <button type="button" id="config-buzz-wrong-detail-btn" style="width:100%; margin-top:10px; padding:6px; border-radius:8px; background:#232a35; border:1px dashed #475569; color:#94a3b8; font-size:0.8rem; cursor:pointer;">誤答時の詳細設定</button>
+                <button type="button" id="config-buzz-wrong-detail-btn" style="width:100%; height:26px; margin-top:10px; padding:0; border-radius:8px; background:#232a35; border:1px dashed #475569; color:#94a3b8; font-size:0.8rem; cursor:pointer; box-sizing:border-box;">誤答時の詳細設定</button>
             `;
         } else if (mode === 'turn') {
             const showRotateMode = isDobon || (qType && (qType.startsWith('multi') || qType.startsWith('ranking')));
