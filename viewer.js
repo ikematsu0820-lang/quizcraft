@@ -260,8 +260,9 @@ window.App.Viewer = {
             this.render(st);
         });
 
-        refs.players.on('value', () => {
+        refs.players.on('value', snap => {
             if (this.config.gameType === 'race') this.updateViewerRace();
+            this.updateAnswerWall(snap.val());
         });
     },
 
@@ -991,7 +992,7 @@ window.App.Viewer = {
         window.db.ref(`rooms/${this.roomId}/players`).once('value', snap => {
             if (seq !== this._renderSeq) return;
             const players = snap.val() || {};
-            const playerList = Object.values(players);
+            const playerList = Object.entries(players).map(([key, p]) => ({ ...p, _key: key }));
 
             if (mode === 'distribution' && q.type === 'choice') {
                 this.renderDistribution(container, playerList, q);
@@ -1011,6 +1012,7 @@ window.App.Viewer = {
         const cardH = 90 / rows; // カード1枚の高さ（cqh、隙間込みのおおよそ）
 
         container.innerHTML = '';
+        this._answerWallBacks = {}; // プレイヤー → カード裏面（正解判定で赤くする）
         const grid = document.createElement('div');
         grid.style.cssText = `display:grid; grid-template-columns:repeat(${cols}, 1fr); grid-template-rows:repeat(${rows}, 1fr);
             gap:1.5cqh; width:96%; height:92%; box-sizing:border-box; perspective:2000px;`;
@@ -1064,6 +1066,9 @@ window.App.Viewer = {
                 body.firstChild.textContent = txt;
             }
             back.append(nameBar, body);
+            back._textEl = body.firstChild && !isImage ? body.firstChild : null;
+            if (p._key) this._answerWallBacks[p._key] = back;
+            this.paintAnswerCard(back, p);
             card.append(front, back);
             grid.appendChild(card);
 
@@ -1071,6 +1076,23 @@ window.App.Viewer = {
             setTimeout(() => { card.style.transform = 'rotateY(180deg)'; }, 800 + (i * 150));
         });
         container.appendChild(grid);
+    },
+
+    // 正解と判定されたカードだけ背景を赤に（不正解・未判定は白のまま）
+    paintAnswerCard: function (back, p) {
+        const isCorrect = !!p && (p.lastResult === 'win' || p.pendingResult === 'win');
+        back.style.background = isCorrect ? '#e11d2e' : '#fff';
+        if (back._textEl) back._textEl.style.color = isCorrect ? '#fff' : '#111';
+    },
+
+    // 解答オープン中に出題者が判定したら、その場でカードの色を変える
+    updateAnswerWall: function (players) {
+        const backs = this._answerWallBacks;
+        if (!backs) return;
+        Object.keys(backs).forEach(key => {
+            if (!backs[key].isConnected) return;
+            this.paintAnswerCard(backs[key], (players || {})[key]);
+        });
     },
 
     renderDistribution: function (container, players, q) {
