@@ -4459,3 +4459,19 @@ input:checked+.pro-slider:before {
 #creator-view #creator-inline-design > div:first-child {
     margin: -4px -4px 10px !important;
 }
+
+/* 問題作成: プレビューとその下の入力行（正解・タイトル等）を白い枠で囲み、
+   「ここを編集する」場所だと分かるようにする（見た目だけ） */
+#creator-view #creator-monitor-preview {
+    border: 3px solid #e5e7eb;
+    border-bottom: none;
+    box-sizing: border-box;
+}
+#creator-view #creator-outside-opts {
+    border: 3px solid #e5e7eb;
+    border-top: 1px solid #2a2a2a;
+    box-sizing: border-box;
+}
+#creator-view:has(#creator-outside-opts.hidden) #creator-monitor-preview {
+    border-bottom: 3px solid #e5e7eb;
+}

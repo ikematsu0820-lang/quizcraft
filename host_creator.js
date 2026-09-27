@@ -665,7 +665,14 @@ window.App.Creator = {
                 // オンにしたらタイトルを選択して、すぐ文字の設定ができるように
                 if (window.App.Design) window.App.Design.selectObject(on ? 'qtitle' : 'question');
             });
+            // 正解を左、タイトルを追加を右（区切り線つき）に並べる
             outsideAnswerInput('creator-text-answer', freeAnsCorrect);
+            const titleChkLabel = document.getElementById('free-title-chk')?.closest('label');
+            if (titleChkLabel && outsideOpts) {
+                titleChkLabel.style.borderLeft = '1px solid #333';
+                titleChkLabel.style.paddingLeft = '12px';
+                outsideOpts.appendChild(titleChkLabel);
+            }
         }
         else if (type.startsWith('assoc')) {
 
