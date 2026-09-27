@@ -4427,3 +4427,15 @@ input:checked+.pro-slider:before {
     padding-bottom: 8px !important;
     margin-bottom: 10px !important;
 }
+
+/* 問題形式の選択: 見出し・戻るボタン・案内文・形式ボタンの文字を
+   「過去に作成した問題を編集」と同じ大きさ（0.9rem）にそろえる */
+#select-type-view h2,
+#select-type-view h3,
+#select-type-view .header-back-btn,
+#select-type-view .type-select-card div {
+    font-size: 0.9rem !important;
+}
+#select-type-view h3 {
+    margin-bottom: 14px !important;
+}
