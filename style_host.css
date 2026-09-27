@@ -4352,7 +4352,8 @@ input:checked+.pro-slider:before {
    まだ始まっていないので、上の番号/ランプ/START QUIZ と下の問題・正解
    カードは出さない。参加者リストは入室の確認に使うので残す。 */
 #host-control-view:has(#studio-loader-ui:not(.hidden)) .simple-studio-controls,
-#host-control-view:has(#studio-loader-ui:not(.hidden)) .console-card-wrapper {
+#host-control-view:has(#studio-loader-ui:not(.hidden)) .console-card-wrapper,
+#host-control-view:has(#studio-loader-ui:not(.hidden)) .studio-bottom-bar {
     display: none !important;
 }
 

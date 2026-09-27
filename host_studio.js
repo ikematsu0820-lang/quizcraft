@@ -1873,6 +1873,7 @@ App.Studio = {
     },
 
     resetPlayerStatus: function () {
+        this._deskSelected = null; // 新しい問題では解答ボードは「回答待ち」から
         const roomId = App.State.currentRoomId;
         this.revealedMultiIndices = {}; // Reset multi-answer reveal state
         this.turnAdvancedThisQ = false; // Reset turn flag for current question
@@ -2639,38 +2640,97 @@ App.Studio = {
                 return timeA - timeB;
             });
 
-        horizontalList.innerHTML = '';
+        this.renderAnswerDesk(sortedPlayers);
+
+        // 判定は解答ボード（renderAnswerDesk）で行う — 以前の判定キューは使わない
+    },
+
+    // 参加者と解答ボード。解答を送ってきた人（未判定）は名前が赤く光り、
+    // 名前を押すと中央の解答ボードにその人の解答、右の○×で判定できる。
+    // 選ぶまでは「回答待ち」。
+    _deskSelected: null,
+    renderAnswerDesk: function (sortedPlayers) {
+        const listEl = document.getElementById('console-player-horizontal-list');
+        const board = document.getElementById('console-answer-board');
+        const judge = document.getElementById('console-judge-panel');
+        if (!listEl || !board || !judge) return;
+        const q = App.Data.studioQuestions[App.State.currentQIndex];
+        const hasAns = (p) => p && p.lastAnswer !== null && p.lastAnswer !== undefined && p.lastAnswer !== '';
+        const resultOf = (p) => (p && (p.lastResult || p.pendingResult)) || null;
+
+        listEl.innerHTML = '';
+        if (!sortedPlayers.length) {
+            listEl.innerHTML = '<div style="color:#666; font-size:12px; text-align:center; padding:10px 0;">まだ参加者がいません</div>';
+        }
         sortedPlayers.forEach(p => {
-            const chip = document.createElement('div');
-            chip.className = 'console-player-chip';
-            chip.textContent = p.name;
-            horizontalList.appendChild(chip);
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            const answered = hasAns(p);
+            const res = resultOf(p);
+            const selected = this._deskSelected === p.id;
+            const glow = answered && !res;
+            btn.style.cssText = `
+                width:100%; padding:12px 6px; border-radius:12px; cursor:pointer; font-weight:900; font-size:15px;
+                overflow:hidden; text-overflow:ellipsis; white-space:nowrap; transition:all 0.2s;
+                color:${glow ? '#fff' : res === 'win' ? '#bbf7d0' : res === 'lose' ? '#94a3b8' : '#ddd'};
+                background:${glow ? 'linear-gradient(135deg,#ef4444,#b91c1c)' : res === 'win' ? 'rgba(34,197,94,0.18)' : '#222'};
+                border:2px solid ${selected ? '#00e5ff' : glow ? '#fca5a5' : '#444'};
+                box-shadow:${glow ? '0 0 14px rgba(239,68,68,0.75)' : 'none'};
+            `;
+            btn.textContent = (res === 'win' ? '〇 ' : res === 'lose' ? '✕ ' : '') + (p.name || '---');
+            btn.onclick = () => {
+                this._deskSelected = p.id;
+                this.renderAnswerDesk(sortedPlayers);
+            };
+            listEl.appendChild(btn);
         });
 
-        // Update judge queue: add new answerers who haven't been judged yet
-        const currentQ = App.Data.studioQuestions[App.State.currentQIndex];
-        const needsManualJudge = currentQ && (
-            currentQ.type === 'free_written' ||
-            currentQ.type === 'assoc_written' ||
-            currentQ.type === 'multi_written' ||
-            currentQ.type === 'ranking_written' ||
-            currentQ.type === 'free_oral' ||
-            currentQ.type === 'multi_oral'
-        );
-        if (needsManualJudge) {
-            const inQueue = new Set(this.judgeQueue.map(e => e.id));
-            sortedPlayers.forEach(p => {
-                if (
-                    (p.lastAnswer !== null && p.lastAnswer !== undefined) &&
-                    !p.lastResult &&
-                    !inQueue.has(p.id)
-                ) {
-                    this.judgeQueue.push({ id: p.id, name: p.name, answer: p.lastAnswer });
-                    inQueue.add(p.id);
+        // 解答ボード
+        const sel = sortedPlayers.find(p => p.id === this._deskSelected) || null;
+        if (!sel) {
+            const anyAnswered = sortedPlayers.some(p => hasAns(p) && !resultOf(p));
+            board.innerHTML = `<div style="flex:1; display:flex; align-items:center; justify-content:center; color:#666; font-size:14px; text-align:center;">${anyAnswered ? '赤く光っている名前を押すと<br>解答が表示されます' : '回答待ち'}</div>`;
+        } else {
+            const ans = sel.lastAnswer;
+            let body;
+            if (!hasAns(sel)) {
+                body = '<div style="color:#666; font-size:14px;">回答待ち</div>';
+            } else if (typeof ans === 'string' && ans.startsWith('data:image')) {
+                body = `<img src="${ans}" style="max-width:100%; max-height:170px; border-radius:8px; background:#fff; display:block;">`;
+            } else {
+                let txt = ans;
+                if (q && q.type === 'choice') {
+                    const arr = Array.isArray(ans) ? ans : [ans];
+                    txt = arr.map(a => { const i = parseInt(a); return isNaN(i) ? a : `${String.fromCharCode(65 + i)}${q.c && q.c[i] ? `：${q.c[i]}` : ''}`; }).join(' / ');
                 }
-            });
-            this.renderJudgeQueue();
+                body = `<div style="color:#fff; font-size:22px; font-weight:900; word-break:break-all; text-align:center;">${this._esc(String(txt))}</div>`;
+            }
+            board.innerHTML = `
+                <div style="align-self:flex-start; background:#000; color:#fff; font-weight:900; font-size:18px; padding:4px 12px; border-radius:4px 4px 0 0;">${this._esc(sel.name || '---')}</div>
+                <div style="flex:1; display:flex; align-items:center; justify-content:center; background:${hasAns(sel) ? '#fff' : 'transparent'}; border-radius:8px; padding:10px; min-height:120px;">
+                    ${hasAns(sel) && !(typeof ans === 'string' && ans.startsWith('data:image')) ? body.replace('color:#fff', 'color:#111') : body}
+                </div>`;
         }
+
+        // 判定（選んだ人が解答済み・未判定の時だけ押せる）
+        const canJudge = !!(sel && hasAns(sel) && !resultOf(sel));
+        const selRes = resultOf(sel);
+        judge.innerHTML = `
+            <div style="color:#94a3b8; font-size:12px; font-weight:bold;">判定</div>
+            <div style="display:flex; gap:8px;">
+                <button type="button" data-desk-judge="1" style="width:52px; height:64px; border:none; border-radius:10px; font-size:28px; font-weight:900; color:#fff; cursor:${canJudge ? 'pointer' : 'default'}; background:#22a55a; opacity:${canJudge ? 1 : 0.3};">〇</button>
+                <button type="button" data-desk-judge="0" style="width:52px; height:64px; border:none; border-radius:10px; font-size:28px; font-weight:900; color:#fff; cursor:${canJudge ? 'pointer' : 'default'}; background:#c0392b; opacity:${canJudge ? 1 : 0.3};">✕</button>
+            </div>
+            ${selRes ? `<div style="color:${selRes === 'win' ? '#4ade80' : '#f87171'}; font-size:12px; font-weight:bold; text-align:center;">${selRes === 'win' ? '正解にしました' : '不正解にしました'}</div>` : ''}`;
+        judge.querySelectorAll('[data-desk-judge]').forEach(b => {
+            b.onclick = () => {
+                if (!canJudge) return;
+                this.updatePlayerScore(sel.id, b.dataset.deskJudge === '1');
+                // 次の未判定の人を自動で選ぶ
+                const next = sortedPlayers.find(p => p.id !== sel.id && hasAns(p) && !resultOf(p));
+                this._deskSelected = next ? next.id : sel.id;
+            };
+        });
     },
 
     renderJudgeQueue: function () {

@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@800;900&display=swap">
     <link rel="stylesheet" href="style_common.css?v=96">
-    <link rel="stylesheet" href="style_host.css?v=101">
+    <link rel="stylesheet" href="style_host.css?v=102">
     <link rel="stylesheet" href="style_player.css?v=100">
     <link rel="stylesheet" href="style_viewer.css?v=98">
 </head>
@@ -472,34 +472,7 @@
                     style="display:none; color:#888; margin-bottom:10px; font-size:14px; letter-spacing:1px;">
                     WAITING</div>
 
-                <!-- The Giant Button -->
-                <button id="console-btn-phase-main" class="btn-giant-action" style="
-                width: 100%;
-                max-width: 400px;
-                height: 45px;
-                font-size: 20px;
-                font-weight: bold;
-                border-radius: 12px;
-                background: linear-gradient(135deg, #00bfff 0%, #0077aa 100%);
-                border: none;
-                color: white;
-                box-shadow: 0 4px 15px rgba(0, 191, 255, 0.3);
-                transition: transform 0.1s;
-                position: relative;
-                overflow: hidden;
-            ">
-                    START QUIZ
-                </button>
-                <!-- 一斉解答: 全員の解答をモニターに一斉オープン（正解表示の前でも
-                     後でも、出題者が押す順番を選べる）— host_studio.js が表示を制御 -->
-                <button id="console-btn-open-answers" class="hidden" style="
-                    width:100%; max-width:400px; height:40px; margin-top:8px;
-                    font-size:17px; font-weight:bold; border-radius:12px;
-                    background:linear-gradient(135deg, #9b59b6 0%, #6c3483 100%);
-                    border:none; color:#fff; cursor:pointer;
-                    box-shadow:0 4px 15px rgba(155, 89, 182, 0.35);
-                ">解答オープン</button>
-                <div id="studio-mode-display" style="display:none; margin-top:2px; color:#555; font-size:12px;"></div>
+
             </div>
         </div>
 
@@ -543,9 +516,26 @@
                     style="padding:12px; font-weight:bold; font-size:1.1em;">読み込む</button>
             </div>
 
+            <!-- 参加者と解答ボード: 左に参加者（解答を送った人は赤く光る）、名前を
+                 押すと中央の解答ボードにその人の解答、右で○×判定
+                 （App.Studio.renderAnswerDesk） -->
+            <div class="simple-player-section" style="width:100%; max-width:600px; margin:0 0 12px;">
+                <div
+                    style="color:#666; font-size:12px; margin-bottom:10px; border-bottom:1px solid #333; padding-bottom:5px;">
+                    参加者</div>
+                <div id="console-answer-desk" style="display:flex; gap:10px; align-items:stretch;">
+                    <div id="console-player-horizontal-list"
+                        style="flex:0 0 28%; min-width:0; display:flex; flex-direction:column; gap:8px; max-height:240px; overflow-y:auto; padding:2px;">
+                        <!-- Players injected here -->
+                    </div>
+                    <div id="console-answer-board" style="flex:1; min-width:0; min-height:180px; background:#1a1a1a; border:1px solid #444; border-radius:12px; padding:8px; display:flex; flex-direction:column;"></div>
+                    <div id="console-judge-panel" style="flex:0 0 auto; background:#1a1a1a; border:1px solid #444; border-radius:12px; padding:8px 10px; display:flex; flex-direction:column; justify-content:center; gap:8px;"></div>
+                </div>
+            </div>
+
             <!-- Central Console Card -->
             <div class="console-card-wrapper"
-                style="width:100%; max-width:500px; margin-top:0; background:#222; border-radius:12px; overflow:hidden; border:1px solid #444; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+                style="width:100%; max-width:600px; margin-top:0; background:#222; border-radius:12px; overflow:hidden; border:1px solid #444; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
 
                 <!-- 1. Question Text -->
                 <div style="background:#333; padding:10px 15px; border-bottom:1px solid #444;">
@@ -562,19 +552,40 @@
 
             </div>
 
-            <!-- Participants List -->
-            <div class="simple-player-section" style="width:100%; max-width:600px; margin-top:15px;">
-                <div
-                    style="color:#666; font-size:12px; margin-bottom:10px; border-bottom:1px solid #333; padding-bottom:5px;">
-                    参加者</div>
-                <div id="console-player-horizontal-list" class="console-horizontal-scroll"
-                    style="display:flex; gap:10px; overflow-x:auto; padding-bottom:10px;">
-                    <!-- Players injected here -->
-                </div>
-            </div>
-
             <!-- Judge Queue Area -->
             <div id="judge-queue-area" class="judge-queue-area hidden" style="width:100%; max-width:600px; margin-top:12px;"></div>
+        </div>
+
+        <!-- 進行ボタン（番組を開始/次へ/結果発表へ…）は画面の一番下に固定 -->
+        <div class="studio-bottom-bar" style="position:sticky; bottom:0; z-index:900; display:flex; flex-direction:column; align-items:center; padding:10px 20px calc(10px + env(safe-area-inset-bottom, 0px)); background:linear-gradient(180deg, rgba(17,17,17,0) 0%, #111 30%);">
+                <!-- The Giant Button -->
+                    <button id="console-btn-phase-main" class="btn-giant-action" style="
+                    width: 100%;
+                    max-width: 400px;
+                    height: 45px;
+                    font-size: 20px;
+                    font-weight: bold;
+                    border-radius: 12px;
+                    background: linear-gradient(135deg, #00bfff 0%, #0077aa 100%);
+                    border: none;
+                    color: white;
+                    box-shadow: 0 4px 15px rgba(0, 191, 255, 0.3);
+                    transition: transform 0.1s;
+                    position: relative;
+                    overflow: hidden;
+                ">
+                        START QUIZ
+                    </button>
+                    <!-- 一斉解答: 全員の解答をモニターに一斉オープン（正解表示の前でも
+                         後でも、出題者が押す順番を選べる）— host_studio.js が表示を制御 -->
+                    <button id="console-btn-open-answers" class="hidden" style="
+                        width:100%; max-width:400px; height:40px; margin-top:8px;
+                        font-size:17px; font-weight:bold; border-radius:12px;
+                        background:linear-gradient(135deg, #9b59b6 0%, #6c3483 100%);
+                        border:none; color:#fff; cursor:pointer;
+                        box-shadow:0 4px 15px rgba(155, 89, 182, 0.35);
+                    ">解答オープン</button>
+                    <div id="studio-mode-display" style="display:none; margin-top:2px; color:#555; font-size:12px;"></div>
         </div>
     </div>
 
@@ -757,7 +768,7 @@
     <script src="host_creator.js?v=288"></script>
     <script src="host_config.js?v=248"></script>
     <script src="host_prog_config.js?v=232"></script>
-    <script src="host_studio.js?v=243"></script>
+    <script src="host_studio.js?v=244"></script>
     <script src="player.js?v=240"></script>
     <script src="viewer.js?v=259"></script>
 
