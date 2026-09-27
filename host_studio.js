@@ -2214,6 +2214,9 @@ App.Studio = {
         if (candidates.length > 0) {
             this.buzzWinner = candidates[0][0];
             const name = candidates[0][1].name;
+            // 解答ボードに早押しの解答者を出して、すぐ〇✕判定できるように
+            this._deskSelected = this.buzzWinner;
+            if (this._deskPlayers) setTimeout(() => this.renderAnswerDesk(this._deskPlayers), 0);
             const info = document.getElementById('studio-sub-info');
             info.classList.remove('hidden');
             info.innerHTML = `<span style="color:orange; font-weight:bold;">早押し: ${name}</span>`;
@@ -2654,9 +2657,20 @@ App.Studio = {
         const board = document.getElementById('console-answer-board');
         const judge = document.getElementById('console-judge-panel');
         if (!listEl || !board || !judge) return;
+        this._deskPlayers = sortedPlayers;
         const q = App.Data.studioQuestions[App.State.currentQIndex];
-        const hasAns = (p) => p && p.lastAnswer !== null && p.lastAnswer !== undefined && p.lastAnswer !== '';
         const resultOf = (p) => (p && (p.lastResult || p.pendingResult)) || null;
+        // 早押しで解答権を取った人／順番で今答えている人 — 口頭だと解答データが
+        // 届かないので、この人は「解答中」として判定できるようにする
+        const mode = (App.Data.currentConfig || {}).mode;
+        let activeId = null;
+        if (mode === 'buzz') activeId = this.buzzWinner || null;
+        else if ((mode === 'turn' || mode === 'solo') && [2, 3].includes(this.currentStepId) && this.turnOrder && this.turnOrder.length) {
+            activeId = this.turnOrder[this.turnIndex] || null;
+        }
+        const isActive = (p) => !!(p && activeId && p.id === activeId && !resultOf(p));
+        const hasAns = (p) => p && ((p.lastAnswer !== null && p.lastAnswer !== undefined && p.lastAnswer !== '') || isActive(p));
+        if (activeId && isActive(sortedPlayers.find(p => p.id === activeId))) this._deskSelected = activeId;
 
         listEl.innerHTML = '';
         if (!sortedPlayers.length) {
@@ -2692,9 +2706,13 @@ App.Studio = {
             board.innerHTML = `<div style="flex:1; display:flex; align-items:center; justify-content:center; color:#666; font-size:14px; text-align:center;">${anyAnswered ? '赤く光っている名前を押すと<br>解答が表示されます' : '回答待ち'}</div>`;
         } else {
             const ans = sel.lastAnswer;
+            const noData = (ans === null || ans === undefined || ans === '');
             let body;
             if (!hasAns(sel)) {
                 body = '<div style="color:#666; font-size:14px;">回答待ち</div>';
+            } else if (noData) {
+                // 口頭（早押し/順番）— 解答は声で聞いて判定
+                body = `<div style="color:#111; font-size:20px; font-weight:900; text-align:center;">${mode === 'buzz' ? '🔔 早押し' : '🎤 解答中'}<br><span style="font-size:14px; color:#555;">口頭の解答を聞いて〇✕を押してください</span></div>`;
             } else if (typeof ans === 'string' && ans.startsWith('data:image')) {
                 body = `<img src="${ans}" style="max-width:100%; max-height:170px; border-radius:8px; background:#fff; display:block;">`;
             } else {
@@ -2725,7 +2743,10 @@ App.Studio = {
         judge.querySelectorAll('[data-desk-judge]').forEach(b => {
             b.onclick = () => {
                 if (!canJudge) return;
-                this.updatePlayerScore(sel.id, b.dataset.deskJudge === '1');
+                const ok = b.dataset.deskJudge === '1';
+                if (mode === 'buzz' && sel.id === this.buzzWinner) this.judgeBuzz(ok); // 早押しの判定（誤答時の処理も含む）
+                else if (mode === 'solo') this.judgeBuzz(ok);
+                else this.updatePlayerScore(sel.id, ok);
                 // 次の未判定の人を自動で選ぶ
                 const next = sortedPlayers.find(p => p.id !== sel.id && hasAns(p) && !resultOf(p));
                 this._deskSelected = next ? next.id : sel.id;
