@@ -2782,7 +2782,9 @@ App.Studio = {
         const btn = document.getElementById('console-participants-toggle');
         if (page) page.classList.toggle('hidden', !this._showParticipants);
         if (desk) desk.classList.toggle('hidden', this._showParticipants);
-        if (btn) btn.textContent = this._showParticipants ? '解答を見る' : '参加者を見る';
+        // 参加者リストのページは参加者だけ（解答順番の設定・問題/正解・進行ボタンは隠す）
+        document.getElementById('host-control-view')?.classList.toggle('show-participants', !!this._showParticipants);
+        if (btn) btn.textContent = this._showParticipants ? '解答を見る' : '参加者リスト';
     },
 
     renderJudgeQueue: function () {

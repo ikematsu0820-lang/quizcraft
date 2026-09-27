@@ -4496,3 +4496,9 @@ input:checked+.pro-slider:before {
 #creator-view #creator-bulk-panel textarea {
     resize: none !important;
 }
+
+/* 出題者画面の「参加者リスト」ページ: 参加者の一覧だけを見せる */
+#host-control-view.show-participants .simple-studio-main > *:not(#console-participants-page),
+#host-control-view.show-participants .studio-bottom-bar {
+    display: none !important;
+}
