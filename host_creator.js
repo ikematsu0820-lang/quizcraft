@@ -1163,7 +1163,8 @@ window.App.Creator = {
         }
         if (qArea) {
             if (isRow) {
-                qArea.style.width = '34%';
+                // 左右に置いた時の枠の大きさ（小/中/大）は横幅（モニターと同じ割合）
+                qArea.style.width = `${({ '40vh': 45, '60vh': 60 })[d.qBoxSize] || 30}%`;
                 qArea.style.alignSelf = 'stretch';
                 qArea.style.display = 'flex';
                 qArea.style.flexDirection = 'row';
@@ -1204,7 +1205,7 @@ window.App.Creator = {
                 formContainer.style.bottom = '';
             }
             if (isRow) {
-                formContainer.style.width = '62%';
+                formContainer.style.width = `${97 - (({ '40vh': 45, '60vh': 60 })[d.qBoxSize] || 30)}%`;
                 formContainer.style.alignSelf = 'stretch';
             } else {
                 formContainer.style.width = (layout === 'center') ? '96%' : '100%';
@@ -1223,7 +1224,8 @@ window.App.Creator = {
             // 枠の大きさ（文字サイズとは別設定）— 小(空文字)なら中身に
             // 合わせた自動の高さのまま。中/大は viewer.js と同じ考え方で、
             // このプレビュー枠自身の高さに対して比例換算する。
-            qArea.style.minHeight = d.qBoxSize ? scalePreviewFontSize(d.qBoxSize) : '';
+            // 上下に置いた時だけ高さで（左右の時は上で横幅に使っている）
+            qArea.style.minHeight = (d.qBoxSize && !isRow) ? scalePreviewFontSize(d.qBoxSize) : '';
         }
         // input/select/textarea get a global "color:#fff !important" reset
         // (style_host.css), so a plain .style.color assignment loses to it —

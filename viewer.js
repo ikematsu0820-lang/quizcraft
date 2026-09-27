@@ -1236,8 +1236,11 @@ window.App.Viewer = {
         // で、これまで通り中身に合わせた自動の高さのまま変えない。
         // 問題文の上下位置（枠を「中/大」にした時に効く）— 問題作成のデザインで設定
         const qVAlignMap = { middle: 'center', bottom: 'flex-end' };
-        const qBoxSizeStyle = (d.qBoxSize ? ` min-height:${d.qBoxSize};` : '')
-            + (qVAlignMap[d.qVAlign] ? ` display:flex; flex-direction:column; justify-content:${qVAlignMap[d.qVAlign]};` : '');
+        const qVAlignStyle = qVAlignMap[d.qVAlign] ? ` display:flex; flex-direction:column; justify-content:${qVAlignMap[d.qVAlign]};` : '';
+        const qBoxSizeStyle = (d.qBoxSize ? ` min-height:${d.qBoxSize};` : '') + qVAlignStyle;
+        // 問題文を左右に置いた時は、枠の大きさ（小/中/大）は横幅で決める
+        const rowQW = ({ '40vh': 45, '60vh': 60 })[d.qBoxSize] || 30;
+        const rowQStyle = ` width:${rowQW}vw; height:80vh; margin:0 2vw; box-sizing:border-box;${qVAlignStyle}`;
         // 問題背景を「透明」にしても、.q-area のフロストガラス効果
         // (backdrop-filter:blur) 自体は色と無関係に効いたままなので、
         // 背景色が無くても後ろの映像がぼやけて box の輪郭が浮かび上がって
@@ -1264,11 +1267,12 @@ window.App.Viewer = {
             // against the tags (no surrounding template indentation) since
             // .q-area now uses white-space:pre-wrap, which would otherwise
             // render that indentation as stray blank lines/leading spaces.
-            const qAreaHtml = `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align}; font-size:${d.qFontSize || '6vh'}; width:${q.title ? '100%' : '96%'};${qBoxSizeStyle}${qBackdropStyle}${qTextShadowStyle}">${q.q}</div>`;
+            const qSizeStyle = isRow ? (q.title ? ` width:100%; height:70vh;${qVAlignStyle}` : rowQStyle) : ` width:${q.title ? '100%' : '96%'};${qBoxSizeStyle}`;
+            const qAreaHtml = `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align}; font-size:${d.qFontSize || '6vh'};${qSizeStyle}${qBackdropStyle}${qTextShadowStyle}">${q.q}</div>`;
             if (q.title) {
                 // タイトル（一問一答で「タイトルを追加」した時）— 問題文の上に出す
                 const titleColor = (textColor === 'transparent') ? 'transparent' : (d.qTitleColor || '#ffd700');
-                html += `<div style="width:96%; display:flex; flex-direction:column; align-items:center;"><div class="q-title" style="width:100%; box-sizing:border-box; text-align:${d.qTitleAlign || 'center'}; font-size:${d.qTitleFontSize || '6vh'};${d.qTitleBorderColor ? ` border:4px solid ${d.qTitleBorderColor}; border-radius:12px; padding:1vh 2vw;` : ''}${d.qTitleBgColor ? ` background:${d.qTitleBgColor}; border-radius:12px; padding:1vh 2vw;` : ''} font-weight:900; color:${titleColor}; margin-bottom:1.5vh; letter-spacing:0.1em;${titleColor === 'transparent' ? ' text-shadow:none;' : ' text-shadow:0 2px 12px rgba(0,0,0,0.6);'}">${q.title}</div>${qAreaHtml}</div>`;
+                html += `<div style="width:${isRow ? `${rowQW}vw; margin:0 2vw` : '96%'}; display:flex; flex-direction:column; align-items:center;"><div class="q-title" style="width:100%; box-sizing:border-box; text-align:${d.qTitleAlign || 'center'}; font-size:${d.qTitleFontSize || '6vh'};${d.qTitleBorderColor ? ` border:4px solid ${d.qTitleBorderColor}; border-radius:12px; padding:1vh 2vw;` : ''}${d.qTitleBgColor ? ` background:${d.qTitleBgColor}; border-radius:12px; padding:1vh 2vw;` : ''} font-weight:900; color:${titleColor}; margin-bottom:1.5vh; letter-spacing:0.1em;${titleColor === 'transparent' ? ' text-shadow:none;' : ' text-shadow:0 2px 12px rgba(0,0,0,0.6);'}">${q.title}</div>${qAreaHtml}</div>`;
             } else {
                 html += qAreaHtml;
             }
@@ -1295,17 +1299,15 @@ window.App.Viewer = {
             contentBox.style.justifyContent = 'flex-start';
             contentBox.style.alignItems = 'center';
 
-            const qAreaStyle = isRow
-                ? `width:28vw; height:80vh; margin:0 3vw;`
-                : `width:96%;`;
+            const qAreaStyle = isRow ? rowQStyle : ` width:96%;${qBoxSizeStyle}`;
             // ${q.q} sits directly against the tags — see the note above.
-            html += `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align}; font-size:${d.qFontSize || '6vh'}; ${qAreaStyle}${qBoxSizeStyle}${qBackdropStyle}${qTextShadowStyle}">${q.q}</div>`;
+            html += `<div class="q-area" style="color:${textColor}; border-color:${borderColor}; background-color:${d.qBgColor || ''}; text-align:${align}; font-size:${d.qFontSize || '6vh'};${qAreaStyle}${qBackdropStyle}${qTextShadowStyle}">${q.q}</div>`;
 
             if (q.c) {
                 const rows = parseInt(d.gridRows) || 0;
                 const cols = parseInt(d.gridCols) || 0;
                 const gridStyle = (rows > 0 && cols > 0) ? `display:grid; grid-template-columns: repeat(${cols}, 1fr); gap:2vh;` : '';
-                const cAreaStyle = isRow ? `width:50vw; box-sizing:border-box;` : '';
+                const cAreaStyle = isRow ? `width:${92 - rowQW}vw; box-sizing:border-box;` : '';
                 // まるばつモード: ○ を左半分、× を右半分に大きく
                 const isOx = !!q.ox && q.type === 'choice';
                 const oxAreaStyle = isOx ? 'display:grid; grid-template-columns:1fr 1fr; gap:3vh; flex:1; min-height:45vh; width:96%;' : '';
