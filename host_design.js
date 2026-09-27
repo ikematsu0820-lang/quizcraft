@@ -467,12 +467,11 @@ App.Design = {
                 };
                 return `
                     <div style="display:flex; gap:6px; margin-bottom:8px;">
-                        ${soundTile('シンキングBGM', 'bgmThinking', '🎵')}
+                        ${soundTile('出題中BGM', 'bgmThinking', '🎵')}
                         ${soundTile('ボタンSE', 'seButton', '🔘')}
                         ${soundTile('正解音', 'seCorrect', '⭕')}
                         ${soundTile('不正解音', 'seWrong', '❌')}
                     </div>
-                    <p style="color:#555; font-size:0.62rem; margin:4px 0 0;">※タップして音声を設定。BGMはモニター画面、他は各プレイヤーの端末で再生されます（問題番号音・結果発表音はプレビュー上の「ブリッジ」「結果」を選んで設定）</p>
                 `;
             },
             animation: () => `<p style="color:#666; font-size:0.8rem; text-align:center; padding:30px 0;">モーションは準備中です</p>`,

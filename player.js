@@ -1429,6 +1429,9 @@ function renderPlayerQuestion(q, roomId, playerId) {
         // Scrollable choice list — bottom padding so last item clears the fixed footer
         const choiceList = document.createElement('div');
         choiceList.style.paddingBottom = 'calc(72px + env(safe-area-inset-bottom, 0px))';
+        // まるばつモード: ○ と × を左右に大きく並べる
+        const isOx = !!q.ox && !isDobonMode;
+        if (isOx) choiceList.style.cssText += 'display:grid; grid-template-columns:1fr 1fr; gap:12px;';
 
         choices.forEach((item, i) => {
             const btn = document.createElement('button');
@@ -1444,6 +1447,10 @@ function renderPlayerQuestion(q, roomId, playerId) {
             // Alphabet label based on display order (i), not originalIndex
             btn.innerHTML = `<span class="choice-prefix" style="font-weight:900;margin-right:10px;font-family:monospace;font-size:0.95em;">${String.fromCharCode(65 + i)}</span>${item.text}`;
             btn.dataset.ans = item.originalIndex;
+            if (isOx) {
+                btn.innerHTML = item.text;
+                btn.style.cssText += `min-height:38vh; margin:0; font-size:22vh; font-weight:900; line-height:1; text-align:center; color:${item.text === '○' ? '#ff4d4d' : '#3b82f6'} !important;`;
+            }
 
             const colorClasses = ['btn-blue', 'btn-red', 'btn-green', 'btn-yellow', 'btn-purple', 'btn-teal'];
             if (isDobonMode) {

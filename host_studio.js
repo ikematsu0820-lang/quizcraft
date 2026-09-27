@@ -3160,6 +3160,7 @@ App.Studio = {
     shuffleQuestions: function (questions) {
         return questions.map(q => {
             if (q.shuffle === false) return q;
+            if (q.ox) return q; // まるばつは ○ 左・× 右 で固定
             const qCopy = JSON.parse(JSON.stringify(q));
             if (qCopy.type === 'choice' && qCopy.c && qCopy.c.length > 0) {
                 const indices = qCopy.c.map((_, i) => i);

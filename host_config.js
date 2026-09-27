@@ -108,32 +108,38 @@ App.Config = {
         } else if (mode === 'buzz') {
             const buzzAction = conf.buzzWrongAction || 'next';
             const buzzPenalty = conf.buzzPenalty || 'none';
-            // 誤答者の減点 — '' は未設定（保存済みのセット: 問題ごとの減点のまま）
-            const deduct = (conf.buzzDeduct === undefined || conf.buzzDeduct === null) ? '' : String(conf.buzzDeduct);
-            const DEDUCT_OPTS = [{ v: '0', t: 'なし' }, { v: '1', t: 'あり（-1点）' }, { v: '2', t: 'あり（-2点）' }, { v: '3', t: 'あり（-3点）' }, { v: '5', t: 'あり（-5点）' }, { v: '10', t: 'あり（-10点）' }];
+            // 誤答者の減点 — 未設定（保存済みのセット）は問題ごとの減点のまま
+            // 使うが、表示は「特になし」
+            const deductNum = Number(conf.buzzDeduct) || 0;
+            const deductOn = deductNum > 0;
+            const col = (inner, caption) => `
+                <div style="flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:3px;">
+                    ${inner}
+                    <span style="font-size:0.58rem; color:#94a3b8; white-space:nowrap;">${caption}</span>
+                </div>`;
+            const heading = (t) => `<div style="color:#94a3b8; font-size:0.72rem; font-weight:bold; margin:0 0 4px;">${t}</div>`;
             return `
-                <!-- 誤答時の3つの設定を1行に（下に小さく項目名） -->
+                ${heading('問題に対する処理')}
+                <div style="display:flex; gap:8px; margin-bottom:10px;">
+                    ${col(`<select id="config-buzz-wrong-action" class="btn-block config-select" style="margin:0; padding:4px;">
+                        <option value="next" ${buzzAction === 'next' ? 'selected' : ''}>問題を継続する</option>
+                        <option value="end" ${buzzAction === 'end' ? 'selected' : ''}>次の問題に進む</option>
+                    </select>`, '誤答があった時')}
+                </div>
+                ${heading('誤答者に対する処理')}
                 <div style="display:flex; gap:8px;">
-                    <div style="flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:3px;">
-                        <select id="config-buzz-wrong-action" class="btn-block config-select" style="margin:0; padding:4px;" title="問題継続: 他のプレイヤーが引き続き解答できます／次の問題: 誤答時にその問題を終了します">
-                            <option value="next" ${buzzAction === 'next' ? 'selected' : ''}>問題継続</option>
-                            <option value="end" ${buzzAction === 'end' ? 'selected' : ''}>次の問題</option>
-                        </select>
-                        <span style="font-size:0.58rem; color:#94a3b8; white-space:nowrap;">誤答時：問題の処理</span>
-                    </div>
-                    <div style="flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:3px;">
-                        <select id="config-buzz-penalty" class="btn-block config-select" style="margin:0; padding:4px;" title="あり: 誤答しても再度早押しできます／なし: 誤答したプレイヤーはその問題で解答できません">
-                            <option value="none" ${buzzPenalty === 'none' ? 'selected' : ''}>あり</option>
-                            <option value="otetski" ${buzzPenalty === 'otetski' ? 'selected' : ''}>なし</option>
-                        </select>
-                        <span style="font-size:0.58rem; color:#94a3b8; white-space:nowrap;">誤答者：その問題の解答権</span>
-                    </div>
-                    <div style="flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:3px;">
-                        <select id="config-buzz-deduct" class="btn-block config-select" style="margin:0; padding:4px;">
-                            ${deduct === '' ? '<option value="" selected>問題ごとの設定</option>' : ''}
-                            ${DEDUCT_OPTS.map(o => `<option value="${o.v}" ${deduct === o.v ? 'selected' : ''}>${o.t}</option>`).join('')}
-                        </select>
-                        <span style="font-size:0.58rem; color:#94a3b8; white-space:nowrap;">誤答者：得点の減点</span>
+                    ${col(`<select id="config-buzz-penalty" class="btn-block config-select" style="margin:0; padding:4px;">
+                        <option value="none" ${buzzPenalty === 'none' ? 'selected' : ''}>解答権あり</option>
+                        <option value="otetski" ${buzzPenalty === 'otetski' ? 'selected' : ''}>解答権なし</option>
+                    </select>`, '誤答した問題')}
+                    ${col(`<select id="config-buzz-deduct-on" class="btn-block config-select" style="margin:0; padding:4px;">
+                        <option value="none" ${!deductOn ? 'selected' : ''}>特になし</option>
+                        <option value="on" ${deductOn ? 'selected' : ''}>減点する</option>
+                    </select>`, 'ペナルティ')}
+                    <div id="config-buzz-deduct-wrap" style="flex:1; min-width:0; display:${deductOn ? 'flex' : 'none'};">
+                        ${col(`<select id="config-buzz-deduct" class="btn-block config-select" style="margin:0; padding:4px;">
+                            ${[1, 2, 3, 5, 10].map(n => `<option value="${n}" ${deductNum === n ? 'selected' : ''}>-${n}点</option>`).join('')}
+                        </select>`, '減点')}
                     </div>
                 </div>
             `;
@@ -196,9 +202,18 @@ App.Config = {
             };
         }
         const buzzDeductSel = area.querySelector('#config-buzz-deduct');
+        const buzzDeductOn = area.querySelector('#config-buzz-deduct-on');
+        const buzzDeductWrap = area.querySelector('#config-buzz-deduct-wrap');
+        if (buzzDeductOn) {
+            buzzDeductOn.onchange = () => {
+                const on = buzzDeductOn.value === 'on';
+                if (buzzDeductWrap) buzzDeductWrap.style.display = on ? 'flex' : 'none';
+                conf.buzzDeduct = on ? (parseInt(buzzDeductSel?.value) || 1) : 0;
+            };
+        }
         if (buzzDeductSel) {
             buzzDeductSel.onchange = () => {
-                conf.buzzDeduct = buzzDeductSel.value === '' ? null : (parseInt(buzzDeductSel.value) || 0);
+                conf.buzzDeduct = parseInt(buzzDeductSel.value) || 1;
             };
         }
         const buzzPenaltySel = area.querySelector('#config-buzz-penalty');
@@ -280,7 +295,7 @@ App.Config = {
     // 場合は、ここを開いた時点で「得点が高い人が勝ち」に置き換える。
     renderInlineGameTypeChooser: function (container, conf, onChange) {
         const types = [
-            { value: 'score', label: '得点が高い人が勝ち', disabled: false },
+            { value: 'score', label: '得点の高い人が勝ち', disabled: false },
             { value: 'survival', label: '最後まで残った人が勝ち', disabled: false }
         ];
         let current = types.some(t => t.value === conf.gameType) ? conf.gameType : 'score';
@@ -298,11 +313,7 @@ App.Config = {
         const renderDetail = () => {
             const side = container.querySelector('#gametype-chooser-side');
             const area = container.querySelector('#gametype-chooser-detail');
-            if (current === 'score' && conf.mode === 'buzz') {
-                // 早押しは解答者が1人ずつなので、得点ルール（一律/傾斜）は選ばせない
-                side.innerHTML = '';
-                area.innerHTML = '';
-            } else if (current === 'score') {
+            if (current === 'score') {
                 // 先着のみは廃止 — 保存済みで選ばれていたら一律に戻す
                 if (conf.scoreType === 'first_come') conf.scoreType = 'uniform';
                 // 連想クイズだけ「ヒント数に応じて得点を傾斜」を選べる
@@ -316,7 +327,7 @@ App.Config = {
                 side.innerHTML = col(`
                     <select id="score-type-select" style="${selStyle}">
                         ${optionRows.map(o => `<option value="${o.value}" ${scoreType === o.value ? 'selected' : ''}>${o.label}</option>`).join('')}
-                    </select>`, '得点ルール');
+                    </select>`, '配点');
                 area.innerHTML = `<div id="score-type-sheet-detail" style="background:rgba(0,0,0,0.3); padding:8px; border-radius:6px; border:1px solid rgba(255,255,255,0.06); margin-top:8px;"></div>`;
                 side.querySelector('#score-type-select').onchange = (e) => {
                     conf.scoreType = e.target.value;

@@ -20,6 +20,7 @@ window.App.Creator = {
         this._savedSnapshot = null;
         this.currentType = null;
         this.multiCorrect = false;
+        this.oxMode = false;
         this.titleEnabled = false;
         window.App.Data.createdQuestions = [];
         window.App.Data.currentConfig = window.App.Config
@@ -474,20 +475,21 @@ window.App.Creator = {
             const isDobon = (this.choiceSubtype === 'multi');
             const msg = isDobon ? "不正解をタップして選択" : "正解をタップして選択";
 
-            // 選択式とダウトは別の形式カードになったので、単一解答/ダウトの
-            // プルダウンは出さない。選択式は「複数回答モード」で正解を
-            // 複数にできる（正解をすべて選んだ時だけ正解）。
+            // 選択式は最初から正解を複数選べる（2つ以上選んだら、すべて
+            // 選んだ時だけ正解 — 保存時に multiCorrect を付ける）。
+            // まるばつモード: 選択肢は ○ と × の2つだけ、左右半分ずつに並べる。
+            this.multiCorrect = false;
             if (!isDobon) {
-                if (data) this.multiCorrect = !!data.multiCorrect;
-                outsideCheck('choice-multicorrect-chk', '複数回答モード（正解を複数にする）', !!this.multiCorrect, (on) => {
-                    this.multiCorrect = on;
-                    // 正解チェックの radio/checkbox を切り替えるため描き直す
-                    // （入力済みの選択肢と正解は引き継ぐ）
+                if (data) this.oxMode = !!data.ox;
+                outsideCheck('choice-ox-chk', 'まるばつモード', !!this.oxMode, (on) => {
+                    this.oxMode = on;
                     const cur = this.readChoiceRows();
-                    this.renderForm('choice_single', { ...cur, multiCorrect: on });
+                    this.renderForm('choice_single', on
+                        ? { ...cur, ox: true, c: ['○', '×'], correct: [] }
+                        : { ...cur, ox: false, c: [], correct: [] });
                 });
             } else {
-                this.multiCorrect = false;
+                this.oxMode = false;
             }
 
             // 案内はプレビューの外（下のオプション行）に出して、選択肢の
@@ -506,7 +508,22 @@ window.App.Creator = {
             // typed choices into yet); without it, restoring after
             // unchecking the toggle left 0 rows instead of falling back to
             // the usual blank-4-rows default.
-            if (data && data.c && data.c.length > 0) {
+            if (this.oxMode) {
+                // まるばつ: ○ と × の2つ固定（文字は変えられない・消せない）
+                const corr = (data && Array.isArray(data.correct)) ? data.correct : [];
+                ['○', '×'].forEach((mark, i) => this.addChoiceInput(choicesDiv, i, mark, corr.includes(i)));
+                choicesDiv.querySelectorAll('.choice-row').forEach((row, i) => {
+                    const inp = row.querySelector('.choice-text-input');
+                    if (inp) {
+                        inp.readOnly = true;
+                        inp.style.setProperty('text-align', 'center', 'important');
+                        inp.style.setProperty('font-weight', '900', 'important');
+                        inp.style.setProperty('color', i === 0 ? '#ff4d4d' : '#3b82f6', 'important');
+                    }
+                    row.querySelector('.choice-label-text')?.remove();
+                    row.querySelectorAll('.choice-frame > button').forEach(b => b.remove()); // ×（削除）ボタン
+                });
+            } else if (data && data.c && data.c.length > 0) {
                 if (data.multi) this.choiceSubtype = 'multi';
                 else this.choiceSubtype = 'single';
                 data.c.forEach((txt, i) => this.addChoiceInput(choicesDiv, i, txt, data.correct.includes(i)));
@@ -514,7 +531,7 @@ window.App.Creator = {
             else for (let i = 0; i < 4; i++) this.addChoiceInput(choicesDiv, i);
 
             // ＋選択肢を追加 はタブの外（プレビュー直下）、シャッフルは その他 タブ
-            outsideButton('choice-add-btn', '＋ 選択肢を追加', () => this.addChoiceInput(choicesDiv));
+            if (!this.oxMode) outsideButton('choice-add-btn', '＋ 選択肢を追加', () => this.addChoiceInput(choicesDiv));
             if (optionsExtra) {
                 optionsExtra.innerHTML = `
                     <div style="margin-bottom:14px;">
@@ -1252,7 +1269,22 @@ window.App.Creator = {
         if (choicesList) {
             const rows = parseInt(d.gridRows) || 0;
             const cols = parseInt(d.gridCols) || 0;
-            if (rows > 0 && cols > 0) {
+            const isOx = !!this.oxMode && (this.currentType || '').startsWith('choice');
+            if (isOx) {
+                // まるばつ: ○ を左半分、× を右半分
+                choicesList.style.display = 'grid';
+                choicesList.style.gridTemplateColumns = '1fr 1fr';
+                choicesList.style.gridTemplateRows = '1fr';
+                choicesList.style.flexDirection = '';
+                const ph = (document.getElementById('creator-monitor-preview') || {}).offsetHeight || 300;
+                choicesList.querySelectorAll('.choice-text-input').forEach((inp, i) => {
+                    inp.style.setProperty('color', i === 0 ? '#ff4d4d' : '#3b82f6', 'important');
+                    // モニターの ○× と同じく大きく（プレビューの高さ基準）
+                    inp.style.setProperty('font-size', `${Math.round(ph * 0.28)}px`, 'important');
+                    inp.style.setProperty('line-height', '1', 'important');
+                    inp.style.setProperty('text-align', 'center', 'important');
+                });
+            } else if (rows > 0 && cols > 0) {
                 choicesList.style.display = 'grid';
                 choicesList.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
                 choicesList.style.gridTemplateRows = '';
@@ -1343,8 +1375,8 @@ window.App.Creator = {
         inp.onblur  = () => inp.style.setProperty('color', (window.App.Data.currentDesign && window.App.Data.currentDesign.cTextColor) || '#ddd', 'important');
 
         // Correct-answer toggle
-        // 単一解答は radio、ダウトと複数回答モードは checkbox
-        const inputType = (this.choiceSubtype === 'single' && !this.multiCorrect) ? 'radio' : 'checkbox';
+        // 選択式は正解を複数選べる checkbox（まるばつだけは ○×どちらか1つの radio）
+        const inputType = this.oxMode ? 'radio' : 'checkbox';
         const chk = document.createElement('input');
         chk.type  = inputType;
         chk.name  = 'creator-choice-correct-group';
@@ -1766,8 +1798,10 @@ window.App.Creator = {
             // Use explicit mode from dropdown
             newQ.mode = choiceMode;
             newQ.multi = (newQ.mode === 'multi');
-            // 複数回答モード（選択式のみ）— 正解をすべて選んだ時だけ正解
-            newQ.multiCorrect = (!newQ.multi && !!this.multiCorrect && corr.length > 1) ? true : null;
+            // 正解を2つ以上選んだら、すべて選んだ時だけ正解（回答者も複数選べる）
+            newQ.multiCorrect = (!newQ.multi && corr.length > 1) ? true : null;
+            // まるばつモード（○/× を左右半分ずつ）
+            newQ.ox = (!newQ.multi && this.oxMode) ? true : null;
 
             // Save shuffle setting
             const shuffleChk = document.getElementById('choice-shuffle-chk');
@@ -1859,16 +1893,19 @@ window.App.Creator = {
         const subSel = document.getElementById('creator-opt-subtype') || document.getElementById('creator-q-subtype');
         const groupDefaults = { num_group: 'blackjack' };
 
-        let rawType = (sel && (['free', 'multi_group', 'choice', 'assoc_group', 'num_group'].includes(sel.value)))
+        // 今描いている形式（this.currentType）を最優先 — 読込用の形式プルダウン
+        // には前の形式が残っていることがあり、選択式の「正解」画面が一問一答
+        // 扱いの「（未設定）」になっていた
+        let rawType = this.currentType || ((sel && (['free', 'multi_group', 'choice', 'assoc_group', 'num_group'].includes(sel.value)))
             ? ((subSel && subSel.value) || groupDefaults[sel.value] || sel.value)
-            : (sel ? sel.value : (this.currentType || 'choice'));
+            : (sel ? sel.value : 'choice'));
         let type = rawType;
         let choiceMode = 'single';
         if (rawType === 'choice_single') { type = 'choice'; choiceMode = 'single'; }
         else if (rawType === 'choice_multi') { type = 'choice'; choiceMode = 'multi'; }
 
         // タイトル欄のオン/オフは描き直しても保つ（値は入力欄にそのまま残る）
-        const data = { q: qText, type, _titleEnabled: !!this.titleEnabled };
+        const data = { q: qText, type, _titleEnabled: !!this.titleEnabled, ox: !!this.oxMode };
 
         if (type === 'choice') {
             const opts = [], corr = [];
@@ -2110,7 +2147,8 @@ window.App.Creator = {
                 if (isDobon) {
                     const isTrap = trapSet.has(i);
                     style = `background:${isTrap ? '#ff5555' : '#2ecc71'}; border:2px solid #fff; color:#fff;`;
-                } else if (i === correctIdx) {
+                } else if (trapSet.has(i) || i === correctIdx) {
+                    // 正解は複数ありうる（正解をすべて金色に）
                     style = `background:linear-gradient(135deg,#ffd700 0%,#ffec3d 100%); color:#1a1000; border:2px solid #fff; font-weight:900;`;
                 } else {
                     style = `background:rgba(20,20,20,0.85); color:#888; opacity:0.45; border:1px solid rgba(255,255,255,0.08);`;
@@ -2207,6 +2245,9 @@ window.App.Creator = {
             q.align = 'center';
 
             window.App.Data.createdQuestions.push(q);
+            // 次の問題を書けるよう、プレビューは問題の画面に戻す（結果/ブリッジ等の
+            // 見本が重なったままだと問題文の入力欄が覆われて打てなかった）
+            if (this.previewSlide !== 'question') this.setPreviewSlide('question');
             this.resetForm();
             this.renderList();
             window.App.Ui.showToast(APP_TEXT.Creator.MsgAddedToast);
@@ -2564,6 +2605,9 @@ ${spec.placeholder}" style="
             document.getElementById('creator-q-subtype-area')?.classList.add('hidden');
             document.getElementById('creator-type-locked-msg')?.classList.add('hidden');
             document.getElementById('creator-form-container').innerHTML = '';
+            // 保存後はプレビューを問題の画面に戻す — 結果/ブリッジ/タイトルの
+            // 見本が重なったままで、新しい問題が打てず崩れて見えていた
+            if (this.previewSlide !== 'question') this.setPreviewSlide('question');
             this.resetForm();
             this.renderList();
         }).catch(err => {

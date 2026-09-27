@@ -1263,9 +1263,18 @@ window.App.Viewer = {
                 const cols = parseInt(d.gridCols) || 0;
                 const gridStyle = (rows > 0 && cols > 0) ? `display:grid; grid-template-columns: repeat(${cols}, 1fr); gap:2vh;` : '';
                 const cAreaStyle = isRow ? `width:50vw; box-sizing:border-box;` : '';
+                // まるばつモード: ○ を左半分、× を右半分に大きく
+                const isOx = !!q.ox && q.type === 'choice';
+                const oxAreaStyle = isOx ? 'display:grid; grid-template-columns:1fr 1fr; gap:3vh; flex:1; min-height:45vh; width:96%;' : '';
 
-                html += `<div class="c-area" style="${gridStyle} ${cAreaStyle}">`;
+                html += `<div class="c-area" style="${isOx ? oxAreaStyle : `${gridStyle} ${cAreaStyle}`}">`;
                 q.c.forEach((c, i) => {
+                    if (isOx) {
+                        html += `<div class="choice-item" style="justify-content:center; align-items:center; font-size:30vh; font-weight:900; line-height:1; color:${i === 0 ? '#ff4d4d' : '#3b82f6'}; ${d.cBgColor ? `background:${d.cBgColor};` : ''} ${d.cBorderColor ? `border:1px solid ${d.cBorderColor};` : ''} transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+                            <span class="choice-prefix" style="display:none;"></span><span>${c}</span>
+                        </div>`;
+                        return;
+                    }
                     const isRevealed = revealedMulti[i];
                     const isAssoc = (q.type && q.type.startsWith('assoc'));
                     const isMultiType = (q.type && (q.type.startsWith('multi') || q.type.startsWith('ranking') || isAssoc));

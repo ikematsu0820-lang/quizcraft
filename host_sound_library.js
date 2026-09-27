@@ -10,7 +10,7 @@
 window.App.SoundLibrary = {
     _keys: ['bgmThinking', 'seQNum', 'seResult', 'seButton', 'seCorrect', 'seWrong'],
     _labels: {
-        bgmThinking: '🎵 シンキングBGM',
+        bgmThinking: '🎵 出題中BGM',
         seQNum: '🔢 問題番号音',
         seResult: '🏆 結果発表音',
         seButton: '🔘 ボタンSE',
