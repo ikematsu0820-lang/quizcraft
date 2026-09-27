@@ -2184,9 +2184,8 @@ window.App.Creator = {
             // fills them in one at a time as players answer, which isn't
             // something a static preview can simulate.
             const rowsHtml = (data.c || []).map((c, i) => `
-                <div style="display:flex; align-items:center; gap:8px; padding:2.5% 3%; border-radius:6px; margin-bottom:2%; background:#2ecc71; border:2px solid #fff; color:#fff;">
-                    <span style="font-weight:900; font-size:0.75rem;">${String.fromCharCode(65 + i)}</span>
-                    <span style="flex:1; font-size:clamp(0.6rem,1.4vw,0.85rem); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${c}</span>
+                <div style="display:flex; align-items:center; gap:8px; padding:2.5% 3%; border-radius:6px; margin-bottom:2%; background:#15803d; border:2px solid #fff; color:#fff;">
+                    <span style="flex:1; text-align:center; font-family:'M PLUS 1p',sans-serif; font-weight:900; font-size:clamp(0.8rem,2vw,1.2rem); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${c}</span>
                 </div>
             `).join('');
             container.innerHTML = `<div style="width:100%;">${rowsHtml || '<p style="color:#888; font-size:0.75rem; text-align:center;">項目が未設定です</p>'}</div>`;

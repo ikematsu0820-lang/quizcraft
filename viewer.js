@@ -1287,8 +1287,14 @@ window.App.Viewer = {
                 // まるばつモード: ○ を左半分、× を右半分に大きく
                 const isOx = !!q.ox && q.type === 'choice';
                 const oxAreaStyle = isOx ? 'display:grid; grid-template-columns:1fr 1fr; gap:3vh; flex:1; min-height:45vh; width:96%;' : '';
+                // 多答・ランキング: 残りの高さいっぱいにパネルを並べ、文字はパネルの
+                // 高さの約8割の極太ゴシックで中央揃え（テロップ風）
+                const isMultiQ = !!(q.type && (q.type.startsWith('multi') || q.type.startsWith('ranking')));
+                const multiAreaStyle = isMultiQ
+                    ? `${gridStyle || 'display:flex; flex-direction:column;'} gap:1.5vh; flex:1; min-height:0; margin-bottom:2vh; ${cAreaStyle}${gridStyle ? ' grid-auto-rows:1fr;' : ''}`
+                    : '';
 
-                html += `<div class="c-area" style="${isOx ? oxAreaStyle : `${gridStyle} ${cAreaStyle}`}">`;
+                html += `<div class="c-area" style="${isOx ? oxAreaStyle : isMultiQ ? multiAreaStyle : `${gridStyle} ${cAreaStyle}`}">`;
                 q.c.forEach((c, i) => {
                     if (isOx) {
                         html += `<div class="choice-item" style="justify-content:center; align-items:center; font-size:30vh; font-weight:900; line-height:1; color:${i === 0 ? '#ff4d4d' : '#3b82f6'}; ${d.cBgColor ? `background:${d.cBgColor};` : ''} ${d.cBorderColor ? `border:1px solid ${d.cBorderColor};` : ''} transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
@@ -1302,7 +1308,8 @@ window.App.Viewer = {
                     const isAnswerPhase = (st.step === 'reveal_correct' || st.step === 'answer');
                     const isMissed = isMultiType && !isAssoc && isAnswerPhase && !isRevealed;
 
-                    let bgStyle = isRevealed ? 'background:#2ecc71;' : (d.cBgColor ? `background:${d.cBgColor};` : '');
+                    // 正解パネルの緑は背景に負けないよう深めの色
+                    let bgStyle = isRevealed ? `background:${isMultiQ ? '#15803d' : '#2ecc71'};` : (d.cBgColor ? `background:${d.cBgColor};` : '');
                     if (isMissed) bgStyle = 'background:#ff5555;';
 
                     let bStyle = isRevealed ? 'border:3px solid #fff;' : (d.cBorderColor ? `border:1px solid ${d.cBorderColor};` : '');
@@ -1317,6 +1324,21 @@ window.App.Viewer = {
                     const isHidden = isMultiType && !isRevealed && !isMissed;
 
                     const prefixLabel = q.type.startsWith('ranking') ? `${i + 1}位` : String.fromCharCode(65 + i);
+
+                    if (isMultiQ) {
+                        // パネル自身を大きさの基準（container-type:size）にして、文字を
+                        // 高さの8割まで — 長い答えは横幅に収まるよう小さくする
+                        const len = Math.max(String(c).length, 1);
+                        const isRank = q.type.startsWith('ranking');
+                        const textSize = `min(78cqh, ${Math.floor((isRank ? 80 : 92) / len)}cqw)`;
+                        // 開いた時の拡大は控えめに（横幅いっぱいなので画面端にはみ出さないよう）
+                        const multiTransform = isRevealed ? 'transform:scale(1.01); z-index:10;' : transformStyle;
+                        html += `<div class="choice-item" style="${colorStyle} ${bgStyle} ${bStyle} ${multiTransform} position:relative; flex:1; min-height:0; container-type:size; padding:0 2%; justify-content:center; overflow:hidden; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+                            <span class="choice-prefix" style="position:absolute; left:2cqw; top:50%; transform:translateY(-50%); font-size:min(40cqh, 5cqw); font-weight:900; color:${isRevealed || isMissed ? '#fff' : '#00e5ff'}; ${isRank ? '' : 'display:none;'}">${prefixLabel}</span>
+                            <span style="font-family:'M PLUS 1p','Hiragino Kaku Gothic ProN','Hiragino Sans',sans-serif; font-weight:900; font-size:${textSize}; line-height:1; text-align:center; white-space:nowrap; letter-spacing:0.02em; text-shadow:0 0.04em 0.08em rgba(0,0,0,0.35); ${isHidden ? 'visibility:hidden;' : ''}">${c}</span>
+                        </div>`;
+                        return;
+                    }
 
                     html += `<div class="choice-item" style="${colorStyle} ${bgStyle} ${bStyle} ${transformStyle} font-size:${d.cFontSize || '6vh'}; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
                         <span class="choice-prefix" style="color:${isRevealed || isMissed ? '#fff' : '#00e5ff'}; ${isMultiType && !q.type.startsWith('ranking') && !isAssoc ? 'display:none;' : ''}">${prefixLabel}</span>
