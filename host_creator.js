@@ -1256,6 +1256,21 @@ window.App.Creator = {
             el.style.setProperty('text-align', d.cAlign || 'left', 'important');
         });
 
+        // 選択肢の記号 — 種類（A/a/1/I）と文字色（デザインのテキスト「記号」）
+        const prefixColor = d.cPrefixColor || '#00e5ff';
+        document.querySelectorAll('#creator-form-container .choice-label-text').forEach((el, i) => {
+            el.textContent = window.App.ChoiceLabel(i, d.cPrefixType);
+            el.style.color = prefixColor;
+            el.style.textShadow = d.cPrefixColor ? 'none' : '0 0 8px rgba(0,229,255,0.4)';
+            // ローマ数字は幅が変わるので、記号の列の幅をそろえて枠の左端を合わせる
+            el.style.minWidth = d.cPrefixType === 'roman' ? '2.6em' : '1.2em';
+        });
+        if (!this.oxMode) {
+            document.querySelectorAll('#creator-form-container .choice-row .choice-text-input').forEach((inp, i) => {
+                inp.placeholder = `選択肢${window.App.ChoiceLabel(i, d.cPrefixType)}`;
+            });
+        }
+
         // 選択背景/選択枠 — applied to each row (the editor's own
         // correct-answer highlight is layered on top for .choice-row, so it
         // stays visible while editing).
@@ -1336,8 +1351,7 @@ window.App.Creator = {
         if (parent.children.length >= limit) { alert(`選択肢の上限は${limit}個までです`); return; }
 
         const idx = (index !== undefined) ? index : parent.children.length;
-        const labels = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T'];
-        const label = labels[idx] || String(idx + 1);
+        const label = window.App.ChoiceLabel(idx, (window.App.Data.currentDesign || {}).cPrefixType);
 
         // .choice-row は「枠の左横の A/B/C/D ＋ 枠（.choice-frame）」の横並び。
         // 記号を枠の外に出して、枠の中は選択肢の文字だけに広く使う。
@@ -1688,12 +1702,11 @@ window.App.Creator = {
     },
 
     updateLabels: function (parent) {
-        const labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T'];
-        parent.querySelectorAll('.choice-label-text').forEach((el, i) => el.textContent = labels[i] || String(i + 1));
+        const pType = (window.App.Data.currentDesign || {}).cPrefixType;
+        parent.querySelectorAll('.choice-label-text').forEach((el, i) => el.textContent = window.App.ChoiceLabel(i, pType));
         // Update placeholder text too
         parent.querySelectorAll('.choice-text-input').forEach((inp, i) => {
-            const label = labels[i] || String(i + 1);
-            inp.placeholder = `選択肢${label}`;
+            inp.placeholder = `選択肢${window.App.ChoiceLabel(i, pType)}`;
         });
         this.updateRowSizes(parent);
     },
@@ -2164,7 +2177,7 @@ window.App.Creator = {
             const correctIdx = data.correctIndex;
             const trapSet = new Set(Array.isArray(data.correct) ? data.correct.map(Number) : []);
             const rowsHtml = (data.c || []).map((c, i) => {
-                const label = String.fromCharCode(65 + i);
+                const label = window.App.ChoiceLabel(i, d.cPrefixType);
                 let style;
                 if (isDobon) {
                     const isTrap = trapSet.has(i);

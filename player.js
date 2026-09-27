@@ -1160,10 +1160,10 @@ function renderResultScreen(p) {
     let correctText = "";
     if (currentQuestion.type === 'choice') {
         if (Array.isArray(currentQuestion.correct)) {
-            correctText = currentQuestion.correct.map(i => `[${String.fromCharCode(65 + i)}] ${currentQuestion.c[i]}`).join(' / ');
+            correctText = currentQuestion.correct.map(i => `[${App.ChoiceLabel(i, (currentQuestion.design || {}).cPrefixType)}] ${currentQuestion.c[i]}`).join(' / ');
         } else {
             const idx = currentQuestion.correctIndex !== undefined ? currentQuestion.correctIndex : currentQuestion.correct;
-            correctText = `[${String.fromCharCode(65 + idx)}] ${currentQuestion.c[idx]}`;
+            correctText = `[${App.ChoiceLabel(idx, (currentQuestion.design || {}).cPrefixType)}] ${currentQuestion.c[idx]}`;
         }
     } else if (currentQuestion.type === 'letter_select' && currentQuestion.steps) {
         correctText = currentQuestion.steps.map(s => s.correct).join('');
@@ -1205,7 +1205,7 @@ function renderResultScreen(p) {
         if (currentQuestion.type === 'choice') {
             const idx = parseInt(p.lastAnswer);
             if (!isNaN(idx) && currentQuestion.c && currentQuestion.c[idx]) {
-                myAnsText = `[${String.fromCharCode(65 + idx)}] ${currentQuestion.c[idx]}`;
+                myAnsText = `[${App.ChoiceLabel(idx, (currentQuestion.design || {}).cPrefixType)}] ${currentQuestion.c[idx]}`;
             }
         } else if (currentQuestion.type === 'sort') {
             myAnsText = p.lastAnswer.split('').map(char => currentQuestion.c[char.charCodeAt(0) - 65]).join(' → ');
@@ -1445,7 +1445,7 @@ function renderPlayerQuestion(q, roomId, playerId) {
             }
 
             // Alphabet label based on display order (i), not originalIndex
-            btn.innerHTML = `<span class="choice-prefix" style="font-weight:900;margin-right:10px;font-family:monospace;font-size:0.95em;">${String.fromCharCode(65 + i)}</span>${item.text}`;
+            btn.innerHTML = `<span class="choice-prefix" style="font-weight:900;margin-right:10px;font-family:monospace;font-size:0.95em;">${App.ChoiceLabel(i, (q.design || {}).cPrefixType)}</span>${item.text}`;
             btn.dataset.ans = item.originalIndex;
             if (isOx) {
                 btn.innerHTML = item.text;

@@ -1022,10 +1022,10 @@ window.App.Viewer = {
             let isImage = false;
             if (q.type === 'choice' && Array.isArray(ans)) {
                 // 複数回答モードは選んだ番号の配列
-                ans = ans.map(a => String.fromCharCode(65 + parseInt(a))).join(' ');
+                ans = ans.map(a => App.ChoiceLabel(parseInt(a), (q.design || {}).cPrefixType)).join(' ');
             } else if (q.type === 'choice' && ans !== null && ans !== undefined) {
                 const idx = parseInt(ans);
-                ans = isNaN(idx) ? ans : String.fromCharCode(65 + idx);
+                ans = isNaN(idx) ? ans : App.ChoiceLabel(idx, (q.design || {}).cPrefixType);
             } else if (q.type === 'sort' && ans !== null && ans !== undefined) {
                 ans = String(ans).split('').join(' ');
             } else if (typeof ans === 'string' && ans.startsWith('data:image')) {
@@ -1119,7 +1119,7 @@ window.App.Viewer = {
 
             const label = document.createElement('div');
             label.className = 'dist-label';
-            label.textContent = String.fromCharCode(65 + i);
+            label.textContent = App.ChoiceLabel(i, (q.design || {}).cPrefixType);
 
             wrapper.appendChild(bar);
             wrapper.appendChild(label);
@@ -1345,7 +1345,7 @@ window.App.Viewer = {
 
                     const isHidden = isMultiType && !isRevealed && !isMissed;
 
-                    const prefixLabel = q.type.startsWith('ranking') ? `${i + 1}位` : String.fromCharCode(65 + i);
+                    const prefixLabel = q.type.startsWith('ranking') ? `${i + 1}位` : (q.type === 'choice' ? App.ChoiceLabel(i, d.cPrefixType) : String.fromCharCode(65 + i));
 
                     if (isMultiQ) {
                         // パネル自身を大きさの基準（container-type:size）にして、文字を
@@ -1363,7 +1363,7 @@ window.App.Viewer = {
                     }
 
                     html += `<div class="choice-item" style="${colorStyle} ${bgStyle} ${bStyle} ${transformStyle} font-size:${d.cFontSize || '6vh'}; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-                        <span class="choice-prefix" style="color:${isRevealed || isMissed ? '#fff' : '#00e5ff'}; ${isMultiType && !q.type.startsWith('ranking') && !isAssoc ? 'display:none;' : ''}">${prefixLabel}</span>
+                        <span class="choice-prefix" style="color:${isRevealed || isMissed ? '#fff' : (q.type === 'choice' && d.cPrefixColor ? d.cPrefixColor : '#00e5ff')}; ${isMultiType && !q.type.startsWith('ranking') && !isAssoc ? 'display:none;' : ''}">${prefixLabel}</span>
                         <span style="flex:1; text-align:${d.cAlign || 'left'}; ${isHidden ? 'visibility:hidden;' : ''}">${c}</span>
                     </div>`;
                 });

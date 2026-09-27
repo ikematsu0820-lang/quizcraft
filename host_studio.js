@@ -2488,10 +2488,10 @@ App.Studio = {
                 // But for now let's keep showing the content as it was, but more prominent.
                 if (q && q.type === 'choice') {
                     if (Array.isArray(p.lastAnswer)) {
-                        ansText = p.lastAnswer.map(i => String.fromCharCode(65 + parseInt(i))).join(', ');
+                        ansText = p.lastAnswer.map(i => App.ChoiceLabel(parseInt(i), (q.design || {}).cPrefixType)).join(', ');
                     } else {
                         const idx = parseInt(p.lastAnswer);
-                        ansText = isNaN(idx) ? p.lastAnswer : String.fromCharCode(65 + idx);
+                        ansText = isNaN(idx) ? p.lastAnswer : App.ChoiceLabel(idx, (q.design || {}).cPrefixType);
                     }
                 } else if (typeof p.lastAnswer === 'string' && p.lastAnswer.startsWith('data:image')) {
                     // 手書き（記述式）の解答画像。
@@ -2701,7 +2701,7 @@ App.Studio = {
                 let txt = ans;
                 if (q && q.type === 'choice') {
                     const arr = Array.isArray(ans) ? ans : [ans];
-                    txt = arr.map(a => { const i = parseInt(a); return isNaN(i) ? a : `${String.fromCharCode(65 + i)}${q.c && q.c[i] ? `：${q.c[i]}` : ''}`; }).join(' / ');
+                    txt = arr.map(a => { const i = parseInt(a); return isNaN(i) ? a : `${App.ChoiceLabel(i, (q.design || {}).cPrefixType)}${q.c && q.c[i] ? `：${q.c[i]}` : ''}`; }).join(' / ');
                 }
                 body = `<div style="color:#fff; font-size:22px; font-weight:900; word-break:break-all; text-align:center;">${this._esc(String(txt))}</div>`;
             }
