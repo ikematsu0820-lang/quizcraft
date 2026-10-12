@@ -425,7 +425,7 @@ window.App.ProgConfig = {
                                 <span id="prog-elim-unit" style="color:#aaa; font-size:0.9em; white-space:nowrap;"></span>
                             </div>
                         </div>
-                        <p style="color:#777; font-size:0.75em; margin:8px 0 0; line-height:1.5;">得点の高い順に並べて判定します。同点の扱いは、そのセットのルール（勝利条件の詳細設定「同点のとき」）に従います。</p>
+                        <p style="color:#777; font-size:0.75em; margin:8px 0 0; line-height:1.5;">得点の高い順に並べて判定します。同点の扱いは、そのセットのルール（「勝ち方」の詳細設定「同点のとき」）に従います。</p>
                     </div>
 
                     <div style="margin-bottom:20px;">

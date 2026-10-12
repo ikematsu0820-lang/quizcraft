@@ -5029,3 +5029,17 @@ details.rule-adv[open] > summary { border-bottom: 1px solid #2a3342; }
     line-height: 1.5;
 }
 .rule-basic-note { margin: 0 0 4px; }
+
+/* スマホ：一覧の「セットの設定」の要約（creator_mobile.js renderSettingsSummary） */
+.cm-section-head { display: flex; align-items: baseline; justify-content: space-between; margin: 14px 2px 8px; color: #e2e8f0; font-size: 0.85rem; font-weight: bold; }
+.cm-section-head span { color: #64748b; font-size: 0.72rem; font-weight: normal; }
+#cm-settings, #cm-sheet-menu { border: 1px solid #2a3342; border-radius: 12px; overflow: hidden; background: #121823; }
+.cm-set-row { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; margin: 0; padding: 8px 12px; background: transparent; border: none; border-bottom: 1px solid #1f2733; color: #e2e8f0; text-align: left; cursor: pointer; box-sizing: border-box; }
+.cm-set-row:last-child { border-bottom: none; }
+.cm-set-row:active { background: rgba(255, 255, 255, 0.04); }
+.cm-set-icon { flex: 0 0 22px; font-size: 1rem; text-align: center; }
+.cm-set-label { flex: 0 0 84px; color: #94a3b8; font-size: 0.8rem; font-weight: bold; }
+.cm-set-value { flex: 1; min-width: 0; font-size: 0.85rem; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cm-set-arrow { flex: 0 0 12px; color: #64748b; font-size: 1.2rem; }
+/* スマホのルールパネルでは、上のタブを大きく押しやすく */
+#cm-sheet-body .creator-rules-subtab-btn { font-size: 0.85rem !important; }

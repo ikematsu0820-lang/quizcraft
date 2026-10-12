@@ -51,6 +51,9 @@ App.CreatorMobile = {
         list.innerHTML = `
             <div class="cm-list-meta"><span id="cm-type-chip" class="cm-chip"></span><span id="cm-count"></span></div>
             <div id="cm-warn" class="cm-warn hidden"></div>
+            <div class="cm-section-head">セットの設定<span>タップで変更</span></div>
+            <div id="cm-settings"></div>
+            <div class="cm-section-head">問題</div>
             <div id="cm-qcards"></div>
             <div class="cm-add-row">
                 <button type="button" id="cm-add-btn" class="cm-add-card">＋ 問題を追加</button>
@@ -80,6 +83,7 @@ App.CreatorMobile = {
         editBar.className = 'cm-bottom-bar';
         editBar.innerHTML = `
             <button type="button" id="cm-preview-btn" class="cm-bar-btn">📺<span>見る</span></button>
+            <button type="button" id="cm-edit-settings-btn" class="cm-bar-btn">⚙️<span>セット設定</span></button>
             <button type="button" id="cm-next-btn" class="cm-bar-btn cm-primary">次の問題へ</button>
         `;
         view.appendChild(editBar);
@@ -127,6 +131,7 @@ App.CreatorMobile = {
         document.getElementById('cm-next-btn').onclick = () => this.next();
         document.getElementById('cm-detail-btn').onclick = () => this.toggleDetail();
         document.getElementById('cm-preview-btn').onclick = () => this.openPreview();
+        document.getElementById('cm-edit-settings-btn').onclick = () => this.openSheet('menu');
         document.getElementById('cm-preview-list-btn').onclick = () => this.openPreview();
         document.getElementById('cm-preview-close').onclick = () => this.closePreview();
         document.querySelectorAll('[data-cm-sheet]').forEach(b => { b.onclick = () => this.openSheet(b.dataset.cmSheet); });
@@ -273,6 +278,8 @@ App.CreatorMobile = {
         const count = document.getElementById('cm-count');
         if (count) count.textContent = `${qs.length}問`;
 
+        this.renderSettingsSummary(document.getElementById('cm-settings'));
+
         const check = window.App.QuizCheck;
         const bad = check ? check.incompleteIn(qs).length : 0;
         const warn = document.getElementById('cm-warn');
@@ -337,14 +344,74 @@ App.CreatorMobile = {
     },
 
     // ---------------------------------------------------------
+    // セットの設定の要約 — 今の設定を1行ずつ出し、タップでその設定を開く
+    // （スマホではタブの奥にあると見つけにくいので、入口を一覧に並べる）
+    // ---------------------------------------------------------
+    settingsRows: function () {
+        const conf = window.App.Data.currentConfig || {};
+        const d = window.App.Data.currentDesign || {};
+        const MODE = { normal: '全員が同時に手元で答える', buzz: '早く押した人から答える', nominate: '指名された人だけ答える', turn: '順番に答える' };
+        const SCORE = { uniform: '正解者全員に同じ点', ranked: '速い人ほど高得点', hint: 'ヒントが少ないほど高得点' };
+        const rows = [{ key: 'format', icon: '🙋', label: '答え方', value: MODE[conf.mode] || MODE.normal }];
+        if (conf.mode === 'buzz') {
+            rows.push({ key: 'wrong', icon: '❌', label: '間違えたとき', value: conf.buzzWrongAction === 'end' ? '問題を終える' : '他の人が答えられる' });
+        }
+        const win = conf.gameType === 'survival'
+            ? `最後まで残った人（${conf.survivalLives || 1}回ミスで脱落）`
+            : `得点の高い人（${SCORE[conf.scoreType] || SCORE.uniform}）`;
+        rows.push({ key: 'win', icon: '🏆', label: '勝ち方', value: win });
+        const sec = parseInt(conf.timeLimitSeconds) || 30;
+        const time = conf.timeLimitEnabled !== 'on' ? 'なし'
+            : (conf.timerKind === 'pool' ? `セット全体で${sec}秒` : `1問${sec}秒`);
+        rows.push({ key: 'time', icon: '⏱️', label: '制限時間', value: time });
+        const theme = window.App.Themes && window.App.Themes.get(d.themeId);
+        // テーマを選んでいない時は、既定の見た目（スタジオ）
+        const look = theme ? `${theme.name}${window.App.Themes.isModified(d) ? '（カスタム）' : ''}` : (d.themeId ? 'カスタム' : 'スタジオ（標準）');
+        rows.push({ key: 'design', icon: '🎨', label: '見た目', value: look });
+        return rows;
+    },
+
+    renderSettingsSummary: function (box) {
+        if (!box) return;
+        box.innerHTML = this.settingsRows().map(r => `
+            <button type="button" class="cm-set-row" data-set-key="${r.key}">
+                <span class="cm-set-icon">${r.icon}</span>
+                <span class="cm-set-label">${r.label}</span>
+                <span class="cm-set-value">${this.esc(r.value)}</span>
+                <span class="cm-set-arrow">›</span>
+            </button>`).join('');
+        box.querySelectorAll('.cm-set-row').forEach(b => {
+            b.onclick = () => {
+                const k = b.dataset.setKey;
+                if (k === 'design') this.openSheet('design');
+                else this.openSheet('rules', k);
+            };
+        });
+    },
+
+    // ---------------------------------------------------------
     // 下から出るパネル（見た目・ルール・まとめて貼り付け）
     // 従来のパネルのDOMをそのまま借りてきて、閉じたら元の場所に戻す。
     // ---------------------------------------------------------
-    openSheet: function (kind) {
+    openSheet: function (kind, sub) {
         const C = this.C();
         this.closeSheet();
+        // 編集画面の「セット設定」— 設定の一覧から選ぶ
+        if (kind === 'menu') {
+            const body = document.getElementById('cm-sheet-body');
+            body.innerHTML = '<div id="cm-sheet-menu"></div>';
+            this.renderSettingsSummary(body.firstChild);
+            document.getElementById('cm-sheet-title').textContent = 'セットの設定';
+            document.getElementById('cm-sheet-stage-wrap').classList.add('hidden');
+            document.getElementById('cm-sheet').classList.remove('hidden');
+            document.body.classList.add('cm-noscroll');
+            this._sheet = 'menu';
+            return;
+        }
         const ids = { design: 'creator-inline-design', rules: 'creator-inline-rules', bulk: 'creator-bulk-panel' };
         const titles = { design: '見た目（セット全体）', rules: 'ルール（セット全体）', bulk: 'まとめて貼り付け' };
+        const SUB_TITLES = { format: '答え方', wrong: '間違えたとき', win: '勝ち方', time: '制限時間' };
+        if (kind === 'rules' && sub && SUB_TITLES[sub]) titles.rules = `${SUB_TITLES[sub]}（セット全体）`;
         const node = document.getElementById(ids[kind]);
         if (!node) return;
         this._moved = { node, parent: node.parentNode, next: node.nextSibling, wasHidden: node.classList.contains('hidden') };
@@ -361,6 +428,7 @@ App.CreatorMobile = {
             if (window.App.Design) window.App.Design._activeDesignTab = 'theme';
             C.renderActivePanelContent('design');
         } else if (kind === 'rules') {
+            if (sub) C.rulesSubTab = sub; // 要約でタップした設定のタブを開く
             C.renderActivePanelContent('rules');
         } else if (kind === 'bulk') {
             C.renderBulkPanel();
@@ -382,7 +450,7 @@ App.CreatorMobile = {
         this._sheet = null;
         document.getElementById('cm-sheet')?.classList.add('hidden');
         document.body.classList.remove('cm-noscroll');
-        if (kind === 'bulk' || kind === 'rules') this.renderList();
+        if (kind === 'bulk' || kind === 'rules' || kind === 'design') this.renderList();
     },
 
     // 見た目パネルの上に、本番と同じ描画の小さなプレビュー
