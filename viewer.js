@@ -357,15 +357,14 @@ window.App.Viewer = {
                 };
                 this.applyDefaultDesign(viewContainer, bridgeDesign);
                 const label = st.qNumLabel || `第 ${st.qIndex + 1} 問`;
-                // 文言が長い（任意の文言にした）時は文字を小さくする
-                const fontSize = d.bridgeFontSize || (label.length > 8 ? '7vw' : '12vw');
-                mainText.innerHTML = `
-                    <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;">
-                        <div style="font-size:${fontSize}; color:${d.bridgeTextColor || '#fff'}; font-weight:900; text-align:center; padding:0 4vw; text-shadow:0 0 30px rgba(0,0,0,0.5);">
-                            ${label}
-                        </div>
-                    </div>
-                `;
+                // 演出の型（帯・数字がドン・シャッターなど）は bridge_view.js
+                if (window.App.BridgeView) {
+                    mainText.innerHTML = '<div id="viewer-bridge-box" style="width:100%; height:100%;"></div>';
+                    window.App.BridgeView.render(mainText.firstChild, d, label);
+                } else {
+                    const fontSize = d.bridgeFontSize || (label.length > 8 ? '7vw' : '12vw');
+                    mainText.innerHTML = `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;"><div style="font-size:${fontSize}; color:${d.bridgeTextColor || '#fff'}; font-weight:900; text-align:center;">${label}</div></div>`;
+                }
             }
         }
         // --- 2. REVEAL Q (Phase 1) ---

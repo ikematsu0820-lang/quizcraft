@@ -29,7 +29,7 @@ App.Themes = {
     list: [
         {
             id: 'classic', name: 'スタジオ', desc: 'いつもの黒×シアン',
-            font: '', accent: '#00e5ff', timer: 'bar_top',
+            font: '', accent: '#00e5ff', timer: 'bar_top', bridge: { style: 'band', bg: '#0a0a0a', text: '#ffffff' },
             colors: {
                 mainBgColor: '#0a0a0a',
                 qTextColor: '#ffffff', qBgColor: 'rgba(255, 255, 255, 0.05)', qBorderColor: '#00bfff',
@@ -39,7 +39,7 @@ App.Themes = {
         },
         {
             id: 'golden', name: 'ゴールデン', desc: '夜の特番っぽい紺×金',
-            font: 'mincho', accent: '#ffd700', timer: 'clock',
+            font: 'mincho', accent: '#ffd700', timer: 'clock', bridge: { style: 'spotlight', bg: '#0b1a3a', text: '#ffd700' },
             colors: {
                 mainBgColor: '#0b1a3a',
                 qTextColor: '#ffffff', qBgColor: 'rgba(11, 26, 58, 0.85)', qBorderColor: '#d4af37',
@@ -49,7 +49,7 @@ App.Themes = {
         },
         {
             id: 'neon', name: 'ネオン', desc: 'クラブ・夜パーティ向け',
-            font: 'heavy', accent: '#ff00aa', timer: 'ring',
+            font: 'heavy', accent: '#ff00aa', timer: 'ring', bridge: { style: 'shutter', bg: '#07000f', text: '#ffffff' },
             colors: {
                 mainBgColor: '#07000f',
                 qTextColor: '#ffffff', qBgColor: 'rgba(255, 0, 170, 0.10)', qBorderColor: '#ff00aa',
@@ -59,7 +59,7 @@ App.Themes = {
         },
         {
             id: 'pop', name: 'ポップ', desc: '明るいバラエティ',
-            font: 'rounded', accent: '#ff5722', timer: 'number',
+            font: 'rounded', accent: '#ff5722', timer: 'number', bridge: { style: 'count', bg: '#ffd23f', text: '#2b2b2b' },
             colors: {
                 mainBgColor: '#ffd23f',
                 qTextColor: '#2b2b2b', qBgColor: '#ffffff', qBorderColor: '#ff5722',
@@ -69,7 +69,7 @@ App.Themes = {
         },
         {
             id: 'retro', name: 'レトロゲーム', desc: 'ドット文字のゲーム画面',
-            font: 'pixel', accent: '#76ff03', timer: 'number',
+            font: 'pixel', accent: '#76ff03', timer: 'number', bridge: { style: 'typewriter', bg: '#101010', text: '#76ff03' },
             colors: {
                 mainBgColor: '#101010',
                 qTextColor: '#76ff03', qBgColor: '#000000', qBorderColor: '#76ff03',
@@ -79,7 +79,7 @@ App.Themes = {
         },
         {
             id: 'japanese', name: '和', desc: '朱と生成りの落ち着いた画面',
-            font: 'mincho', accent: '#c0392b', timer: 'bar_bottom',
+            font: 'mincho', accent: '#c0392b', timer: 'bar_bottom', bridge: { style: 'band', bg: '#2a1a14', text: '#f3ead7' },
             colors: {
                 mainBgColor: '#2a1a14',
                 qTextColor: '#2a1a14', qBgColor: '#f3ead7', qBorderColor: '#c0392b',
@@ -89,7 +89,7 @@ App.Themes = {
         },
         {
             id: 'clean', name: 'クリーン', desc: '白基調で見やすく',
-            font: 'gothic', accent: '#2563eb', timer: 'ring',
+            font: 'gothic', accent: '#2563eb', timer: 'ring', bridge: { style: 'count', bg: '#f4f6fa', text: '#111827' },
             colors: {
                 mainBgColor: '#f4f6fa',
                 qTextColor: '#111827', qBgColor: '#ffffff', qBorderColor: '#2563eb',
@@ -112,6 +112,11 @@ App.Themes = {
         design.fontFamily = t.font;
         design.accentColor = t.accent;
         if (t.timer) design.timerStyle = t.timer; // タイマーの見た目もテーマに合わせる
+        if (t.bridge) { // ブリッジ（第○問）も黒×白に限らず、テーマに合わせる
+            design.bridgeStyle = t.bridge.style;
+            design.bridgeBgColor = t.bridge.bg;
+            design.bridgeTextColor = t.bridge.text;
+        }
         design.themeId = t.id;
         this.ensureFont(t.font);
         return design;

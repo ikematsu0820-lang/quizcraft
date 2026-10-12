@@ -583,6 +583,21 @@ App.Design = {
                 <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">※「第○問」がモニターに出た瞬間に、モニター画面で鳴ります</p>
             `,
             animation: bodyHtml.animation,
+            // 演出 — ブリッジの見せ方の型
+            timer: () => {
+                const BV = window.App.BridgeView;
+                if (!BV) return '';
+                const cur = design.bridgeStyle || 'plain';
+                return `
+                    ${slideHeader('ブリッジスライド')}
+                    <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:6px;">
+                        ${BV.STYLES.map(st => `
+                            <button type="button" data-bridge-style="${st.id}" style="padding:10px 4px; border-radius:8px; cursor:pointer; font-size:0.72rem; font-weight:bold;
+                                background:${cur === st.id ? 'rgba(0,229,255,0.12)' : '#1e293b'}; border:1px solid ${cur === st.id ? '#00e5ff' : '#475569'}; color:${cur === st.id ? '#00e5ff' : '#e2e8f0'};">${st.name}</button>
+                        `).join('')}
+                    </div>
+                    <p style="color:#555; font-size:0.62rem; margin:8px 0 0;">※押すとプレビューで動きを確認できます。帯や光の色はテーマのアクセント色です</p>`;
+            },
         };
         const resultBody = {
             text: () => `
@@ -750,7 +765,7 @@ App.Design = {
                 </div>` : `<p style="color:#64748b; font-size:0.66rem; margin:4px 0 0;">「正解者の早い順」は、選択式・並べ替え・文字パネルで使えます。</p>`}
                 <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">※答えている間は正誤を伏せて表示します（まだ答えていない人に答えがばれないように）</p>`;
         };
-        activeBody.timer = timerBody;
+        if (!activeBody.timer) activeBody.timer = timerBody;
 
         const tabs = [
             { key: 'theme', label: 'テーマ' },
@@ -781,6 +796,11 @@ App.Design = {
                     if (onChange) onChange();
                     if (sel.dataset.key === 'layout' && window.App.Creator) window.App.Creator.applyDesignToPreview();
                 };
+            });
+
+            // ブリッジの演出
+            body.querySelectorAll('button[data-bridge-style]').forEach(btn => {
+                btn.onclick = () => { design.bridgeStyle = btn.dataset.bridgeStyle; if (onChange) onChange(); renderBody(); };
             });
 
             // タイマーの見た目

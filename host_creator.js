@@ -881,13 +881,13 @@ window.App.Creator = {
         const label = custom || `第 ${n} 問`;
         overlay.style.backgroundColor = d.bridgeBgColor || '#0a0a0a';
         overlay.style.backgroundImage = (d.bridgeUseBgImage && d.bgImage) ? `url(${d.bgImage})` : 'none';
-        overlay.innerHTML = '';
-        const text = document.createElement('div');
-        // viewer.js と同じ: 長い文言（8文字超）は小さく
-        const size = d.bridgeFontSize ? d.bridgeFontSize.replace('vw', 'cqw') : (label.length > 8 ? '7cqw' : '12cqw');
-        text.style.cssText = `font-size:${size}; color:${d.bridgeTextColor || '#fff'}; font-weight:900; text-align:center; padding:0 4cqw; text-shadow:0 0 30px rgba(0,0,0,0.5); white-space:pre-wrap;`;
-        text.textContent = label;
-        overlay.appendChild(text);
+        // モニターと同じ演出（bridge_view.js）— 設定を変えるたびに再生し直す
+        if (window.App.Themes) window.App.Themes.applyToElement(overlay, d);
+        if (window.App.BridgeView) {
+            window.App.BridgeView.render(overlay, d, label);
+        } else {
+            overlay.textContent = label;
+        }
     },
 
     // プレビュー内の要素をタップすると、その要素に関係する項目だけに

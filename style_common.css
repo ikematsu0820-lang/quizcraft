@@ -991,3 +991,52 @@ button.btn-player-hero:hover {
 }
 @keyframes tvEdge { 50% { opacity: 0.35; } }
 .tv-expired.tv-number .tv-num, .tv-expired.tv-ring .tv-num, .tv-expired.tv-clock .tv-num { animation: tvBlink 0.3s steps(2, start) 4; }
+
+/* =========================================================
+ * ブリッジスライドの演出（bridge_view.js）
+ * ======================================================= */
+.bv-root { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.bv-text { font-weight: 900; text-align: center; padding: 0 4cqw; white-space: pre-wrap; text-shadow: 0 0 3cqh rgba(0, 0, 0, 0.5); }
+.bv-plain { animation: bvFade 0.5s ease-out both; }
+@keyframes bvFade { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: none; } }
+
+/* 帯がスライド */
+.bv-band { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.bv-band-strip { position: absolute; left: -10%; right: -10%; height: 34cqh; background: var(--bv-accent); transform: skewY(-6deg) translateX(-110%); animation: bvBandIn 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; opacity: 0.9; }
+.bv-band .bv-text { position: relative; opacity: 0; animation: bvBandText 0.45s 0.35s ease-out forwards; }
+@keyframes bvBandIn { to { transform: skewY(-6deg) translateX(0); } }
+@keyframes bvBandText { from { opacity: 0; transform: translateX(-6cqw); } to { opacity: 1; transform: none; } }
+
+/* 数字がドン */
+.bv-count { position: relative; display: flex; align-items: center; gap: 2cqw; font-weight: 900; }
+.bv-count-side { opacity: 0; animation: bvFade 0.4s 0.45s ease-out forwards; }
+.bv-count-num { line-height: 1; animation: bvPop 0.6s cubic-bezier(0.2, 1.6, 0.4, 1) both; text-shadow: 0 0 6cqh var(--bv-accent); }
+@keyframes bvPop { 0% { transform: scale(3); opacity: 0; } 60% { opacity: 1; } 100% { transform: scale(1); } }
+.bv-count-burst { position: absolute; left: 50%; top: 50%; width: 10cqh; height: 10cqh; margin: -5cqh 0 0 -5cqh; border-radius: 50%; border: 1cqh solid var(--bv-accent); opacity: 0; animation: bvBurst 0.8s 0.25s ease-out forwards; }
+@keyframes bvBurst { 0% { opacity: 0.9; transform: scale(0.5); } 100% { opacity: 0; transform: scale(9); } }
+
+/* シャッター（上下に開いて文字が現れる） */
+.bv-shutter { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.bv-shutter-top, .bv-shutter-bottom { position: absolute; left: 0; right: 0; height: 50%; background: #000; border-color: var(--bv-accent); border-style: solid; border-width: 0; }
+.bv-shutter-top { top: 0; border-bottom-width: 0.6cqh; animation: bvShutTop 0.6s 0.2s cubic-bezier(0.7, 0, 0.3, 1) forwards; }
+.bv-shutter-bottom { bottom: 0; border-top-width: 0.6cqh; animation: bvShutBottom 0.6s 0.2s cubic-bezier(0.7, 0, 0.3, 1) forwards; }
+@keyframes bvShutTop { to { transform: translateY(-100%); } }
+@keyframes bvShutBottom { to { transform: translateY(100%); } }
+
+/* スポットライト（暗い画面を光が動いて、文字に止まる） */
+.bv-spot { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.bv-spot-mask { position: absolute; inset: -50%; background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), transparent 0 14cqh, rgba(0, 0, 0, 0.92) 26cqh); animation: bvSpot 1.4s ease-in-out forwards; }
+@property --x { syntax: '<percentage>'; inherits: false; initial-value: 50%; }
+@property --y { syntax: '<percentage>'; inherits: false; initial-value: 50%; }
+@keyframes bvSpot {
+    0% { --x: 30%; --y: 35%; }
+    45% { --x: 68%; --y: 60%; }
+    80% { --x: 50%; --y: 50%; opacity: 1; }
+    100% { --x: 50%; --y: 50%; opacity: 0.35; }
+}
+
+/* タイプ（1文字ずつ） */
+.bv-type span { display: inline-block; opacity: 0; animation: bvChar 0.01s forwards; }
+@keyframes bvChar { to { opacity: 1; } }
+.bv-type .bv-caret { width: 0.12em; height: 0.9em; margin-left: 0.08em; vertical-align: -0.05em; animation: bvCaret 0.8s steps(2, start) infinite; opacity: 1; }
+@keyframes bvCaret { to { visibility: hidden; } }
