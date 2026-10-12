@@ -1534,7 +1534,7 @@ window.App.Viewer = {
                 const st2 = out[id];
                 return `<div style="display:flex; align-items:center; gap:1vw; padding:1.2vh 1.2vw; border-radius:1.2vh; margin-bottom:1vh;
                         background:${isTurn ? 'rgba(255,215,0,0.18)' : 'rgba(255,255,255,0.06)'}; border:0.3vh solid ${isTurn ? '#ffd700' : 'transparent'}; opacity:${st2 ? 0.6 : 1};">
-                    <span style="flex:1; min-width:0; color:#fff; font-size:3vh; font-weight:900; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${isTurn ? '▶ ' : ''}${esc(names[id])}</span>
+                    <span style="flex:1; min-width:0; color:#fff; font-size:3vh; font-weight:900; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(names[id])}</span>
                     <span style="color:${st2 === 'bust' ? '#ff5a5a' : '#ffd700'}; font-size:3.6vh; font-weight:900;">${t}<span style="font-size:0.55em;">${unit}</span></span>
                     ${st2 ? `<span style="font-size:1.8vh; color:${st2 === 'bust' ? '#ff5a5a' : '#aaa'}; font-weight:bold;">${st2 === 'bust' ? '超えた' : 'ストップ'}</span>` : ''}
                 </div>`;
@@ -1545,7 +1545,7 @@ window.App.Viewer = {
                     <div style="height:1.6vh; border-radius:1vh; background:rgba(255,255,255,0.12); overflow:hidden; margin-top:1vh;"><div style="height:100%; width:${Math.min(100, Math.round((ng.shared || 0) / (ng.target || 1) * 100))}%; background:linear-gradient(90deg,#22c55e,#fbbf24,#ef4444);"></div></div>
                 </div>` + order.map(id => {
                     const isTurn = id === ng.turn && !ng.finished;
-                    return `<div style="padding:0.8vh 1vw; border-radius:1vh; margin-bottom:0.8vh; background:${isTurn ? 'rgba(255,215,0,0.18)' : 'rgba(255,255,255,0.06)'}; border:0.3vh solid ${isTurn ? '#ffd700' : 'transparent'}; color:#fff; font-size:2.6vh; font-weight:bold;">${isTurn ? '▶ ' : ''}${esc(names[id])}</div>`;
+                    return `<div style="padding:0.8vh 1vw; border-radius:1vh; margin-bottom:0.8vh; background:${isTurn ? 'rgba(255,215,0,0.18)' : 'rgba(255,255,255,0.06)'}; border:0.3vh solid ${isTurn ? '#ffd700' : 'transparent'}; color:#fff; font-size:2.6vh; font-weight:bold;">${esc(names[id])}</div>`;
                 }).join('');
 
         // 右: 項目の盤面
@@ -1612,8 +1612,8 @@ window.App.Viewer = {
         }
         if (q.type === 'letter_select') return q.steps ? q.steps.map(s => s.correct).join('') : q.correct;
         if (q.type === 'sort') {
-            if (Array.isArray(q.correct)) return q.correct.map(idx => q.c[idx]).join(' → ');
-            if (typeof q.correct === 'string') return q.correct.split('').map(char => q.c[char.charCodeAt(0) - 65]).join(' → ');
+            if (Array.isArray(q.correct)) return q.correct.map(idx => q.c[idx]).map((x, i) => `${i + 1}. ${x}`).join('　');
+            if (typeof q.correct === 'string') return q.correct.split('').map(char => q.c[char.charCodeAt(0) - 65]).map((x, i) => `${i + 1}. ${x}`).join('　');
         }
         return Array.isArray(q.correct) ? q.correct.join(' / ') : q.correct;
     },

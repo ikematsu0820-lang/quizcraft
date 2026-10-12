@@ -310,8 +310,8 @@ window.App.ProgConfig = {
                                 <div style="font-size:0.75em; color:#888; margin-top:4px;">タップして選択肢を確認・編集</div>
                             </div>
                             <div class="prog-card-settings" style="display:flex; flex-direction:column; justify-content:center; align-items:center; width:60px; padding:0 5px;">
-                                <button class="btn-mini btn-info" onclick="window.App.ProgConfig.move(${i}, -1)" style="padding:4px 8px; margin-bottom:4px; width:100%;">▲</button>
-                                <button class="btn-mini btn-info" onclick="window.App.ProgConfig.move(${i}, 1)" style="padding:4px 8px; margin-bottom:4px; width:100%;">▼</button>
+                                <button class="btn-mini btn-info" onclick="window.App.ProgConfig.move(${i}, -1)" style="padding:4px 8px; margin-bottom:4px; width:100%;">上へ</button>
+                                <button class="btn-mini btn-info" onclick="window.App.ProgConfig.move(${i}, 1)" style="padding:4px 8px; margin-bottom:4px; width:100%;">下へ</button>
                                 <button class="btn-mini btn-danger" onclick="window.App.ProgConfig.remove(${i})" style="padding:4px 8px; width:100%;">✕</button>
                             </div>
                         </div>
@@ -358,8 +358,8 @@ window.App.ProgConfig = {
                                 </div>
                             </div>
                             <div class="prog-card-settings" style="display:flex; flex-direction:column; justify-content:center; align-items:center; width:60px; padding:0 5px;">
-                                <button class="btn-mini btn-info" onclick="window.App.ProgConfig.move(${i}, -1)" style="padding:4px 8px; margin-bottom:4px; width:100%;">▲</button>
-                                <button class="btn-mini btn-info" onclick="window.App.ProgConfig.move(${i}, 1)" style="padding:4px 8px; margin-bottom:4px; width:100%;">▼</button>
+                                <button class="btn-mini btn-info" onclick="window.App.ProgConfig.move(${i}, -1)" style="padding:4px 8px; margin-bottom:4px; width:100%;">上へ</button>
+                                <button class="btn-mini btn-info" onclick="window.App.ProgConfig.move(${i}, 1)" style="padding:4px 8px; margin-bottom:4px; width:100%;">下へ</button>
                                 <button class="btn-mini btn-danger" onclick="window.App.ProgConfig.remove(${i})" style="padding:4px 8px; width:100%;">✕</button>
                             </div>
                         </div>

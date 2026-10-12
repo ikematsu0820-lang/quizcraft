@@ -1436,7 +1436,7 @@ App.Studio = {
                     if (corrDisp) corrDisp.classList.remove('hidden');
                     document.getElementById('studio-correct-text').textContent = isStand
                         ? `${turnPlayerName}: スタンド`
-                        : `${turnPlayerName}: ${pickedCardName} (+${pickedCardValue}) → 合計 ${newTotal}`;
+                        : `${turnPlayerName}: ${pickedCardName} (+${pickedCardValue})　合計 ${newTotal}`;
                     document.getElementById('studio-commentary-text').textContent = `目標: ${q.target || 21}`;
                     break;
                 }
@@ -1612,7 +1612,7 @@ App.Studio = {
         // Advance to next set
         if (hasNextSet) {
             const nextTitle = App.Data.periodPlaylist[nextPeriodIdx].title || "次のセット";
-            App.Ui.showToast(`セット完了！→ ${nextTitle}`);
+            App.Ui.showToast(`セット完了！次は「${nextTitle}」`);
             this.setupPeriod(nextPeriodIdx);
         } else {
             // End of program (no more sets)
@@ -2408,14 +2408,14 @@ App.Studio = {
                         currentAnswerer: null,
                         isBuzzActive: false
                     });
-                    App.Ui.showToast("誤答 → この問題を終了します");
+                    App.Ui.showToast("誤答のため、この問題を終了します");
                     this.setStep(4); // Go to reveal
                 } else {
                     // 問題継続 (next): 誤答者はそのまま除外、他のプレイヤーは引き続きBuzz可能
                     this.buzzWinner = null;
                     document.getElementById('studio-sub-info').classList.add('hidden');
                     window.db.ref(`rooms/${roomId}/status`).update({ currentAnswerer: null, isBuzzActive: true });
-                    App.Ui.showToast("誤答 → 他のプレイヤーに解答権が移ります");
+                    App.Ui.showToast("誤答のため、他のプレイヤーに解答権が移ります");
                     this.resumeTimer();
                 }
             }
@@ -2662,8 +2662,8 @@ App.Studio = {
         }
         if (q.type === 'letter_select') return q.steps ? q.steps.map(s => s.correct).join('') : q.correct;
         if (q.type === 'sort') {
-            if (Array.isArray(q.correct)) return q.correct.map(idx => q.c[idx]).join(' → ');
-            if (typeof q.correct === 'string') return q.correct.split('').map(char => q.c[char.charCodeAt(0) - 65]).join(' → ');
+            if (Array.isArray(q.correct)) return q.correct.map(idx => q.c[idx]).map((x, i) => `${i + 1}. ${x}`).join('　');
+            if (typeof q.correct === 'string') return q.correct.split('').map(char => q.c[char.charCodeAt(0) - 65]).map((x, i) => `${i + 1}. ${x}`).join('　');
         }
         return Array.isArray(q.correct) ? q.correct.join(' / ') : q.correct;
     },
@@ -3085,7 +3085,7 @@ App.Studio = {
             const out = ng.out[id];
             const t = ng.totals[id] || 0;
             return `<div style="display:flex; align-items:center; gap:8px; padding:6px 10px; border-radius:8px; background:${id === cur && !ng.finished ? 'rgba(251,191,36,0.2)' : '#1f2430'}; border:1px solid ${id === cur && !ng.finished ? '#fbbf24' : '#333'};">
-                <span style="flex:1; color:#fff; font-weight:bold; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${id === cur && !ng.finished ? '▶ ' : ''}${esc(ng.names[id])}</span>
+                <span style="flex:1; color:#fff; font-weight:bold; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(ng.names[id])}${id === cur && !ng.finished ? '（番）' : ''}</span>
                 ${isBJ ? `<span style="color:${out === 'bust' ? '#f87171' : '#fbbf24'}; font-weight:900;">${t}${unit}</span>` : ''}
                 ${out === 'bust' ? '<span style="color:#f87171; font-size:11px;">超えた</span>' : out === 'stand' ? '<span style="color:#94a3b8; font-size:11px;">ストップ</span>' : ''}
             </div>`;
@@ -3416,7 +3416,7 @@ App.Studio = {
                     pendingScore: pts,
                     pendingResult: result
                 });
-                App.Ui.showToast(`${p.name} → ${isCorrect ? '〇' : '✖'} (正解表示時に反映)`);
+                App.Ui.showToast(`${p.name}：${isCorrect ? '〇' : '✖'}（正解表示時に反映）`);
 
             } else if (isNormalFreeWritten && answerAttempts === 'multiple') {
                 // ★ Multiple attempts mode: apply immediately
@@ -4339,7 +4339,7 @@ App.Studio = {
                     // Up button
                     const btnUp = document.createElement('button');
                     btnUp.style.cssText = 'width:32px; height:32px; border:none; border-radius:6px; background:rgba(255,255,255,0.1); color:#fff; cursor:pointer; font-size:0.8em; display:flex; align-items:center; justify-content:center; transition:background 0.2s;';
-                    btnUp.textContent = '▲';
+                    btnUp.textContent = '上へ';
                     btnUp.disabled = (idx === 0) || isConfirmed;
                     if (btnUp.disabled) {
                         btnUp.style.opacity = '0.2';
@@ -4357,7 +4357,7 @@ App.Studio = {
                     // Down button
                     const btnDown = document.createElement('button');
                     btnDown.style.cssText = 'width:32px; height:32px; border:none; border-radius:6px; background:rgba(255,255,255,0.1); color:#fff; cursor:pointer; font-size:0.8em; display:flex; align-items:center; justify-content:center; transition:background 0.2s;';
-                    btnDown.textContent = '▼';
+                    btnDown.textContent = '下へ';
                     btnDown.disabled = (idx === this.turnOrder.length - 1) || isConfirmed;
                     if (btnDown.disabled) {
                         btnDown.style.opacity = '0.2';

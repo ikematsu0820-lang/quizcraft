@@ -5017,8 +5017,9 @@ details.rule-adv > summary {
     user-select: none;
 }
 details.rule-adv > summary::-webkit-details-marker { display: none; }
-details.rule-adv > summary::before { content: '▸ '; }
-details.rule-adv[open] > summary::before { content: '▾ '; }
+details.rule-adv > summary { display: flex; justify-content: space-between; align-items: center; }
+details.rule-adv > summary::after { content: '開く'; color: #64748b; font-weight: normal; font-size: 0.7rem; }
+details.rule-adv[open] > summary::after { content: '閉じる'; }
 details.rule-adv[open] > summary { border-bottom: 1px solid #2a3342; }
 .rule-adv-body { padding: 10px; }
 .rule-adv-note,

@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@800;900&display=swap">
     <link rel="stylesheet" href="style_common.css?v=100">
-    <link rel="stylesheet" href="style_host.css?v=115">
+    <link rel="stylesheet" href="style_host.css?v=116">
     <link rel="stylesheet" href="style_player.css?v=107">
     <link rel="stylesheet" href="style_viewer.css?v=101">
 </head>
@@ -77,10 +77,10 @@
     <div id="sound-library-view" class="view hidden">
         <div class="view-header" style="display:flex; justify-content:space-between; align-items:center; width:100%; border-bottom:1px solid #333; padding-bottom:12px; margin-bottom:20px;">
             <h3 style="margin:0;">🔊 サウンド編集</h3>
-            <button class="header-back-btn back-to-menu" style="background:rgba(255,255,255,0.1); border:1px solid #555; color:#fff; padding:8px 16px; border-radius:8px; cursor:pointer;">← メニューに戻る</button>
+            <button class="header-back-btn back-to-menu" style="background:rgba(255,255,255,0.1); border:1px solid #555; color:#fff; padding:8px 16px; border-radius:8px; cursor:pointer;">メニューに戻る</button>
         </div>
         <div style="max-width:600px; margin:0 auto; width:100%; padding:0 16px 30px; box-sizing:border-box;">
-            <p style="color:#888; font-size:0.8rem; margin:0 0 16px;">ここでアップロードした音源が、問題作成の「デザイン」→「サウンド」タブで選べるようになります。</p>
+            <p style="color:#888; font-size:0.8rem; margin:0 0 16px;">ここでアップロードした音源が、問題作成の「デザイン」の「サウンド」タブで選べるようになります。</p>
             <div id="sound-library-body"></div>
         </div>
     </div>
@@ -103,7 +103,7 @@
                 <!-- 番組IDの表示は不要（要素はスクリプトが値を入れるので残して非表示） -->
                 <div style="display:none;">ID: <span id="select-type-show-id">---</span></div>
             </div>
-            <button class="header-back-btn back-to-menu" style="background:rgba(255,255,255,0.1); border:1px solid #555; color:#fff; padding:8px 16px; border-radius:8px; cursor:pointer;">← メニューに戻る</button>
+            <button class="header-back-btn back-to-menu" style="background:rgba(255,255,255,0.1); border:1px solid #555; color:#fff; padding:8px 16px; border-radius:8px; cursor:pointer;">メニューに戻る</button>
         </div>
 
         <div style="max-width:100%; padding:0 10px; margin-bottom:20px;">
@@ -164,7 +164,7 @@
                 <!-- 番組IDの表示は不要（要素はスクリプトが値を入れるので残して非表示） -->
                 <div style="display:none;">ID: <span id="creator-show-id">---</span></div>
             </div>
-            <button id="creator-back-btn" class="header-back-btn back-to-select-type" style="background:rgba(255,255,255,0.1); border:1px solid #555; color:#fff; padding:8px 16px; border-radius:8px; cursor:pointer;">← 形式選択に戻る</button>
+            <button id="creator-back-btn" class="header-back-btn back-to-select-type" style="background:rgba(255,255,255,0.1); border:1px solid #555; color:#fff; padding:8px 16px; border-radius:8px; cursor:pointer;">形式選択に戻る</button>
         </div>
 
         <!-- Hidden selectors (managed by JS, not visible to user) -->
@@ -450,7 +450,7 @@
                             style="color:#fff; font-size:24px; font-weight:bold;">0</span>
                     </div>
                 </div>
-                <button id="host-close-studio-btn-simple" class="header-back-btn back-to-menu">← メニューに戻る</button>
+                <button id="host-close-studio-btn-simple" class="header-back-btn back-to-menu">メニューに戻る</button>
             </div>
 
             <!-- Fixed Top Controls Area -->
@@ -775,21 +775,21 @@
     <!-- 参加用QRコード（モニターのタイトル画面）— ブラウザ内で生成、外部送信なし -->
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
     <script src="firebase.js"></script>
-    <script src="text_config.js?v=234"></script>
-    <script src="host_core.js?v=250"></script>
+    <script src="text_config.js?v=235"></script>
+    <script src="host_core.js?v=251"></script>
     <script src="rule_engine.js?v=2"></script>
     <script src="host_sound_library.js?v=7"></script>
     <script src="theme_presets.js?v=3"></script>
     <script src="timer_view.js?v=1"></script>
     <script src="bridge_view.js?v=1"></script>
-    <script src="host_design.js?v=279"></script>
+    <script src="host_design.js?v=280"></script>
     <script src="host_creator.js?v=304"></script>
     <script src="host_config.js?v=257"></script>
-    <script src="host_prog_config.js?v=234"></script>
-    <script src="host_studio.js?v=257"></script>
-    <script src="player.js?v=249"></script>
-    <script src="viewer.js?v=270"></script>
-    <script src="creator_mobile.js?v=4"></script>
+    <script src="host_prog_config.js?v=235"></script>
+    <script src="host_studio.js?v=258"></script>
+    <script src="player.js?v=250"></script>
+    <script src="viewer.js?v=271"></script>
+    <script src="creator_mobile.js?v=5"></script>
     <script src="creator_desktop.js?v=1"></script>
 
 

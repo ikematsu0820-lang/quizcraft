@@ -61,24 +61,24 @@ const APP_TEXT = {
         GameTypeTerritory: "陣取り (Panel 25)",
 
         LabelWinCond: "終了・勝利条件",
-        LabelNormalLimit: "▼ 解答回数制限", NormalLimitOne: "1回のみ (修正不可)", NormalLimitUnlimited: "何度でも修正可",
+        LabelNormalLimit: "解答回数制限", NormalLimitOne: "1回のみ (修正不可)", NormalLimitUnlimited: "何度でも修正可",
 
         LabelShuffleQ: "出題順シャッフル",
         ShuffleQOn: "する (ランダム出題)",
         ShuffleQOff: "しない (作成順)",
 
         // Buzz Settings
-        LabelBuzzWrongAction: "▼ 誤答時の処理", BuzzWrongNext: "次の人に権限移動", BuzzWrongReset: "全員リセット (再早押し)", BuzzWrongEnd: "その問題終了",
-        LabelBuzzTime: "▼ 解答権取得後の制限時間", BuzzTimeNone: "無制限", BuzzTime3: "3秒", BuzzTime5: "5秒", BuzzTime10: "10秒",
+        LabelBuzzWrongAction: "誤答時の処理", BuzzWrongNext: "次の人に権限移動", BuzzWrongReset: "全員リセット (再早押し)", BuzzWrongEnd: "その問題終了",
+        LabelBuzzTime: "解答権取得後の制限時間", BuzzTimeNone: "無制限", BuzzTime3: "3秒", BuzzTime5: "5秒", BuzzTime10: "10秒",
 
         // Turn Settings
-        LabelTurnOrder: "▼ 順番ルール", TurnOrderFixed: "固定 (参加順)", TurnOrderRandom: "ランダム", TurnOrderRank: "成績順 (点数高い順)",
+        LabelTurnOrder: "順番ルール", TurnOrderFixed: "固定 (参加順)", TurnOrderRandom: "ランダム", TurnOrderRank: "成績順 (点数高い順)",
 
         // ★Solo Settings (New)
-        LabelSoloStyle: "▼ 出題進行 (Progress)", SoloStyleManual: "手動 (Manual)", SoloStyleAuto: "自動 (Auto Interval)", SoloStyleCorrect: "正解で次へ (Next on Correct)",
-        LabelSoloTimeType: "▼ 制限時間管理 (Time)", SoloTimePerQ: "1問ごと (Per Question)", SoloTimeTotal: "持ち時間制 (Total Bank)",
+        LabelSoloStyle: "出題進行 (Progress)", SoloStyleManual: "手動 (Manual)", SoloStyleAuto: "自動 (Auto Interval)", SoloStyleCorrect: "正解で次へ (Next on Correct)",
+        LabelSoloTimeType: "制限時間管理 (Time)", SoloTimePerQ: "1問ごと (Per Question)", SoloTimeTotal: "持ち時間制 (Total Bank)",
         LabelSoloTimeValue: "秒数設定 (Seconds)",
-        LabelSoloLife: "▼ ライフ設定 (Lives)", SoloLifeSudden: "即終了 (Sudden Death)",
+        LabelSoloLife: "ライフ設定 (Lives)", SoloLifeSudden: "即終了 (Sudden Death)",
         LabelSoloRetire: "リタイア許可", SoloRetireOn: "あり (Allow)", SoloRetireOff: "なし (Disable)",
         LabelSoloRecovery: "時間回復 (Bonus Time)", SoloRecoveryNone: "なし", SoloRecoveryCorrect: "正解で回復 (+Sec)",
 
@@ -86,7 +86,7 @@ const APP_TEXT = {
         LabelHeaderTime: "制限時間", LabelHeaderPt: "Pt", LabelHeaderLoss: "Loss",
         BtnReflect: "反映", BtnAddList: "リストに追加", HeadingList: "現在の番組構成リスト", LabelFinalRank: "最後に最終結果発表を行う", PlaceholderProgName: "構成に名前をつけて保存", BtnSaveProg: "保存", BtnGoStudio: "保存してスタジオへ",
 
-        InterHeading: "▼ ピリオド間設定 (次のステージへの移行)",
+        InterHeading: "ピリオド間設定 (次のステージへの移行)",
         StatusRevive: "全員復活してスタート",
         StatusContinue: "生存者のみで継続",
         StatusRanking: "成績上位者が進出",
@@ -98,7 +98,7 @@ const APP_TEXT = {
 
     Studio: {
         OnAir: "ON AIR", LabelPlayer: "参加", LabelAlive: "生存", LabelKanpe: "司会者用カンペ", StatusReady: "準備中...", HeadingList: "番組構成リスト", HeadingLoad: "プログラム読込", SelectProgDefault: "保存済みプログラムを選択...",
-        BtnLoad: "番組構成を確定", BtnMasterPlay: "再生 ▶", BtnStart: "問題 START！", BtnAnswer: "正解発表", BtnNextQ: "次の問題へ", BtnNextPeriod: "次のセットへ進む", BtnInterRanking: "中間発表へ", BtnFinalRanking: "最終結果発表へ", BtnEnd: "全工程終了", BtnRanking: "中間順位", BtnClose: "スタジオを閉じる", BtnBackRanking: "スタジオに戻る",
+        BtnLoad: "番組構成を確定", BtnMasterPlay: "再生", BtnStart: "問題 START！", BtnAnswer: "正解発表", BtnNextQ: "次の問題へ", BtnNextPeriod: "次のセットへ進む", BtnInterRanking: "中間発表へ", BtnFinalRanking: "最終結果発表へ", BtnEnd: "全工程終了", BtnRanking: "中間順位", BtnClose: "スタジオを閉じる", BtnBackRanking: "スタジオに戻る",
         BtnCorrect: "⭕️ 正解", BtnWrong: "❌ 不正解", BtnPass: "パス (Skip)", MsgConfirmLoad: "この番組構成をスタジオに反映しますか？", MsgLoaded: "読み込みました。下のSTARTボタンで番組を開始してください。", MsgThinking: "Thinking Time...", MsgAnswerCheck: "正解発表", MsgAllEnd: "全セットが終了しました！お疲れ様でした！", MsgConfirmBack: "ダッシュボードに戻りますか？",
 
         BtnStartSolo: "挑戦開始 (Start Challenge)", MsgSoloReady: "Solo Challenge Ready...", // ★変更

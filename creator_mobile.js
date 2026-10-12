@@ -72,7 +72,7 @@ App.CreatorMobile = {
         const head = document.createElement('div');
         head.id = 'cm-edit-head';
         head.innerHTML = `
-            <button type="button" id="cm-back-btn" class="cm-ghost-btn">← 一覧</button>
+            <button type="button" id="cm-back-btn" class="cm-ghost-btn">一覧に戻る</button>
             <span id="cm-edit-title"></span>
             <button type="button" id="cm-detail-btn" class="cm-ghost-btn">詳細設定</button>
         `;
@@ -378,7 +378,6 @@ App.CreatorMobile = {
                 <span class="cm-set-icon">${r.icon}</span>
                 <span class="cm-set-label">${r.label}</span>
                 <span class="cm-set-value">${this.esc(r.value)}</span>
-                <span class="cm-set-arrow">›</span>
             </button>`).join('');
         box.querySelectorAll('.cm-set-row').forEach(b => {
             b.onclick = () => {

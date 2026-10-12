@@ -1173,7 +1173,7 @@ function describeMyAnswer(ans) {
         const arr = Array.isArray(ans) ? ans : [ans];
         return arr.map(a => { const i = parseInt(a); return isNaN(i) ? esc(a) : `${App.ChoiceLabel(i, (q.design || {}).cPrefixType)} ${esc((q.c || [])[i] || '')}`; }).join(' / ');
     }
-    if (q.type === 'sort' && typeof ans === 'string') return ans.split('').map(ch => esc((q.c || [])[ch.charCodeAt(0) - 65] || ch)).join(' → ');
+    if (q.type === 'sort' && typeof ans === 'string') return ans.split('').map(ch => esc((q.c || [])[ch.charCodeAt(0) - 65] || ch)).map((x, i) => `${i + 1}. ${x}`).join('　');
     return esc(ans);
 }
 
@@ -1355,7 +1355,7 @@ function renderResultScreen(p) {
         correctText = currentQuestion.steps.map(s => s.correct).join('');
     } else if (currentQuestion.type === 'sort') {
         const correctStr = Array.isArray(currentQuestion.correct) ? currentQuestion.correct.map(idx => String.fromCharCode(65 + idx)).join('') : currentQuestion.correct;
-        correctText = correctStr.split('').map(char => currentQuestion.c[char.charCodeAt(0) - 65]).join(' → ');
+        correctText = correctStr.split('').map(char => currentQuestion.c[char.charCodeAt(0) - 65]).map((x, i) => `${i + 1}. ${x}`).join('　');
     } else if (currentQuestion.type && (currentQuestion.type.startsWith('multi') || currentQuestion.type.startsWith('ranking') || currentQuestion.type.startsWith('assoc'))) {
         const isRanking = currentQuestion.type.startsWith('ranking');
         const isAssoc = currentQuestion.type.startsWith('assoc');
@@ -1394,7 +1394,7 @@ function renderResultScreen(p) {
                 myAnsText = `[${App.ChoiceLabel(idx, (currentQuestion.design || {}).cPrefixType)}] ${currentQuestion.c[idx]}`;
             }
         } else if (currentQuestion.type === 'sort') {
-            myAnsText = p.lastAnswer.split('').map(char => currentQuestion.c[char.charCodeAt(0) - 65]).join(' → ');
+            myAnsText = p.lastAnswer.split('').map(char => currentQuestion.c[char.charCodeAt(0) - 65]).map((x, i) => `${i + 1}. ${x}`).join('　');
         } else if (typeof p.lastAnswer === 'string' && p.lastAnswer.startsWith('data:image')) {
             // 手書き（記述式）— 描いた画像をそのまま表示。
             myAnsText = `<img src="${p.lastAnswer}" style="max-width:100%; max-height:140px; border-radius:8px; background:#fff;">`;

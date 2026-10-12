@@ -312,7 +312,7 @@ App.Design = {
             if (!(c && c.titleEnabled && (c.currentType || '').startsWith('free'))) return '';
             return `<button type="button" data-select-object="qtitle" style="
                 width:100%; margin:0 0 8px; padding:5px 8px; background:rgba(255,215,0,0.08); border:1px dashed rgba(255,215,0,0.5);
-                border-radius:6px; color:#ffd700; font-size:0.7rem; cursor:pointer;">タイトルの文字・枠・背景を変える →</button>`;
+                border-radius:6px; color:#ffd700; font-size:0.7rem; cursor:pointer;">タイトルの文字・枠・背景を変える</button>`;
         };
         const OBJECT_TITLES = { question: '問題文', qtitle: 'タイトル', choices: choicesLabel, background: '全体背景', reveal: '正解表示' };
         const selectionHeader = (sel) => `

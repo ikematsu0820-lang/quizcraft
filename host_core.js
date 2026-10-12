@@ -492,7 +492,7 @@ window.App._showTestNavBar = function (testId, playerCount) {
         <option value="host">🎤 出題者</option>
         <option value="viewer">📺 モニター</option>
         ${Array.from({ length: playerCount }, (_, i) => `<option value="player-${i + 1}">👤 テスト${i + 1}</option>`).join('')}
-        <option value="dashboard">↩ ダッシュボードに戻る</option>`;
+        <option value="dashboard">ダッシュボードに戻る</option>`;
     select.style.cssText = 'flex:0 0 150px; width:150px !important; max-width:150px; height:auto; min-height:36px; padding:0 10px; border-radius:12px; font-size:14px; font-weight:bold; cursor:pointer; background:#1a0800 !important; color:#ffb27a !important; border:2px solid #ff6600 !important; margin:0;';
 
     // 出題者画面では進行ボタンの右横、それ以外は右下に浮かせる
@@ -1117,7 +1117,7 @@ window.App.Dashboard = {
 
         // Update Title with Back Button
         titleEl.innerHTML = `
-            <button onclick="window.App.Dashboard.openItemMenu('${key}', 'set')" style="background:none; border:none; color:#00e5ff; font-size:1.2em; cursor:pointer; padding:0; display:flex; align-items:center; opacity:0.8; transition:0.2s; flex-shrink:0;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'"><i class="fas fa-chevron-left"></i></button>
+            <button onclick="window.App.Dashboard.openItemMenu('${key}', 'set')" style="background:none; border:none; color:#00e5ff; font-size:0.8em; cursor:pointer; padding:0 10px 0 0; display:flex; align-items:center; opacity:0.8; transition:0.2s; flex-shrink:0;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">戻る</button>
             <span>編集メニュー</span>
         `;
         titleEl.onclick = null;
