@@ -121,14 +121,14 @@ App.Config = {
     //          遊べるもの（解答回数、誤答者のペナルティ、点数表、同点の扱い）
     // 詳細は折りたたんでおき、開いたかどうかはブラウザに覚えておく。
     // ---------------------------------------------------------
-    advancedBlock: function (key, innerHtml, notes) {
+    advancedBlock: function (key, innerHtml, notes, summary) {
         let open = false;
         try { open = localStorage.getItem(`qs_adv_open_${key}`) === '1'; } catch (e) { /* noop */ }
         const noteHtml = (notes || []).filter(Boolean).map(n => `<p class="rule-adv-note">${n}</p>`).join('');
         if (!innerHtml && !noteHtml) return '';
         return `
             <details class="rule-adv" data-adv-key="${key}" ${open ? 'open' : ''}>
-                <summary>詳細設定</summary>
+                <summary>${summary || '詳細設定'}</summary>
                 <div class="rule-adv-body">${innerHtml || ''}${noteHtml}</div>
             </details>`;
     },
@@ -391,6 +391,27 @@ App.Config = {
     // （survival: 規定回数ミスすると脱落 — host_studio.js checkSurvival）。
     // パネル・変動得点制は廃止 — 保存済みのセットでそれらを選んでいた
     // 場合は、ここを開いた時点で「得点が高い人が勝ち」に置き換える。
+    // 1人で挑戦するときのルール — 司会者が読み込み時に「ソロモード」を
+    // 選んだ時だけ使う（ふだんはセットの解答権・勝利条件のまま）。
+    // タイムショック風なら、制限時間を「セット全体の持ち時間」にする。
+    _renderSoloRules: function (box, conf, onChange) {
+        if (!box) return;
+        const selStyle = 'width:100%; margin:0; padding:6px 8px; background:#1e293b; border:1px solid #475569; border-radius:8px; color:#fff; font-size:0.85rem;';
+        const life = conf.soloLife === undefined ? 3 : Number(conf.soloLife);
+        const clear = Number(conf.soloClearCount) || 0;
+        const row = (label, inner) => `<div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;"><span style="flex:0 0 96px; color:#94a3b8; font-size:0.72rem; font-weight:bold;">${label}</span><div style="flex:1; min-width:0;">${inner}</div></div>`;
+        const inner = `
+            ${row('ライフ', `<select id="conf-solo-life" style="${selStyle}">${[1, 2, 3, 5, 0].map(n => `<option value="${n}" ${life === n ? 'selected' : ''}>${n ? `${n}回まで間違えられる` : '無制限（最後まで続ける）'}</option>`).join('')}</select>`)}
+            ${row('クリア条件', `<select id="conf-solo-clear" style="${selStyle}">${[0, 3, 5, 7, 10, 12].map(n => `<option value="${n}" ${clear === n ? 'selected' : ''}>${n ? `${n}問正解でクリア` : 'なし（全問やる）'}</option>`).join('')}</select>`)}
+            <p class="rule-adv-note" style="margin:0;">司会者が出題の読み込み時に「ソロモード」を選んだ時だけ使います。タイムショック風にするなら、制限時間を「セット全体」にしてください。</p>`;
+        box.innerHTML = this.advancedBlock('solo', inner, null, '1人で挑戦するとき（ソロモード）');
+        this.wireAdvancedBlocks(box);
+        const l = box.querySelector('#conf-solo-life');
+        if (l) l.onchange = () => { conf.soloLife = parseInt(l.value) || 0; if (onChange) onChange(); };
+        const c = box.querySelector('#conf-solo-clear');
+        if (c) c.onchange = () => { conf.soloClearCount = parseInt(c.value) || 0; if (onChange) onChange(); };
+    },
+
     // 作成中のセットの問題（相性の判定に使う）
     _ruleQuestions: function () {
         const C = window.App.Creator;
@@ -470,11 +491,27 @@ App.Config = {
                     <select id="conf-survival-lives" style="${selStyle}">
                         ${[1, 2, 3, 4, 5].map(n => `<option value="${n}" ${lives === n ? 'selected' : ''}>${n}回</option>`).join('')}
                     </select>`, '何回ミスしたら脱落');
-                area.innerHTML = `<p style="color:#666; font-size:0.72em; margin:6px 0 0;">※不正解・無回答がミスになります（1問につき1回まで）。脱落した人は以降の問題に答えられません</p>`;
+                const RE = window.App.RuleEngine;
+                const canSlow = RE.can('survivalSlowDrop', this._ruleContext(conf));
+                if (!canSlow.ok) conf.survivalSlowDrop = 0;
+                const slow = parseInt(conf.survivalSlowDrop) || 0;
+                const slowHtml = canSlow.ok ? `
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="flex:0 0 96px; color:#94a3b8; font-size:0.72rem; font-weight:bold;">遅い人も脱落</span>
+                        <select id="conf-survival-slow" style="${selStyle}">
+                            ${[0, 1, 2, 3].map(n => `<option value="${n}" ${slow === n ? 'selected' : ''}>${n ? `毎問、正解者のうち遅い${n}人が脱落` : 'しない'}</option>`).join('')}
+                        </select>
+                    </div>
+                    <p style="color:#777; font-size:0.68rem; margin:4px 0 0; line-height:1.4;">正解しても、解答時間が遅い人から脱落します（一番速い人は必ず残ります）。</p>` : '';
+                area.innerHTML = `<p style="color:#666; font-size:0.72em; margin:6px 0 0;">※不正解・無回答がミスになります（1問につき1回まで）。脱落した人は以降の問題に答えられません</p>`
+                    + this.advancedBlock('survival', slowHtml, [!canSlow.ok ? canSlow.why : '']);
+                this.wireAdvancedBlocks(area);
                 side.querySelector('#conf-survival-lives').onchange = (e) => {
                     conf.survivalLives = parseInt(e.target.value) || 1;
                     if (onChange) onChange();
                 };
+                const slowSel = area.querySelector('#conf-survival-slow');
+                if (slowSel) slowSel.onchange = () => { conf.survivalSlowDrop = parseInt(slowSel.value) || 0; if (onChange) onChange(); };
             } else {
                 side.innerHTML = '';
                 area.innerHTML = '';
@@ -491,7 +528,9 @@ App.Config = {
                     <div id="gametype-chooser-side" style="flex:1; min-width:0; display:flex;"></div>
                 </div>
                 <div id="gametype-chooser-detail"></div>
+                <div id="gametype-solo"></div>
             `;
+            this._renderSoloRules(container.querySelector('#gametype-solo'), conf, onChange);
             container.querySelector('#gametype-chooser-select').onchange = (e) => {
                 current = e.target.value;
                 conf.gameType = current;

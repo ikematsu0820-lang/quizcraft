@@ -468,3 +468,12 @@ body {
 .speed-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: bold; }
 .speed-ms { font-variant-numeric: tabular-nums; color: #e2e8f0; }
 @keyframes speedIn { from { opacity: 0; transform: translateY(1.5cqh) scale(0.96); } to { opacity: 1; transform: none; } }
+.speed-row.speed-out { color: #94a3b8; }
+.speed-out-tag { margin-right: 1cqh; padding: 0.2cqh 1cqh; border-radius: 0.6cqh; background: #ef4444; color: #fff; font-size: 2.2cqh; }
+
+/* ソロのクリア／ゲームオーバー */
+#viewer-solo-result { position: absolute; inset: 0; z-index: 600; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.6); animation: bvFade 0.4s ease-out both; }
+.solo-big { font-size: 18cqh; font-weight: 900; letter-spacing: 0.05em; animation: bvPop 0.7s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+.solo-clear .solo-big { color: #ffd700; text-shadow: 0 0 6cqh #ffd700; }
+.solo-over .solo-big { color: #ff3b30; text-shadow: 0 0 6cqh #ff3b30; }
+.solo-sub { margin-top: 2cqh; font-size: 5cqh; color: #fff; font-weight: bold; }

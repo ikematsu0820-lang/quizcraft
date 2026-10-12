@@ -646,7 +646,7 @@ App.Studio = {
             if (!val) return;
 
             if (this._forcedMode === 'solo') {
-                const ok = confirm('ソロモードになると今までのモードでなくなりますけど、いいですか？');
+                const ok = confirm('ソロモードで始めます。\n\n・1人ずつの挑戦になり、セットの「解答権」は使いません\n・ライフとクリア条件は、セットのルール「1人で挑戦するとき」の設定を使います\n・制限時間はセットの設定のままです\n\nよろしいですか？');
                 if (!ok) return;
             }
 
@@ -916,9 +916,7 @@ App.Studio = {
 
         if (item.config && item.config.mode === 'solo') {
             document.getElementById('studio-solo-info')?.classList.remove('hidden');
-            this.soloState.lives = item.config.soloLife || 3;
-            const lifeDisp = document.getElementById('studio-life-display');
-            if (lifeDisp) lifeDisp.textContent = this.soloState.lives;
+            this.startSoloState(item.config);
         } else {
             document.getElementById('studio-solo-info')?.classList.add('hidden');
         }
@@ -1788,9 +1786,7 @@ App.Studio = {
 
         if (child.config && child.config.mode === 'solo') {
             document.getElementById('studio-solo-info')?.classList.remove('hidden');
-            this.soloState.lives = child.config.soloLife || 3;
-            const lifeDisp = document.getElementById('studio-life-display');
-            if (lifeDisp) lifeDisp.textContent = this.soloState.lives;
+            this.startSoloState(child.config);
         } else {
             document.getElementById('studio-solo-info')?.classList.add('hidden');
         }
@@ -2434,16 +2430,54 @@ App.Studio = {
         this._qWinners[playerId] = name || '---';
     },
 
+    // ソロ（1人で挑戦）の状態 — ライフ・クリア条件はセットのルール
+    // 「1人で挑戦するとき」（soloLife: 0=無制限 / soloClearCount: 0=なし）
+    startSoloState: function (config) {
+        const c = config || {};
+        const life = c.soloLife === undefined || c.soloLife === null ? 3 : Number(c.soloLife);
+        this.soloState.lives = life > 0 ? life : Infinity;
+        this.soloState.correct = 0;
+        this.soloState.finished = false;
+        const lifeDisp = document.getElementById('studio-life-display');
+        if (lifeDisp) lifeDisp.textContent = Number.isFinite(this.soloState.lives) ? this.soloState.lives : '∞';
+        const roomId = App.State.currentRoomId;
+        if (roomId) window.db.ref(`rooms/${roomId}/status`).update({ soloResult: null, soloLives: Number.isFinite(this.soloState.lives) ? this.soloState.lives : null });
+    },
+
+    // クリア／ゲームオーバーをモニターに出し、司会者の「次へ」でセットを終える
+    finishSolo: function (result) {
+        if (this.soloState.finished) return;
+        this.soloState.finished = true;
+        const roomId = App.State.currentRoomId;
+        this.clearTimeLimit();
+        window.db.ref(`rooms/${roomId}/status`).update({ soloResult: result, soloCorrect: this.soloState.correct || 0 });
+        App.Ui.showToast(result === 'clear' ? 'クリア！' : 'ゲームオーバー');
+        const btnMain = document.getElementById('btn-phase-main');
+        if (btnMain) {
+            btnMain.textContent = 'セットを終える';
+            btnMain.classList.remove('action-ready');
+            btnMain.classList.add('action-next');
+            btnMain.onclick = () => this.handleSetCompletion();
+        }
+    },
+
     judgeSolo: function (isCorrect) {
+        const conf = App.Data.currentConfig || {};
+        const roomId = App.State.currentRoomId;
         if (isCorrect) {
             const soloId = this.turnOrder[this.turnIndex] || this.turnOrder[0];
             const soloP = soloId && App.Data.players && App.Data.players[soloId];
             if (soloP) this.recordWinner(soloId, soloP.name);
+            this.soloState.correct = (this.soloState.correct || 0) + 1;
+            const need = Number(conf.soloClearCount) || 0;
+            if (need > 0 && this.soloState.correct >= need) { this.finishSolo('clear'); return; }
             this.setStep(5);
         } else {
             this.soloState.lives--;
-            document.getElementById('studio-life-display').textContent = this.soloState.lives;
-            if (this.soloState.lives <= 0) alert("ゲームオーバー");
+            const lifeDisp = document.getElementById('studio-life-display');
+            if (lifeDisp) lifeDisp.textContent = Number.isFinite(this.soloState.lives) ? this.soloState.lives : '∞';
+            window.db.ref(`rooms/${roomId}/status`).update({ soloLives: Number.isFinite(this.soloState.lives) ? Math.max(0, this.soloState.lives) : null });
+            if (this.soloState.lives <= 0) this.finishSolo('gameover');
         }
     },
 
@@ -2544,9 +2578,22 @@ App.Studio = {
                     c.ref.update(upd);
                     this.recordWinner(c.ref.key, c.p.name);
                 });
+                // 勝利条件「最後まで残った人」×「遅い人も脱落」— 正解者のうち
+                // 遅い方から N 人を脱落にする（一番速い人は必ず残す）
+                const slowN = conf.gameType === 'survival' ? (parseInt(conf.survivalSlowDrop) || 0) : 0;
+                const outKeys = new Set();
+                if (slowN > 0) {
+                    const timed = correct.filter(c => c.ms !== null && c.p.isAlive !== false);
+                    const dropN = Math.min(slowN, Math.max(0, timed.length - 1));
+                    timed.slice(timed.length - dropN).forEach(c => {
+                        outKeys.add(c.ref.key);
+                        c.ref.update({ isAlive: false });
+                        App.Ui.showToast(`${c.p.name || '---'} さんは正解でしたが、遅かったので脱落`);
+                    });
+                }
                 // 正解者の早い順（モニターの演出用）
                 window.db.ref(`rooms/${roomId}/status`).update({
-                    speedRanking: correct.slice(0, 10).map((c, i) => ({ name: c.p.name || '---', ms: c.ms, rank: i + 1 }))
+                    speedRanking: correct.slice(0, 10).map((c, i) => ({ name: c.p.name || '---', ms: c.ms, rank: i + 1, out: outKeys.has(c.ref.key) || null }))
                 });
             });
         });

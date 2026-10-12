@@ -284,7 +284,7 @@ window.App.Viewer = {
             if (window.App.TimerView) window.App.TimerView.clear(viewContainer);
         }
         // 回答の見せ方（演出）は描画のあとに重ねる
-        setTimeout(() => { this.updateLiveAnswers(); this.updateSpeedReveal(); }, 0);
+        setTimeout(() => { this.updateLiveAnswers(); this.updateSpeedReveal(); this.updateSoloResult(); }, 0);
         // テーマのフォント・アクセント色（セット共通なので先頭の問題から取る）
         if (window.App.Themes) {
             const themeQ = this.questions[st.qIndex] || this.questions[0] || {};
@@ -753,7 +753,9 @@ window.App.Viewer = {
         const mode = d.speedReveal || 'none';
         let box = document.getElementById('viewer-speed-reveal');
         const ranking = Array.isArray(st.speedRanking) ? st.speedRanking : [];
-        const show = mode !== 'none' && (this.config || {}).mode === 'normal' && ['reveal_correct', 'answer'].includes(st.step) && ranking.length;
+        // 「遅い人も脱落」で脱落者が出た時は、設定が「何も出さない」でも出す
+        const hasOut = ranking.some(r => r && r.out);
+        const show = (mode !== 'none' || hasOut) && (this.config || {}).mode === 'normal' && ['reveal_correct', 'answer'].includes(st.step) && ranking.length;
         if (!show) { if (box) box.remove(); this._speedRevealKey = null; return; }
         const key = `${st.qIndex}:${mode}:${ranking.length}`;
         if (box && this._speedRevealKey === key) return; // 同じ発表は描き直さない（アニメを保つ）
@@ -768,8 +770,23 @@ window.App.Viewer = {
         box.innerHTML = `<div class="speed-head">正解者 早押しランキング</div>` + ranking.map((r, i) => {
             // countup は下の順位から順に出す
             const delay = mode === 'countup' ? (n - 1 - i) * 0.7 : i * 0.08;
-            return `<div class="speed-row${i === 0 ? ' speed-first' : ''}" style="animation-delay:${delay}s"><span class="speed-rank">${r.rank}</span><span class="speed-name">${esc(r.name)}</span><span class="speed-ms">${r.ms === null || r.ms === undefined ? '' : (r.ms / 1000).toFixed(2) + '秒'}</span></div>`;
+            return `<div class="speed-row${i === 0 ? ' speed-first' : ''}${r.out ? ' speed-out' : ''}" style="animation-delay:${delay}s"><span class="speed-rank">${r.rank}</span><span class="speed-name">${esc(r.name)}</span><span class="speed-ms">${r.out ? '<b class="speed-out-tag">脱落</b>' : ''}${r.ms === null || r.ms === undefined ? '' : (r.ms / 1000).toFixed(2) + '秒'}</span></div>`;
         }).join('');
+    },
+
+    // ソロ（1人で挑戦）のクリア／ゲームオーバー
+    updateSoloResult: function () {
+        const stage = document.getElementById('viewer-content');
+        if (!stage) return;
+        const st = this._st || {};
+        let box = document.getElementById('viewer-solo-result');
+        if (!st.soloResult) { if (box) box.remove(); return; }
+        if (box && box.dataset.result === st.soloResult) return;
+        if (!box) { box = document.createElement('div'); box.id = 'viewer-solo-result'; stage.appendChild(box); }
+        box.dataset.result = st.soloResult;
+        const clear = st.soloResult === 'clear';
+        box.className = clear ? 'solo-clear' : 'solo-over';
+        box.innerHTML = `<div class="solo-big">${clear ? 'CLEAR!' : 'GAME OVER'}</div><div class="solo-sub">${st.soloCorrect || 0}問正解</div>`;
     },
 
     viewerTimeLimitTimerId: null,

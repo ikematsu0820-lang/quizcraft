@@ -89,6 +89,11 @@ App.RuleEngine = {
             ok: (ctx) => ctx.mode === 'normal' && ctx.autoJudge,
             why: '「同点は解答時間で決める」は、全員が同時に答える選択式・並べ替え・文字パネルで使えます',
         },
+        // 勝利条件「最後まで残った人」：正解者のうち遅い人も脱落
+        survivalSlowDrop: {
+            ok: (ctx) => ctx.mode === 'normal' && ctx.autoJudge,
+            why: '「遅い人も脱落」は、全員が同時に答える選択式・並べ替え・文字パネルで使えます',
+        },
         // 解答回数（1回のみ／複数解答可）— 全員同時の時だけ意味がある
         answerAttempts: {
             ok: (ctx) => ctx.mode === 'normal',
