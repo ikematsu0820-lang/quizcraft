@@ -433,3 +433,38 @@ body {
     font-weight: 900;
     color: #fff;
 }
+/* 回答の見せ方（全員同時）— viewer.js updateLiveAnswers / updateSpeedReveal */
+#viewer-live-answers { position: absolute; z-index: 180; pointer-events: none; color: #fff; }
+#viewer-live-answers.live-count { left: 3cqw; top: 3cqh; }
+.live-count { padding: 1cqh 2.2cqh; border-radius: 99cqh; background: rgba(0, 0, 0, 0.6); border: 0.3cqh solid var(--color-primary, #00e5ff); font-weight: 900; }
+.live-count-n { font-size: 6cqh; color: var(--color-primary, #00e5ff); }
+.live-count-d { font-size: 3cqh; }
+#viewer-live-answers.live-names { right: 2cqw; top: 22cqh; width: 26cqw; background: rgba(0, 0, 0, 0.6); border-radius: 1.5cqh; padding: 1.2cqh 1.5cqh; }
+.live-head { font-size: 2.6cqh; font-weight: 900; color: var(--color-primary, #00e5ff); margin-bottom: 0.8cqh; }
+.live-row { display: flex; align-items: center; gap: 1cqh; font-size: 2.8cqh; padding: 0.5cqh 0; animation: liveIn 0.3s ease-out both; }
+.live-rank { flex: 0 0 3.5cqh; font-weight: 900; color: #ffd700; }
+.live-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: bold; }
+.live-ms { color: #cbd5e1; font-variant-numeric: tabular-nums; }
+@keyframes liveIn { from { opacity: 0; transform: translateX(3cqh); } to { opacity: 1; transform: none; } }
+
+#viewer-speed-reveal {
+    position: absolute;
+    z-index: 185;
+    right: 2cqw;
+    top: 24cqh;
+    width: 32cqw;
+    max-height: 70cqh;
+    overflow: hidden;
+    padding: 1.6cqh 2cqh;
+    border-radius: 1.6cqh;
+    background: rgba(0, 0, 0, 0.78);
+    border: 0.3cqh solid #ffd700;
+    color: #fff;
+}
+.speed-head { font-size: 3cqh; font-weight: 900; color: #ffd700; margin-bottom: 1cqh; letter-spacing: 0.1em; }
+.speed-row { display: flex; align-items: center; gap: 1.2cqh; font-size: 3.2cqh; padding: 0.6cqh 0; border-bottom: 0.15cqh solid rgba(255, 255, 255, 0.12); opacity: 0; animation: speedIn 0.45s ease-out forwards; }
+.speed-row.speed-first { font-size: 4.4cqh; color: #ffd700; }
+.speed-rank { flex: 0 0 4.5cqh; font-weight: 900; }
+.speed-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: bold; }
+.speed-ms { font-variant-numeric: tabular-nums; color: #e2e8f0; }
+@keyframes speedIn { from { opacity: 0; transform: translateY(1.5cqh) scale(0.96); } to { opacity: 1; transform: none; } }

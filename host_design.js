@@ -718,7 +718,37 @@ App.Design = {
                     ${chk('timerTickSound', '残りわずかで秒読み音を鳴らす（モニター）', false)}
                 </div>
                 <p style="color:#555; font-size:0.62rem; margin:8px 0 0;">※秒数や「1問ごと／セット全体」はルールの「制限時間」で決めます</p>
+                ${liveSection()}
             `;
+        };
+        // 全員同時の時、回答中・正解発表後にモニターへ何を出すか
+        // （1人ずつ判定する形式は、判定した瞬間に出るので設定不要）
+        const liveSection = () => {
+            const RE = window.App.RuleEngine;
+            const ctx = (window.App.Config && window.App.Config._ruleContext) ? window.App.Config._ruleContext(window.App.Data.currentConfig || {}) : { mode: 'normal', autoJudge: true };
+            const head = `<div style="margin:14px 0 6px; padding-top:10px; border-top:1px solid #2a3342; color:#e2e8f0; font-size:0.75rem; font-weight:bold;">回答の見せ方（モニター）</div>`;
+            if (ctx.mode !== 'normal') {
+                return head + `<p style="color:#64748b; font-size:0.66rem; margin:0;">全員が同時に答える時に設定できます。早押し・順番などは、〇×を判定した瞬間にモニターへ出ます。</p>`;
+            }
+            if (!design.liveAnswerView) design.liveAnswerView = 'none';
+            if (!design.speedReveal) design.speedReveal = 'none';
+            const speedOk = RE ? RE.can('tieBreakTime', ctx).ok : true; // 解答時間が測れる形式
+            return head + `
+                <div style="display:flex; gap:6px; margin-bottom:6px;">
+                    ${miniSelect('答えている間', 'liveAnswerView', [
+                        { v: 'none', t: '何も出さない' },
+                        { v: 'count', t: '回答した人数だけ' },
+                        { v: 'names', t: '答えた順に名前と秒数' },
+                    ])}
+                </div>
+                ${speedOk ? `<div style="display:flex; gap:6px;">
+                    ${miniSelect('正解発表のあと', 'speedReveal', [
+                        { v: 'none', t: '何も出さない' },
+                        { v: 'top', t: '正解者の早い順TOP10' },
+                        { v: 'countup', t: '下の順位から1人ずつ発表' },
+                    ])}
+                </div>` : `<p style="color:#64748b; font-size:0.66rem; margin:4px 0 0;">「正解者の早い順」は、選択式・並べ替え・文字パネルで使えます。</p>`}
+                <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">※答えている間は正誤を伏せて表示します（まだ答えていない人に答えがばれないように）</p>`;
         };
         activeBody.timer = timerBody;
 
@@ -727,7 +757,7 @@ App.Design = {
             { key: 'text', label: 'テキスト' },
             { key: 'object', label: 'オブジェクト' },
             { key: 'sound', label: 'サウンド' },
-            { key: 'timer', label: 'タイマー' },
+            { key: 'timer', label: '演出' },
         ];
         if (!activeBody[this._activeDesignTab]) this._activeDesignTab = 'text';
 

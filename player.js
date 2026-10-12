@@ -467,9 +467,31 @@ function showGlobalBuzzNotification(answererId) {
     }, 1200);
 }
 
+// 全員同時の正解発表のあと、自分の解答時間と正解者中の順位を端末に出す
+function updateSpeedBadge(st, p) {
+    const view = document.getElementById('player-game-view');
+    if (!view) return;
+    let badge = document.getElementById('player-speed-badge');
+    const show = roomConfig && roomConfig.mode === 'normal' &&
+        ['reveal_correct', 'answer', 'reveal_player'].includes(st.step) &&
+        p && p.lastElapsedMs !== undefined && p.lastElapsedMs !== null;
+    if (!show) { if (badge) badge.remove(); return; }
+    if (!badge) {
+        badge = document.createElement('div');
+        badge.id = 'player-speed-badge';
+        view.appendChild(badge);
+    }
+    const sec = (p.lastElapsedMs / 1000).toFixed(2);
+    badge.className = p.lastResult === 'win' ? 'win' : 'lose';
+    badge.innerHTML = p.lastResult === 'win' && p.lastCorrectRank
+        ? `<b>${sec}秒</b><span>正解者の中で ${p.lastCorrectRank}位</span>`
+        : `<b>${sec}秒</b><span>${p.lastResult === 'lose' ? '不正解' : ''}</span>`;
+}
+
 function updateUI() {
     const st = localStatus;
     const p = localPlayerData;
+    updateSpeedBadge(st, p);
     // 入室者の名前の購読は待機画面の間だけ
     if (st.step !== 'standby' && st.step !== 'reveal_q_num') watchLobbyRoster(false);
 

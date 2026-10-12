@@ -1681,9 +1681,9 @@ body.buzz-flash::after {
 }
 /* 端末の帯は横長なので、高さ基準で中央に大きく置き直す */
 #player-timer-box .tv-bar_top, #player-timer-box .tv-bar_bottom { top: 50%; bottom: auto; height: 22cqh; margin-top: -11cqh; left: 4cqw; right: 4cqw; border-radius: 11cqh; overflow: hidden; }
-#player-timer-box .tv-ring, #player-timer-box .tv-clock { top: 10cqh; right: auto; left: 50%; width: 80cqh; height: 80cqh; transform: translateX(-50%); }
+#player-timer-box .tv-ring, #player-timer-box .tv-clock { top: 10cqh; bottom: auto; right: auto; left: 50%; width: 80cqh; height: 80cqh; transform: translateX(-50%); }
 #player-timer-box .tv-ring .tv-num { font-size: 32cqh; }
-#player-timer-box .tv-number { top: 50%; right: auto; left: 50%; transform: translate(-50%, -50%); }
+#player-timer-box .tv-number { top: 50%; bottom: auto; right: auto; left: 50%; transform: translate(-50%, -50%); }
 #player-timer-box .tv-number .tv-num { font-size: 70cqh; }
 #player-timer-box .tv-clock .tv-num { top: 50%; left: 100%; right: auto; margin-left: 6cqh; transform: translateY(-50%); font-size: 36cqh; text-align: left; }
 #player-timer-box .tv-fuse { left: 4cqw; right: 4cqw; bottom: 10cqh; height: 80cqh; }
@@ -1691,3 +1691,26 @@ body.buzz-flash::after {
 #player-timer-box .tv-fuse-spark { width: 24cqh; height: 24cqh; margin: -12cqh 0 0 -12cqh; }
 #player-timer-box .tv-fuse-bomb { flex-basis: 80cqh; height: 80cqh; }
 #player-timer-box .tv-fuse .tv-num { font-size: 30cqh; }
+
+/* 正解発表のあとの、自分の解答時間と順位 */
+#player-speed-badge {
+    position: fixed;
+    left: 50%;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    z-index: 5000;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 10px 18px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid #ffd700;
+    color: #fff;
+    font-size: 1rem;
+    white-space: nowrap;
+    animation: fadeInUp 0.3s ease-out;
+}
+#player-speed-badge b { font-size: 1.4rem; color: #ffd700; font-variant-numeric: tabular-nums; }
+#player-speed-badge.lose { border-color: #64748b; }
+#player-speed-badge.lose b { color: #cbd5e1; }

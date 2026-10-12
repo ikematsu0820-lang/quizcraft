@@ -263,6 +263,8 @@ window.App.Viewer = {
         refs.players.on('value', snap => {
             if (this.config.gameType === 'race') this.updateViewerRace();
             this.updateAnswerWall(snap.val());
+            this._players = snap.val() || {};
+            this.updateLiveAnswers();
         });
     },
 
@@ -274,6 +276,15 @@ window.App.Viewer = {
         const viewContainer = document.getElementById('viewer-content');
 
         this._renderSeq = (this._renderSeq || 0) + 1;
+        this._st = st;
+        // タイマーは出題中だけ（正解発表などの画面では消す — 途中で return する
+        // 描画もあるので、ここで先に片づけておく）
+        if (!st.timer || !['question', 'answering', 'reveal_q', 'closed'].includes(st.step)) {
+            if (this.viewerTimeLimitTimerId) { clearInterval(this.viewerTimeLimitTimerId); this.viewerTimeLimitTimerId = null; }
+            if (window.App.TimerView) window.App.TimerView.clear(viewContainer);
+        }
+        // 回答の見せ方（演出）は描画のあとに重ねる
+        setTimeout(() => { this.updateLiveAnswers(); this.updateSpeedReveal(); }, 0);
         // テーマのフォント・アクセント色（セット共通なので先頭の問題から取る）
         if (window.App.Themes) {
             const themeQ = this.questions[st.qIndex] || this.questions[0] || {};
@@ -690,6 +701,76 @@ window.App.Viewer = {
         }
 
         this.updateTimeLimitDisplay(st);
+    },
+
+    // =========================================================
+    // 回答の見せ方（全員同時）— デザインの「演出」で選ぶ
+    //   liveAnswerView: 答えている間 … 'count'（人数）/ 'names'（答えた順）
+    //   speedReveal:    正解発表のあと … 'top'（TOP10）/ 'countup'（下から1人ずつ）
+    // 答えている間は正誤を出さない（まだ答えていない人にばれないように）
+    // =========================================================
+    _liveDesign: function () {
+        const st = this._st || {};
+        const q = this.questions[st.qIndex] || this.questions[0] || {};
+        return q.design || {};
+    },
+
+    updateLiveAnswers: function () {
+        const stage = document.getElementById('viewer-content');
+        if (!stage) return;
+        let box = document.getElementById('viewer-live-answers');
+        const st = this._st || {};
+        const d = this._liveDesign();
+        const mode = d.liveAnswerView || 'none';
+        const active = (this.config || {}).mode === 'normal' && ['reveal_q', 'answering', 'question', 'closed'].includes(st.step);
+        if (mode === 'none' || !active) { if (box) box.remove(); return; }
+        if (!box) {
+            box = document.createElement('div');
+            box.id = 'viewer-live-answers';
+            stage.appendChild(box);
+        }
+        const players = Object.values(this._players || {}).filter(p => p && p.isAlive !== false);
+        const answered = players.filter(p => p.lastAnswer !== null && p.lastAnswer !== undefined);
+        box.className = `live-${mode}`;
+        if (mode === 'count') {
+            box.innerHTML = `<div class="live-count"><span class="live-count-n">${answered.length}</span><span class="live-count-d"> / ${players.length}人 回答</span></div>`;
+            return;
+        }
+        const RE = window.App.RuleEngine;
+        const rows = answered.map(p => ({ name: p.name || '---', ms: RE ? RE.answerElapsedMs(p, st.answerOpenAt) : null }))
+            .sort((a, b) => (a.ms === null ? Infinity : a.ms) - (b.ms === null ? Infinity : b.ms))
+            .slice(0, 8);
+        const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
+        box.innerHTML = `
+            <div class="live-head">回答 ${answered.length} / ${players.length}</div>
+            ${rows.map((r, i) => `<div class="live-row"><span class="live-rank">${i + 1}</span><span class="live-name">${esc(r.name)}</span><span class="live-ms">${r.ms === null ? '' : (r.ms / 1000).toFixed(2) + '秒'}</span></div>`).join('')}`;
+    },
+
+    updateSpeedReveal: function () {
+        const stage = document.getElementById('viewer-content');
+        if (!stage) return;
+        const st = this._st || {};
+        const d = this._liveDesign();
+        const mode = d.speedReveal || 'none';
+        let box = document.getElementById('viewer-speed-reveal');
+        const ranking = Array.isArray(st.speedRanking) ? st.speedRanking : [];
+        const show = mode !== 'none' && (this.config || {}).mode === 'normal' && ['reveal_correct', 'answer'].includes(st.step) && ranking.length;
+        if (!show) { if (box) box.remove(); this._speedRevealKey = null; return; }
+        const key = `${st.qIndex}:${mode}:${ranking.length}`;
+        if (box && this._speedRevealKey === key) return; // 同じ発表は描き直さない（アニメを保つ）
+        this._speedRevealKey = key;
+        if (!box) {
+            box = document.createElement('div');
+            box.id = 'viewer-speed-reveal';
+            stage.appendChild(box);
+        }
+        const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
+        const n = ranking.length;
+        box.innerHTML = `<div class="speed-head">正解者 早押しランキング</div>` + ranking.map((r, i) => {
+            // countup は下の順位から順に出す
+            const delay = mode === 'countup' ? (n - 1 - i) * 0.7 : i * 0.08;
+            return `<div class="speed-row${i === 0 ? ' speed-first' : ''}" style="animation-delay:${delay}s"><span class="speed-rank">${r.rank}</span><span class="speed-name">${esc(r.name)}</span><span class="speed-ms">${r.ms === null || r.ms === undefined ? '' : (r.ms / 1000).toFixed(2) + '秒'}</span></div>`;
+        }).join('');
     },
 
     viewerTimeLimitTimerId: null,
