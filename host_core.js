@@ -324,7 +324,7 @@ window.App.bindEvents = function () {
         const roomIdInput = document.getElementById('room-id-input');
         const code = roomIdInput ? roomIdInput.value.trim().toUpperCase() : '';
         if (!code) {
-            alert("ルームIDを入力してください");
+            if (typeof playerNotice === "function") playerNotice("ルームIDを入力してください", "error"); else alert("ルームIDを入力してください");
             return;
         }
 

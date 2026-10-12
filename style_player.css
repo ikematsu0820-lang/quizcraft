@@ -1714,3 +1714,38 @@ body.buzz-flash::after {
 #player-speed-badge b { font-size: 1.4rem; color: #ffd700; font-variant-numeric: tabular-nums; }
 #player-speed-badge.lose { border-color: #64748b; }
 #player-speed-badge.lose b { color: #cbd5e1; }
+
+/* 画面の中のお知らせ（alert の代わり） */
+#player-notice {
+    position: fixed; left: 50%; top: calc(14px + env(safe-area-inset-top)); z-index: 9000;
+    transform: translate(-50%, -150%); max-width: 90vw; padding: 12px 18px; border-radius: 12px;
+    background: rgba(15, 23, 42, 0.95); border: 1px solid #00e5ff; color: #fff; font-weight: bold; font-size: 0.95rem;
+    text-align: center; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); transition: transform 0.25s ease-out; pointer-events: none;
+}
+#player-notice.show { transform: translate(-50%, 0); }
+#player-notice.error { border-color: #ff4b2b; }
+
+/* 参加中のクイズに戻るカード */
+#player-resume-card {
+    position: fixed; left: 12px; right: 12px; bottom: calc(14px + env(safe-area-inset-bottom)); z-index: 8000;
+    max-width: 520px; margin: 0 auto; padding: 14px 16px; border-radius: 16px;
+    background: #0f172a; border: 2px solid #00e5ff; color: #fff; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+    animation: fadeInUp 0.3s ease-out;
+}
+#player-resume-card .resume-text { font-size: 0.9rem; line-height: 1.6; margin-bottom: 10px; }
+#player-resume-card .resume-text b { color: #00e5ff; font-size: 1.05rem; }
+#player-resume-card .resume-actions { display: flex; gap: 8px; }
+#player-resume-card button { flex: 1; min-height: 46px; margin: 0; border-radius: 10px; font-weight: bold; font-size: 0.95rem; cursor: pointer; }
+#player-resume-card .resume-no { flex: 0 0 90px; background: transparent; border: 1px solid #475569; color: #cbd5e1; }
+#player-resume-card .resume-yes { background: linear-gradient(135deg, #00c6ff, #0072ff); border: none; color: #fff; }
+
+/* 他の人が解答中 */
+.wait-answerer { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 0; }
+.wait-answerer span { font-size: 0.8rem; color: #94a3b8; letter-spacing: 0.2em; }
+.wait-answerer b { font-size: 1.6rem; color: #ffd700; }
+
+/* 数字予想：1回目のタップで選択中 */
+.ng-item.ng-armed, .ng-stand-btn.ng-armed { outline: 3px solid #ffd700; outline-offset: 2px; }
+
+/* 縦向きの「横向きにしてください」はもう出さない */
+#player-rotate-overlay { display: none !important; }

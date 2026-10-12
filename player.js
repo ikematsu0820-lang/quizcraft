@@ -114,6 +114,86 @@ function buzzPressedFeedback(btn) {
     setTimeout(() => document.body.classList.remove('buzz-flash'), 350);
 }
 
+// ---------------------------------------------------------
+// 画面の中に出すお知らせ（ブラウザの alert は進行を止めてしまうので使わない）
+// ---------------------------------------------------------
+function playerNotice(msg, kind) {
+    let box = document.getElementById('player-notice');
+    if (!box) {
+        box = document.createElement('div');
+        box.id = 'player-notice';
+        document.body.appendChild(box);
+    }
+    box.className = kind === 'error' ? 'error' : '';
+    box.textContent = msg;
+    box.classList.add('show');
+    clearTimeout(box._t);
+    box._t = setTimeout(() => box.classList.remove('show'), 2600);
+}
+
+// ---------------------------------------------------------
+// 参加情報を端末に覚えておく — 画面の再読み込みやスリープのあとでも、
+// 同じ参加者（同じ得点）として1タップで戻れるように
+// ---------------------------------------------------------
+const PLAYER_SESSION_KEY = 'qs_player_session';
+const PlayerSession = {
+    save(room, id, name) {
+        try { localStorage.setItem(PLAYER_SESSION_KEY, JSON.stringify({ room, id, name, at: Date.now() })); } catch (e) { /* noop */ }
+        try { localStorage.setItem('qs_player_last_name', name); } catch (e) { /* noop */ }
+    },
+    read() {
+        try {
+            const s = JSON.parse(localStorage.getItem(PLAYER_SESSION_KEY) || 'null');
+            if (!s || !s.room || !s.id) return null;
+            if (Date.now() - (s.at || 0) > 12 * 3600 * 1000) return null; // 12時間で忘れる
+            return s;
+        } catch (e) { return null; }
+    },
+    clear() { try { localStorage.removeItem(PLAYER_SESSION_KEY); } catch (e) { /* noop */ } },
+    lastName() { try { return localStorage.getItem('qs_player_last_name') || ''; } catch (e) { return ''; } },
+};
+
+function enterGame(code, playerId, name) {
+    myRoomId = code;
+    myPlayerId = playerId;
+    myName = name;
+    PlayerSession.save(code, playerId, name);
+    showPlayerView('player-game-view');
+    document.body.classList.add('player-in-game');
+    document.getElementById('player-name-disp').textContent = name;
+    document.getElementById('player-resume-card')?.remove();
+    startPlayerListener(code, playerId);
+}
+
+// 前回の参加が残っていれば「戻る」カードを出す
+function offerResume() {
+    const sess = PlayerSession.read();
+    if (!sess || !window.db) return;
+    window.db.ref(`rooms/${sess.room}/players/${sess.id}`).once('value', snap => {
+        const p = snap.val();
+        if (!p) { PlayerSession.clear(); return; }
+        if (myPlayerId) return; // もう参加している
+        let card = document.getElementById('player-resume-card');
+        if (!card) {
+            card = document.createElement('div');
+            card.id = 'player-resume-card';
+            document.body.appendChild(card);
+        }
+        const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
+        card.innerHTML = `
+            <div class="resume-text">参加中のクイズがあります<br><b>${esc(p.name || sess.name)}</b> さん（部屋 ${esc(sess.room)}・${p.periodScore || 0}点）</div>
+            <div class="resume-actions">
+                <button type="button" class="resume-no">閉じる</button>
+                <button type="button" class="resume-yes">クイズに戻る</button>
+            </div>`;
+        card.querySelector('.resume-yes').onclick = () => {
+            unlockAudio();
+            enterGame(sess.room, sess.id, p.name || sess.name);
+        };
+        card.querySelector('.resume-no').onclick = () => card.remove();
+    });
+}
+
 let _currentPad = null;
 let _pendingBuzzAnswer = null;
 function isWrittenBuzz() {
@@ -202,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!myRoomId || !myPlayerId) return;
             if (isWrittenBuzz()) {
                 if (!_currentPad || !_currentPad.hasDrawn()) {
-                    alert('先に答えを書いてから PUSH! を押してください');
+                    playerNotice('先に答えを書いてから PUSH! を押してください');
                     return;
                 }
                 _pendingBuzzAnswer = _currentPad.getDataUrl();
@@ -233,24 +313,16 @@ function requestLandscape() {
     try {
         const el = document.documentElement;
         const fs = el.requestFullscreen ? el.requestFullscreen() : null;
-        const lock = () => {
-            if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {});
-        };
-        if (fs && fs.then) fs.then(lock).catch(() => {}); else lock();
+        // 縦でも横でも使える画面にしたので、向きは固定しない（全画面だけ）
+        if (fs && fs.catch) fs.catch(() => {});
     } catch (e) { /* noop */ }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    const overlay = document.createElement('div');
-    overlay.id = 'player-rotate-overlay';
-    overlay.innerHTML = `
-        <div style="font-size:64px; margin-bottom:16px; animation:rotateHint 1.6s ease-in-out infinite;">📱</div>
-        <div style="font-size:1.3em; font-weight:900; margin-bottom:8px;">スマホを横向きにしてください</div>
-        <div style="font-size:0.9em; opacity:0.75; margin-bottom:24px;">横向きの方が問題とボタンが見やすくなります</div>
-        <button type="button" id="player-rotate-dismiss" style="background:none; border:1px solid rgba(255,255,255,0.5); color:#fff; border-radius:10px; padding:8px 18px; font-size:0.9em;">縦のまま続ける</button>
-    `;
-    document.body.appendChild(overlay);
-    overlay.querySelector('#player-rotate-dismiss').onclick = () => overlay.classList.add('dismissed');
+    // 前回の名前を入れておく／参加中のクイズがあれば戻れるようにする
+    const nameInput = document.getElementById('player-name-input');
+    if (nameInput && !nameInput.value) nameInput.value = PlayerSession.lastName();
+    setTimeout(offerResume, 600);
 });
 
 function showPlayerView(viewId) {
@@ -268,7 +340,7 @@ function joinRoom() {
     const name = nameInput.value.trim();
 
     if (!code || !name) {
-        alert("部屋コードとニックネームを入力してください");
+        playerNotice("部屋コードとニックネームを入力してください", 'error');
         return;
     }
 
@@ -282,7 +354,7 @@ function joinRoom() {
 
     window.db.ref(`rooms/${code}`).once('value', snap => {
         if (!snap.exists()) {
-            alert("その部屋コードは見つかりませんでした");
+            playerNotice("その部屋コードは見つかりませんでした", 'error');
             btn.disabled = false;
             btn.textContent = "参加する";
             return;
@@ -293,18 +365,14 @@ function joinRoom() {
         const count = Object.keys(currentPlayers).length;
 
         if (count >= 8) {
-            alert("申し訳ありません、この部屋は満員です (定員8名)");
+            playerNotice("この部屋は満員です（定員8名）", 'error');
             btn.disabled = false;
             btn.textContent = "参加する";
             return;
         }
 
-        myRoomId = code;
-        myName = name;
-
         const playersRef = window.db.ref(`rooms/${code}/players`);
         const newPlayerRef = playersRef.push();
-        myPlayerId = newPlayerRef.key;
 
         newPlayerRef.set({
             name: name,
@@ -314,12 +382,9 @@ function joinRoom() {
             lastResult: null,
             buzzTime: null
         }).then(() => {
-            showPlayerView('player-game-view');
-            document.body.classList.add('player-in-game'); // 縦向きなら「横向きにしてください」を出す
-            document.getElementById('player-name-disp').textContent = name;
-            startPlayerListener(code, myPlayerId);
+            enterGame(code, newPlayerRef.key, name);
         }).catch(e => {
-            alert("エラーが発生しました: " + e.message);
+            playerNotice("参加できませんでした。通信状態を確かめて、もう一度お試しください", 'error');
             btn.disabled = false;
             btn.textContent = "参加する";
         });
@@ -829,7 +894,7 @@ function updateUI() {
                 buzzArea.classList.add('hidden');
                 toggleInputEnabled(false);
                 waitMsg.classList.remove('hidden');
-                waitMsg.innerHTML = "他のプレイヤーが解答中です...";
+                waitMsg.innerHTML = `<div class="wait-answerer"><span>解答中</span><b>${String(st.currentAnswererName || '他のプレイヤー').replace(/</g, '&lt;')}</b></div>`;
             }
             else {
                 // 誰も解答権がない状態 (例: 誤答後リセット待ち、または開始前)
@@ -1148,7 +1213,13 @@ function renderPlayerNumGame(st, p) {
         b.onclick = () => {
             if (!canPick) return;
             const i = parseInt(b.dataset.i);
-            if (!confirm(`「${items[i]}」を選びますか？`)) return;
+            // 1回目のタップで選んで、もう一度押すと決定（確認ダイアログを出さない）
+            if (!b.classList.contains('ng-armed')) {
+                box.querySelectorAll('.ng-armed').forEach(x => x.classList.remove('ng-armed'));
+                b.classList.add('ng-armed');
+                playerNotice(`もう一度押すと「${items[i]}」に決定`);
+                return;
+            }
             _ngPendingSeq = ng.seq || 0;
             window.db.ref(`rooms/${myRoomId}/players/${myPlayerId}/ngPick`).set({ idx: i, t: firebase.database.ServerValue.TIMESTAMP });
             renderPlayerNumGame(st, p);
@@ -1156,7 +1227,11 @@ function renderPlayerNumGame(st, p) {
     });
     const stand = box.querySelector('.ng-stand-btn');
     if (stand) stand.onclick = () => {
-        if (!confirm(`ここでストップしますか？（合計 ${myTotal}${ng.unit || ''}）`)) return;
+        if (!stand.classList.contains('ng-armed')) {
+            stand.classList.add('ng-armed');
+            stand.textContent = `もう一度押すとストップ（合計 ${myTotal}${ng.unit || ''}）`;
+            return;
+        }
         _ngPendingSeq = ng.seq || 0;
         window.db.ref(`rooms/${myRoomId}/players/${myPlayerId}/ngPick`).set({ stand: true, t: firebase.database.ServerValue.TIMESTAMP });
         renderPlayerNumGame(st, p);
@@ -1576,6 +1651,10 @@ function renderPlayerQuestion(q, roomId, playerId) {
 
         const selected = new Set();
         const btns = [];
+        // 1つ選ぶ選択式は、タップした瞬間に確定（「決定」を押す手間をなくす）。
+        // ルール「答え方」の詳細設定でオフにすると、従来どおり「決定」を押す。
+        const attemptsSingle = roomConfig.mode !== 'normal' || (roomConfig.answerAttempts || 'single') === 'single';
+        const oneTap = !isMulti && !isDobonMode && attemptsSingle && roomConfig.oneTapSubmit !== false;
 
         // Retrieve taken choices for Dobon/Turn
         const takenChoices = (localStatus && localStatus.takenChoices) ? localStatus.takenChoices : [];
@@ -1607,7 +1686,7 @@ function renderPlayerQuestion(q, roomId, playerId) {
             else submitAnswer(roomId, playerId, ansArray[0]);
         };
         submitFooter.appendChild(submitBtn);
-        document.body.appendChild(submitFooter);
+        if (!oneTap) document.body.appendChild(submitFooter);
 
         // Helper: refresh submit button enabled state
         const refreshSubmit = () => {
@@ -1620,7 +1699,7 @@ function renderPlayerQuestion(q, roomId, playerId) {
         // Scrollable choice list — bottom padding so last item clears the fixed footer
         const choiceList = document.createElement('div');
         choiceList.className = 'player-choice-list';
-        choiceList.style.paddingBottom = 'calc(72px + env(safe-area-inset-bottom, 0px))';
+        choiceList.style.paddingBottom = oneTap ? '12px' : 'calc(72px + env(safe-area-inset-bottom, 0px))';
         // まるばつモード: ○ と × を左右に大きく並べる
         const isOx = !!q.ox && !isDobonMode;
         if (isOx) choiceList.style.cssText += 'display:grid; grid-template-columns:1fr 1fr; gap:12px;';
@@ -1677,6 +1756,13 @@ function renderPlayerQuestion(q, roomId, playerId) {
                     btn.classList.add('btn-selected');
                     btn.style.opacity = '1';
                     btn.style.filter = '';
+                    if (oneTap) {
+                        try { if (navigator.vibrate) navigator.vibrate(30); } catch (e) { /* noop */ }
+                        btns.forEach(b => { b.disabled = true; });
+                        submitBtn.disabled = false;
+                        submitBtn.onclick();
+                        return;
+                    }
                 }
                 refreshSubmit();
             };
@@ -1921,7 +2007,7 @@ function renderPlayerQuestion(q, roomId, playerId) {
                 const sortedItems = sortList.querySelectorAll('.sortable-item');
                 let answer = "";
                 sortedItems.forEach(el => answer += el.dataset.label);
-                if (answer.length !== n) { alert("エラーが発生しました。"); return; }
+                if (answer.length !== n) { playerNotice("すべての項目を並べてから送信してください"); return; }
                 submitAnswer(roomId, playerId, answer);
             };
             inputCont.appendChild(submitBtn);

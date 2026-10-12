@@ -180,7 +180,13 @@ App.Config = {
                 <p style="color:#888; font-size:0.72em; margin:0; line-height:1.3;" id="ans-attempt-desc">
                     ${single ? '正解表示ボタンを押した時に全員に結果が一斉に届きます' : '採点の都度結果が届き、不正解でも再解答できます'}
                 </p>`;
-            return `<p class="rule-basic-note">全員が手元の端末で同時に答えます。</p>${this.advancedBlock('normal', adv)}`;
+            const oneTap = conf.oneTapSubmit !== false;
+            const advTap = `
+                <label style="display:flex; align-items:center; gap:8px; margin-top:12px; color:#cbd5e1; font-size:0.8em; cursor:pointer;">
+                    <input type="checkbox" id="config-one-tap" ${oneTap ? 'checked' : ''} style="width:auto; height:auto; min-height:0; margin:0;">選択式は、タップした瞬間に答えを確定する
+                </label>
+                <p style="color:#888; font-size:0.72em; margin:4px 0 0; line-height:1.3;">オフにすると、選んでから「決定」を押す形になります（選び直しができます）</p>`;
+            return `<p class="rule-basic-note">全員が手元の端末で同時に答えます。</p>${this.advancedBlock('normal', adv + advTap)}`;
         } else if (mode === 'buzz') {
             const buzzAction = conf.buzzWrongAction || 'next';
             const allowed = this.BUZZ_PENALTIES[buzzAction] || this.BUZZ_PENALTIES.next;
@@ -284,6 +290,8 @@ App.Config = {
                     : '採点の都度結果が届き、不正解でも再解答できます';
             };
         });
+        const oneTapChk = area.querySelector('#config-one-tap');
+        if (oneTapChk) oneTapChk.onchange = () => { conf.oneTapSubmit = oneTapChk.checked; };
         const buzzActionSel = area.querySelector('#config-buzz-wrong-action');
         if (buzzActionSel) {
             buzzActionSel.onchange = () => {
