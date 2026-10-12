@@ -4996,3 +4996,36 @@ body.cm-noscroll { overflow: hidden; }
 #creator-view.cp-on #creator-inline-edit-area *:not(.creator-edit-subtab-btn):not(.creator-rules-subtab-btn):not(.design-subtab-btn) {
     font-size: 0.78rem !important;
 }
+
+/* =========================================================
+ * ルール設定の「詳細設定」（host_config.js advancedBlock）
+ * 基本＝遊び方が変わる設定、詳細＝数値の微調整や例外時の扱い
+ * ======================================================= */
+details.rule-adv {
+    margin-top: 10px;
+    border: 1px solid #2a3342;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.02);
+}
+details.rule-adv > summary {
+    list-style: none;
+    padding: 8px 10px;
+    color: #94a3b8;
+    font-size: 0.75rem;
+    font-weight: bold;
+    cursor: pointer;
+    user-select: none;
+}
+details.rule-adv > summary::-webkit-details-marker { display: none; }
+details.rule-adv > summary::before { content: '▸ '; }
+details.rule-adv[open] > summary::before { content: '▾ '; }
+details.rule-adv[open] > summary { border-bottom: 1px solid #2a3342; }
+.rule-adv-body { padding: 10px; }
+.rule-adv-note,
+.rule-basic-note {
+    margin: 6px 0 0;
+    color: #64748b;
+    font-size: 0.7rem;
+    line-height: 1.5;
+}
+.rule-basic-note { margin: 0 0 4px; }

@@ -1144,11 +1144,18 @@ window.App.Viewer = {
     renderRanking: function (container, isFinal) {
         window.db.ref(`rooms/${this.roomId}/players`).once('value', snap => {
             const players = snap.val() || {};
-            const arr = Object.values(players).map(p => ({
+            // 得点順（同点の扱いはセットのルール — rule_engine.js）
+            const RE = window.App.RuleEngine;
+            const conf = this.config || {};
+            const sorted = RE ? RE.sortPlayers(Object.values(players), conf, 'periodScore')
+                : Object.values(players).sort((a, b) => (b.periodScore || 0) - (a.periodScore || 0));
+            const showTime = conf.tieBreak === 'time';
+            const arr = sorted.map(p => ({
                 name: p.name,
                 score: p.periodScore || 0,
+                time: showTime && p.periodCorrectTime !== undefined ? p.periodCorrectTime : null,
                 isAlive: p.isAlive !== false
-            })).sort((a, b) => b.score - a.score);
+            }));
 
             let html = `
                 <div style="text-align:center; width:100%; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center;">
@@ -1169,7 +1176,7 @@ window.App.Viewer = {
                     <div style="display:flex; justify-content:space-between; align-items:center; padding:15px; border-bottom:1px solid #444; font-size:${size}; color:${rankColor}; animation:slideIn ${0.5 + i * 0.15}s ease-out; opacity:0; animation-fill-mode:forwards;">
                         <div style="font-weight:bold; width:10%;">${i + 1}</div>
                         <div style="flex:1; text-align:left; padding-left:20px;">${medal} ${p.name}</div>
-                        <div style="font-weight:900;">${p.score} <span style="font-size:0.6em;">pts</span></div>
+                        <div style="font-weight:900;">${p.score} <span style="font-size:0.6em;">pts</span>${p.time !== null ? `<span style="font-size:0.5em; color:#aaa; margin-left:0.6em;">${(p.time / 1000).toFixed(2)}秒</span>` : ''}</div>
                     </div>
                 `;
             });
@@ -1188,8 +1195,14 @@ window.App.Viewer = {
         if (!data) return;
         const { droppedOut = [], survivors = [], mode = 'none', count = 0 } = data;
 
-        let title = mode === 'dropout' ? "ELIMINATION" : "SURVIVORS";
-        let subTitle = mode === 'dropout' ? `成績下位 ${count} 名が脱落` : `成績上位 ${count} 名が通過`;
+        const title = (mode === 'dropout' || mode === 'below') ? "ELIMINATION" : "SURVIVORS";
+        const subTitle = ({
+            dropout: `成績下位 ${count} 名が脱落`,
+            survive: `成績上位 ${count} 名が通過`,
+            survive_pct: `成績上位 ${count}% が通過`,
+            below: `${count} 点未満が脱落`,
+        })[mode] || '';
+        const fmtTime = (ms) => (ms === null || ms === undefined) ? '' : ` / ${(ms / 1000).toFixed(2)}秒`;
 
         let html = `
             <div style="text-align:center; width:100%; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center;">
@@ -1209,7 +1222,7 @@ window.App.Viewer = {
                 <div style="background:rgba(20,20,20,0.8); border:2px solid ${color}; padding:20px; border-radius:15px; animation:popIn ${0.5 + i * 0.1}s backwards;">
                     <div style="font-size:1.5vh; color:${color}; margin-bottom:5px; font-weight:800;">${statusText}</div>
                     <div style="font-size:3vh; font-weight:bold; color:#fff;">${p.name}</div>
-                    <div style="font-size:2vh; color:#888;">${p.score} pts</div>
+                    <div style="font-size:2vh; color:#888;">${p.score} pts${fmtTime(p.time)}</div>
                 </div>
             `;
         });

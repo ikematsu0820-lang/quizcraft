@@ -2220,7 +2220,9 @@ function submitAnswer(roomId, playerId, answer) {
     isReanswering = false;
     window.db.ref(`rooms/${roomId}/players/${playerId}`).update({
         lastAnswer: answer,
-        answerTime: firebase.database.ServerValue.TIMESTAMP
+        answerTime: firebase.database.ServerValue.TIMESTAMP,
+        // 押した瞬間（サーバー時計に補正）— 解答時間の順位に使う（rule_engine.js）
+        answerPressAt: Date.now() + _serverTimeOffset
     });
     // 手書きの送信ボタンは送ったら消す（残っていると送れていないように見える）
     document.getElementById('written-submit-btn')?.classList.add('hidden');

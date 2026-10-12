@@ -86,7 +86,26 @@ App.Config = {
             if (hasOneOnOne && conf._oneOnOneSuggestedFor !== qType) mode = 'buzz';
         }
         conf._oneOnOneSuggestedFor = qType;
+        // 最後に相性の表で確認 — 選べない解答権のままにしない
+        const RE = window.App.RuleEngine;
+        if (RE && mode !== 'solo') {
+            const ctx = RE.context({ ...conf, mode }, questions);
+            if (!RE.modeAllowed(ctx, mode)) mode = RE.firstAllowedMode(ctx);
+        }
         conf.mode = mode;
+        // 解答権が変わって使えなくなった設定（配点・同点の扱いなど）を戻す
+        if (RE) {
+            const changed = RE.normalize(conf, questions);
+            if (changed.length && window.App.Ui && window.App.Ui.showToast) {
+                const key = changed.join('|');
+                if (this._lastNormalizeMsg !== key) {
+                    this._lastNormalizeMsg = key;
+                    changed.forEach((m, i) => setTimeout(() => window.App.Ui.showToast(m), i * 600));
+                }
+            } else if (!changed.length) {
+                this._lastNormalizeMsg = '';
+            }
+        }
     },
 
     // --- Compact inline rule controls (render into a container the caller
@@ -94,62 +113,121 @@ App.Config = {
 
     // Per-mode settings fields (same content the old bottom-sheet showed),
     // now rendered inline under the mode radio list.
+    // ---------------------------------------------------------
+    // 基本設定と詳細設定の分け方
+    //   基本 … 変えると「遊び方の説明」が変わるもの（解答権、誤答したら
+    //          問題をどうするか、勝利条件、配点の種類、制限時間）
+    //   詳細 … 数値の微調整や、例外が起きた時の扱い。既定のままでも
+    //          遊べるもの（解答回数、誤答者のペナルティ、点数表、同点の扱い）
+    // 詳細は折りたたんでおき、開いたかどうかはブラウザに覚えておく。
+    // ---------------------------------------------------------
+    advancedBlock: function (key, innerHtml, notes) {
+        let open = false;
+        try { open = localStorage.getItem(`qs_adv_open_${key}`) === '1'; } catch (e) { /* noop */ }
+        const noteHtml = (notes || []).filter(Boolean).map(n => `<p class="rule-adv-note">${n}</p>`).join('');
+        if (!innerHtml && !noteHtml) return '';
+        return `
+            <details class="rule-adv" data-adv-key="${key}" ${open ? 'open' : ''}>
+                <summary>詳細設定</summary>
+                <div class="rule-adv-body">${innerHtml || ''}${noteHtml}</div>
+            </details>`;
+    },
+
+    wireAdvancedBlocks: function (root) {
+        (root || document).querySelectorAll('details.rule-adv').forEach(d => {
+            d.ontoggle = () => {
+                try { localStorage.setItem(`qs_adv_open_${d.dataset.advKey}`, d.open ? '1' : '0'); } catch (e) { /* noop */ }
+            };
+        });
+    },
+
+    // 早押しの誤答者へのペナルティ — 「問題に対する処理」で選べるものが変わる
+    BUZZ_PENALTIES: {
+        next: [
+            { v: 'none', t: 'もう一度押せる' },
+            { v: 'otetski', t: 'この問題はもう押せない' },
+            { v: 'time_ban', t: '◯秒間押せない' },
+            { v: 'rest', t: '◯問休み' },
+            { v: 'reset_all', t: '全員もう一度押し直し' },
+        ],
+        end: [
+            { v: 'none', t: '特になし' },
+            { v: 'rest', t: '◯問休み' },
+        ],
+    },
+
+    // Per-mode settings fields (same content the old bottom-sheet showed),
+    // now rendered inline under the mode radio list.
     _modeDetailFieldsHtml: function (mode, conf, qType, isDobon) {
+        const col = (inner, caption) => `
+            <div style="flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:3px;">
+                ${inner}
+                ${caption ? `<span style="font-size:0.58rem; color:#94a3b8; white-space:nowrap;">${caption}</span>` : ''}
+            </div>`;
+        const rowHead = (t) => `<div style="flex:0 0 72px; color:#94a3b8; font-size:0.72rem; font-weight:bold; line-height:1.3; align-self:flex-start; padding-top:6px;">${t}</div>`;
         if (mode === 'normal') {
-            return `
+            const single = (conf.answerAttempts || 'single') === 'single';
+            const adv = `
                 <label class="config-label" style="margin:0; font-size:0.8em;">解答回数</label>
                 <div style="display:flex; gap:6px; margin:6px 0 6px;">
-                    <button type="button" class="mode-segmented-btn ans-attempt-btn ${(conf.answerAttempts || 'single') === 'single' ? 'active' : ''}" data-val="single" style="flex:1; padding:6px 4px; font-size:0.8em;">
+                    <button type="button" class="mode-segmented-btn ans-attempt-btn ${single ? 'active' : ''}" data-val="single" style="flex:1; padding:6px 4px; font-size:0.8em;">
                         <span class="label">1回のみ</span>
                     </button>
-                    <button type="button" class="mode-segmented-btn ans-attempt-btn ${conf.answerAttempts === 'multiple' ? 'active' : ''}" data-val="multiple" style="flex:1; padding:6px 4px; font-size:0.8em;">
+                    <button type="button" class="mode-segmented-btn ans-attempt-btn ${!single ? 'active' : ''}" data-val="multiple" style="flex:1; padding:6px 4px; font-size:0.8em;">
                         <span class="label">複数解答可</span>
                     </button>
                 </div>
                 <p style="color:#888; font-size:0.72em; margin:0; line-height:1.3;" id="ans-attempt-desc">
-                    ${(conf.answerAttempts || 'single') === 'single' ? '正解表示ボタンを押した時に全員に結果が一斉に届きます' : '採点の都度結果が届き、不正解でも再解答できます'}
-                </p>
-            `;
+                    ${single ? '正解表示ボタンを押した時に全員に結果が一斉に届きます' : '採点の都度結果が届き、不正解でも再解答できます'}
+                </p>`;
+            return `<p class="rule-basic-note">全員が手元の端末で同時に答えます。</p>${this.advancedBlock('normal', adv)}`;
         } else if (mode === 'buzz') {
             const buzzAction = conf.buzzWrongAction || 'next';
-            const buzzPenalty = conf.buzzPenalty || 'none';
-            // 誤答者の減点 — 未設定（保存済みのセット）は問題ごとの減点のまま
-            // 使うが、表示は「特になし」
+            const allowed = this.BUZZ_PENALTIES[buzzAction] || this.BUZZ_PENALTIES.next;
+            let buzzPenalty = conf.buzzPenalty || 'none';
+            if (!allowed.some(o => o.v === buzzPenalty)) { buzzPenalty = 'none'; conf.buzzPenalty = 'none'; }
             const deductNum = Number(conf.buzzDeduct) || 0;
             const deductOn = deductNum > 0;
-            const col = (inner, caption) => `
-                <div style="flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:3px;">
-                    ${inner}
-                    ${caption ? `<span style="font-size:0.58rem; color:#94a3b8; white-space:nowrap;">${caption}</span>` : ''}
-                </div>`;
-            // 行の左に置く項目名（長い時は2行に折り返す）
-            const rowHead = (t) => `<div style="flex:0 0 72px; color:#94a3b8; font-size:0.72rem; font-weight:bold; line-height:1.3; align-self:flex-start; padding-top:6px;">${t}</div>`;
-            return `
-                <!-- 項目名はプルダウンの左に（長ければ2行） -->
+            const banSec = conf.buzzPenaltyTime || 3;
+            const restN = conf.buzzRestCount || 1;
+            const adv = `
                 <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
-                    ${rowHead('問題に対する処理')}
-                    ${col(`<select id="config-buzz-wrong-action" class="btn-block config-select" style="margin:0; padding:4px;">
-                        <option value="next" ${buzzAction === 'next' ? 'selected' : ''}>問題を継続する</option>
-                        <option value="end" ${buzzAction === 'end' ? 'selected' : ''}>次の問題に進む</option>
-                    </select>`, '')}
+                    ${rowHead('誤答した人')}
+                    ${col(`<select id="config-buzz-penalty" class="btn-block config-select" style="margin:0; padding:4px;">
+                        ${allowed.map(o => `<option value="${o.v}" ${buzzPenalty === o.v ? 'selected' : ''}>${o.t}</option>`).join('')}
+                    </select>`, '解答権')}
+                    <div id="config-buzz-ban-wrap" style="flex:0 0 84px; display:${buzzPenalty === 'time_ban' ? 'flex' : 'none'};">
+                        ${col(`<select id="config-buzz-ban-sec" class="btn-block config-select" style="margin:0; padding:4px;">
+                            ${[1, 2, 3, 5, 10].map(n => `<option value="${n}" ${banSec === n ? 'selected' : ''}>${n}秒</option>`).join('')}
+                        </select>`, '押せない時間')}
+                    </div>
+                    <div id="config-buzz-rest-wrap" style="flex:0 0 84px; display:${buzzPenalty === 'rest' ? 'flex' : 'none'};">
+                        ${col(`<select id="config-buzz-rest-count" class="btn-block config-select" style="margin:0; padding:4px;">
+                            ${[1, 2, 3].map(n => `<option value="${n}" ${restN === n ? 'selected' : ''}>${n}問</option>`).join('')}
+                        </select>`, '休み')}
+                    </div>
                 </div>
                 <div style="display:flex; gap:8px; align-items:center;">
-                    ${rowHead('誤答者に対する処理')}
-                    ${col(`<select id="config-buzz-penalty" class="btn-block config-select" style="margin:0; padding:4px;">
-                        <option value="none" ${buzzPenalty === 'none' ? 'selected' : ''}>解答権あり</option>
-                        <option value="otetski" ${buzzPenalty === 'otetski' ? 'selected' : ''}>解答権なし</option>
-                    </select>`, '誤答した問題')}
+                    ${rowHead('減点')}
                     ${col(`<select id="config-buzz-deduct-on" class="btn-block config-select" style="margin:0; padding:4px;">
-                        <option value="none" ${!deductOn ? 'selected' : ''}>特になし</option>
-                        <option value="on" ${deductOn ? 'selected' : ''}>減点する</option>
-                    </select>`, 'ペナルティ')}
+                        <option value="none" ${!deductOn ? 'selected' : ''}>しない</option>
+                        <option value="on" ${deductOn ? 'selected' : ''}>する</option>
+                    </select>`, '')}
                     <div id="config-buzz-deduct-wrap" style="flex:1; min-width:0; display:${deductOn ? 'flex' : 'none'};">
                         ${col(`<select id="config-buzz-deduct" class="btn-block config-select" style="margin:0; padding:4px;">
                             ${[1, 2, 3, 5, 10].map(n => `<option value="${n}" ${deductNum === n ? 'selected' : ''}>-${n}点</option>`).join('')}
-                        </select>`, '減点')}
+                        </select>`, '')}
                     </div>
+                </div>`;
+            return `
+                <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px;">
+                    ${rowHead('誤答したら問題は')}
+                    ${col(`<select id="config-buzz-wrong-action" class="btn-block config-select" style="margin:0; padding:4px;">
+                        <option value="next" ${buzzAction === 'next' ? 'selected' : ''}>続ける（他の人が押せる）</option>
+                        <option value="end" ${buzzAction === 'end' ? 'selected' : ''}>終わる（正解発表へ）</option>
+                    </select>`, '')}
                 </div>
-                <button type="button" id="config-buzz-wrong-detail-btn" style="width:100%; height:26px; margin-top:10px; padding:0; border-radius:8px; background:#232a35; border:1px dashed #475569; color:#94a3b8; font-size:0.8rem; cursor:pointer; box-sizing:border-box;">誤答時の詳細設定</button>
+                ${this.advancedBlock('buzzWrong', adv)}
             `;
         } else if (mode === 'turn') {
             // 回し方（ダウトが出るまで回す）はダウトの時だけ — 多答では毎問次の人から
@@ -193,7 +271,8 @@ App.Config = {
 
     // Wires the interactive bits of _modeDetailFieldsHtml and writes
     // straight into `conf` (no intermediate hidden DOM round-trip).
-    _wireModeDetailFields: function (area, mode, conf) {
+    _wireModeDetailFields: function (area, mode, conf, rerender) {
+        this.wireAdvancedBlocks(area);
         area.querySelectorAll('.ans-attempt-btn').forEach(btn => {
             btn.onclick = () => {
                 area.querySelectorAll('.ans-attempt-btn').forEach(b => b.classList.remove('active'));
@@ -209,12 +288,26 @@ App.Config = {
         if (buzzActionSel) {
             buzzActionSel.onchange = () => {
                 conf.buzzWrongAction = buzzActionSel.value;
-                const desc = area.querySelector('#buzz-action-desc');
-                if (desc) desc.textContent = buzzActionSel.value === 'next' ? '他のプレイヤーが引き続き解答できます' : '誤答時にその問題を終了します';
+                // 選べるペナルティが変わるので描き直す
+                if (rerender) rerender();
             };
         }
-        const wrongDetailBtn = area.querySelector('#config-buzz-wrong-detail-btn');
-        if (wrongDetailBtn) wrongDetailBtn.onclick = () => App.Ui.showToast('誤答時の詳細設定は準備中です');
+        const buzzPenaltySel = area.querySelector('#config-buzz-penalty');
+        if (buzzPenaltySel) {
+            buzzPenaltySel.onchange = () => {
+                conf.buzzPenalty = buzzPenaltySel.value;
+                const ban = area.querySelector('#config-buzz-ban-wrap');
+                const rest = area.querySelector('#config-buzz-rest-wrap');
+                if (ban) ban.style.display = conf.buzzPenalty === 'time_ban' ? 'flex' : 'none';
+                if (rest) rest.style.display = conf.buzzPenalty === 'rest' ? 'flex' : 'none';
+                if (conf.buzzPenalty === 'time_ban' && !conf.buzzPenaltyTime) conf.buzzPenaltyTime = 3;
+                if (conf.buzzPenalty === 'rest' && !conf.buzzRestCount) conf.buzzRestCount = 1;
+            };
+        }
+        const banSel = area.querySelector('#config-buzz-ban-sec');
+        if (banSel) banSel.onchange = () => { conf.buzzPenaltyTime = parseInt(banSel.value) || 3; };
+        const restSel = area.querySelector('#config-buzz-rest-count');
+        if (restSel) restSel.onchange = () => { conf.buzzRestCount = parseInt(restSel.value) || 1; };
         const buzzDeductSel = area.querySelector('#config-buzz-deduct');
         const buzzDeductOn = area.querySelector('#config-buzz-deduct-on');
         const buzzDeductWrap = area.querySelector('#config-buzz-deduct-wrap');
@@ -228,14 +321,6 @@ App.Config = {
         if (buzzDeductSel) {
             buzzDeductSel.onchange = () => {
                 conf.buzzDeduct = parseInt(buzzDeductSel.value) || 1;
-            };
-        }
-        const buzzPenaltySel = area.querySelector('#config-buzz-penalty');
-        if (buzzPenaltySel) {
-            buzzPenaltySel.onchange = () => {
-                conf.buzzPenalty = buzzPenaltySel.value;
-                const desc = area.querySelector('#buzz-penalty-desc');
-                if (desc) desc.textContent = buzzPenaltySel.value === 'none' ? '誤答しても再度早押しできます' : '誤答したプレイヤーはその問題で解答できません';
             };
         }
         const turnRotateSel = area.querySelector('#config-turn-rotate-mode');
@@ -260,17 +345,10 @@ App.Config = {
         // by the host at load time (プログラム/セットの読込 screen), as a
         // per-session override on top of whatever mode the set was created
         // with. See host_studio.js loadProgramList()/setupPeriod().
-        const firstType = ((questions || [])[0] || {}).type || '';
-        const isPlainChoice = firstType === 'choice' && !isDobon;
-        // 指名された人のみ解答 — 一問一答・連想・選択式・並べ替えで使える
-        const canNominate = !isBlackjack && !isDobon && (firstType.startsWith('free') || firstType.startsWith('assoc') || firstType === 'choice' || firstType === 'sort' || firstType === 'letter_select');
-        const modes = [
-            { value: 'normal', label: '全員が同時に手元で解答', disabled: isBlackjack || isOral || isDobon || (qType && (qType.startsWith('multi') || qType.startsWith('ranking'))) },
-            { value: 'buzz', label: '早く押した人から解答', disabled: isBlackjack || isDobon },
-            { value: 'nominate', label: '指名された人のみ解答', disabled: !canNominate },
-            // 選択式は「特定の人や順番で解答」を使わない（ダウトは順番で使う）
-            { value: 'turn', label: '特定の人や順番で解答', disabled: isPlainChoice }
-        ].filter(m => !(m.value === 'turn' && isPlainChoice) && !(m.value === 'nominate' && !canNominate));
+        // 選べる解答権は rule_engine.js の相性の表で決める（自動補正と同じ基準）
+        const RE = window.App.RuleEngine;
+        const ctx = RE.context(conf, questions);
+        const modes = RE.modes(ctx).filter(m => !m.hidden);
         let current = conf.mode || 'normal';
         if (modes.find(m => m.value === current)?.disabled) current = modes.find(m => !m.disabled).value;
         conf.mode = current;
@@ -288,11 +366,11 @@ App.Config = {
                 wrongBody.innerHTML = isBuzz
                     ? this._modeDetailFieldsHtml(current, conf, qType, isDobon)
                     : '<p style="color:#666; font-size:0.8em; text-align:center; padding:12px 0;">早押し（早く押した人から解答）の時に設定できます</p>';
-                if (isBuzz) this._wireModeDetailFields(wrongBody, current, conf);
+                if (isBuzz) this._wireModeDetailFields(wrongBody, current, conf, renderDetail);
             }
             if (!isBuzz || !wrongBody) {
                 detailArea.innerHTML = this._modeDetailFieldsHtml(current, conf, qType, isDobon);
-                this._wireModeDetailFields(detailArea, current, conf);
+                this._wireModeDetailFields(detailArea, current, conf, renderDetail);
             }
         };
 
@@ -313,6 +391,16 @@ App.Config = {
     // （survival: 規定回数ミスすると脱落 — host_studio.js checkSurvival）。
     // パネル・変動得点制は廃止 — 保存済みのセットでそれらを選んでいた
     // 場合は、ここを開いた時点で「得点が高い人が勝ち」に置き換える。
+    // 作成中のセットの問題（相性の判定に使う）
+    _ruleQuestions: function () {
+        const C = window.App.Creator;
+        try { return (C && C.effectiveQuestionsForRestrictions) ? C.effectiveQuestionsForRestrictions() : (window.App.Data.createdQuestions || []); }
+        catch (e) { return window.App.Data.createdQuestions || []; }
+    },
+    _ruleContext: function (conf) {
+        return window.App.RuleEngine.context(conf, this._ruleQuestions());
+    },
+
     renderInlineGameTypeChooser: function (container, conf, onChange) {
         const types = [
             { value: 'score', label: '得点の高い人が勝ち', disabled: false },
@@ -334,26 +422,42 @@ App.Config = {
             const side = container.querySelector('#gametype-chooser-side');
             const area = container.querySelector('#gametype-chooser-detail');
             if (current === 'score') {
-                // 先着のみは廃止 — 保存済みで選ばれていたら一律に戻す
-                if (conf.scoreType === 'first_come') conf.scoreType = 'uniform';
-                // 連想クイズだけ「ヒント数に応じて得点を傾斜」を選べる
-                const isAssoc = ((window.App.Creator && window.App.Creator.currentType) || '').startsWith('assoc');
-                if (conf.scoreType === 'hint' && !isAssoc) conf.scoreType = 'uniform';
+                // 選べる配点・同点の扱いは相性の表で決める（rule_engine.js）
+                const RE = window.App.RuleEngine;
+                const ctx = this._ruleContext(conf);
+                RE.normalize(conf, this._ruleQuestions());
+                const canRanked = RE.can('scoreRanked', ctx);
+                const canHint = RE.can('scoreHint', ctx);
+                const canTie = RE.can('tieBreakTime', ctx);
                 const scoreType = conf.scoreType || 'uniform';
-                const optionRows = [
-                    { value: 'uniform', label: '正解者全員に同得点' },
-                    { value: 'ranked', label: '正解スピードに応じて得点を傾斜' }
-                ].concat(isAssoc ? [{ value: 'hint', label: 'ヒント数に応じて得点を傾斜' }] : []);
+                const optionRows = [{ value: 'uniform', label: '正解者全員に同得点' }]
+                    .concat(canRanked.ok ? [{ value: 'ranked', label: '正解スピードに応じて得点を傾斜' }] : [])
+                    .concat(canHint.ok ? [{ value: 'hint', label: 'ヒント数に応じて得点を傾斜' }] : []);
                 side.innerHTML = col(`
                     <select id="score-type-select" style="${selStyle}">
                         ${optionRows.map(o => `<option value="${o.value}" ${scoreType === o.value ? 'selected' : ''}>${o.label}</option>`).join('')}
                     </select>`, '配点');
-                area.innerHTML = `<div id="score-type-sheet-detail" style="background:rgba(0,0,0,0.3); padding:8px; border-radius:6px; border:1px solid rgba(255,255,255,0.06); margin-top:8px;"></div>`;
+                const tie = conf.tieBreak || 'none';
+                const tieHtml = canTie.ok ? `
+                    <div style="display:flex; align-items:center; gap:8px; margin-top:10px;">
+                        <span style="flex:0 0 72px; color:#94a3b8; font-size:0.72rem; font-weight:bold;">同点のとき</span>
+                        <select id="conf-tie-break" style="${selStyle}">
+                            <option value="none" ${tie === 'none' ? 'selected' : ''}>同じ順位にする</option>
+                            <option value="time" ${tie === 'time' ? 'selected' : ''}>正解した問題の解答時間の合計が短い人が上</option>
+                        </select>
+                    </div>
+                    <p style="color:#777; font-size:0.68rem; margin:4px 0 0; line-height:1.4;">順位発表と、番組の足切りの並び順に使います。</p>` : '';
+                area.innerHTML = this.advancedBlock('score', `
+                    <div id="score-type-sheet-detail" style="background:rgba(0,0,0,0.3); padding:8px; border-radius:6px; border:1px solid rgba(255,255,255,0.06);"></div>
+                    ${tieHtml}`, [!canRanked.ok ? canRanked.why : '', !canTie.ok ? canTie.why : '']);
+                this.wireAdvancedBlocks(area);
                 side.querySelector('#score-type-select').onchange = (e) => {
                     conf.scoreType = e.target.value;
                     renderDetail();
                     if (onChange) onChange();
                 };
+                const tieSel = area.querySelector('#conf-tie-break');
+                if (tieSel) tieSel.onchange = () => { conf.tieBreak = tieSel.value; if (onChange) onChange(); };
                 this.renderScoreDetailInSheet(conf.scoreType || 'uniform', conf);
                 // Commit score-detail field edits to conf as the user types,
                 // since there's no explicit confirm step anymore.

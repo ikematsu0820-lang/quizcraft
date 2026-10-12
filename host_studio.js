@@ -839,6 +839,7 @@ App.Studio = {
 
     setupPeriod: function (index) {
         console.log("Setup Period:", index);
+        if (index === 0) this._eliminationDone = {}; // 番組を最初から — 足切りもやり直す
         if (!App.Data.periodPlaylist || App.Data.periodPlaylist.length === 0) {
             alert("再生するプレイリストがありません。一度プログラムをセット（読込）してください。");
             return;
@@ -1258,10 +1259,18 @@ App.Studio = {
                         step: 'reveal_q',
                         qIndex: App.State.currentQIndex,
                         qText: currentQ.q,
+                        // 解答の受付開始（サーバー時刻）— 解答時間＝押した時刻との差
+                        answerOpenAt: firebase.database.ServerValue.TIMESTAMP,
                         isNominateMode: isNominate,
                         ...(isNominate ? { isTurnMode: true, currentAnswerer: null, currentAnswererName: null } : {})
                     });
                     if (isNominate) App.Ui.showToast('「参加者リスト」で名前を押して解答者を指名してください');
+                    // 受付開始のサーバー時刻を手元に控える（判定時に使う）
+                    this._answerOpenAt = null;
+                    const qIdxOpen = App.State.currentQIndex;
+                    window.db.ref(`rooms/${roomId}/status/answerOpenAt`).once('value', s2 => {
+                        if (App.State.currentQIndex === qIdxOpen) this._answerOpenAt = s2.val();
+                    });
 
                     // Start time limit for normal mode
                     this.startTimeLimit(roomId);
@@ -1574,6 +1583,27 @@ App.Studio = {
         let nextPeriodIdx = App.State.currentPeriodIndex + 1;
         const hasNextSet = nextPeriodIdx < App.Data.periodPlaylist.length;
 
+        // 番組の足切り（セットリストで設定）— 以前は設定画面があるだけで
+        // 実際には行われていなかった。足切りを発表し、司会者が「次へ」を
+        // 押したら続きへ進む。
+        const elimMode = progSettings.eliminationMode || 'none';
+        const elimCount = Number(progSettings.eliminationCount) || 0;
+        const elimKey = `${App.State.currentPeriodIndex}`;
+        this._eliminationDone = this._eliminationDone || {};
+        if (elimMode !== 'none' && elimCount > 0 && !this._eliminationDone[elimKey]) {
+            this._eliminationDone[elimKey] = true;
+            this.performElimination({ eliminationMode: elimMode, eliminationCount: elimCount });
+            const btnMain = document.getElementById('btn-phase-main');
+            if (btnMain) {
+                btnMain.textContent = hasNextSet ? '次のセットへ' : '最終結果へ';
+                btnMain.classList.remove('action-ready');
+                btnMain.classList.add('action-next');
+                btnMain.onclick = () => this.handleSetCompletion();
+            }
+            App.Ui.showToast('足切りの結果をモニターに表示しました');
+            return;
+        }
+
         // If ranking is requested after this set AND it's the last set (or explicit ranking pause)
         if (progSettings.showRankingAfter && !hasNextSet) {
             this.showFinalRankingOption();
@@ -1780,6 +1810,8 @@ App.Studio = {
     performElimination: function (settings) {
         const { eliminationMode, eliminationCount } = settings;
         const roomId = App.State.currentRoomId;
+        const conf = App.Data.currentConfig || {};
+        const RE = window.App.RuleEngine;
 
         window.db.ref(`rooms/${roomId}/players`).once('value', snap => {
             const players = [];
@@ -1788,29 +1820,26 @@ App.Studio = {
                 if (p.isAlive !== false) players.push({ key: pSnap.key, ...p });
             });
 
-            players.sort((a, b) => b.periodScore - a.score); // periodScore or totalScore depends on rule, usually periodScore for per-set elimination
+            // このセットの得点が高い順（同点の扱いはセットの勝利条件の設定どおり）
+            // — 以前は比べる値を書き間違えていて得点順に並ばず、残るべき人が
+            // 足切りされることがあった
+            const sorted = RE.sortPlayers(players, conf, 'periodScore');
+            const { survivors, droppedOut } = RE.eliminate(sorted, eliminationMode, eliminationCount, 'periodScore');
 
-            let droppedOut = [];
-            let survivors = [];
-
-            if (eliminationMode === 'dropout') {
-                droppedOut = players.slice(-eliminationCount);
-                survivors = players.slice(0, players.length - eliminationCount);
-            } else if (eliminationMode === 'survive') {
-                survivors = players.slice(0, eliminationCount);
-                droppedOut = players.slice(eliminationCount);
-            }
-
-            // Update Firebase
             droppedOut.forEach(p => {
                 window.db.ref(`rooms/${roomId}/players/${p.key}`).update({ isAlive: false });
             });
 
+            const row = (p) => ({
+                name: p.name,
+                score: p.periodScore || 0,
+                time: (conf.tieBreak === 'time' && p.periodCorrectTime !== undefined) ? p.periodCorrectTime : null,
+            });
             window.db.ref(`rooms/${roomId}/status`).update({
                 step: 'elimination',
                 eliminationData: {
-                    droppedOut: droppedOut.map(p => ({ name: p.name, score: p.periodScore || 0 })),
-                    survivors: survivors.map(p => ({ name: p.name, score: p.periodScore || 0 })),
+                    droppedOut: droppedOut.map(row),
+                    survivors: survivors.map(row),
                     mode: eliminationMode,
                     count: eliminationCount
                 }
@@ -1915,6 +1944,7 @@ App.Studio = {
             currentAnswererName: null,
             isBuzzActive: false, // Will be re-enabled by setStep if needed
             takenChoices: null,  // Reset taken choices for next question
+            speedRanking: null,  // 正解者の早い順（全員同時）も問題ごとに消す
             isNominateMode: null, // 指名モードは出題時（step 2）に付け直す
             resultShowWinners: null,
             resultWinners: null
@@ -2294,6 +2324,45 @@ App.Studio = {
         return Number(d) || 0;
     },
 
+    // 早押しで誤答した人へのペナルティ — ルールの詳細設定「誤答した人」
+    //   none      … もう一度押せる（✖を見せてから解答権を戻す）
+    //   otetski   … この問題はもう押せない
+    //   time_ban  … ◯秒間押せない
+    //   rest      … ◯問休み（この問題＋次の◯問）
+    //   reset_all … 全員の押した記録を消して、もう一度押し直し
+    // 「誤答したら問題は：終わる」の時は rest だけが意味を持つ。
+    applyBuzzPenalty: function (playerId, action) {
+        if (!playerId) return;
+        const conf = App.Data.currentConfig || {};
+        const penalty = conf.buzzPenalty || 'none';
+        const roomId = App.State.currentRoomId;
+        const ref = window.db.ref(`rooms/${roomId}/players/${playerId}`);
+        const qAtJudge = App.State.currentQIndex;
+        const restoreLater = (extra = {}) => setTimeout(() => {
+            if (App.State.currentQIndex !== qAtJudge) return; // もう次の問題
+            ref.update({ lastResult: null, ...extra });
+        }, 1500);
+        if (penalty === 'rest') {
+            // 次の問題の開始時に1つ減る（resetPlayerStatus）ので +1 しておく
+            ref.update({ buzzRest: (parseInt(conf.buzzRestCount) || 1) + 1 });
+            return;
+        }
+        if (action === 'end') return;
+        if (penalty === 'none') {
+            restoreLater();
+        } else if (penalty === 'time_ban') {
+            const sec = parseInt(conf.buzzPenaltyTime) || 3;
+            ref.update({ buzzBannedUntil: Date.now() + sec * 1000 });
+            restoreLater();
+        } else if (penalty === 'reset_all') {
+            window.db.ref(`rooms/${roomId}/players`).once('value', all => {
+                all.forEach(child => { child.ref.update({ buzzTime: null }); });
+            });
+            restoreLater();
+        }
+        // otetski は lastResult: 'lose' のまま（この問題では押せない）
+    },
+
     judgeBuzz: function (isCorrect) {
         if (App.Data.currentConfig.mode === 'solo') { this.judgeSolo(isCorrect); return; }
         if (!this.buzzWinner) return;
@@ -2327,6 +2396,8 @@ App.Studio = {
                     periodScore: (p.periodScore || 0) - loss,
                     totalScore: (p.totalScore || 0) - loss
                 });
+                // 誤答した人へのペナルティ（ルールの詳細設定「誤答した人」）
+                this.applyBuzzPenalty(this.buzzWinner, action);
 
                 if (action === 'end') {
                     // その問題終了: 全員の解答権を無しにして正解発表へ
@@ -2370,85 +2441,107 @@ App.Studio = {
         }
     },
 
-    judgeSimultaneous: function () {
-        const q = App.Data.studioQuestions[App.State.currentQIndex];
-        window.db.ref(`rooms/${App.State.currentRoomId}/players`).once('value', snap => {
-            snap.forEach(pSnap => {
-                const p = pSnap.val();
-                let isCor = false;
-
-                // Skip if already judged
-                if (p.lastResult) return;
-                // Unanswered → treat as incorrect (fall through with isCor = false)
-                if (p.lastAnswer === null || p.lastAnswer === undefined) {
-                    const loss = q.loss || 0;
-                    pSnap.ref.update({
-                        periodScore: (p.periodScore || 0) - loss,
-                        totalScore: (p.totalScore || 0) - loss,
-                        lastResult: 'lose'
-                    });
-                    return;
-                }
-
-                if (q.type === 'choice') {
-                    // Check both Q-specific mode and Global Config mode
-                    if (q.mode === 'dobon' || q.mode === 'multi' || q.multi || App.Data.currentConfig.mode === 'dobon') {
-                        const ansIdx = parseInt(p.lastAnswer);
-                        // Dobon: q.correct stores traps. If match -> Lose. Else -> Win.
-                        if (Array.isArray(q.correct) && q.correct.includes(ansIdx)) {
-                            isCor = false;
-                        } else {
-                            isCor = true;
-                        }
-                    } else if (q.multiCorrect && Array.isArray(q.correct)) {
-                        // 複数回答モード: 正解をすべて選び、不正解を1つも選んで
-                        // いない時だけ正解（解答は選んだ番号の配列で届く）
-                        const ans = Array.isArray(p.lastAnswer) ? p.lastAnswer
-                            : (p.lastAnswer && typeof p.lastAnswer === 'object') ? Object.values(p.lastAnswer) : [p.lastAnswer];
-                        const ansSet = new Set(ans.map(Number));
-                        const corSet = new Set(q.correct.map(Number));
-                        isCor = ansSet.size === corSet.size && [...corSet].every(c => ansSet.has(c));
-                    } else {
-                        // Normal Choice: Compare loosely (string vs number)
-                        if (Array.isArray(q.correct)) {
-                            // If correct answers are multiple (e.g. any of these), or exact match required?
-                            // Usually "choice" implies single selection unless multi-select UI.
-                            // Assuming single selection vs single correct index.
-                            // If q.correct is array [0, 2] -> if p.lastAnswer is in array -> True (OR logic)
-                            // or exact match (AND logic)? Usually OR for standard quiz unless specified.
-                            // Let's assume loosely equal to one of them.
-                            if (q.correct.some(c => c == p.lastAnswer)) isCor = true;
-                        } else {
-                            if (p.lastAnswer == q.correct) isCor = true;
-                        }
-                    }
-                } else if (q.type === 'letter_select') {
-                    let correctStr = q.steps ? q.steps.map(s => s.correct).join('') : q.correct;
-                    if (p.lastAnswer === correctStr) isCor = true;
-                } else if (q.type === 'sort') {
-                    // Normalize both to strings for comparison
-                    let correctStr = Array.isArray(q.correct) ? q.correct.map(idx => String.fromCharCode(65 + idx)).join('') : q.correct;
-                    if (p.lastAnswer === correctStr) isCor = true;
+    // 1人分の自動判定（選択式・並べ替え・文字パネル）。true/false を返す。
+    _isCorrectAnswer: function (q, p) {
+        let isCor = false;
+        if (q.type === 'choice') {
+            // Check both Q-specific mode and Global Config mode
+            if (q.mode === 'dobon' || q.mode === 'multi' || q.multi || App.Data.currentConfig.mode === 'dobon') {
+                const ansIdx = parseInt(p.lastAnswer);
+                // Dobon: q.correct stores traps. If match -> Lose. Else -> Win.
+                if (Array.isArray(q.correct) && q.correct.includes(ansIdx)) {
+                    isCor = false;
                 } else {
-                    // Simple equality
+                    isCor = true;
+                }
+            } else if (q.multiCorrect && Array.isArray(q.correct)) {
+                // 複数回答モード: 正解をすべて選び、不正解を1つも選んで
+                // いない時だけ正解（解答は選んだ番号の配列で届く）
+                const ans = Array.isArray(p.lastAnswer) ? p.lastAnswer
+                    : (p.lastAnswer && typeof p.lastAnswer === 'object') ? Object.values(p.lastAnswer) : [p.lastAnswer];
+                const ansSet = new Set(ans.map(Number));
+                const corSet = new Set(q.correct.map(Number));
+                isCor = ansSet.size === corSet.size && [...corSet].every(c => ansSet.has(c));
+            } else {
+                // Normal Choice: Compare loosely (string vs number)
+                if (Array.isArray(q.correct)) {
+                    // If correct answers are multiple (e.g. any of these), or exact match required?
+                    // Usually "choice" implies single selection unless multi-select UI.
+                    // Assuming single selection vs single correct index.
+                    // If q.correct is array [0, 2] -> if p.lastAnswer is in array -> True (OR logic)
+                    // or exact match (AND logic)? Usually OR for standard quiz unless specified.
+                    // Let's assume loosely equal to one of them.
+                    if (q.correct.some(c => c == p.lastAnswer)) isCor = true;
+                } else {
                     if (p.lastAnswer == q.correct) isCor = true;
                 }
+            }
+        } else if (q.type === 'letter_select') {
+            let correctStr = q.steps ? q.steps.map(s => s.correct).join('') : q.correct;
+            if (p.lastAnswer === correctStr) isCor = true;
+        } else if (q.type === 'sort') {
+            // Normalize both to strings for comparison
+            let correctStr = Array.isArray(q.correct) ? q.correct.map(idx => String.fromCharCode(65 + idx)).join('') : q.correct;
+            if (p.lastAnswer === correctStr) isCor = true;
+        } else {
+            // Simple equality
+            if (p.lastAnswer == q.correct) isCor = true;
+        }
 
-                if (isCor) {
-                    const pts = q.points || 1;
-                    pSnap.ref.update({
-                        periodScore: (p.periodScore || 0) + pts,
-                        totalScore: (p.totalScore || 0) + pts,
-                        lastResult: 'win'
-                    });
-                } else {
-                    const loss = q.loss || 0;
-                    pSnap.ref.update({
-                        periodScore: (p.periodScore || 0) - loss,
-                        totalScore: (p.totalScore || 0) - loss,
-                        lastResult: 'lose'
-                    });
-                }
+        return isCor;
+    },
+
+    // 全員同時の自動判定 — 正解者は解答時間（押した時刻 − 受付開始）の
+    // 早い順に並べ、配点（一律／スピードで傾斜）に従って点を入れる。
+    // 正解した問題の解答時間は合計しておき、同点時の順位に使う。
+    judgeSimultaneous: function () {
+        const q = App.Data.studioQuestions[App.State.currentQIndex];
+        const roomId = App.State.currentRoomId;
+        const conf = App.Data.currentConfig || {};
+        const RE = window.App.RuleEngine;
+        window.db.ref(`rooms/${roomId}/status/answerOpenAt`).once('value', openSnap => {
+            const openAt = openSnap.val() || this._answerOpenAt || null;
+            window.db.ref(`rooms/${roomId}/players`).once('value', snap => {
+                const correct = [];
+                snap.forEach(pSnap => {
+                    const p = pSnap.val();
+                    if (!p || p.lastResult) return; // 判定済み
+                    const answered = !(p.lastAnswer === null || p.lastAnswer === undefined);
+                    const isCor = answered && this._isCorrectAnswer(q, p);
+                    if (isCor) {
+                        correct.push({ ref: pSnap.ref, p, ms: RE.answerElapsedMs(p, openAt) });
+                    } else {
+                        const loss = q.loss || 0;
+                        pSnap.ref.update({
+                            periodScore: (p.periodScore || 0) - loss,
+                            totalScore: (p.totalScore || 0) - loss,
+                            lastResult: 'lose',
+                            lastElapsedMs: answered ? RE.answerElapsedMs(p, openAt) : null
+                        });
+                    }
+                });
+                // 正解者を速い順に（時間が分からない人は最後）
+                correct.sort((x, y) => (x.ms === null ? Infinity : x.ms) - (y.ms === null ? Infinity : y.ms));
+                correct.forEach((c, i) => {
+                    const pts = RE.pointsForCorrect(conf, q, c.ms === null ? null : i);
+                    const upd = {
+                        periodScore: (c.p.periodScore || 0) + pts,
+                        totalScore: (c.p.totalScore || 0) + pts,
+                        lastResult: 'win',
+                        lastElapsedMs: c.ms,
+                        lastCorrectRank: i + 1
+                    };
+                    if (c.ms !== null) {
+                        upd.periodCorrectTime = (c.p.periodCorrectTime || 0) + c.ms;
+                        upd.totalCorrectTime = (c.p.totalCorrectTime || 0) + c.ms;
+                    }
+                    c.ref.update(upd);
+                    this.recordWinner(c.ref.key, c.p.name);
+                });
+                // 正解者の早い順（モニターの演出用）
+                window.db.ref(`rooms/${roomId}/status`).update({
+                    speedRanking: correct.slice(0, 10).map((c, i) => ({ name: c.p.name || '---', ms: c.ms, rank: i + 1 }))
+                });
             });
         });
     },
@@ -3341,7 +3434,8 @@ App.Studio = {
                     // おてつき: 休み
                     if (buzzPenalty === 'rest') {
                         const restCount = App.Data.currentConfig.buzzRestCount || 1;
-                        snap.ref.update({ buzzRest: restCount });
+                        // 次の問題の開始時に1つ減るので +1（以前は1問休みが効いていなかった）
+                        snap.ref.update({ buzzRest: restCount + 1 });
                         App.Ui.showToast(`不正解。問題終了（${restCount}問休み）`);
                     } else {
                         App.Ui.showToast("不正解。問題終了");

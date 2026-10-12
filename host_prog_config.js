@@ -159,6 +159,19 @@ window.App.ProgConfig = {
             </div>
         `;
         document.body.insertAdjacentHTML('beforeend', modalHtml);
+        this._syncElimUnit();
+    },
+
+    // 足切りの方式に合わせて、数の入力欄と単位（人／%／点）を切り替える
+    _syncElimUnit: function () {
+        const sel = document.getElementById('prog-elim-mode');
+        const wrap = document.getElementById('prog-elim-count-wrap');
+        const unit = document.getElementById('prog-elim-unit');
+        if (!sel || !wrap) return;
+        const opt = sel.options[sel.selectedIndex];
+        const u = (opt && opt.dataset.unit) || '';
+        wrap.style.visibility = sel.value === 'none' ? 'hidden' : 'visible';
+        if (unit) unit.textContent = u;
     },
 
     addContainer: function () {
@@ -402,12 +415,17 @@ window.App.ProgConfig = {
                     </div>
 
                     <div style="margin-bottom:20px;">
-                        <label style="display:block; font-size:0.85em; color:#aaa; margin-bottom:8px;">脱落・通過設定</label>
-                        <select onchange="${updateFnStr} 'eliminationMode', this.value)" style="width:100%; padding:10px; background:#000; border:1px solid #444; color:#fff; border-radius:6px; font-size:1em;">
-                            <option value="none" ${settings.eliminationMode === 'none' ? 'selected' : ''}>なし (全員生存)</option>
-                            <option value="dropout" ${settings.eliminationMode === 'dropout' ? 'selected' : ''}>下位脱落 (指定順位以下)</option>
-                            <option value="survive" ${settings.eliminationMode === 'survive' ? 'selected' : ''}>上位通過 (指定順位以上)</option>
-                        </select>
+                        <label style="display:block; font-size:0.85em; color:#aaa; margin-bottom:8px;">足切り（このセットが終わった時）</label>
+                        <div style="display:flex; gap:8px;">
+                            <select id="prog-elim-mode" onchange="${updateFnStr} 'eliminationMode', this.value); window.App.ProgConfig._syncElimUnit()" style="flex:2; padding:10px; background:#000; border:1px solid #444; color:#fff; border-radius:6px; font-size:1em;">
+                                ${(window.App.RuleEngine ? window.App.RuleEngine.ELIMINATION_MODES : [{ value: 'none', label: '足切りなし' }]).map(m => `<option value="${m.value}" data-unit="${m.unit || ''}" ${(settings.eliminationMode || 'none') === m.value ? 'selected' : ''}>${m.value === 'none' ? '足切りなし（全員が次へ）' : m.label}</option>`).join('')}
+                            </select>
+                            <div id="prog-elim-count-wrap" style="flex:1; display:flex; align-items:center; gap:6px;">
+                                <input id="prog-elim-count" type="number" min="1" value="${settings.eliminationCount || ''}" placeholder="数" oninput="${updateFnStr} 'eliminationCount', parseInt(this.value) || 0)" style="width:100%; padding:10px; background:#000; border:1px solid #444; color:#fff; border-radius:6px; font-size:1em; text-align:center; margin:0;">
+                                <span id="prog-elim-unit" style="color:#aaa; font-size:0.9em; white-space:nowrap;"></span>
+                            </div>
+                        </div>
+                        <p style="color:#777; font-size:0.75em; margin:8px 0 0; line-height:1.5;">得点の高い順に並べて判定します。同点の扱いは、そのセットのルール（勝利条件の詳細設定「同点のとき」）に従います。</p>
                     </div>
 
                     <div style="margin-bottom:20px;">
@@ -423,6 +441,15 @@ window.App.ProgConfig = {
                         `;
 
         document.body.insertAdjacentHTML('beforeend', modalHtml);
+    },
+
+    // セットごとの設定（足切り・順位発表）を書き換える — 以前はこの関数が
+    // 無く、コンテナの外のセットでは設定を変えても保存されていなかった
+    updateToggle: function (index, key, val) {
+        const item = window.App.Data.periodPlaylist && window.App.Data.periodPlaylist[index];
+        if (!item) return;
+        if (!item.progSettings) item.progSettings = {};
+        item.progSettings[key] = val;
     },
 
     updateToggleInContainer: function (parentIdx, childIdx, key, val) {
