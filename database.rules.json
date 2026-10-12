@@ -1,0 +1,43 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "rooms": {
+      "$roomId": {
+        ".read": true,
+        ".write": true
+      }
+    },
+
+    "saved_sets": {
+      "$showId": {
+        ".read": true,
+        ".write": true
+      }
+    },
+    "saved_sets_meta": {
+      "$showId": {
+        ".read": true,
+        ".write": true
+      }
+    },
+    "saved_programs": {
+      "$showId": {
+        ".read": true,
+        ".write": true
+      }
+    },
+
+    "sound_library": {
+      ".read": true,
+      "$category": {
+        ".write": true
+      }
+    },
+
+    "app_defaults": {
+      ".read": true
+    }
+  }
+}
