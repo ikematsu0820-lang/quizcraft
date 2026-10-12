@@ -2795,6 +2795,8 @@ ${spec.placeholder}" style="
             }
             const savedBad = window.App.QuizCheck ? window.App.QuizCheck.incompleteIn(data.questions).length : 0;
             window.App.Ui.showToast(savedBad ? `保存しました（未完成の問題が${savedBad}問あるため、このままでは出題できません）` : "保存しました");
+            // 保存できたので端末の下書きは不要（creator_mobile.js App.CreatorDraft）
+            if (window.App.CreatorDraft) window.App.CreatorDraft.clear();
             window.App.State.editingSetId = null;
             this.editingTitle = "";
             this.renderSetTitle();
@@ -2815,6 +2817,8 @@ ${spec.placeholder}" style="
             if (this.previewSlide !== 'question') this.setPreviewSlide('question');
             this.resetForm();
             this.renderList();
+            if (window.App.CreatorDraft) window.App.CreatorDraft.clear();
+            if (window.App.CreatorMobile && window.App.CreatorMobile.isMobile()) window.App.CreatorMobile.showList();
         }).catch(err => {
             console.error("Save error:", err);
             let msg = "保存エラーが発生しました。\n\n";

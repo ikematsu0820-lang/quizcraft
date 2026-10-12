@@ -4520,3 +4520,337 @@ input:checked+.pro-slider:before {
 
 /* 出題者画面: 数字予想の間は解答ボードの代わりにゲームの進行を出す */
 #host-control-view.numgame-active .simple-player-section { display: none !important; }
+
+/* =========================================================
+ * スマホ版の問題作成（creator_mobile.js）
+ * 1023px以下で #creator-view に .cm-on が付いた時だけ効く。
+ * PC幅では下の要素はすべて非表示で、従来の画面のまま。
+ * ======================================================= */
+#cm-list-screen,
+#cm-edit-head,
+#cm-edit-bar {
+    display: none;
+}
+#creator-view.cm-on {
+    padding-bottom: calc(92px + env(safe-area-inset-bottom));
+}
+#creator-view.cm-on.cm-list #cm-list-screen { display: block; }
+#creator-view.cm-on.cm-list #creator-editor-wrap { display: none !important; }
+#creator-view.cm-on.cm-edit #cm-edit-head { display: flex; }
+#creator-view.cm-on.cm-edit #cm-edit-bar { display: flex; }
+#creator-view.cm-on.cm-edit .back-to-select-type,
+#creator-view.cm-on.cm-edit #creator-bezel-topbar,
+#creator-view.cm-on.cm-edit #creator-action-bar,
+#creator-view.cm-on #creator-inline-listactions {
+    display: none !important;
+}
+/* 「詳細設定」を開いた時だけ、この問題の細かい設定を出す */
+#creator-view.cm-on.cm-edit:not(.cm-detail-open) #creator-inline-edit-area { display: none !important; }
+#creator-view.cm-on.cm-edit.cm-detail-open #creator-inline-edit-area {
+    display: block !important;
+    height: auto !important;
+    max-height: none !important;
+    padding: 14px 16px !important;
+}
+#creator-view.cm-on #creator-inline-edit-area *:not(.creator-edit-subtab-btn):not(.creator-rules-subtab-btn):not(.design-subtab-btn) {
+    font-size: 0.85rem !important;
+}
+
+/* 下に固定する操作ボタン（親指の届く位置） */
+.cm-bottom-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 900;
+    gap: 8px;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    background: rgba(10, 12, 18, 0.96);
+    border-top: 1px solid #2a2f3a;
+    box-sizing: border-box;
+}
+#cm-list-bar { display: flex; }
+.cm-bar-btn {
+    flex: 1;
+    min-height: 54px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    margin: 0;
+    padding: 0 4px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    color: #e2e8f0;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+}
+.cm-bar-btn span { font-size: 0.72rem; }
+.cm-bar-btn.cm-primary {
+    flex: 2;
+    flex-direction: row;
+    background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+    border: none;
+    color: #fff;
+    font-size: 0.95rem;
+}
+#cm-edit-bar .cm-bar-btn.cm-primary { flex: 3; }
+
+.cm-ghost-btn {
+    min-height: 40px;
+    margin: 0;
+    padding: 0 14px;
+    background: transparent;
+    border: 1px solid #334155;
+    border-radius: 10px;
+    color: #cbd5e1;
+    font-size: 0.85rem;
+    font-weight: bold;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.cm-primary-outline { border-color: #00e5ff; color: #00e5ff; }
+
+/* ① 問題一覧 */
+.cm-list-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 12px;
+    color: #94a3b8;
+    font-size: 0.85rem;
+}
+.cm-chip {
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: rgba(0, 229, 255, 0.12);
+    border: 1px solid rgba(0, 229, 255, 0.35);
+    color: #00e5ff;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+.cm-warn {
+    margin: 0 0 10px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.45);
+    color: #fca5a5;
+    font-size: 0.8rem;
+}
+.cm-qcard {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 60px;
+    margin-bottom: 8px;
+    padding: 8px 4px 8px 12px;
+    background: #151b26;
+    border: 1px solid #2a3342;
+    border-radius: 12px;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+.cm-qcard.cm-bad { border-color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+.cm-qcard.sortable-ghost { opacity: 0.4; }
+.cm-qnum { flex: 0 0 34px; color: #00e5ff; font-size: 0.9rem; font-weight: 900; }
+.cm-qbody { flex: 1; min-width: 0; }
+.cm-qtext,
+.cm-qsub {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.cm-qtext { color: #f1f5f9; font-size: 0.95rem; font-weight: bold; }
+.cm-qsub { margin-top: 2px; color: #94a3b8; font-size: 0.75rem; }
+.cm-bad .cm-qsub { color: #f87171; }
+.cm-qdel {
+    flex: 0 0 40px;
+    height: 40px;
+    margin: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    color: #64748b;
+    font-size: 1.1rem;
+    cursor: pointer;
+}
+.cm-handle {
+    flex: 0 0 32px;
+    padding: 10px 0;
+    color: #64748b;
+    font-size: 1rem;
+    letter-spacing: -3px;
+    text-align: center;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+}
+.cm-add-row { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.cm-add-card {
+    min-height: 56px;
+    margin: 0;
+    background: rgba(0, 229, 255, 0.05);
+    border: 1.5px dashed rgba(0, 229, 255, 0.55);
+    border-radius: 12px;
+    color: #00e5ff;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+}
+.cm-empty {
+    padding: 28px 16px;
+    margin-bottom: 8px;
+    text-align: center;
+    border: 1px solid #2a3342;
+    border-radius: 12px;
+    background: #121823;
+}
+.cm-empty-title { color: #f1f5f9; font-size: 1rem; font-weight: bold; margin-bottom: 6px; }
+.cm-empty-sub { color: #94a3b8; font-size: 0.8rem; line-height: 1.6; }
+
+/* ② 問題編集の見出し */
+#cm-edit-head {
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 0 0 10px;
+}
+#cm-edit-title {
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+    color: #e2e8f0;
+    font-size: 0.95rem;
+    font-weight: bold;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 下から出るパネル（見た目・ルール・まとめて貼り付け） */
+#cm-sheet { position: fixed; inset: 0; z-index: 2000; }
+.cm-sheet-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.55); }
+.cm-sheet-panel {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-height: 90vh;
+    max-height: 90dvh;
+    overflow-y: auto;
+    padding: 0 16px calc(20px + env(safe-area-inset-bottom));
+    background: #111827;
+    border-radius: 18px 18px 0 0;
+    box-sizing: border-box;
+    animation: cmSheetUp 0.22s ease-out;
+}
+@keyframes cmSheetUp { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+.cm-sheet-head {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0 10px;
+    background: #111827;
+    color: #f1f5f9;
+    font-weight: bold;
+}
+#cm-sheet-stage-wrap {
+    position: sticky;
+    top: 62px;
+    z-index: 2;
+    padding-bottom: 12px;
+    background: #111827;
+}
+#cm-sheet-body select,
+#cm-sheet-body input[type="text"] {
+    min-height: 42px !important;
+    height: 42px !important;
+    font-size: 0.85rem !important;
+}
+#cm-sheet-body button[data-color-swatch-key] { height: 42px !important; }
+#cm-sheet-body .design-subtab-btn,
+#cm-sheet-body .creator-rules-subtab-btn { min-height: 42px; }
+
+/* 本番と同じ描画のステージ（16:9）— 中の vh/vw は cqh/cqw に置き換える */
+.cm-stage {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 8px;
+    background: #0a0a0a;
+    container-type: size;
+}
+.cm-stage-main {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+/* ③ モニターで確認（全画面、縦持ちなら90度回転） */
+#cm-preview { position: fixed; inset: 0; z-index: 2100; background: #000; }
+#cm-preview-frame {
+    position: absolute;
+    left: 50%;
+    top: calc((100% - 64px) / 2);
+    transform: translate(-50%, -50%);
+}
+#cm-preview-frame .cm-stage { width: 100%; height: 100%; aspect-ratio: auto; border-radius: 0; }
+.cm-preview-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: calc(64px + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+}
+.cm-pill {
+    min-width: 84px;
+    min-height: 44px;
+    margin: 0;
+    padding: 0 16px;
+    border-radius: 22px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+}
+.cm-pill.cm-on-pill { background: #00e5ff; border-color: #00e5ff; color: #001018; }
+
+/* 下書きの復元（PC・スマホ共通） */
+#cm-draft-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 0 0 12px;
+    padding: 10px 12px;
+    background: rgba(255, 193, 7, 0.1);
+    border: 1px solid rgba(255, 193, 7, 0.45);
+    border-radius: 10px;
+    color: #fde68a;
+    font-size: 0.85rem;
+}
+#cm-draft-banner .cm-draft-actions { display: flex; gap: 8px; margin-left: auto; }
+
+body.cm-noscroll { overflow: hidden; }

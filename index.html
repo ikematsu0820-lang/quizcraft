@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@800;900&display=swap">
     <link rel="stylesheet" href="style_common.css?v=97">
-    <link rel="stylesheet" href="style_host.css?v=111">
+    <link rel="stylesheet" href="style_host.css?v=112">
     <link rel="stylesheet" href="style_player.css?v=105">
     <link rel="stylesheet" href="style_viewer.css?v=99">
 </head>
@@ -178,7 +178,7 @@
         <h3 id="creator-form-title" style="display:none;" data-text="Creator.HeadingNewQ"></h3>
 
         <!-- ===== WYSIWYG Monitor Preview (strict 16:9) ===== -->
-        <div style="width:100%; max-width:800px; margin:0 auto;">
+        <div id="creator-editor-wrap" style="width:100%; max-width:800px; margin:0 auto;">
             <!-- Bezel wrapper -->
             <div style="
                 background:#1a1a1a; border:3px solid #2a2a2a;
@@ -186,7 +186,7 @@
                 box-shadow:0 8px 40px rgba(0,0,0,0.8);
             ">
                 <!-- Bezel top bar -->
-                <div style="
+                <div id="creator-bezel-topbar" style="
                     padding:5px 12px; display:flex; align-items:center; gap:6px;
                     background:linear-gradient(180deg,#222 0%,#161616 100%);
                     border-bottom:1px solid #333;
@@ -341,7 +341,7 @@
                 <!-- ===== Action Bar: quick rule buttons (add/save moved inside
                      問題編集's inline panel) — kept inside the bezel wrapper so
                      it's the same width and visually attached, no gap. ===== -->
-                <div style="display:flex; border-top:1px solid #2a2a2a;">
+                <div id="creator-action-bar" style="display:flex; border-top:1px solid #2a2a2a;">
                     <button id="creator-rule-list-btn" class="creator-rule-btn" style="
                         flex:1; height:32px; box-sizing:border-box; padding:0 4px; font-size:0.8rem; font-weight:bold;
                         display:flex; align-items:center; justify-content:center;
@@ -780,12 +780,13 @@
     <script src="host_sound_library.js?v=7"></script>
     <script src="theme_presets.js?v=1"></script>
     <script src="host_design.js?v=276"></script>
-    <script src="host_creator.js?v=302"></script>
+    <script src="host_creator.js?v=303"></script>
     <script src="host_config.js?v=254"></script>
     <script src="host_prog_config.js?v=232"></script>
     <script src="host_studio.js?v=254"></script>
     <script src="player.js?v=246"></script>
     <script src="viewer.js?v=265"></script>
+    <script src="creator_mobile.js?v=1"></script>
 
 
     <!-- Edit Menu Modal -->
