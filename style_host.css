@@ -4854,3 +4854,145 @@ input:checked+.pro-slider:before {
 #cm-draft-banner .cm-draft-actions { display: flex; gap: 8px; margin-left: auto; }
 
 body.cm-noscroll { overflow: hidden; }
+
+/* =========================================================
+ * PC版の問題作成（creator_desktop.js）— 1024px以上で3列
+ * 左：問題一覧 / 中央：16:9プレビュー兼入力 / 右：設定パネル
+ * ======================================================= */
+#cp-layout { display: none; }
+#creator-view.cp-on {
+    max-width: 1480px;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+#creator-view.cp-on #cp-layout {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr) 360px;
+    gap: 18px;
+    align-items: start;
+}
+/* 右の設定パネルと重複する従来のタブは使わない */
+#creator-view.cp-on #creator-action-bar,
+#creator-view.cp-on #creator-inline-listedit {
+    display: none !important;
+}
+#creator-view.cp-on #creator-editor-wrap { max-width: 980px !important; }
+
+#cp-left,
+#cp-right {
+    position: sticky;
+    top: 12px;
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
+    box-sizing: border-box;
+    padding: 12px;
+    background: #0f141c;
+    border: 1px solid #222a36;
+    border-radius: 12px;
+}
+.cp-col-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+    color: #e2e8f0;
+    font-size: 0.85rem;
+    font-weight: bold;
+}
+.cp-qrow {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    margin-bottom: 6px;
+    padding: 4px 2px 4px 2px;
+    background: #151b26;
+    border: 1px solid #2a3342;
+    border-radius: 10px;
+    cursor: pointer;
+}
+.cp-qrow:hover { border-color: #3b4658; }
+.cp-qrow.cp-on-row { border-color: #00e5ff; background: rgba(0, 229, 255, 0.08); }
+.cp-qrow.cm-bad { border-color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+.cp-qrow.sortable-ghost { opacity: 0.4; }
+.cp-qrow .cm-handle { flex: 0 0 20px; padding: 6px 0; font-size: 0.85rem; }
+.cp-qrow .cm-qdel { flex: 0 0 30px; height: 30px; font-size: 0.95rem; }
+.cp-qnum { flex: 0 0 30px; color: #00e5ff; font-size: 0.78rem; font-weight: 900; }
+.cp-qtext {
+    flex: 1;
+    min-width: 0;
+    color: #e2e8f0;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.cp-qtext small { display: block; color: #f87171; font-size: 0.68rem; }
+.cp-empty {
+    padding: 18px 8px;
+    color: #94a3b8;
+    font-size: 0.78rem;
+    line-height: 1.7;
+    text-align: center;
+}
+.cp-new-btn {
+    width: 100%;
+    min-height: 44px;
+    margin: 4px 0 0;
+    background: rgba(0, 229, 255, 0.05);
+    border: 1.5px dashed rgba(0, 229, 255, 0.55);
+    border-radius: 10px;
+    color: #00e5ff;
+    font-size: 0.85rem;
+    font-weight: bold;
+    cursor: pointer;
+}
+#cp-center-head {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 0 8px;
+    color: #cbd5e1;
+    font-size: 0.85rem;
+    font-weight: bold;
+}
+.cp-shortcuts {
+    margin-top: 10px;
+    color: #64748b;
+    font-size: 0.72rem;
+    text-align: center;
+}
+
+/* 右の設定パネル */
+.cp-tabs {
+    display: flex;
+    margin-bottom: 8px;
+    border: 1px solid #333;
+    border-radius: 8px;
+    overflow: hidden;
+}
+.cp-tab {
+    flex: 1;
+    min-height: 36px;
+    margin: 0;
+    background: #232a35;
+    border: none;
+    color: #8b95a5;
+    font-size: 0.8rem;
+    font-weight: bold;
+    cursor: pointer;
+}
+.cp-tab + .cp-tab { border-left: 1px solid rgba(255, 255, 255, 0.1); }
+.cp-tab.cp-tab-on { background: #334155; color: #f1f5f9; }
+.cp-scope { margin: 0 0 10px; color: #64748b; font-size: 0.72rem; }
+#creator-view.cp-on #creator-inline-edit-area {
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+}
+#creator-view.cp-on #creator-inline-edit-area *:not(.creator-edit-subtab-btn):not(.creator-rules-subtab-btn):not(.design-subtab-btn) {
+    font-size: 0.78rem !important;
+}
