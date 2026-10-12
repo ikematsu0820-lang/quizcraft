@@ -57,7 +57,7 @@ App.CreatorMobile = {
             <div id="cm-qcards"></div>
             <div class="cm-add-row">
                 <button type="button" id="cm-add-btn" class="cm-add-card">＋ 問題を追加</button>
-                <button type="button" id="cm-bulk-btn" class="cm-ghost-btn">まとめて貼り付け</button>
+                <button type="button" id="cm-bulk-btn" class="cm-ghost-btn">メモのようにまとめて入力</button>
             </div>
             <div id="cm-list-bar" class="cm-bottom-bar">
                 <button type="button" data-cm-sheet="design" class="cm-bar-btn">🎨<span>見た目</span></button>
@@ -292,7 +292,7 @@ App.CreatorMobile = {
             box.innerHTML = `
                 <div class="cm-empty">
                     <div class="cm-empty-title">最初の問題を作りましょう</div>
-                    <div class="cm-empty-sub">「＋ 問題を追加」から1問ずつ、または「まとめて貼り付け」で一気に入れられます。</div>
+                    <div class="cm-empty-sub">「＋ 問題を追加」から1問ずつ、または「メモのようにまとめて入力」で一気に入れられます。</div>
                 </div>`;
             return;
         }
@@ -408,7 +408,7 @@ App.CreatorMobile = {
             return;
         }
         const ids = { design: 'creator-inline-design', rules: 'creator-inline-rules', bulk: 'creator-bulk-panel' };
-        const titles = { design: '見た目（セット全体）', rules: 'ルール（セット全体）', bulk: 'まとめて貼り付け' };
+        const titles = { design: '見た目（セット全体）', rules: 'ルール（セット全体）', bulk: 'メモのようにまとめて入力' };
         const SUB_TITLES = { format: '答え方', wrong: '間違えたとき', win: '勝ち方', time: '制限時間' };
         if (kind === 'rules' && sub && SUB_TITLES[sub]) titles.rules = `${SUB_TITLES[sub]}（セット全体）`;
         const node = document.getElementById(ids[kind]);
@@ -553,6 +553,89 @@ App.CreatorMobile = {
         };
         convert(root);
         root.querySelectorAll('[style]').forEach(convert);
+    },
+};
+
+/* =========================================================
+ * 入力のしやすさ（PC・スマホ共通）
+ *  ・Enter で次の入力欄へ（問題文 → 選択肢A → B → … → 次の問題）。
+ *    最後の欄で Enter を押すと、追加（編集中なら更新）して次の問題を書き始める。
+ *    日本語入力の変換中の Enter は対象外。PC は Shift+Enter で改行できる。
+ *  ・スマホでは入力欄の文字を16px以上にする（iPhone は16px未満の入力欄を
+ *    押すと自動でズームするため）
+ * =======================================================*/
+App.CreatorInput = {
+    MIN_MOBILE_PX: 16,
+
+    fields: function () {
+        const wrap = document.getElementById('creator-editor-wrap');
+        if (!wrap) return [];
+        const list = [];
+        const title = document.getElementById('question-title');
+        if (title && !title.classList.contains('hidden') && title.offsetParent) list.push(title);
+        const q = document.getElementById('question-text');
+        if (q) list.push(q);
+        const form = document.getElementById('creator-form-container');
+        if (form) {
+            form.querySelectorAll('input[type="text"], input:not([type]), textarea').forEach(el => {
+                if (el.offsetParent && !el.readOnly && !el.disabled) list.push(el);
+            });
+        }
+        return list;
+    },
+
+    onKeyDown: function (e) {
+        if (e.key !== 'Enter' || e.isComposing || e.keyCode === 229) return;
+        if (e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return; // Ctrl+Enter は追加（creator_desktop.js）
+        const view = document.getElementById('creator-view');
+        if (!view || view.classList.contains('hidden')) return;
+        const fields = this.fields();
+        const i = fields.indexOf(e.target);
+        if (i < 0) return;
+        e.preventDefault();
+        if (i < fields.length - 1) {
+            const next = fields[i + 1];
+            next.focus();
+            try { const n = next.value.length; next.setSelectionRange(n, n); } catch (err) { /* noop */ }
+            next.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            return;
+        }
+        // 最後の欄 — 追加して次の問題へ
+        const M = window.App.CreatorMobile;
+        if (M && M.isMobile() && M.screen === 'edit') { M.next(); return; }
+        const C = window.App.Creator;
+        const qs = window.App.Data.createdQuestions || [];
+        if (C.editingIndex === null) {
+            const before = qs.length;
+            C.add();
+            if (qs.length === before) return;
+        } else {
+            C.update();
+            if (C.editingIndex !== null) return;
+        }
+        setTimeout(() => document.getElementById('question-text')?.focus(), 30);
+    },
+
+    // スマホ幅の時、入力欄の文字が16px未満なら16pxにする（ズーム防止）
+    enforceMobileSize: function () {
+        const M = window.App.CreatorMobile;
+        if (!M || !M.isMobile()) return;
+        const wrap = document.getElementById('creator-editor-wrap');
+        if (!wrap) return;
+        wrap.querySelectorAll('input[type="text"], input:not([type]), input[type="number"], textarea, select').forEach(el => {
+            const px = parseFloat(getComputedStyle(el).fontSize) || 0;
+            if (px < this.MIN_MOBILE_PX) el.style.setProperty('font-size', `${this.MIN_MOBILE_PX}px`, 'important');
+        });
+    },
+
+    init: function () {
+        document.addEventListener('keydown', (e) => this.onKeyDown(e), true);
+        // 押した瞬間（フォーカスが当たる前）にも大きさを確かめる — 後から
+        // 足された選択肢の欄などがズームしないように
+        document.addEventListener('touchstart', (e) => {
+            const t = e.target;
+            if (t && t.matches && t.matches('#creator-editor-wrap input, #creator-editor-wrap textarea, #creator-editor-wrap select')) this.enforceMobileSize();
+        }, { passive: true, capture: true });
     },
 };
 
@@ -727,12 +810,15 @@ App.CreatorDraft = {
         if (M.isMobile() && M.screen === 'list') M.renderList();
         App.CreatorDraft.saveSoon();
     });
-    after('applyDesignToPreview', function () { App.CreatorMobile.renderSheetStage(); });
+    after('applyDesignToPreview', function () { App.CreatorMobile.renderSheetStage(); App.CreatorInput.enforceMobileSize(); });
+    after('updateRowSizes', function () { App.CreatorInput.enforceMobileSize(); });
+    after('renderForm', function () { setTimeout(() => App.CreatorInput.enforceMobileSize(), 0); });
     after('renderRulesSection', function () { App.CreatorDraft.saveSoon(); });
 })();
 
 document.addEventListener('DOMContentLoaded', () => {
     App.CreatorDraft.start();
+    App.CreatorInput.init();
     // 作成画面以外を開いた時は、スマホ版の下部バーを消す
     const ui = window.App.Ui;
     if (ui && typeof ui.showView === 'function' && !ui._cmHooked) {

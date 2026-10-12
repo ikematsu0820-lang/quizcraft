@@ -5044,3 +5044,16 @@ details.rule-adv[open] > summary { border-bottom: 1px solid #2a3342; }
 .cm-set-arrow { flex: 0 0 12px; color: #64748b; font-size: 1.2rem; }
 /* スマホのルールパネルでは、上のタブを大きく押しやすく */
 #cm-sheet-body .creator-rules-subtab-btn { font-size: 0.85rem !important; }
+
+/* スマホの問題編集 — 16:9の小さな枠ではなく、縦に伸びる入力フォームにする
+   （本番の見え方は「見る」で確認）。文字は16px以上（iPhoneの自動ズーム防止） */
+#creator-view.cm-on.cm-edit #creator-monitor-preview { padding-top: 0 !important; height: auto !important; }
+#creator-view.cm-on.cm-edit #creator-monitor-flexwrap { position: relative !important; inset: auto !important; padding: 14px 12px !important; gap: 10px; }
+#creator-view.cm-on.cm-edit #creator-monitor-q-area { padding: 10px 12px !important; margin-bottom: 4px !important; }
+#creator-view.cm-on.cm-edit #question-text { max-height: none !important; min-height: 2.6em !important; font-size: 18px !important; line-height: 1.4 !important; }
+#creator-view.cm-on.cm-edit #creator-choices-list { height: auto !important; grid-template-rows: none !important; }
+#creator-view.cm-on.cm-edit .choice-row, #creator-view.cm-on.cm-edit .sort-row, #creator-view.cm-on.cm-edit .multi-row, #creator-view.cm-on.cm-edit .assoc-row { height: auto !important; min-height: 52px; }
+#creator-view.cm-on.cm-edit .choice-text-input, #creator-view.cm-on.cm-edit .row-input { font-size: 17px !important; min-height: 40px !important; }
+#creator-view.cm-on input, #creator-view.cm-on textarea, #creator-view.cm-on select,
+#cm-sheet-body input[type="text"], #cm-sheet-body input[type="number"], #cm-sheet-body textarea, #cm-sheet-body select { font-size: 16px !important; }
+#cm-sheet-body #creator-bulk-input { min-height: 40vh !important; }

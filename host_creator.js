@@ -2465,6 +2465,7 @@ window.App.Creator = {
     // object (or null to skip it as malformed).
     _bulkSpecs: {
         free_written: {
+            memo: '日本の首都は？\n東京\n\n富士山の標高は？\n3776',
             hint: '問題文<span style="color:#00e5ff;">[タブ]</span>答え（複数正解はカンマ区切り）',
             placeholder: '日本の首都は？\t東京\n富士山の標高は？\t3776',
             parseLine: (cols) => {
@@ -2474,6 +2475,7 @@ window.App.Creator = {
             },
         },
         choice: {
+            memo: '日本一高い山は？\n*富士山\n北岳\n奥穂高岳\n\n日本の首都は？\n大阪\n*東京\n京都',
             hint: '問題文<span style="color:#00e5ff;">[タブ]</span>正解<span style="color:#00e5ff;">[タブ]</span>誤答1<span style="color:#00e5ff;">[タブ]</span>誤答2…',
             placeholder: '日本の首都は？\t東京\t大阪\t京都\t名古屋',
             parseLine: (cols, self) => {
@@ -2484,6 +2486,7 @@ window.App.Creator = {
             },
         },
         sort: {
+            memo: '小さい順に並べて\n1\n3\n5\n7',
             hint: '問題文<span style="color:#00e5ff;">[タブ]</span>項目（正しい順序で）…',
             placeholder: '小さい順に並べて\t1\t3\t5\t7',
             parseLine: (cols) => {
@@ -2494,6 +2497,7 @@ window.App.Creator = {
             },
         },
         multi: {
+            memo: '都道府県を1つ以上挙げて\n東京都\n大阪府\n北海道',
             hint: '問題文<span style="color:#00e5ff;">[タブ]</span>答え1<span style="color:#00e5ff;">[タブ]</span>答え2…',
             placeholder: '都道府県を1つ以上挙げて\t東京都\t大阪府\t北海道',
             parseLine: (cols) => {
@@ -2503,6 +2507,7 @@ window.App.Creator = {
             },
         },
         assoc: {
+            memo: '*すし\n酢飯\nネタ\n握る',
             hint: '正解<span style="color:#00e5ff;">[タブ]</span>ヒント1<span style="color:#00e5ff;">[タブ]</span>ヒント2…',
             placeholder: 'すし\t酢飯\tネタ\t握る',
             parseLine: (cols) => {
@@ -2535,22 +2540,87 @@ window.App.Creator = {
             return;
         }
         const spec = this._bulkSpecs[target.specKey];
+        const memoHint = {
+            choice: '1行目に問題、次の行から選択肢。正解の前に「*」',
+            free_written: '1行目に問題、次の行に答え（別解は行を足す）',
+            sort: '1行目に問題、次の行から正しい順に項目',
+            multi: '1行目に問題、次の行から答え',
+            assoc: '「*」を付けた行が答え、ほかの行がヒント',
+        }[target.specKey] || '';
         panel.innerHTML = `
-            <div style="color:#94a3b8; font-size:0.75rem; font-weight:bold; margin-bottom:4px;">表形式で一括追加（1行1問／${spec.hint}）</div>
-            <!-- 貼り付け欄はパネルの残りの高さいっぱい（ボタンがスクロールせずに見える範囲）、その真下に追加ボタン -->
-            <textarea id="creator-bulk-input" placeholder="表計算ソフトからそのままコピペできます。例:
-${spec.placeholder}" style="
-                display:block; width:100%; flex:1; height:auto !important; min-height:40px !important; padding:8px; background:#0d1b2a; border:1px dashed rgba(255,255,255,0.25);
-                border-radius:8px; color:#fff; font-size:0.8rem; resize:vertical; box-sizing:border-box;
-                font-family:monospace; outline:none; margin:0 0 6px;
+            <div style="color:#94a3b8; font-size:0.75rem; font-weight:bold; margin-bottom:4px;">メモのように書いて、まとめて追加</div>
+            <div style="color:#64748b; font-size:0.7rem; line-height:1.5; margin-bottom:6px;">${memoHint}。問題と問題の間は空行で区切ります。表計算ソフトからのコピペ（${spec.hint}）もそのまま使えます。</div>
+            <textarea id="creator-bulk-input" placeholder="例:
+${spec.memo}" style="
+                display:block; width:100%; flex:1; height:auto !important; min-height:140px !important; padding:10px; background:#0d1b2a; border:1px dashed rgba(255,255,255,0.25);
+                border-radius:8px; color:#fff; font-size:0.85rem; line-height:1.6; resize:vertical; box-sizing:border-box;
+                outline:none; margin:0 0 6px;
             "></textarea>
+            <div id="creator-bulk-preview" style="color:#94a3b8; font-size:0.72rem; min-height:1.2em; margin:0 0 6px;"></div>
             <button id="creator-bulk-add-btn" style="
-                display:block; width:100%; padding:7px 4px; font-size:0.85rem; font-weight:bold;
+                display:block; width:100%; padding:10px 4px; font-size:0.9rem; font-weight:bold;
                 background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4);
                 border-radius:8px; color:#00e5ff; cursor:pointer; margin:0;
-            ">＋ 一括追加</button>
+            ">＋ まとめて追加</button>
         `;
+        // 書いている間に「何問として読めるか」を出す
+        const ta = panel.querySelector('#creator-bulk-input');
+        const pv = panel.querySelector('#creator-bulk-preview');
+        ta.oninput = () => {
+            const r = this.parseBulkText(ta.value, target);
+            pv.textContent = ta.value.trim() ? `${r.items.length}問として読めます${r.skipped ? `（${r.skipped}件は読めません）` : ''}${r.noAnswer ? `／正解が無い問題 ${r.noAnswer}問` : ''}` : '';
+        };
         panel.querySelector('#creator-bulk-add-btn').onclick = () => this.runBulkAdd();
+    },
+
+    // まとめて追加の読み取り
+    //   タブが入っていれば従来の表形式（1行1問、列はタブ区切り）
+    //   入っていなければメモ形式（空行で問題を区切る。1行目が問題、
+    //   次の行から選択肢／答え。行頭の「*」「＊」が正解の印）
+    parseBulkText: function (text, target) {
+        const spec = this._bulkSpecs[target.specKey];
+        const out = { items: [], skipped: 0, noAnswer: 0 };
+        const raw = String(text || '').replace(/\r/g, '');
+        if (raw.includes('\t')) {
+            raw.split('\n').map(l => l.trim()).filter(l => l).forEach(line => {
+                const parsed = spec.parseLine(line.split('\t').map(x => x.trim()), this);
+                if (parsed) out.items.push(parsed); else out.skipped++;
+            });
+            return out;
+        }
+        const STAR = /^[*＊]\s*/;
+        const blocks = raw.split(/\n\s*\n/).map(b => b.split('\n').map(l => l.trim()).filter(l => l)).filter(b => b.length);
+        blocks.forEach(lines => {
+            const key = target.specKey;
+            let parsed = null;
+            if (key === 'assoc') {
+                const starred = lines.filter(l => STAR.test(l)).map(l => l.replace(STAR, ''));
+                const answer = starred.length ? starred : [lines[0].replace(STAR, '')];
+                const hints = lines.filter(l => !STAR.test(l)).filter((l, i) => starred.length || i > 0);
+                if (hints.length) parsed = { q: answer[0], correct: answer, c: hints };
+            } else {
+                const q = lines[0].replace(STAR, '');
+                const rest = lines.slice(1);
+                const plain = rest.map(l => l.replace(STAR, ''));
+                if (key === 'choice') {
+                    if (plain.length >= 2) {
+                        const corr = rest.map((l, i) => STAR.test(l) ? i : -1).filter(i => i >= 0);
+                        const mode = this.choiceSubtype === 'multi' ? 'multi' : 'single';
+                        parsed = { q, c: plain, correct: corr, correctIndex: corr.length ? corr[0] : undefined, mode, multi: mode === 'multi', shuffle: true };
+                        if (corr.length > 1 && mode !== 'multi') parsed.multiCorrect = true;
+                        if (!corr.length) out.noAnswer++;
+                    }
+                } else if (key === 'sort') {
+                    if (plain.length >= 2) parsed = { q, c: plain, correct: plain.map((_, i) => String.fromCharCode(65 + i)).join(''), initialOrder: 'random', shuffle: true };
+                } else if (key === 'multi') {
+                    if (plain.length >= 1) parsed = { q, c: plain, correct: plain };
+                } else if (key === 'free_written') {
+                    if (plain.length >= 1) parsed = { q, correct: plain }; else { parsed = { q, correct: [] }; out.noAnswer++; }
+                }
+            }
+            if (parsed) out.items.push(parsed); else out.skipped++;
+        });
+        return out;
     },
 
     runBulkAdd: function () {
@@ -2559,14 +2629,10 @@ ${spec.placeholder}" style="
         if (!target || !textarea) return;
         const spec = this._bulkSpecs[target.specKey];
 
-        const lines = textarea.value.split('\n').map(l => l.trim()).filter(l => l);
-        if (lines.length === 0) return;
-
-        let added = 0, skipped = 0;
-        lines.forEach(line => {
-            const cols = line.split('\t').map(s => s.trim());
-            const parsed = spec.parseLine(cols, this);
-            if (!parsed) { skipped++; return; }
+        if (!textarea.value.trim()) return;
+        const { items, skipped } = this.parseBulkText(textarea.value, target);
+        let added = 0;
+        items.forEach(parsed => {
             window.App.Data.createdQuestions.push({
                 ...parsed,
                 type: target.type,
