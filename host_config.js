@@ -504,65 +504,105 @@ App.Config = {
         render();
     },
 
-    // 制限時間 — on/off + seconds.
+    // 制限時間（タイマーの動き）
+    //   基本 … なし／1問ごと／セット全体の持ち時間、と秒数
+    //   詳細 … 時間切れのとき、早押しで止めるか、正誤での持ち時間の増減
+    // 見た目（バー・円・時計・導火線など）はデザインの「タイマー」タブ。
     renderInlineTimeLimitChooser: function (container, conf, onChange) {
-        let enabled = (conf.timeLimitEnabled || 'off') === 'on';
-        let seconds = conf.timeLimitSeconds || 30;
-
+        const RE = window.App.RuleEngine;
         const render = () => {
+            const enabled = (conf.timeLimitEnabled || 'off') === 'on';
+            const kind = conf.timerKind === 'pool' ? 'pool' : 'per_q';
+            const current = !enabled ? 'off' : kind;
+            const seconds = parseInt(conf.timeLimitSeconds) || 30;
+            const presets = kind === 'pool' ? [30, 60, 90, 120, 180, 300] : [5, 10, 15, 20, 30, 60];
+            const ctx = this._ruleContext(conf);
+            const isBuzz = ctx.mode === 'buzz';
+            const kindBtn = (v, label, sub) => `
+                <button type="button" class="tl-kind-btn" data-kind="${v}" style="flex:1; padding:8px 4px; border-radius:10px; cursor:pointer; text-align:center;
+                    border:2px solid ${current === v ? '#f39c12' : '#333'}; background:${current === v ? 'rgba(243,156,18,0.1)' : '#1a1a1a'}; color:${current === v ? '#f39c12' : '#ccc'};">
+                    <div style="font-weight:bold; font-size:0.85em;">${label}</div>
+                    <div style="font-size:0.66em; opacity:0.8; margin-top:2px;">${sub}</div>
+                </button>`;
+            const onExpire = conf.timerOnExpire === 'skip' ? 'skip' : 'close';
+            const pauseOnBuzz = conf.timerPauseOnBuzz !== false;
+            const sel = (id, opts, val) => `<select id="${id}" class="btn-block config-select" style="margin:0; padding:4px;">${opts.map(o => `<option value="${o.v}" ${String(val) === String(o.v) ? 'selected' : ''}>${o.t}</option>`).join('')}</select>`;
+            const row = (label, inner) => `<div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;"><span style="flex:0 0 96px; color:#94a3b8; font-size:0.72rem; font-weight:bold;">${label}</span><div style="flex:1; min-width:0;">${inner}</div></div>`;
+            let adv = '';
+            if (enabled) {
+                if (kind === 'per_q') {
+                    adv += row('時間切れのとき', sel('tl-on-expire', [{ v: 'close', t: '締め切って正解発表へ' }, { v: 'skip', t: '正解を出さずに次の問題へ' }], onExpire));
+                } else {
+                    adv += `<p class="rule-adv-note" style="margin:0 0 8px;">持ち時間がなくなったら、残りの問題は出さずにセット終了します。時計は解答中だけ進みます。</p>`;
+                    adv += row('正解したら', sel('tl-bonus', [0, 1, 2, 3, 5].map(n => ({ v: n, t: n ? `+${n}秒` : '増減なし' })), parseFloat(conf.timerBonusCorrect) || 0));
+                    adv += row('不正解なら', sel('tl-penalty', [0, 1, 2, 3, 5].map(n => ({ v: n, t: n ? `−${n}秒` : '増減なし' })), parseFloat(conf.timerPenaltyWrong) || 0));
+                }
+                if (isBuzz) {
+                    adv += `<label style="display:flex; align-items:center; gap:8px; color:#cbd5e1; font-size:0.8em; cursor:pointer;"><input type="checkbox" id="tl-pause-buzz" ${pauseOnBuzz ? 'checked' : ''} style="width:auto; height:auto; min-height:0; margin:0;">誰かが早押ししたら時計を止める</label>`;
+                }
+            }
             container.innerHTML = `
-                <div style="display:flex; gap:8px; margin-bottom:12px;">
-                    <button type="button" id="tl-off-btn" style="flex:1; padding:10px; border-radius:10px; font-weight:bold; cursor:pointer;
-                        border:2px solid ${!enabled ? '#00e5ff' : '#333'}; background:${!enabled ? 'rgba(0,229,255,0.08)' : '#1a1a1a'}; color:${!enabled ? '#00e5ff' : '#ccc'};">OFF（無制限）</button>
-                    <button type="button" id="tl-on-btn" style="flex:1; padding:10px; border-radius:10px; font-weight:bold; cursor:pointer;
-                        border:2px solid ${enabled ? '#f39c12' : '#333'}; background:${enabled ? 'rgba(243,156,18,0.1)' : '#1a1a1a'}; color:${enabled ? '#f39c12' : '#ccc'};">ON（時間制限あり）</button>
+                <div style="display:flex; gap:6px; margin-bottom:12px;">
+                    ${kindBtn('off', 'なし', '時間制限なし')}
+                    ${kindBtn('per_q', '1問ごと', '毎問、満タンから')}
+                    ${kindBtn('pool', 'セット全体', '持ち時間が減っていく')}
                 </div>
                 <div id="tl-seconds-area" style="${enabled ? '' : 'display:none;'}">
                     <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
-                        <input type="number" id="tl-seconds-input" value="${seconds}" min="5" max="600" step="5" style="
+                        <input type="number" id="tl-seconds-input" value="${seconds}" min="1" max="1800" step="1" style="
                             flex:1; text-align:center; font-size:1.4em; font-weight:800;
                             background:rgba(243,156,18,0.1); border:2px solid #f39c12; border-radius:12px; color:#f39c12; padding:6px;">
-                        <span style="color:#aaa;">秒</span>
+                        <span style="color:#aaa;">秒${kind === 'pool' ? '（セット全体）' : '（1問あたり）'}</span>
                     </div>
                     <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                        ${[10, 15, 20, 30, 45, 60].map(s => `
-                            <button type="button" class="tl-preset-btn" data-sec="${s}" style="
+                        ${presets.map(sec => `
+                            <button type="button" class="tl-preset-btn" data-sec="${sec}" style="
                                 flex:1; min-width:46px; padding:6px 4px; border-radius:8px; font-size:0.8em; font-weight:bold; cursor:pointer;
-                                background:${seconds === s ? 'rgba(243,156,18,0.2)' : '#222'};
-                                border:1px solid ${seconds === s ? '#f39c12' : '#444'};
-                                color:${seconds === s ? '#f39c12' : '#aaa'};">${s}秒</button>
+                                background:${seconds === sec ? 'rgba(243,156,18,0.2)' : '#222'};
+                                border:1px solid ${seconds === sec ? '#f39c12' : '#444'};
+                                color:${seconds === sec ? '#f39c12' : '#aaa'};">${sec >= 60 && sec % 60 === 0 ? `${sec / 60}分` : `${sec}秒`}</button>
                         `).join('')}
                     </div>
+                    ${this.advancedBlock('timer', adv)}
+                    <p class="rule-adv-note">タイマーの見た目（バー・円・時計・導火線など）は「見た目」の「タイマー」で選べます。</p>
                 </div>
             `;
-            container.querySelector('#tl-off-btn').onclick = () => {
-                enabled = false; conf.timeLimitEnabled = 'off'; render();
-                if (onChange) onChange();
-            };
-            container.querySelector('#tl-on-btn').onclick = () => {
-                enabled = true; conf.timeLimitEnabled = 'on'; render();
-                if (onChange) onChange();
-            };
-            const input = container.querySelector('#tl-seconds-input');
-            if (input) input.oninput = () => {
-                seconds = Math.max(5, Math.min(600, parseInt(input.value) || 30));
-                conf.timeLimitSeconds = seconds;
-                if (onChange) onChange();
-            };
-            container.querySelectorAll('.tl-preset-btn').forEach(btn => {
+            this.wireAdvancedBlocks(container);
+            container.querySelectorAll('.tl-kind-btn').forEach(btn => {
                 btn.onclick = () => {
-                    seconds = parseInt(btn.dataset.sec);
-                    conf.timeLimitSeconds = seconds;
+                    const v = btn.dataset.kind;
+                    if (v === 'off') conf.timeLimitEnabled = 'off';
+                    else {
+                        const wasKind = conf.timerKind === 'pool' ? 'pool' : 'per_q';
+                        conf.timeLimitEnabled = 'on';
+                        conf.timerKind = v;
+                        // 種類を変えた時は、それらしい秒数にしておく
+                        if (wasKind !== v) conf.timeLimitSeconds = v === 'pool' ? 60 : 10;
+                    }
                     render();
                     if (onChange) onChange();
                 };
             });
+            const input = container.querySelector('#tl-seconds-input');
+            if (input) input.oninput = () => {
+                conf.timeLimitSeconds = Math.max(1, Math.min(1800, parseInt(input.value) || 30));
+                if (onChange) onChange();
+            };
+            container.querySelectorAll('.tl-preset-btn').forEach(btn => {
+                btn.onclick = () => { conf.timeLimitSeconds = parseInt(btn.dataset.sec); render(); if (onChange) onChange(); };
+            });
+            const exp = container.querySelector('#tl-on-expire');
+            if (exp) exp.onchange = () => { conf.timerOnExpire = exp.value; if (onChange) onChange(); };
+            const bonus = container.querySelector('#tl-bonus');
+            if (bonus) bonus.onchange = () => { conf.timerBonusCorrect = parseFloat(bonus.value) || 0; if (onChange) onChange(); };
+            const pen = container.querySelector('#tl-penalty');
+            if (pen) pen.onchange = () => { conf.timerPenaltyWrong = parseFloat(pen.value) || 0; if (onChange) onChange(); };
+            const pb = container.querySelector('#tl-pause-buzz');
+            if (pb) pb.onchange = () => { conf.timerPauseOnBuzz = pb.checked; if (onChange) onChange(); };
         };
-        conf.timeLimitEnabled = enabled ? 'on' : 'off';
-        conf.timeLimitSeconds = seconds;
+        if (!conf.timeLimitSeconds) conf.timeLimitSeconds = 30;
         render();
     },
-
 
     renderScoreDetailInSheet: function (scoreType, conf) {
         const detailArea = document.getElementById('score-type-sheet-detail');

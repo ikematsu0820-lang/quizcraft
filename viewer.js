@@ -693,52 +693,41 @@ window.App.Viewer = {
     },
 
     viewerTimeLimitTimerId: null,
+    _serverOffset: 0,
 
+    // タイマー — 動きは status.timer（司会者が進める）、見た目はセットの
+    // デザイン（timer_view.js）。サーバー時刻に合わせて描くので、どの
+    // 画面でも残り時間が揃う。
     updateTimeLimitDisplay: function (st) {
-        const timerArea = document.getElementById('viewer-timer-bar-area');
-        const timerBar = document.getElementById('viewer-timer-bar');
-        if (!timerArea || !timerBar) return;
-
+        const stage = document.getElementById('viewer-content');
+        const legacy = document.getElementById('viewer-timer-bar-area');
+        if (legacy) legacy.classList.add('hidden');
         if (this.viewerTimeLimitTimerId) {
             clearInterval(this.viewerTimeLimitTimerId);
             this.viewerTimeLimitTimerId = null;
         }
-
-        if (!st.timeLimit || !['question', 'answering', 'reveal_q'].includes(st.step)) {
-            timerArea.classList.add('hidden');
-            timerBar.style.width = '100%';
-            timerBar.style.transition = 'none';
+        if (!this._offsetWatching && window.db) {
+            this._offsetWatching = true;
+            window.db.ref('.info/serverTimeOffset').on('value', snap => { this._serverOffset = Number(snap.val()) || 0; });
+        }
+        const t = st.timer;
+        const show = t && ['question', 'answering', 'reveal_q', 'closed'].includes(st.step);
+        if (!show || !window.App.TimerView) {
+            window.App.TimerView && window.App.TimerView.clear(stage);
             return;
         }
-
-        timerArea.classList.remove('hidden');
-        timerBar.style.transition = 'none';
-
-        const duration = st.timeLimit;
-        const startTimeStamp = st.timeLimitStart || Date.now();
-        const endTime = startTimeStamp + (duration * 1000);
-
+        const q = this.questions[st.qIndex] || this.questions[0] || {};
+        const design = q.design || {};
         const tick = () => {
-            const now = Date.now();
-            const remain = Math.max(0, endTime - now);
-            const percent = Math.min(100, Math.max(0, (remain / (duration * 1000)) * 100));
-
-            timerBar.style.width = percent + '%';
-
-            if (percent <= 20) {
-                timerBar.style.backgroundColor = '#ff4b2b';
-            } else {
-                timerBar.style.backgroundColor = '#ffd700';
-            }
-
+            const remain = window.App.TimerView.remainingMs(t, Date.now() + this._serverOffset);
+            window.App.TimerView.render(stage, design, remain, t.totalMs, { sound: true });
             if (remain <= 0 && this.viewerTimeLimitTimerId) {
                 clearInterval(this.viewerTimeLimitTimerId);
                 this.viewerTimeLimitTimerId = null;
             }
         };
-
         tick();
-        this.viewerTimeLimitTimerId = setInterval(tick, 200);
+        if (t.running) this.viewerTimeLimitTimerId = setInterval(tick, 100);
     },
 
     renderProduction: function (container, contentBox, type, q, st) {

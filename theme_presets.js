@@ -29,7 +29,7 @@ App.Themes = {
     list: [
         {
             id: 'classic', name: 'スタジオ', desc: 'いつもの黒×シアン',
-            font: '', accent: '#00e5ff',
+            font: '', accent: '#00e5ff', timer: 'bar_top',
             colors: {
                 mainBgColor: '#0a0a0a',
                 qTextColor: '#ffffff', qBgColor: 'rgba(255, 255, 255, 0.05)', qBorderColor: '#00bfff',
@@ -39,7 +39,7 @@ App.Themes = {
         },
         {
             id: 'golden', name: 'ゴールデン', desc: '夜の特番っぽい紺×金',
-            font: 'mincho', accent: '#ffd700',
+            font: 'mincho', accent: '#ffd700', timer: 'clock',
             colors: {
                 mainBgColor: '#0b1a3a',
                 qTextColor: '#ffffff', qBgColor: 'rgba(11, 26, 58, 0.85)', qBorderColor: '#d4af37',
@@ -49,7 +49,7 @@ App.Themes = {
         },
         {
             id: 'neon', name: 'ネオン', desc: 'クラブ・夜パーティ向け',
-            font: 'heavy', accent: '#ff00aa',
+            font: 'heavy', accent: '#ff00aa', timer: 'ring',
             colors: {
                 mainBgColor: '#07000f',
                 qTextColor: '#ffffff', qBgColor: 'rgba(255, 0, 170, 0.10)', qBorderColor: '#ff00aa',
@@ -59,7 +59,7 @@ App.Themes = {
         },
         {
             id: 'pop', name: 'ポップ', desc: '明るいバラエティ',
-            font: 'rounded', accent: '#ff5722',
+            font: 'rounded', accent: '#ff5722', timer: 'number',
             colors: {
                 mainBgColor: '#ffd23f',
                 qTextColor: '#2b2b2b', qBgColor: '#ffffff', qBorderColor: '#ff5722',
@@ -69,7 +69,7 @@ App.Themes = {
         },
         {
             id: 'retro', name: 'レトロゲーム', desc: 'ドット文字のゲーム画面',
-            font: 'pixel', accent: '#76ff03',
+            font: 'pixel', accent: '#76ff03', timer: 'number',
             colors: {
                 mainBgColor: '#101010',
                 qTextColor: '#76ff03', qBgColor: '#000000', qBorderColor: '#76ff03',
@@ -79,7 +79,7 @@ App.Themes = {
         },
         {
             id: 'japanese', name: '和', desc: '朱と生成りの落ち着いた画面',
-            font: 'mincho', accent: '#c0392b',
+            font: 'mincho', accent: '#c0392b', timer: 'bar_bottom',
             colors: {
                 mainBgColor: '#2a1a14',
                 qTextColor: '#2a1a14', qBgColor: '#f3ead7', qBorderColor: '#c0392b',
@@ -89,7 +89,7 @@ App.Themes = {
         },
         {
             id: 'clean', name: 'クリーン', desc: '白基調で見やすく',
-            font: 'gothic', accent: '#2563eb',
+            font: 'gothic', accent: '#2563eb', timer: 'ring',
             colors: {
                 mainBgColor: '#f4f6fa',
                 qTextColor: '#111827', qBgColor: '#ffffff', qBorderColor: '#2563eb',
@@ -111,6 +111,7 @@ App.Themes = {
         Object.assign(design, t.colors);
         design.fontFamily = t.font;
         design.accentColor = t.accent;
+        if (t.timer) design.timerStyle = t.timer; // タイマーの見た目もテーマに合わせる
         design.themeId = t.id;
         this.ensureFont(t.font);
         return design;

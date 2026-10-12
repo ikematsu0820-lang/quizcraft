@@ -64,6 +64,24 @@ App.Design = {
         return design;
     },
 
+    // デザインの「タイマー」タブの見本 — 10秒を繰り返し数える
+    _timerDemoId: null,
+    _startTimerDemo: function (box, design) {
+        if (this._timerDemoId) { clearInterval(this._timerDemoId); this._timerDemoId = null; }
+        if (!box || !window.App.TimerView) return;
+        const total = 10000;
+        const t0 = Date.now();
+        const tick = () => {
+            if (!box.isConnected) { clearInterval(this._timerDemoId); this._timerDemoId = null; return; }
+            const elapsed = (Date.now() - t0) % (total + 1500);
+            const remain = Math.max(0, total - elapsed);
+            if (window.App.Themes) window.App.Themes.applyToElement(box, design);
+            window.App.TimerView.render(box, design, remain, total);
+        };
+        tick();
+        this._timerDemoId = setInterval(tick, 100);
+    },
+
     selectObject: function (obj) {
         this._selectedObject = obj;
         if (window.App.Creator) {
@@ -670,12 +688,46 @@ App.Design = {
         };
         activeBody.theme = themeBody;
 
+        // タイマーの見た目 — 動き（何秒・1問ごとか全体か）はルールの「制限時間」
+        const TV = window.App.TimerView;
+        const timerBody = () => {
+            if (!TV) return '';
+            const cur = design.timerStyle || 'bar_top';
+            if (design.timerWarnSec === undefined || design.timerWarnSec === '') design.timerWarnSec = '5';
+            const warnSec = design.timerWarnSec !== undefined && design.timerWarnSec !== '' ? Number(design.timerWarnSec) : 5;
+            const chk = (key, label, def) => {
+                const on = design[key] === undefined ? def : !!design[key];
+                return `<label style="display:flex; align-items:center; gap:6px; color:#cbd5e1; font-size:0.72rem; cursor:pointer;">
+                    <input type="checkbox" data-timer-chk="${key}" ${on ? 'checked' : ''} style="width:auto; height:auto; min-height:0; margin:0; accent-color:#00e5ff;">${label}</label>`;
+            };
+            return `
+                <div id="design-timer-demo" class="tv-host" style="width:100%; aspect-ratio:16/9; border-radius:8px; background:${design.mainBgColor || '#0a0a0a'}; margin-bottom:10px; overflow:hidden;"></div>
+                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; margin-bottom:10px;">
+                    ${TV.STYLES.map(st => `
+                        <button type="button" data-timer-style="${st.id}" style="padding:8px 4px; border-radius:8px; cursor:pointer; font-size:0.72rem; font-weight:bold;
+                            background:${cur === st.id ? 'rgba(0,229,255,0.12)' : '#1e293b'}; border:1px solid ${cur === st.id ? '#00e5ff' : '#475569'}; color:${cur === st.id ? '#00e5ff' : '#e2e8f0'};">${st.name}</button>
+                    `).join('')}
+                </div>
+                <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
+                    ${rowLabel('残り')}
+                    ${miniSelect('残りわずかの演出を始める時間', 'timerWarnSec', [3, 5, 10, 15].map(n => ({ v: String(n), t: `残り${n}秒から` })))}
+                </div>
+                <div style="display:flex; flex-direction:column; gap:6px;">
+                    ${chk('timerWarnBlink', '残りわずかで点滅する', true)}
+                    ${chk('timerWarnEdge', '残りわずかで画面のふちを赤く光らせる', false)}
+                    ${chk('timerTickSound', '残りわずかで秒読み音を鳴らす（モニター）', false)}
+                </div>
+                <p style="color:#555; font-size:0.62rem; margin:8px 0 0;">※秒数や「1問ごと／セット全体」はルールの「制限時間」で決めます</p>
+            `;
+        };
+        activeBody.timer = timerBody;
+
         const tabs = [
             { key: 'theme', label: 'テーマ' },
             { key: 'text', label: 'テキスト' },
             { key: 'object', label: 'オブジェクト' },
             { key: 'sound', label: 'サウンド' },
-            { key: 'animation', label: 'モーション' },
+            { key: 'timer', label: 'タイマー' },
         ];
         if (!activeBody[this._activeDesignTab]) this._activeDesignTab = 'text';
 
@@ -700,6 +752,15 @@ App.Design = {
                     if (sel.dataset.key === 'layout' && window.App.Creator) window.App.Creator.applyDesignToPreview();
                 };
             });
+
+            // タイマーの見た目
+            body.querySelectorAll('button[data-timer-style]').forEach(btn => {
+                btn.onclick = () => { design.timerStyle = btn.dataset.timerStyle; if (onChange) onChange(); renderBody(); };
+            });
+            body.querySelectorAll('input[data-timer-chk]').forEach(chk => {
+                chk.onchange = () => { design[chk.dataset.timerChk] = chk.checked; if (onChange) onChange(); };
+            });
+            this._startTimerDemo(body.querySelector('#design-timer-demo'), design);
 
             // テーマカード
             body.querySelectorAll('button[data-theme-id]').forEach(btn => {

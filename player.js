@@ -990,60 +990,31 @@ function updateTimeLimitDisplay(st) {
         playerTimeLimitTimerId = null;
     }
 
-    // Only show timer in answering phases when a time limit is set
-    if (!st.timeLimit || !['question', 'answering', 'reveal_q'].includes(st.step)) {
+    // タイマーの動きは status.timer、見た目はモニターと同じデザイン
+    // （timer_view.js）— 端末では横長の帯の中に描く
+    const t = st.timer;
+    if (!t || !['question', 'answering', 'reveal_q', 'closed'].includes(st.step) || !window.App || !window.App.TimerView) {
         timerDisp.innerHTML = '';
         timerDisp.classList.add('hidden');
         return;
     }
-
     timerDisp.classList.remove('hidden');
-
-    // Inject timer HTML structure once if not present
-    if (!document.getElementById('player-time-bar-inner')) {
-        timerDisp.innerHTML = `
-            <div style="width:100%;height:10px;background:rgba(255,255,255,0.2);border-radius:5px;overflow:hidden;margin-top:20px;">
-                <div id="player-time-bar-inner" style="width:0%;height:100%;background:#00bfff;transition:width 0.2s linear;"></div>
-            </div>
-            <div id="player-time-text" style="text-align:center;font-size:1.2em;font-weight:bold;margin-top:5px;color:#fff;">${st.timeLimit}</div>
-        `;
+    let box = document.getElementById('player-timer-box');
+    if (!box) {
+        timerDisp.innerHTML = '<div id="player-timer-box" class="tv-host"></div>';
+        box = document.getElementById('player-timer-box');
     }
-
-    const innerBar = document.getElementById('player-time-bar-inner');
-    const timeText = document.getElementById('player-time-text');
-
-    const duration = st.timeLimit;
-    // For sync reason, use server time if possible, or fallback to relative diff. 
-    // Here we use the st.timeLimitStart as base if provided.
-    const startTimeStamp = st.timeLimitStart || Date.now();
-    const endTime = startTimeStamp + (duration * 1000);
-
+    const design = (currentQuestion && currentQuestion.design) || {};
     const tick = () => {
-        const now = Date.now();
-        const remain = Math.max(0, endTime - now);
-        const percent = Math.min(100, Math.max(0, (remain / (duration * 1000)) * 100));
-        const secsLeft = Math.ceil(remain / 1000);
-
-        if (innerBar) innerBar.style.width = percent + '%';
-        if (timeText) {
-            timeText.textContent = secsLeft;
-            if (secsLeft <= 5) {
-                timeText.style.color = '#ff4b2b';
-                innerBar.style.background = '#ff4b2b';
-            } else {
-                timeText.style.color = '#fff';
-                innerBar.style.background = '#00bfff';
-            }
-        }
-
+        const remain = window.App.TimerView.remainingMs(t, Date.now() + _serverTimeOffset);
+        window.App.TimerView.render(box, design, remain, t.totalMs, { sound: false });
         if (remain <= 0 && playerTimeLimitTimerId) {
             clearInterval(playerTimeLimitTimerId);
             playerTimeLimitTimerId = null;
         }
     };
-
     tick();
-    playerTimeLimitTimerId = setInterval(tick, 200);
+    if (t.running) playerTimeLimitTimerId = setInterval(tick, 150);
 }
 
 function getTurnOrderHtml(st, myName) {

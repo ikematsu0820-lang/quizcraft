@@ -930,6 +930,7 @@ App.Studio = {
         this.bjUsedCards = []; // Reset blackjack used cards for new set
         this.bjPickedHistory = []; // Reset blackjack picked history for new set
         this.clearTimeLimit();
+        this.resetTimerPool();
 
         // Reset bjTotal and bjCardHistory for all players if this is a blackjack set
         const hasBlackjack = (App.Data.studioQuestions || []).some(q => q.type === 'blackjack');
@@ -1799,6 +1800,7 @@ App.Studio = {
         this.turnSetupDismissed = false;
         this.inPreSetup = false;
         this.clearTimeLimit();
+        this.resetTimerPool();
 
         if (App.Data.currentConfig.mode === 'turn' || App.Data.currentConfig.mode === 'solo') {
             this.showPreQuizSetup();
@@ -2313,6 +2315,8 @@ App.Studio = {
             info.classList.add('anim-pop-in');
             setTimeout(() => info.classList.remove('anim-pop-in'), 400);
             window.db.ref(`rooms/${App.State.currentRoomId}/status`).update({ currentAnswerer: this.buzzWinner, currentAnswererName: name, isBuzzActive: false });
+            // 誰かが押したら時計を止める（ルール「制限時間」の詳細設定）
+            if (this._timerConf().pauseOnBuzz) this.pauseTimer();
         }
     },
 
@@ -2364,6 +2368,7 @@ App.Studio = {
     },
 
     judgeBuzz: function (isCorrect) {
+        this.adjustTimer(isCorrect); // 持ち時間の増減（セット全体の持ち時間の時だけ）
         if (App.Data.currentConfig.mode === 'solo') { this.judgeSolo(isCorrect); return; }
         if (!this.buzzWinner) return;
 
@@ -2415,6 +2420,7 @@ App.Studio = {
                     document.getElementById('studio-sub-info').classList.add('hidden');
                     window.db.ref(`rooms/${roomId}/status`).update({ currentAnswerer: null, isBuzzActive: true });
                     App.Ui.showToast("誤答 → 他のプレイヤーに解答権が移ります");
+                    this.resumeTimer();
                 }
             }
         });
@@ -3341,6 +3347,7 @@ App.Studio = {
 
     updatePlayerScore: function (playerId, isCorrect) {
         const roomId = App.State.currentRoomId;
+        if ((App.Data.currentConfig || {}).mode !== 'normal') this.adjustTimer(isCorrect);
         const q = App.Data.studioQuestions[App.State.currentQIndex];
         if (!q) return;
 
@@ -3457,6 +3464,7 @@ App.Studio = {
                             });
                         });
                         App.Ui.showToast("不正解。全員の解答権をリセット！");
+                        this.resumeTimer();
 
                     } else if (buzzPenalty === 'time_ban') {
                         // 一定時間解答無効
@@ -3475,6 +3483,7 @@ App.Studio = {
                             });
                         });
                         App.Ui.showToast(`不正解。${banTime}秒間解答無効！早押し再開`);
+                        this.resumeTimer();
 
                     } else if (buzzPenalty === 'otetski') {
                         // おてつき: 次の問題まで解答権なし
@@ -3490,6 +3499,7 @@ App.Studio = {
                             });
                         });
                         App.Ui.showToast(`不正解。おてつき！（次の問題まで解答権なし）`);
+                        this.resumeTimer();
 
                     } else {
                         // なし: 通常通り再開
@@ -3776,43 +3786,148 @@ App.Studio = {
     },
 
     // ★ Time Limit: Start countdown timer for the current question
+    // =========================================================
+    // タイマー（ルール「制限時間」）
+    //   timerKind: 'per_q' … 1問ごと（問題が変わるたびに満タンから）
+    //              'pool'  … セット全体の持ち時間（問題をまたいで減っていく。
+    //                         解答中だけ進み、なくなったらセット終了）
+    //   timerOnExpire: 'close'（締め切って正解発表へ）/ 'skip'（次の問題へ）
+    //   timerPauseOnBuzz: 早押しで誰かが押したら止める（既定オン）
+    //   timerBonusCorrect / timerPenaltyWrong: 持ち時間の増減（秒）
+    // 表示用に status.timer = { kind, totalMs, remainMs, running, startAt }
+    // を書く（startAt はサーバー時刻 — 各端末が自分の時計のズレを補正して描く）
+    // =========================================================
+    _timer: null,
+    _poolRemaining: null,
+
+    _timerConf: function () {
+        const c = App.Data.currentConfig || {};
+        return {
+            on: c.timeLimitEnabled === 'on',
+            kind: c.timerKind === 'pool' ? 'pool' : 'per_q',
+            totalMs: (parseInt(c.timeLimitSeconds) || 30) * 1000,
+            onExpire: c.timerOnExpire === 'skip' ? 'skip' : 'close',
+            pauseOnBuzz: c.timerPauseOnBuzz !== false,
+            bonusMs: (parseFloat(c.timerBonusCorrect) || 0) * 1000,
+            penaltyMs: (parseFloat(c.timerPenaltyWrong) || 0) * 1000,
+        };
+    },
+
+    _timerRemaining: function () {
+        const t = this._timer;
+        if (!t) return null;
+        return t.running ? Math.max(0, t.remainMs - (Date.now() - t.startLocal)) : t.remainMs;
+    },
+
+    _writeTimer: function () {
+        const roomId = App.State.currentRoomId;
+        if (!roomId) return;
+        const t = this._timer;
+        window.db.ref(`rooms/${roomId}/status`).update({
+            timer: t ? {
+                kind: t.kind,
+                totalMs: t.totalMs,
+                remainMs: Math.round(t.running ? this._timerRemaining() : t.remainMs),
+                running: !!t.running,
+                startAt: t.running ? firebase.database.ServerValue.TIMESTAMP : null
+            } : null,
+            // 旧形式の表示用（使わなくなったので消しておく）
+            timeLimit: null,
+            timeLimitStart: null
+        });
+    },
+
+    _armTimer: function () {
+        if (this.timeLimitTimer) { clearTimeout(this.timeLimitTimer); this.timeLimitTimer = null; }
+        const t = this._timer;
+        if (!t || !t.running) return;
+        const remain = this._timerRemaining();
+        this.timeLimitTimer = setTimeout(() => this._onTimerExpire(), Math.max(0, remain));
+    },
+
     startTimeLimit: function (roomId) {
         this.clearTimeLimit(); // Clear any existing timer
+        const tc = this._timerConf();
+        if (!tc.on || tc.totalMs <= 0) return;
+        let remain = tc.totalMs;
+        if (tc.kind === 'pool') {
+            if (this._poolRemaining === null || this._poolRemaining === undefined) this._poolRemaining = tc.totalMs;
+            remain = this._poolRemaining;
+        }
+        this._timer = { kind: tc.kind, totalMs: tc.totalMs, remainMs: remain, running: true, startLocal: Date.now() };
+        this.timeLimitEndTime = Date.now() + remain;
+        if (remain <= 0) { this._onTimerExpire(); return; }
+        this._writeTimer();
+        this._armTimer();
+    },
 
-        const config = App.Data.currentConfig;
-        if (!config || config.timeLimitEnabled !== 'on') return;
+    pauseTimer: function () {
+        const t = this._timer;
+        if (!t || !t.running) return;
+        t.remainMs = this._timerRemaining();
+        t.running = false;
+        if (this.timeLimitTimer) { clearTimeout(this.timeLimitTimer); this.timeLimitTimer = null; }
+        this._writeTimer();
+    },
 
-        const seconds = parseInt(config.timeLimitSeconds) || 30;
-        if (seconds <= 0) return;
+    resumeTimer: function () {
+        const t = this._timer;
+        if (!t || t.running || t.remainMs <= 0) return;
+        t.running = true;
+        t.startLocal = Date.now();
+        this._writeTimer();
+        this._armTimer();
+    },
 
-        const now = Date.now();
-        this.timeLimitEndTime = now + (seconds * 1000);
+    // 正誤に応じて持ち時間を増減（セット全体の持ち時間の時だけ）
+    adjustTimer: function (isCorrect) {
+        const tc = this._timerConf();
+        if (!tc.on || tc.kind !== 'pool') return;
+        const delta = isCorrect ? tc.bonusMs : -tc.penaltyMs;
+        if (!delta) return;
+        const t = this._timer;
+        if (t) {
+            t.remainMs = Math.max(0, this._timerRemaining() + delta);
+            t.startLocal = Date.now();
+            this._writeTimer();
+            this._armTimer();
+        } else if (this._poolRemaining !== null && this._poolRemaining !== undefined) {
+            this._poolRemaining = Math.max(0, this._poolRemaining + delta);
+        }
+        App.Ui.showToast(delta > 0 ? `持ち時間 +${delta / 1000}秒` : `持ち時間 ${delta / 1000}秒`);
+    },
 
-        // Send time limit info to Firebase (for viewer/player countdown)
-        window.db.ref(`rooms/${roomId}/status`).update({
-            timeLimit: seconds,
-            timeLimitStart: now
-        });
+    // セットの始まり — 持ち時間を満タンに戻す
+    resetTimerPool: function () {
+        this._poolRemaining = null;
+    },
 
-        // Set local timer to auto-close
-        this.timeLimitTimer = setTimeout(() => {
-            console.log("Time limit expired, auto-closing question.");
-            App.Ui.showToast(`制限時間（${seconds}秒）終了！`);
+    _onTimerExpire: function () {
+        const roomId = App.State.currentRoomId;
+        const tc = this._timerConf();
+        const kind = this._timer ? this._timer.kind : tc.kind;
+        if (this.timeLimitTimer) { clearTimeout(this.timeLimitTimer); this.timeLimitTimer = null; }
+        if (this._timer) { this._timer.remainMs = 0; this._timer.running = false; }
+        if (kind === 'pool') this._poolRemaining = 0;
+        this._writeTimer();
+        const stepAtExpire = this.currentStepId;
 
-            // Send 'closed' status to lock all players
-            window.db.ref(`rooms/${roomId}/status`).update({
-                step: 'closed',
-                timeLimit: null,
-                timeLimitStart: null
-            });
+        window.db.ref(`rooms/${roomId}/status`).update({ step: 'closed' });
 
-            // After a brief pause, auto-advance to answer reveal
+        if (kind === 'pool') {
+            App.Ui.showToast('持ち時間がなくなりました（残りの問題は出さずにセット終了）');
             setTimeout(() => {
-                if (this.currentStepId === 2) {
-                    this.setStep(5); // Go to answer reveal
-                }
-            }, 2000);
-        }, seconds * 1000);
+                this._timer = null;
+                this.handleSetCompletion();
+            }, 2500);
+            return;
+        }
+        App.Ui.showToast(`制限時間（${tc.totalMs / 1000}秒）終了！`);
+        setTimeout(() => {
+            if (this.currentStepId !== stepAtExpire || stepAtExpire !== 2) return;
+            if (tc.onExpire === 'skip') this.goNext();
+            else this.setStep(5); // Go to answer reveal
+        }, 2000);
     },
 
     // ★ Time Limit: Clear the countdown timer
@@ -3821,7 +3936,14 @@ App.Studio = {
             clearTimeout(this.timeLimitTimer);
             this.timeLimitTimer = null;
         }
+        // セット全体の持ち時間は、問題が終わる時の残りを次の問題へ持ち越す
+        if (this._timer && this._timer.kind === 'pool') {
+            this._poolRemaining = this._timerRemaining();
+        }
+        const had = !!this._timer;
+        this._timer = null;
         this.timeLimitEndTime = null;
+        if (had) this._writeTimer();
     },
 
     showPanelSelection: function (winnerId) {

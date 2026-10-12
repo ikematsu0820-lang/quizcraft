@@ -823,3 +823,171 @@ button.btn-player-hero:hover {
 .theme-font * {
     font-family: var(--theme-font) !important;
 }
+
+/* =========================================================
+ * タイマーの見た目（timer_view.js）
+ * 入れ物は container-type:size（モニターの16:9ステージなど）で、
+ * 大きさは cqh/cqw で指定 — どの画面でも同じ比率で見える
+ * ======================================================= */
+.tv-host { position: relative; container-type: size; }
+.tv-root {
+    --tv-color: #ffd700;
+    --tv-frac: 1;
+    position: absolute;
+    z-index: 200;
+    pointer-events: none;
+    color: var(--tv-color);
+    font-variant-numeric: tabular-nums;
+}
+.tv-num { font-weight: 900; line-height: 1; text-shadow: 0 0.05em 0.2em rgba(0, 0, 0, 0.6); }
+
+/* バー（上・下） */
+.tv-bar_top, .tv-bar_bottom { left: 0; right: 0; height: 1.4cqh; }
+.tv-bar_top { top: 0; }
+.tv-bar_bottom { bottom: 0; }
+.tv-bar { width: 100%; height: 100%; background: rgba(255, 255, 255, 0.12); }
+.tv-bar-fill {
+    height: 100%;
+    width: calc(var(--tv-frac) * 100%);
+    background: var(--tv-color);
+    box-shadow: 0 0 2cqh var(--tv-color);
+    transition: width 0.12s linear, background-color 0.3s;
+}
+
+/* 円 */
+.tv-ring { top: 3cqh; right: 3cqh; width: 16cqh; height: 16cqh; }
+.tv-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.tv-ring-bg { fill: rgba(0, 0, 0, 0.5); stroke: rgba(255, 255, 255, 0.15); stroke-width: 3; }
+.tv-ring-fg {
+    fill: none;
+    stroke: var(--tv-color);
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-dasharray: 100;
+    transition: stroke-dashoffset 0.12s linear, stroke 0.3s;
+}
+.tv-ring .tv-num { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 6.5cqh; }
+
+/* 数字 */
+.tv-number { top: 2cqh; right: 3cqh; }
+.tv-number .tv-num { font-size: 13cqh; }
+
+/* 時計 */
+.tv-clock { top: 3cqh; right: 3cqh; width: 18cqh; height: 18cqh; }
+.tv-clock-face {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 0.6cqh solid var(--tv-color);
+    box-sizing: border-box;
+}
+.tv-clock-tick {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 0.5cqh;
+    height: 50%;
+    margin-left: -0.25cqh;
+    transform-origin: 50% 100%;
+}
+.tv-clock-tick::before {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 1.6cqh;
+    margin-top: 0.6cqh;
+    background: rgba(255, 255, 255, 0.7);
+}
+.tv-clock-hand {
+    position: absolute;
+    left: 50%;
+    top: 10%;
+    width: 0.8cqh;
+    height: 40%;
+    margin-left: -0.4cqh;
+    background: var(--tv-color);
+    border-radius: 0.4cqh;
+    transform-origin: 50% 100%;
+    transition: transform 0.12s linear;
+}
+.tv-clock-pin {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 2cqh;
+    height: 2cqh;
+    margin: -1cqh 0 0 -1cqh;
+    border-radius: 50%;
+    background: #fff;
+}
+.tv-clock .tv-num { position: absolute; left: 0; right: 0; top: 104%; text-align: center; font-size: 4.5cqh; }
+
+/* 導火線（下を左から右へ燃え進み、右端の爆弾へ） */
+.tv-fuse { left: 4cqw; right: 4cqw; bottom: 3cqh; height: 10cqh; display: flex; align-items: center; }
+.tv-fuse-line {
+    position: relative;
+    flex: 1;
+    height: 1cqh;
+    background: repeating-linear-gradient(90deg, #c9a46b 0 1.5cqh, #a8834a 1.5cqh 3cqh);
+    border-radius: 0.5cqh;
+}
+.tv-fuse-burnt {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: calc((1 - var(--tv-frac)) * 100%);
+    background: #2a2a2a;
+    border-radius: 0.5cqh;
+    transition: width 0.12s linear;
+}
+.tv-fuse-spark {
+    position: absolute;
+    top: 50%;
+    width: 3cqh;
+    height: 3cqh;
+    margin: -1.5cqh 0 0 -1.5cqh;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff 0 20%, #ffd54f 35%, #ff7043 60%, transparent 70%);
+    animation: tvSpark 0.15s infinite alternate;
+    transition: left 0.12s linear;
+}
+@keyframes tvSpark { from { transform: scale(0.8); } to { transform: scale(1.25); } }
+.tv-fuse-bomb {
+    flex: 0 0 10cqh;
+    height: 10cqh;
+    margin-left: 1cqh;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #555, #111 70%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 0 0.4cqh rgba(255, 255, 255, 0.1);
+}
+.tv-fuse .tv-num { font-size: 4.5cqh; color: var(--tv-color); }
+.tv-fuse.tv-warn .tv-fuse-bomb { animation: tvShake 0.12s infinite; }
+@keyframes tvShake { 0% { transform: translateX(-0.3cqh); } 50% { transform: translateX(0.3cqh); } 100% { transform: translateX(-0.3cqh); } }
+.tv-fuse.tv-expired .tv-fuse-spark { display: none; }
+.tv-fuse.tv-expired .tv-fuse-bomb { animation: tvBoom 0.6s ease-out forwards; }
+@keyframes tvBoom {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 #fff; }
+    30% { transform: scale(1.6); background: #fff; box-shadow: 0 0 10cqh 6cqh #ffb300; }
+    100% { transform: scale(1); background: #222; box-shadow: none; }
+}
+
+/* 残りわずかの演出 */
+.tv-blink { animation: tvBlink 0.5s steps(2, start) infinite; }
+.tv-bar_top.tv-blink, .tv-bar_bottom.tv-blink, .tv-fuse.tv-blink { animation: none; }
+.tv-bar_top.tv-blink .tv-bar-fill, .tv-bar_bottom.tv-blink .tv-bar-fill { animation: tvBlink 0.5s steps(2, start) infinite; }
+@keyframes tvBlink { to { opacity: 0.35; } }
+.tv-edge-warn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 190;
+    pointer-events: none;
+    box-shadow: inset 0 0 6cqh 1cqh rgba(255, 40, 40, 0.75);
+    animation: tvEdge 1s ease-in-out infinite;
+}
+@keyframes tvEdge { 50% { opacity: 0.35; } }
+.tv-expired.tv-number .tv-num, .tv-expired.tv-ring .tv-num, .tv-expired.tv-clock .tv-num { animation: tvBlink 0.3s steps(2, start) 4; }
