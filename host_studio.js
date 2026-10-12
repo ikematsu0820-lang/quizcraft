@@ -1896,6 +1896,7 @@ App.Studio = {
 
         // Reset local state to prevent "stuck" buzzer winners from previous questions
         this.buzzWinner = null;
+        this.clearBuzzWindow();
         this.selectedPlayerId = null;
 
         // Reset judge queue
@@ -2221,13 +2222,55 @@ App.Studio = {
         });
     },
 
-    checkBuzz: function (players) {
-        if (this.currentStepId !== 2 || this.buzzWinner) return;
-        const candidates = Object.entries(players).filter(([_, p]) =>
-            p.buzzTime && !p.lastResult &&
+    // 早押しの判定
+    // ・buzzTime   … サーバーに届いた時刻（通信の速さで前後する）
+    // ・buzzPressAt … 端末で押した瞬間の時刻（サーバー時計に補正済み）
+    // 最初の1人が届いてから BUZZ_WINDOW_MS だけ待ち、その間に届いた人の中で
+    // 「押した時刻」が一番早い人を勝者にする。押下時刻は端末の自己申告なので、
+    // 到着時刻より BUZZ_MAX_CORRECTION_MS 以上は前倒しできないよう制限する。
+    BUZZ_WINDOW_MS: 200,
+    BUZZ_MAX_CORRECTION_MS: 300,
+
+    buzzEffectiveTime: function (p) {
+        const arrived = Number(p.buzzTime) || 0;
+        const pressed = Number(p.buzzPressAt);
+        if (!pressed) return arrived;
+        // 押下は到着より前のはず。後ろ（時計ズレ）や前倒しすぎは丸める
+        return Math.min(arrived, Math.max(pressed, arrived - this.BUZZ_MAX_CORRECTION_MS));
+    },
+
+    buzzCandidates: function (players) {
+        return Object.entries(players || {}).filter(([_, p]) =>
+            p && p.buzzTime && !p.lastResult &&
             !(p.buzzRest && p.buzzRest > 0) &&
             !(p.buzzBannedUntil && p.buzzBannedUntil > Date.now())
-        ).sort((a, b) => a[1].buzzTime - b[1].buzzTime);
+        );
+    },
+
+    clearBuzzWindow: function () {
+        if (this._buzzWindowTimer) clearTimeout(this._buzzWindowTimer);
+        this._buzzWindowTimer = null;
+        this._buzzWindowPlayers = null;
+    },
+
+    checkBuzz: function (players) {
+        if (this.currentStepId !== 2 || this.buzzWinner) { this.clearBuzzWindow(); return; }
+        // 受付時間中は最新の状態だけ覚えておき、締め切りでまとめて判定
+        this._buzzWindowPlayers = players;
+        if (this._buzzWindowTimer) return;
+        if (this.buzzCandidates(players).length === 0) return;
+        this._buzzWindowTimer = setTimeout(() => {
+            const latest = this._buzzWindowPlayers;
+            this._buzzWindowTimer = null;
+            this._buzzWindowPlayers = null;
+            this.decideBuzz(latest);
+        }, this.BUZZ_WINDOW_MS);
+    },
+
+    decideBuzz: function (players) {
+        if (this.currentStepId !== 2 || this.buzzWinner) return;
+        const candidates = this.buzzCandidates(players)
+            .sort((a, b) => this.buzzEffectiveTime(a[1]) - this.buzzEffectiveTime(b[1]));
         if (candidates.length > 0) {
             this.buzzWinner = candidates[0][0];
             const name = candidates[0][1].name;
@@ -2656,8 +2699,8 @@ App.Studio = {
             .map(id => ({ id, ...players[id] }))
             // .filter(p => p.lastAnswer !== null || p.buzzTime) // REMOVED: Show all players for manual judging
             .sort((a, b) => {
-                const timeA = a.answerTime || a.buzzTime || Infinity;
-                const timeB = b.answerTime || b.buzzTime || Infinity;
+                const timeA = a.answerTime || (a.buzzTime ? this.buzzEffectiveTime(a) : Infinity);
+                const timeB = b.answerTime || (b.buzzTime ? this.buzzEffectiveTime(b) : Infinity);
                 return timeA - timeB;
             });
 

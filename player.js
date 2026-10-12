@@ -93,6 +93,27 @@ function preloadPlayerSounds(roomId) {
 
 // 手書き（一問一答）× 早押し: 先に書いてから PUSH する。押した瞬間の
 // 絵をここに持っておき、解答権を取れたら自動で送信する。
+// この端末の時計とサーバーの時計のズレ（ミリ秒）。Firebase が接続時に
+// 計測して教えてくれる。早押しの押下時刻をサーバー時刻に直すのに使う。
+let _serverTimeOffset = 0;
+if (window.db) {
+    window.db.ref('.info/serverTimeOffset').on('value', snap => {
+        _serverTimeOffset = Number(snap.val()) || 0;
+    });
+}
+
+// 早押しボタンを押した瞬間の手応え（通信を待たない）
+function buzzPressedFeedback(btn) {
+    try { if (navigator.vibrate) navigator.vibrate(60); } catch (e) { /* noop */ }
+    if (btn) {
+        btn.classList.remove('buzz-pressed');
+        void btn.offsetWidth; // アニメーションを毎回やり直す
+        btn.classList.add('buzz-pressed');
+    }
+    document.body.classList.add('buzz-flash');
+    setTimeout(() => document.body.classList.remove('buzz-flash'), 350);
+}
+
 let _currentPad = null;
 let _pendingBuzzAnswer = null;
 function isWrittenBuzz() {
@@ -189,10 +210,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (currentQuestion && currentQuestion.design && currentQuestion.design.seButton) {
                 playSound(currentQuestion.design.seButton);
             }
+            // 押した瞬間の時刻を、サーバーの時計に合わせて記録する。
+            // buzzTime（サーバー到着時刻）だけだと通信の速い人が有利になるので、
+            // ホストは buzzPressAt を優先して判定する（host_studio.js checkBuzz）。
+            const pressAt = Date.now() + _serverTimeOffset;
+            // 判定を待たずに、押した本人の端末はすぐ反応させる
+            buzzPressedFeedback(buzzBtn);
             buzzBtn.disabled = true;
-            buzzBtn.textContent = "送信中...";
+            buzzBtn.textContent = "PUSH!";
             window.db.ref(`rooms/${myRoomId}/players/${myPlayerId}`).update({
-                buzzTime: firebase.database.ServerValue.TIMESTAMP
+                buzzTime: firebase.database.ServerValue.TIMESTAMP,
+                buzzPressAt: pressAt
             });
         });
     }
@@ -388,6 +416,12 @@ function startPlayerListener(roomId, playerId) {
                 const q = qSnap.val();
                 if (q) {
                     currentQuestion = q;
+                    // モニターと同じテーマのフォントを回答端末にも（色は端末の
+                    // 見やすさを優先して変えない）
+                    if (window.App && window.App.Themes) {
+                        window.App.Themes.applyToElement(document.getElementById('player-game-view'),
+                            { fontFamily: (q.design || {}).fontFamily });
+                    }
                     resolvePlayerSounds(q, roomId);
                     renderPlayerQuestion(q, roomId, playerId);
                     updateUI();
@@ -721,9 +755,10 @@ function updateUI() {
                         }
                     }, (p.buzzBannedUntil - Date.now()) + 100);
                 } else if (p.buzzTime) {
+                    // 押した後はランプが点いたまま（本物の早押し機のように）
                     btn.disabled = true;
-                    btn.textContent = "解答権確認中...";
-                    btn.style.background = "#555";
+                    btn.textContent = "判定中…";
+                    btn.style.background = "radial-gradient(circle at 30% 30%, #ffe08a, #f39c12)";
                 } else {
                     btn.disabled = false;
                     btn.textContent = "PUSH!";

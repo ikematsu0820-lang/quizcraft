@@ -1170,6 +1170,8 @@ window.App.Creator = {
             });
             this._previewResizeObs.observe(screen);
         }
+        // テーマのフォント・アクセント色（theme_presets.js）
+        if (screen && window.App.Themes) window.App.Themes.applyToElement(screen, d);
         if (screen && d.mainBgColor) {
             screen.style.backgroundColor = d.mainBgColor;
             if (d.bgImage) {

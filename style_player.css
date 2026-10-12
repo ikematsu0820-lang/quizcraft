@@ -1643,3 +1643,29 @@ body.written-buzz #player-game-view .hw-actions { justify-content: flex-end; }
 @media (orientation: landscape) {
     #player-numgame .ng-grid { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); }
 }
+
+/* ---------------------------------------------------------
+ * 早押し：押した瞬間の手応え（通信を待たずに端末側で反応）
+ * ------------------------------------------------------- */
+.buzz-pressed {
+    animation: buzzPressedPop 0.35s ease-out;
+    box-shadow: 0 0 0 6px rgba(255, 224, 138, 0.55), 0 0 40px rgba(243, 156, 18, 0.8) !important;
+}
+@keyframes buzzPressedPop {
+    0%   { transform: scale(0.88); }
+    60%  { transform: scale(1.06); }
+    100% { transform: scale(1); }
+}
+body.buzz-flash::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: rgba(255, 224, 138, 0.35);
+    pointer-events: none;
+    z-index: 9999;
+    animation: buzzFlash 0.35s ease-out forwards;
+}
+@keyframes buzzFlash {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+}

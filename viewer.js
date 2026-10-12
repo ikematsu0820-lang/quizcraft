@@ -274,6 +274,11 @@ window.App.Viewer = {
         const viewContainer = document.getElementById('viewer-content');
 
         this._renderSeq = (this._renderSeq || 0) + 1;
+        // テーマのフォント・アクセント色（セット共通なので先頭の問題から取る）
+        if (window.App.Themes) {
+            const themeQ = this.questions[st.qIndex] || this.questions[0] || {};
+            window.App.Themes.applyToElement(viewContainer, themeQ.design);
+        }
         this.updateThinkingBgm(st, this.questions[st.qIndex]);
         this.updateQNumSound(st, this.questions[st.qIndex]);
         this.updateResultSound(st, this.questions[st.qIndex]);

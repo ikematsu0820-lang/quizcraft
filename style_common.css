@@ -815,3 +815,11 @@ button.btn-player-hero:hover {
     transform: translateY(0) scale(1);
     pointer-events: auto;
 }
+/* ---------------------------------------------------------
+ * デザインテーマのフォント（theme_presets.js applyToElement）
+ * 部品ごとの直書きフォントもまとめて差し替える
+ * ------------------------------------------------------- */
+.theme-font,
+.theme-font * {
+    font-family: var(--theme-font) !important;
+}

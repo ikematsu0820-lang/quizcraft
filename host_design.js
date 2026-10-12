@@ -3,7 +3,7 @@
  * =======================================================*/
 
 App.Design = {
-    _activeDesignTab: 'text',
+    _activeDesignTab: 'theme',
 
     // オブジェクト選択 — プレビュー内の要素（問題文/選択肢/全体背景、正解
     // 表示中はその正解ボックス）をタップすると、テキスト/オブジェクト
@@ -626,7 +626,52 @@ App.Design = {
         };
         const activeBody = slide === 'bridge' ? bridgeBody : slide === 'result' ? resultBody : slide === 'title' ? titleBody : bodyHtml;
 
+        // テーマ — 番組の見た目一式（色・フォント・アクセント）を1タップで
+        // 切り替える。テーマはセット共通のデザインに書き込まれ、ほかのタブで
+        // 個別の色を変えれば、その部分だけテーマから上書きされる。
+        const Themes = window.App.Themes;
+        const themeBody = () => {
+            if (!Themes) return '';
+            const modified = Themes.isModified(design);
+            const card = (t) => {
+                const on = design.themeId === t.id;
+                const c = t.colors;
+                const font = Themes.fontCss(t.font) || 'inherit';
+                Themes.ensureFont(t.font);
+                return `
+                    <button type="button" data-theme-id="${t.id}" style="
+                        display:flex; flex-direction:column; gap:4px; padding:6px; min-width:0;
+                        background:#1e293b; border:2px solid ${on ? '#00e5ff' : '#334155'}; border-radius:8px; cursor:pointer; text-align:left;">
+                        <div style="width:100%; aspect-ratio:16/9; box-sizing:border-box; border-radius:4px; background:${c.mainBgColor};
+                            display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:4px; overflow:hidden;">
+                            <div style="width:86%; padding:2px 0; text-align:center; border:1.5px solid ${c.qBorderColor}; background:${c.qBgColor};
+                                color:${c.qTextColor}; font-family:${font}; font-size:0.62rem; font-weight:bold; border-radius:3px;">第1問</div>
+                            <div style="display:flex; gap:3px; width:86%;">
+                                <div style="flex:1; height:8px; border:1px solid ${c.cBorderColor}; background:${c.cBgColor}; border-radius:2px;"></div>
+                                <div style="flex:1; height:8px; border:1px solid ${c.cBorderColor}; background:${c.cBgColor}; border-radius:2px;"></div>
+                            </div>
+                        </div>
+                        <span style="font-size:0.68rem; font-weight:bold; color:${on ? '#00e5ff' : '#e2e8f0'};">${t.name}${on && modified ? '<span style="color:#94a3b8; font-weight:normal;">（カスタム）</span>' : ''}</span>
+                        <span style="font-size:0.56rem; color:#94a3b8; line-height:1.3;">${t.desc}</span>
+                    </button>
+                `;
+            };
+            const fontOpts = Object.entries(Themes.FONTS).map(([v, f]) => ({ v, t: f.name }));
+            return `
+                <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(96px, 1fr)); gap:6px; margin-bottom:10px;">
+                    ${Themes.list.map(card).join('')}
+                </div>
+                <div style="display:flex; gap:6px; align-items:center;">
+                    ${rowLabel('文字')}
+                    ${miniSelect('フォント', 'fontFamily', fontOpts)}
+                </div>
+                <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">※テーマはこのセットの全問題に効きます。色はテキスト／オブジェクトのタブで個別に変えられます</p>
+            `;
+        };
+        activeBody.theme = themeBody;
+
         const tabs = [
+            { key: 'theme', label: 'テーマ' },
             { key: 'text', label: 'テキスト' },
             { key: 'object', label: 'オブジェクト' },
             { key: 'sound', label: 'サウンド' },
@@ -656,7 +701,18 @@ App.Design = {
                 };
             });
 
+            // テーマカード
+            body.querySelectorAll('button[data-theme-id]').forEach(btn => {
+                btn.onclick = () => {
+                    window.App.Themes.apply(design, btn.dataset.themeId);
+                    if (onChange) onChange();
+                    renderBody();
+                };
+            });
+
             // 全体背景の画像（背景色の横の「背景画像」）
+            // そのまま保存すると数MBになり、本番でモニター・全端末に配信されて
+            // 重くなるので、フルHD以下のJPEGに縮小してから入れる。
             const bgPick = body.querySelector('button[data-bgimg-pick]');
             const bgInput = body.querySelector('input[data-bgimg-input]');
             if (bgPick && bgInput) {
@@ -664,13 +720,18 @@ App.Design = {
                 bgInput.onchange = (e) => {
                     const file = e.target.files[0];
                     if (!file) return;
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                        design.bgImage = ev.target.result;
+                    const done = (dataUrl) => {
+                        design.bgImage = dataUrl;
                         if (onChange) onChange();
                         renderBody();
                     };
-                    reader.readAsDataURL(file);
+                    if (window.App.Themes && window.App.Themes.compressImage) {
+                        window.App.Themes.compressImage(file).then(done).catch(() => {});
+                    } else {
+                        const reader = new FileReader();
+                        reader.onload = (ev) => done(ev.target.result);
+                        reader.readAsDataURL(file);
+                    }
                 };
             }
             body.querySelector('button[data-bgimg-clear]')?.addEventListener('click', () => {
