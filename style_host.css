@@ -5057,3 +5057,12 @@ details.rule-adv[open] > summary { border-bottom: 1px solid #2a3342; }
 #creator-view.cm-on input, #creator-view.cm-on textarea, #creator-view.cm-on select,
 #cm-sheet-body input[type="text"], #cm-sheet-body input[type="number"], #cm-sheet-body textarea, #cm-sheet-body select { font-size: 16px !important; }
 #cm-sheet-body #creator-bulk-input { min-height: 40vh !important; }
+
+/* PCの「本番の見え方」ボタン */
+#cp-center-head { position: relative; }
+.cp-preview-btn { position: absolute; right: 0; top: 50%; transform: translateY(-50%); margin: 0; padding: 5px 12px; border-radius: 8px; background: #1e293b; border: 1px solid #475569; color: #e2e8f0; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
+
+/* 作成画面：問題ごとの写真 */
+.qimg-ctl { display: flex; align-items: center; gap: 6px; }
+.qimg-thumb { width: 34px; height: 34px; object-fit: cover; border-radius: 6px; border: 1px solid #475569; }
+.qimg-ctl button { margin: 0; padding: 5px 10px; border-radius: 8px; background: rgba(255, 255, 255, 0.06); border: 1px solid #475569; color: #e2e8f0; font-size: 0.78rem; cursor: pointer; white-space: nowrap; min-height: 0; }

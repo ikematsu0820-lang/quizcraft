@@ -698,6 +698,21 @@ App.Design = {
                     ${rowLabel('文字')}
                     ${miniSelect('フォント', 'fontFamily', fontOpts)}
                 </div>
+                ${(() => {
+                    // 画面の型 — 標準／バラエティ枠（選択式のみ。variety_frame.js）
+                    const tpl = design.layoutTemplate === 'frame' ? 'frame' : '';
+                    const btn = (v, label, sub) => `<button type="button" data-layout-template="${v}" style="flex:1; padding:8px 4px; border-radius:8px; cursor:pointer; text-align:center;
+                        background:${tpl === v ? 'rgba(0,229,255,0.12)' : '#1e293b'}; border:1px solid ${tpl === v ? '#00e5ff' : '#475569'}; color:${tpl === v ? '#00e5ff' : '#e2e8f0'};">
+                        <div style="font-size:0.75rem; font-weight:bold;">${label}</div><div style="font-size:0.6rem; opacity:0.75;">${sub}</div></button>`;
+                    return `
+                        <div style="margin:12px 0 6px; color:#94a3b8; font-size:0.7rem; font-weight:bold;">画面の型</div>
+                        <div style="display:flex; gap:6px;">${btn('', '標準', '問題文と選択肢')}${btn('frame', 'バラエティ枠', 'お題の帯・写真・大きなボタン')}</div>
+                        ${tpl === 'frame' ? `
+                            <input type="text" data-key="frameTitle" value="${String(design.frameTitle || '').replace(/"/g, '&quot;')}" placeholder="上の帯の文字（空欄ならセット名）" style="
+                                width:100%; height:${CONTROL_HEIGHT}; min-height:${CONTROL_HEIGHT}; padding:0 8px; margin:8px 0 6px; background:#1e293b; border:1px solid #475569; border-radius:6px; color:#fff; box-sizing:border-box;">
+                            <div style="display:flex; gap:6px;">${colorSwatch('枠の色', 'frameColor')}${colorSwatch('写真の背景', 'qBgColor')}${colorSwatch('全体の背景', 'mainBgColor')}</div>
+                            <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">※選択式の時に使えます。写真は問題ごとに「写真を付ける」から。問題文は写真の下の名前の欄に出ます</p>` : ''}`;
+                })()}
                 <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">※テーマはこのセットの全問題に効きます。色はテキスト／オブジェクトのタブで個別に変えられます</p>
             `;
         };
@@ -811,6 +826,16 @@ App.Design = {
                 chk.onchange = () => { design[chk.dataset.timerChk] = chk.checked; if (onChange) onChange(); };
             });
             this._startTimerDemo(body.querySelector('#design-timer-demo'), design);
+
+            // 画面の型
+            body.querySelectorAll('button[data-layout-template]').forEach(btn => {
+                btn.onclick = () => {
+                    design.layoutTemplate = btn.dataset.layoutTemplate;
+                    if (design.layoutTemplate === 'frame' && !design.frameColor) design.frameColor = '#c9c94a';
+                    if (onChange) onChange();
+                    renderBody();
+                };
+            });
 
             // テーマカード
             body.querySelectorAll('button[data-theme-id]').forEach(btn => {

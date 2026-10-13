@@ -43,6 +43,7 @@ App.CreatorDesktop = {
             <section id="cp-center">
                 <div id="cp-center-head">
                     <span id="cp-edit-title"></span>
+                    <button type="button" id="cp-preview-btn" class="cp-preview-btn">本番の見え方</button>
                 </div>
                 <div id="cp-center-slot"></div>
                 <div class="cp-shortcuts">Ctrl / ⌘ + Enter：追加・更新　　Ctrl / ⌘ + S：保存</div>
@@ -63,6 +64,8 @@ App.CreatorDesktop = {
         view.insertBefore(layout, anchor ? anchor.nextSibling : view.firstChild);
 
         document.getElementById('cp-new-btn').onclick = () => this.newQuestion();
+        // モニターと同じ描画で、ブリッジ・問題・正解を確認する（creator_mobile.js の確認画面）
+        document.getElementById('cp-preview-btn').onclick = () => window.App.CreatorMobile && window.App.CreatorMobile.openPreview();
         layout.querySelectorAll('[data-cp-panel]').forEach(btn => {
             btn.onclick = () => this.C().toggleInlinePanel(btn.dataset.cpPanel);
         });

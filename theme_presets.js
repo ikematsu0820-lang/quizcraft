@@ -88,6 +88,17 @@ App.Themes = {
             },
         },
         {
+            id: 'variety', name: 'バラエティ', desc: 'テレビ番組風の枠と大きなボタン',
+            font: 'gothic', accent: '#d62828', timer: 'ball', template: 'frame', frame: '#c9c94a',
+            bridge: { style: 'plain', bg: '#f2efdc', text: '#c0392b' },
+            colors: {
+                mainBgColor: '#f4eef2',
+                qTextColor: '#222222', qBgColor: '#f2efdc', qBorderColor: '#c9c94a',
+                cTextColor: '#ffffff', cBgColor: 'transparent', cBorderColor: '#1a1a1a',
+                revealTextColor: '', revealBorderColor: '', revealBgColor: '',
+            },
+        },
+        {
             id: 'clean', name: 'クリーン', desc: '白基調で見やすく',
             font: 'gothic', accent: '#2563eb', timer: 'ring', bridge: { style: 'count', bg: '#f4f6fa', text: '#111827' },
             colors: {
@@ -112,6 +123,9 @@ App.Themes = {
         design.fontFamily = t.font;
         design.accentColor = t.accent;
         if (t.timer) design.timerStyle = t.timer; // タイマーの見た目もテーマに合わせる
+        // 画面の型 — 「バラエティ」だけ枠型にする（ほかのテーマは今の型のまま）
+        if (t.template) design.layoutTemplate = t.template;
+        if (t.frame) design.frameColor = t.frame;
         if (t.bridge) { // ブリッジ（第○問）も黒×白に限らず、テーマに合わせる
             design.bridgeStyle = t.bridge.style;
             design.bridgeBgColor = t.bridge.bg;

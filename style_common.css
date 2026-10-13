@@ -1040,3 +1040,88 @@ button.btn-player-hero:hover {
 @keyframes bvChar { to { opacity: 1; } }
 .bv-type .bv-caret { width: 0.12em; height: 0.9em; margin-left: 0.08em; vertical-align: -0.05em; animation: bvCaret 0.8s steps(2, start) infinite; opacity: 1; }
 @keyframes bvCaret { to { visibility: hidden; } }
+
+/* =========================================================
+ * バラエティ枠（variety_frame.js）— 16:9のステージ（cqw/cqh）基準
+ * ======================================================= */
+.vf {
+    position: absolute; left: 4cqw; right: 4cqw; top: 3cqh; bottom: 3cqh;
+    display: flex; flex-direction: column; gap: 1.6cqh;
+    padding: 1.6cqh 2cqw 2.2cqh;
+    border-radius: 4cqh;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--vf-frame) 85%, #fff) 0%, var(--vf-frame) 45%, color-mix(in srgb, var(--vf-frame) 80%, #000) 100%);
+    box-shadow: 0 1.2cqh 3cqh rgba(0, 0, 0, 0.3), inset 0 0.5cqh 0 rgba(255, 255, 255, 0.45);
+    box-sizing: border-box;
+    font-family: var(--theme-font, 'M PLUS 1p', 'Hiragino Kaku Gothic ProN', sans-serif);
+}
+.vf-title {
+    flex: 0 0 auto; padding: 0.8cqh 2cqw; border-radius: 1.2cqh;
+    background: linear-gradient(180deg, #4a4a4a, #1f1f1f); color: #fff;
+    font-size: 4.6cqh; font-weight: 900; text-align: center; letter-spacing: 0.1em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.vf-stage {
+    position: relative; flex: 1; min-height: 0; overflow: hidden;
+    border-radius: 1.6cqh 1.6cqh 0 0; background: var(--vf-stage);
+    display: flex; align-items: flex-end; justify-content: center;
+}
+.vf-img { height: 96%; max-width: 70%; object-fit: contain; object-position: bottom; animation: vfImgIn 0.35s ease-out both; }
+@keyframes vfImgIn { from { opacity: 0; transform: translateY(2cqh); } to { opacity: 1; transform: none; } }
+.vf-qnum {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-family: 'Shippori Mincho', 'Hiragino Mincho ProN', serif; font-size: 16cqh; color: #c0392b; letter-spacing: 0.15em;
+    animation: vfFade 0.4s ease-out both;
+}
+.vf-reveal {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-family: 'Shippori Mincho', 'Hiragino Mincho ProN', serif; font-weight: 800; font-size: 20cqh; line-height: 1;
+    text-shadow: 0 0 1.2cqh #fff, 0 0 2.4cqh #fff, 0 0 3.6cqh #fff;
+    white-space: nowrap; animation: vfPop 0.45s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+@keyframes vfFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes vfPop { from { opacity: 0; transform: scale(1.6); } to { opacity: 1; transform: none; } }
+.vf-caption {
+    flex: 0 0 auto; margin-top: -1.6cqh; padding: 0.6cqh 2cqw; min-height: 6cqh;
+    background: #fff; border-radius: 0 0 1.6cqh 1.6cqh; color: var(--vf-text);
+    font-size: 5cqh; font-weight: 900; text-align: center; line-height: 1.2;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-sizing: border-box;
+}
+.vf-buttons { flex: 0 0 22cqh; display: grid; gap: 1.6cqw; }
+.vf-btn {
+    position: relative; display: flex; align-items: center; justify-content: center; gap: 1cqw;
+    border-radius: 1.6cqh; border: 0.5cqh solid #1a1a1a;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--vf-btn) 35%, #222) 0%, color-mix(in srgb, var(--vf-btn) 25%, #000) 100%);
+    box-shadow: inset 0 0.6cqh 0 rgba(255, 255, 255, 0.18), 0 0.6cqh 0 rgba(0, 0, 0, 0.35);
+    color: #fff; transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+}
+.vf-btn-text { font-size: 7.5cqh; font-weight: 900; text-shadow: 0 0.4cqh 0.6cqh rgba(0, 0, 0, 0.6); white-space: nowrap; }
+.vf-btn.vf-lit {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--vf-btn) 70%, #fff) 0%, var(--vf-btn) 50%, color-mix(in srgb, var(--vf-btn) 75%, #000) 100%);
+    box-shadow: 0 0 3cqh var(--vf-btn), inset 0 0.6cqh 0 rgba(255, 255, 255, 0.45);
+    animation: vfLit 0.25s ease-out;
+}
+@keyframes vfLit { 0% { transform: scale(0.96); } 100% { transform: none; } }
+.vf-count { position: absolute; right: 1.2cqw; top: 0.8cqh; font-size: 3.4cqh; font-weight: 900; color: #ffd700; }
+.vf-stamp { position: absolute; left: 50%; top: 50%; width: 17cqh; height: 17cqh; margin: -8.5cqh 0 0 -8.5cqh; pointer-events: none; animation: vfStamp 0.35s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+.vf-stamp-ok { border: 1.6cqh solid rgba(255, 255, 255, 0.92); border-radius: 50%; box-sizing: border-box; box-shadow: 0 0 1.5cqh rgba(0, 0, 0, 0.35); }
+.vf-stamp-ng::before, .vf-stamp-ng::after { content: ''; position: absolute; left: 50%; top: -5%; width: 1.6cqh; height: 110%; margin-left: -0.8cqh; background: rgba(30, 30, 30, 0.88); border-radius: 0.8cqh; }
+.vf-stamp-ng::before { transform: rotate(45deg); }
+.vf-stamp-ng::after { transform: rotate(-45deg); }
+@keyframes vfStamp { from { opacity: 0; transform: scale(2); } to { opacity: 1; transform: none; } }
+
+/* 通常の画面での問題の写真 */
+.q-photo { display: block; max-height: 36cqh; max-width: 100%; margin: 0 auto 1.5cqh; border-radius: 1cqh; object-fit: contain; }
+
+/* タイマー「玉」— 枠の写真の右に置く */
+.tv-ball { top: 20cqh; right: 13cqw; width: 17cqh; height: 17cqh; }
+.tv-ball-orb {
+    width: 100%; height: 100%; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #ff9a8a 0 8%, #e53935 30%, #9d1010 75%, #6d0606 100%);
+    box-shadow: 0 0.8cqh 1.6cqh rgba(0, 0, 0, 0.35), inset 0 -1cqh 2cqh rgba(0, 0, 0, 0.35);
+    display: flex; align-items: center; justify-content: center;
+}
+.tv-ball .tv-num { color: #fff; font-size: 11cqh; -webkit-text-stroke: 0.25cqh #5a0000; text-shadow: 0 0.4cqh 0 #5a0000; }
+.tv-ball.tv-warn .tv-ball-orb { animation: tvBallBeat 1s ease-in-out infinite; }
+@keyframes tvBallBeat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.08); } }
+.tv-ball.tv-expired { animation: vfFade 0.3s reverse forwards; }
+.tv-ball.tv-blink { animation: none; } /* 玉は点滅させず、脈打つだけ */

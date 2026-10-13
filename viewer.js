@@ -265,6 +265,7 @@ window.App.Viewer = {
             this.updateAnswerWall(snap.val());
             this._players = snap.val() || {};
             this.updateLiveAnswers();
+            if (window.App.VarietyFrame && this._st) window.App.VarietyFrame.updateLive(this._st, this._players, this.questions[this._st.qIndex]);
         });
     },
 
@@ -357,8 +358,11 @@ window.App.Viewer = {
                 };
                 this.applyDefaultDesign(viewContainer, bridgeDesign);
                 const label = st.qNumLabel || `第 ${st.qIndex + 1} 問`;
-                // 演出の型（帯・数字がドン・シャッターなど）は bridge_view.js
-                if (window.App.BridgeView) {
+                if (window.App.VarietyFrame && window.App.VarietyFrame.applies(q)) {
+                    // バラエティ枠 — ブリッジも枠の中に「Q1」と出す
+                    window.App.VarietyFrame.render(viewContainer, mainText, q, st, 'bridge', { label: st.qNumLabel || `Q${st.qIndex + 1}` });
+                } else if (window.App.BridgeView) {
+                    // 演出の型（帯・数字がドン・シャッターなど）は bridge_view.js
                     mainText.innerHTML = '<div id="viewer-bridge-box" style="width:100%; height:100%;"></div>';
                     window.App.BridgeView.render(mainText.firstChild, d, label);
                 } else {
@@ -482,6 +486,7 @@ window.App.Viewer = {
             }
 
             this.renderQuestionLayout(viewContainer, mainText, q, st, st.revealedMulti);
+            if (window.App.VarietyFrame && window.App.VarietyFrame.applies(q)) return; // 枠の中で発表済み
 
             // Suppress popup for ANY multi type that has a grid layout (q.c)
             if (q.type && (q.type.startsWith('multi') || q.type.startsWith('ranking')) && Array.isArray(q.c) && q.c.length > 0) return;
@@ -1318,6 +1323,18 @@ window.App.Viewer = {
     },
 
     renderQuestionLayout: function (container, contentBox, q, st = {}, revealedMulti = {}) {
+        // バラエティ枠（variety_frame.js）— 選択式で、デザインの画面型が「枠」の時
+        if (window.App.VarietyFrame && window.App.VarietyFrame.applies(q)) {
+            const phase = (st.step === 'reveal_correct' || st.step === 'answer') ? 'answer' : 'question';
+            window.App.VarietyFrame.render(container, contentBox, q, st, phase);
+            return;
+        }
+        if (container) container.classList.remove('vf-on');
+        this._renderQuestionLayoutInner(container, contentBox, q, st, revealedMulti);
+        if (window.App.VarietyFrame) window.App.VarietyFrame.injectImage(contentBox, q);
+    },
+
+    _renderQuestionLayoutInner: function (container, contentBox, q, st = {}, revealedMulti = {}) {
         const d = q.design || {};
         const layout = q.layout || 'standard';
         const align = q.align || 'center';

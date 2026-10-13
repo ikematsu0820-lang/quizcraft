@@ -112,6 +112,7 @@ App.CreatorMobile = {
         pv.innerHTML = `
             <div id="cm-preview-frame"><div id="cm-preview-stage" class="cm-stage"></div></div>
             <div class="cm-preview-bar">
+                <button type="button" class="cm-pill" data-cm-step="bridge">ブリッジ</button>
                 <button type="button" class="cm-pill" data-cm-step="question">問題</button>
                 <button type="button" class="cm-pill" data-cm-step="answer">正解</button>
                 <button type="button" class="cm-pill" id="cm-preview-close">閉じる</button>
@@ -503,7 +504,8 @@ App.CreatorMobile = {
         const C = this.C();
         const qs = window.App.Data.createdQuestions || [];
         let q = null;
-        if (this.screen === 'edit' && C._readFormDataForPreview) {
+        // スマホは編集画面の時、PCはいつでも、入力中の内容を見せる
+        if ((this.screen === 'edit' || !this.isMobile()) && C._readFormDataForPreview) {
             try { q = C._readFormDataForPreview(); } catch (e) { q = null; }
             if (q && !q.q) q.q = '（ここに問題文が入ります）';
         }
@@ -523,6 +525,20 @@ App.CreatorMobile = {
         const V = window.App.Viewer;
         stage.innerHTML = '<div class="cm-stage-main"></div>';
         const main = stage.firstChild;
+        if (step === 'bridge') {
+            const C = this.C();
+            const n = (C.editingIndex !== null && C.editingIndex !== undefined) ? C.editingIndex + 1 : (window.App.Data.createdQuestions || []).length + 1;
+            const d = q.design || {};
+            if (window.App.VarietyFrame && window.App.VarietyFrame.applies(q)) {
+                window.App.VarietyFrame.render(stage, main, q, { qIndex: n - 1 }, 'bridge', { label: (C.qNumText || '').trim() || `Q${n}` });
+            } else if (window.App.BridgeView) {
+                stage.style.backgroundColor = d.bridgeBgColor || '#0a0a0a';
+                window.App.BridgeView.render(main, d, (C.qNumText || '').trim() || `第 ${n} 問`);
+            }
+            if (window.App.Themes) window.App.Themes.applyToElement(stage, d);
+            this.toContainerUnits(stage);
+            return;
+        }
         const st = { step: step === 'answer' ? 'answer' : 'reveal_q', qIndex: 0, revealedMulti: {} };
         try {
             if (!V) throw new Error('viewer not loaded');

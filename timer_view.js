@@ -19,6 +19,7 @@ App.TimerView = {
         { id: 'number', name: '数字' },
         { id: 'clock', name: '時計' },
         { id: 'fuse', name: '導火線' },
+        { id: 'ball', name: '玉' },
     ],
 
     // 残り時間（ミリ秒）— status.timer とサーバー時刻から
@@ -114,6 +115,7 @@ App.TimerView = {
                 <div class="tv-num"></div>`;
         }
         if (style === 'number') return '<div class="tv-num"></div>';
+        if (style === 'ball') return '<div class="tv-ball-orb"><span class="tv-num"></span></div>';
         if (style === 'clock') {
             const ticks = Array.from({ length: 12 }, (_, i) => `<span class="tv-clock-tick" style="transform:rotate(${i * 30}deg)"></span>`).join('');
             return `<div class="tv-clock-face">${ticks}<span class="tv-clock-hand"></span><span class="tv-clock-pin"></span></div><div class="tv-num"></div>`;

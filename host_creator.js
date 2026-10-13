@@ -551,10 +551,23 @@ window.App.Creator = {
                 else this.choiceSubtype = 'single';
                 data.c.forEach((txt, i) => this.addChoiceInput(choicesDiv, i, txt, data.correct.includes(i)));
             }
-            else for (let i = 0; i < 4; i++) this.addChoiceInput(choicesDiv, i);
+            else {
+                // 「次の問題も同じ選択肢」— 直前の問題の選択肢を入れた状態で始める
+                // （「吸ってる／吸ってない」のように全問で同じ選択肢を使う時）
+                const qsNow = window.App.Data.createdQuestions || [];
+                const last = qsNow[qsNow.length - 1];
+                const carry = (window.App.Data.currentConfig || {}).sameChoices && last && last.type === 'choice' && Array.isArray(last.c) && last.c.length ? last.c : null;
+                if (carry) carry.forEach((txt, i) => this.addChoiceInput(choicesDiv, i, txt, false));
+                else for (let i = 0; i < 4; i++) this.addChoiceInput(choicesDiv, i);
+            }
 
             // ＋選択肢を追加 はタブの外（プレビュー直下）、シャッフルは その他 タブ
             if (!this.oxMode) outsideButton('choice-add-btn', '＋ 選択肢を追加', () => this.addChoiceInput(choicesDiv));
+            if (!this.oxMode && this.choiceSubtype !== 'multi') {
+                outsideCheck('choice-same-chk', '次の問題も同じ選択肢', !!(window.App.Data.currentConfig || {}).sameChoices, (on) => {
+                    if (window.App.Data.currentConfig) window.App.Data.currentConfig.sameChoices = on;
+                });
+            }
             if (optionsExtra) {
                 optionsExtra.innerHTML = `
                     <div style="margin-bottom:14px;">
