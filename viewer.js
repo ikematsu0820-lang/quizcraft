@@ -1332,6 +1332,7 @@ window.App.Viewer = {
         if (container) container.classList.remove('vf-on');
         this._renderQuestionLayoutInner(container, contentBox, q, st, revealedMulti);
         if (window.App.VarietyFrame) window.App.VarietyFrame.injectImage(contentBox, q);
+        if (window.App.LayoutEditor) window.App.LayoutEditor.applyToViewer(contentBox, q); // 問題と回答の枠の割合
     },
 
     _renderQuestionLayoutInner: function (container, contentBox, q, st = {}, revealedMulti = {}) {

@@ -1110,7 +1110,7 @@ button.btn-player-hero:hover {
 @keyframes vfStamp { from { opacity: 0; transform: scale(2); } to { opacity: 1; transform: none; } }
 
 /* 通常の画面での問題の写真 */
-.q-photo { display: block; max-height: 36cqh; max-width: 100%; margin: 0 auto 1.5cqh; border-radius: 1cqh; object-fit: contain; }
+.q-photo { display: block; max-height: min(36cqh, 60%); max-width: 100%; margin: 0 auto 1.5cqh; border-radius: 1cqh; object-fit: contain; }
 
 /* タイマー「玉」— 枠の写真の右に置く */
 .tv-ball { top: 20cqh; right: 13cqw; width: 17cqh; height: 17cqh; }

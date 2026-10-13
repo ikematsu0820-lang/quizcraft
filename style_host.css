@@ -5066,3 +5066,62 @@ details.rule-adv[open] > summary { border-bottom: 1px solid #2a3342; }
 .qimg-ctl { display: flex; align-items: center; gap: 6px; }
 .qimg-thumb { width: 34px; height: 34px; object-fit: cover; border-radius: 6px; border: 1px solid #475569; }
 .qimg-ctl button { margin: 0; padding: 5px 10px; border-radius: 8px; background: rgba(255, 255, 255, 0.06); border: 1px solid #475569; color: #e2e8f0; font-size: 0.78rem; cursor: pointer; white-space: nowrap; min-height: 0; }
+
+/* =========================================================
+ * 作成画面のプレビュー：バラエティ枠（layout_editor.js）
+ * ======================================================= */
+#creator-monitor-preview.cvf { background: var(--cvf-bg) !important; }
+#creator-monitor-preview.cvf #creator-monitor-flexwrap {
+    inset: 3% 3% 3% 3% !important; padding: 1.4% 1.6% 1.8% !important; gap: 1.2%;
+    border-radius: 18px; background: linear-gradient(180deg, color-mix(in srgb, var(--cvf-frame) 85%, #fff), var(--cvf-frame) 45%, color-mix(in srgb, var(--cvf-frame) 80%, #000));
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3), inset 0 3px 0 rgba(255, 255, 255, 0.4);
+}
+#cvf-title {
+    flex: 0 0 auto; order: 0; width: 100%; height: auto !important; min-height: 0 !important; margin: 0 !important; padding: 0.4em 0.8em !important;
+    border: none !important; border-radius: 8px; background: linear-gradient(180deg, #4a4a4a, #1f1f1f) !important; color: #fff !important;
+    font-size: clamp(0.7rem, 1.6vw, 1.05rem) !important; font-weight: 900; text-align: center; letter-spacing: 0.08em; box-sizing: border-box;
+}
+#cvf-title::placeholder { color: rgba(255, 255, 255, 0.45); }
+#cvf-photo {
+    order: 1; flex: 1 1 0; min-height: 0; display: flex; align-items: flex-end; justify-content: center; overflow: hidden;
+    border-radius: 10px 10px 0 0; background: var(--cvf-stage); cursor: pointer;
+}
+#cvf-photo img { height: 96%; max-width: 70%; object-fit: contain; object-position: bottom; }
+#cvf-photo span { align-self: center; padding: 0.5em 1em; border: 2px dashed rgba(0, 0, 0, 0.25); border-radius: 10px; color: rgba(0, 0, 0, 0.45); font-weight: bold; font-size: clamp(0.7rem, 1.4vw, 0.95rem); }
+#creator-monitor-preview.cvf #creator-monitor-q-area {
+    order: 2; flex: 0 0 auto !important; margin: -1.2% 0 0 !important; padding: 0.3em 1em !important;
+    border: none !important; border-radius: 0 0 10px 10px !important; background: #fff !important; box-shadow: none !important;
+}
+#creator-monitor-preview.cvf #question-text { color: #222 !important; text-align: center !important; text-shadow: none !important; font-size: clamp(0.8rem, 1.8vw, 1.2rem) !important; font-weight: 900 !important; }
+#creator-monitor-preview.cvf #question-text::placeholder { color: #999 !important; }
+#creator-monitor-preview.cvf #creator-form-container { order: 3; }
+#creator-monitor-preview.cvf #creator-choices-list { display: grid !important; gap: 1.6% !important; height: 100% !important; grid-template-rows: 1fr !important; }
+#creator-monitor-preview.cvf .choice-row { min-height: 0 !important; }
+#creator-monitor-preview.cvf .choice-label-text { display: none !important; }
+#creator-monitor-preview.cvf .choice-frame {
+    position: relative; justify-content: center; border-radius: 10px !important; border: 3px solid #1a1a1a !important;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--cvf-btn) 40%, #222), color-mix(in srgb, var(--cvf-btn) 28%, #000)) !important;
+}
+#creator-monitor-preview.cvf .choice-row:nth-child(4n+1) { --cvf-btn: #d62828; }
+#creator-monitor-preview.cvf .choice-row:nth-child(4n+2) { --cvf-btn: #1e40c8; }
+#creator-monitor-preview.cvf .choice-row:nth-child(4n+3) { --cvf-btn: #14935a; }
+#creator-monitor-preview.cvf .choice-row:nth-child(4n+4) { --cvf-btn: #d99a00; }
+#creator-monitor-preview.cvf .choice-row:has(.choice-correct-chk:checked) .choice-frame { box-shadow: 0 0 0 3px #fff, 0 0 14px var(--cvf-btn) !important; }
+#creator-monitor-preview.cvf .choice-text-input { color: #fff !important; text-align: center !important; font-weight: 900 !important; font-size: clamp(0.85rem, 2.2vw, 1.5rem) !important; }
+#creator-monitor-preview.cvf .choice-correct-chk { position: absolute; left: 8px; top: 8px; margin: 0 !important; }
+#creator-monitor-preview.cvf .choice-frame > button { position: absolute; right: 4px; top: 2px; }
+
+/* 境目のつまみ（ドラッグで問題と回答の大きさを変える） */
+#layout-divider { position: absolute; left: 3%; right: 3%; height: 14px; margin-top: -7px; z-index: 40; cursor: row-resize; display: flex; align-items: center; justify-content: center; touch-action: none; }
+#layout-divider.ld-row { top: 3% !important; bottom: 3%; left: auto; right: auto; width: 14px; height: auto; margin: 0 0 0 -7px; cursor: col-resize; }
+#layout-divider .ld-grip { position: absolute; left: 0; right: 0; top: 6px; border-top: 2px dashed rgba(0, 229, 255, 0.0); transition: border-color 0.15s; }
+#layout-divider.ld-row .ld-grip { left: 6px; right: auto; top: 0; bottom: 0; border-top: none; border-left: 2px dashed rgba(0, 229, 255, 0.0); }
+#creator-monitor-preview:hover #layout-divider .ld-grip, #layout-divider.ld-active .ld-grip { border-color: rgba(0, 229, 255, 0.85); }
+#layout-divider .ld-tip { position: relative; padding: 1px 8px; border-radius: 99px; background: #00e5ff; color: #001018; font-size: 0.62rem; font-weight: bold; opacity: 0; transition: opacity 0.15s; pointer-events: none; }
+#creator-monitor-preview:hover #layout-divider .ld-tip, #layout-divider.ld-active .ld-tip { opacity: 1; }
+
+/* プレビュー上部の「標準／バラエティ枠」 */
+#creator-bezel-topbar { justify-content: flex-start; }
+#cvf-switch { display: flex; border: 1px solid #333; border-radius: 6px; overflow: hidden; }
+#cvf-switch button { padding: 3px 9px; font-size: 0.66rem; font-weight: bold; border: none; cursor: pointer; color: #cbd5e1; background: #1e293b; margin: 0; min-height: 0; }
+#cvf-switch button.on { background: #f59e0b; color: #1a1000; }

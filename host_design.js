@@ -713,6 +713,20 @@ App.Design = {
                             <div style="display:flex; gap:6px;">${colorSwatch('枠の色', 'frameColor')}${colorSwatch('写真の背景', 'qBgColor')}${colorSwatch('全体の背景', 'mainBgColor')}</div>
                             <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">※選択式の時に使えます。写真は問題ごとに「写真を付ける」から。問題文は写真の下の名前の欄に出ます</p>` : ''}`;
                 })()}
+                ${(() => {
+                    // 問題の枠と回答の枠の割合（プレビューの境目をドラッグしても変えられる）
+                    const r = Number(design.splitRatio) || 0;
+                    return `
+                        <div style="margin:14px 0 6px; color:#94a3b8; font-size:0.7rem; font-weight:bold; display:flex; justify-content:space-between;">
+                            <span>${design.layoutTemplate === 'frame' ? '写真とボタンの大きさ' : '問題の枠と回答の枠の大きさ'}</span>
+                            <span id="split-ratio-val" style="color:#e2e8f0;">${r ? `問題 ${r}％` : '自動'}</span>
+                        </div>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <input type="range" id="split-ratio-range" min="15" max="80" step="1" value="${r || 40}" style="flex:1; height:auto !important; min-height:0 !important; margin:0; accent-color:#00e5ff;">
+                            <button type="button" id="split-ratio-auto" style="flex:0 0 auto; padding:5px 10px; border-radius:6px; background:${r ? '#1e293b' : 'rgba(0,229,255,0.12)'}; border:1px solid ${r ? '#475569' : '#00e5ff'}; color:${r ? '#e2e8f0' : '#00e5ff'}; font-size:0.7rem; cursor:pointer;">自動</button>
+                        </div>
+                        <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">※プレビューの境目（点線のつまみ）をドラッグしても変えられます</p>`;
+                })()}
                 <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">※テーマはこのセットの全問題に効きます。色はテキスト／オブジェクトのタブで個別に変えられます</p>
             `;
         };
@@ -826,6 +840,15 @@ App.Design = {
                 chk.onchange = () => { design[chk.dataset.timerChk] = chk.checked; if (onChange) onChange(); };
             });
             this._startTimerDemo(body.querySelector('#design-timer-demo'), design);
+
+            // 問題の枠と回答の枠の割合
+            const splitRange = body.querySelector('#split-ratio-range');
+            if (splitRange) splitRange.oninput = () => {
+                design.splitRatio = parseInt(splitRange.value);
+                const v = body.querySelector('#split-ratio-val'); if (v) v.textContent = `問題 ${design.splitRatio}％`;
+                if (onChange) onChange();
+            };
+            body.querySelector('#split-ratio-auto')?.addEventListener('click', () => { delete design.splitRatio; if (onChange) onChange(); renderBody(); });
 
             // 画面の型
             body.querySelectorAll('button[data-layout-template]').forEach(btn => {

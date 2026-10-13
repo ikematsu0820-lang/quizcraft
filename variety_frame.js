@@ -96,6 +96,8 @@ App.VarietyFrame = {
         }).join('');
 
         const showImage = phase !== 'bridge' && q.image;
+        // ボタンの高さ — 作成画面で境目をドラッグした割合（layout_editor.js）
+        const btnPct = window.App.LayoutEditor ? window.App.LayoutEditor.frameButtonsPct(d) : 22;
         contentBox.innerHTML = `
             <div class="vf vf-phase-${phase}" style="--vf-frame:${d.frameColor || '#c9c94a'}; --vf-stage:${d.qBgColor && d.qBgColor !== 'transparent' && !String(d.qBgColor).startsWith('rgba') ? d.qBgColor : '#f2efdc'}; --vf-text:${d.qTextColor || '#222'};">
                 <div class="vf-title">${e(title)}</div>
@@ -105,7 +107,7 @@ App.VarietyFrame = {
                     ${isAnswer && correctText ? `<div class="vf-reveal" style="color:${correctColor};">${e(correctText)}</div>` : ''}
                 </div>
                 <div class="vf-caption">${phase === 'bridge' ? '' : e(q.q || '')}</div>
-                <div class="vf-buttons" style="grid-template-columns:repeat(${Math.min(q.c.length, 4)}, 1fr);">${buttons}</div>
+                <div class="vf-buttons" style="grid-template-columns:repeat(${Math.min(q.c.length, 4)}, 1fr); flex-basis:${btnPct}cqh;">${buttons}</div>
             </div>`;
         contentBox.style.flexDirection = '';
         contentBox.style.justifyContent = '';
