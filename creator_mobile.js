@@ -353,22 +353,22 @@ App.CreatorMobile = {
         const d = window.App.Data.currentDesign || {};
         const MODE = { normal: '全員が同時に手元で答える', buzz: '早く押した人から答える', nominate: '指名された人だけ答える', turn: '順番に答える' };
         const SCORE = { uniform: '正解者全員に同じ点', ranked: '速い人ほど高得点', hint: 'ヒントが少ないほど高得点' };
-        const rows = [{ key: 'format', icon: '🙋', label: '答え方', value: MODE[conf.mode] || MODE.normal }];
+        const rows = [{ key: 'format', label: '答え方', value: MODE[conf.mode] || MODE.normal }];
         if (conf.mode === 'buzz') {
-            rows.push({ key: 'wrong', icon: '❌', label: '間違えたとき', value: conf.buzzWrongAction === 'end' ? '問題を終える' : '他の人が答えられる' });
+            rows.push({ key: 'wrong', label: '間違えたとき', value: conf.buzzWrongAction === 'end' ? '問題を終える' : '他の人が答えられる' });
         }
         const win = conf.gameType === 'survival'
             ? `最後まで残った人（${conf.survivalLives || 1}回ミスで脱落）`
             : `得点の高い人（${SCORE[conf.scoreType] || SCORE.uniform}）`;
-        rows.push({ key: 'win', icon: '🏆', label: '勝ち方', value: win });
+        rows.push({ key: 'win', label: '勝ち方', value: win });
         const sec = parseInt(conf.timeLimitSeconds) || 30;
         const time = conf.timeLimitEnabled !== 'on' ? 'なし'
             : (conf.timerKind === 'pool' ? `セット全体で${sec}秒` : `1問${sec}秒`);
-        rows.push({ key: 'time', icon: '⏱️', label: '制限時間', value: time });
+        rows.push({ key: 'time', label: '制限時間', value: time });
         const theme = window.App.Themes && window.App.Themes.get(d.themeId);
         // テーマを選んでいない時は、既定の見た目（スタジオ）
         const look = theme ? `${theme.name}${window.App.Themes.isModified(d) ? '（カスタム）' : ''}` : (d.themeId ? 'カスタム' : 'スタジオ（標準）');
-        rows.push({ key: 'design', icon: '🎨', label: '見た目', value: look });
+        rows.push({ key: 'design', label: '見た目', value: look });
         return rows;
     },
 
@@ -376,7 +376,6 @@ App.CreatorMobile = {
         if (!box) return;
         box.innerHTML = this.settingsRows().map(r => `
             <button type="button" class="cm-set-row" data-set-key="${r.key}">
-                <span class="cm-set-icon">${r.icon}</span>
                 <span class="cm-set-label">${r.label}</span>
                 <span class="cm-set-value">${this.esc(r.value)}</span>
             </button>`).join('');
