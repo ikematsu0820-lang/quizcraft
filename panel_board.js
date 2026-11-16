@@ -108,7 +108,7 @@ App.PanelBoard = {
 
         const outside = document.getElementById('creator-outside-opts');
         const mk = (html) => { const d = document.createElement('span'); d.innerHTML = html; return d.firstElementChild; };
-        const wrongSel = mk(`<label style="display:flex; align-items:center; gap:4px; color:#fff; font-size:0.8rem; white-space:nowrap;">誤答したパネル
+        const wrongSel = mk(`<label class="pb-wrong-wrap" style="display:flex; align-items:center; gap:4px; color:#fff; font-size:0.8rem; white-space:nowrap;">誤答したパネル
             <select id="pb-wrong" style="height:26px; min-height:0; margin:0; padding:0 6px; width:auto;">
                 <option value="keep">そのまま残す（他の人が答えられる）</option>
                 <option value="close">閉じて答えを見せる</option>
@@ -116,7 +116,7 @@ App.PanelBoard = {
         wrongSel.querySelector('select').value = (data && data.panelWrong === 'close') ? 'close' : 'keep';
         const paste = mk(`<button type="button" id="pb-paste-btn" style="margin-left:auto; background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4); border-radius:8px; color:#00e5ff; padding:5px 12px; cursor:pointer; font-size:0.8rem;">まとめて貼り付け</button>`);
         const add = mk(`<button type="button" id="pb-add-btn" style="margin-left:4px; background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4); border-radius:8px; color:#00e5ff; padding:5px 12px; cursor:pointer; font-size:0.8rem;">＋ パネルを追加</button>`);
-        const hint = mk(`<span style="color:#64748b; font-size:0.75rem; white-space:nowrap;">※答えは口頭。パネルの文字が空欄なら番号だけ出す・点が空欄ならルールの配点</span>`);
+        const hint = mk(`<span class="pb-hint" style="color:#64748b; font-size:0.75rem; white-space:nowrap;">※答えは口頭。表（問題）が空欄なら番号だけ出す・点が空欄ならルールの配点</span>`);
         if (outside) { [hint, wrongSel, paste, add].forEach(el => outside.appendChild(el)); outside.classList.remove('hidden'); }
         paste.onclick = () => this.openPaste(list);
         add.onclick = () => this.addRow(list, { label: '', answer: '', pts: '' });
@@ -130,8 +130,10 @@ App.PanelBoard = {
         const inp = 'height:24px !important; min-height:0; margin:0; padding:0 6px !important; background:rgba(255,255,255,0.06) !important; border:1px solid #334155 !important; border-radius:4px; color:#fff; font-size:0.78rem;';
         row.innerHTML = `
             <span class="pb-no" style="flex:0 0 1.8em; color:#fbbf24; font-weight:900; font-size:0.75rem; text-align:right;"></span>
-            <input type="text" class="pb-label row-input" placeholder="パネルの文字（任意）" value="${e(p.label)}" style="flex:1; min-width:0; ${inp}">
-            <input type="text" class="pb-answer" placeholder="答え" value="${e(p.answer)}" style="flex:1; min-width:0; ${inp} color:#86efac !important;">
+            <span class="pb-tag pb-tag-front">表</span>
+            <input type="text" class="pb-label" placeholder="表：問題（任意）" value="${e(p.label)}" style="flex:1; min-width:0; ${inp}">
+            <span class="pb-tag pb-tag-back">裏</span>
+            <input type="text" class="pb-answer" placeholder="裏：答え" value="${e(p.answer)}" style="flex:1; min-width:0; ${inp} color:#86efac !important;">
             <input type="number" class="pb-pts" placeholder="点" value="${e(p.pts)}" style="flex:0 0 46px; width:46px; ${inp} text-align:right !important; color:#fbbf24 !important;">
             <button type="button" class="pb-del" title="削除" style="flex:0 0 auto; background:none; border:none; color:rgba(255,255,255,0.35); cursor:pointer; padding:0 4px;">×</button>`;
         row.querySelector('.pb-del').onclick = () => { row.remove(); this.renumber(list); };
@@ -154,7 +156,7 @@ App.PanelBoard = {
         });
         return out;
     },
-    // 表計算ソフトから（1行1枚: パネルの文字[タブ]答え[タブ]点）
+    // 表計算ソフトから（1行1枚: 表の問題[タブ]答え[タブ]点）
     openPaste: function (list) {
         document.getElementById('pb-paste-modal')?.remove();
         const overlay = document.createElement('div');
@@ -163,7 +165,7 @@ App.PanelBoard = {
         overlay.innerHTML = `
             <div class="design-modal-content" style="max-width:440px; padding:20px !important;">
                 <h3 class="modal-title" style="font-size:1rem; margin-bottom:8px;">パネルをまとめて貼り付け</h3>
-                <p style="color:#94a3b8; font-size:0.75rem; margin:0 0 8px;">1行に1枚。パネルの文字[タブ]答え（[タブ]点）。答えだけの行（1列）なら、パネルは番号だけになります。カンマ区切りでもOK</p>
+                <p style="color:#94a3b8; font-size:0.75rem; margin:0 0 8px;">1行に1枚。表の問題[タブ]答え（[タブ]点）。答えだけの行（1列）なら、パネルは番号だけになります。カンマ区切りでもOK</p>
                 <textarea id="pb-paste-text" placeholder="青森	青森市
 岩手	盛岡市	2" style="width:100%; height:180px !important; min-height:180px !important; padding:8px; box-sizing:border-box; font-family:monospace; font-size:0.8rem; background:#0d1b2a; color:#fff; border:1px solid #475569; border-radius:8px; resize:vertical;"></textarea>
                 <label style="display:flex; align-items:center; gap:6px; color:#cbd5e1; font-size:0.78rem; margin:8px 0;"><input type="checkbox" id="pb-paste-replace" checked> 今のパネルを置き換える（外すと末尾に追加）</label>
@@ -182,7 +184,7 @@ App.PanelBoard = {
                 const pts = parts[2] !== undefined && parts[2] !== '' && !isNaN(Number(parts[2])) ? Number(parts[2]) : '';
                 return { label: parts[0], answer: parts[1], pts };
             }).filter(r => r && (r.label || r.answer));
-            if (!rows.length) { alert('「パネルの文字[タブ]答え」の行が見つかりませんでした'); return; }
+            if (!rows.length) { alert('「表の問題[タブ]答え」の行が見つかりませんでした'); return; }
             if (overlay.querySelector('#pb-paste-replace').checked) list.innerHTML = '';
             else list.querySelectorAll('.pb-row').forEach(r => { if (!r.querySelector('.pb-label').value.trim() && !r.querySelector('.pb-answer').value.trim()) r.remove(); });
             rows.forEach(r => this.addRow(list, r));
