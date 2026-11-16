@@ -562,7 +562,7 @@ App.CreatorMobile = {
                 const pb = {
                     theme: q.q || '', seq: 0, sel: first >= 0 ? first : null, finished: open, revealAll: open,
                     selQ: first >= 0 ? q.panels[first].pq : null,
-                    panels: q.panels.map(p => ({ label: p.label, r: null, answer: open ? ((q.panelQ && p.back) || p.answer) : null })),
+                    panels: q.panels.map(p => ({ label: p.label, r: null, answer: open ? p.answer : null })),
                 };
                 V.renderPanelBoard(stage, main, { step: 'panelboard', pb }, q);
             } else if (q.type === 'numgame' && V.renderNumGame) {

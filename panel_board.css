@@ -118,13 +118,11 @@
 #creator-view.cm-on #creator-outside-opts .pb-wrong-wrap { white-space: normal !important; flex-wrap: wrap; flex-basis: 100%; }
 #creator-view.cm-on #creator-outside-opts .pb-wrong-wrap select { max-width: 100%; flex: 1 1 auto; }
 
-/* スマホ: 問題付きは 表／問／答＋点／裏 の4段 */
+/* スマホ: 問題付きは 表／問／裏（答え）＋点 の3段 */
 #creator-view.cm-on #pb-list.pb-qmode .pb-row {
-    grid-template-areas: "no front label label del" ". qt pq pq ." ". at answer pts ." ". back bk bk .";
+    grid-template-areas: "no front label label del" ". qt pq pq ." ". at answer pts .";
 }
 #creator-view.cm-on .pb-row .pb-tag-q { grid-area: qt; background: #3b2f0b; color: #fde68a; }
 #creator-view.cm-on .pb-row .pb-tag-ans { grid-area: at; background: #14532d; color: #bbf7d0; }
-#creator-view.cm-on #pb-list.pb-qmode .pb-row .pb-tag-back { background: #4a2a06; color: #fed7aa; }
 #creator-view.cm-on .pb-row .pb-pq { grid-area: pq; }
-#creator-view.cm-on .pb-row .pb-back { grid-area: bk; }
 #creator-view.cm-on #creator-outside-opts .pb-qmode-wrap { flex-basis: 100%; }
