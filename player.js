@@ -652,10 +652,15 @@ function updateUI() {
     // 数字予想の画面は、そのゲーム中だけ出す
     const ngBox = document.getElementById('player-numgame');
     if (ngBox) ngBox.classList.toggle('hidden', st.step !== 'numgame');
+    const pbBox = document.getElementById('player-panelboard');
+    if (pbBox) pbBox.classList.toggle('hidden', st.step !== 'panelboard');
 
     // --- 状態ごとのUI制御 ---
     if (st.step === 'numgame') {
         renderPlayerNumGame(st, p);
+    }
+    else if (st.step === 'panelboard' && typeof renderPlayerPanelBoard === 'function') {
+        renderPlayerPanelBoard(st, p);
     }
     else if (st.step === 'selecting_set') {
         // マルチコンテナ: 司会者がセットを選択中

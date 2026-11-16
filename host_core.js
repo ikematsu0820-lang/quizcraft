@@ -41,7 +41,12 @@ window.App.QuizCheck = {
         const arr = (v) => Array.isArray(v) ? v : (v === undefined || v === null || v === '' ? [] : (typeof v === 'object' ? Object.values(v) : [v]));
         const c = arr(q.c);
         const correct = arr(q.correct);
-        if (t === 'choice') {
+        if (t === 'choice' && q.panel) {
+            // パネル指名モード — パネルの文字と答えがそろっていること
+            const panels = arr(q.panels);
+            if (panels.length < 2) miss.push('パネル（2枚以上）');
+            if (panels.some(p => p && !String(p.answer || '').trim())) miss.push('答え（未入力のパネルあり）');
+        } else if (t === 'choice') {
             if (c.length < 2) miss.push('選択肢（2つ以上）');
             if (correct.length === 0) miss.push(q.multi ? 'ダウト（×の選択肢）' : '正解');
         } else if (t === 'sort') {

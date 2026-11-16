@@ -626,6 +626,10 @@ window.App.Viewer = {
             statusDiv.textContent = "NUMBER GAME";
             this.renderNumGame(viewContainer, mainText, st);
         }
+        else if (st.step === 'panelboard' && this.renderPanelBoard) {
+            statusDiv.textContent = "PANEL";
+            this.renderPanelBoard(viewContainer, mainText, st);
+        }
         else if (st.step === 'bj_result') {
             statusDiv.textContent = "RESULT";
             this.applyDefaultDesign(viewContainer, null);

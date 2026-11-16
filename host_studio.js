@@ -317,6 +317,7 @@ App.Studio = {
             this.checkSurvival(players);
             this.checkWinThrough(players);
             if (this._ng) this.processNumGamePick(players);
+            if (this._pb) this.processPanelPick(players);
             const count = Object.keys(players).length;
             document.getElementById('studio-player-count-display').textContent = count;
             this.updatePlayerList(players);
@@ -1146,6 +1147,11 @@ App.Studio = {
                 // 数字予想は1問の中でゲームを最後まで進める（専用の進行）
                 if (currentQ.type === 'numgame') {
                     this.startNumGame(currentQ);
+                    break;
+                }
+                // パネル指名モード（panel_board.js）もパネルが全部開くまで1問の中で進める
+                if (window.App.PanelBoard && window.App.PanelBoard.is(currentQ)) {
+                    this.startPanelBoard(currentQ);
                     break;
                 }
                 if (!currentQ.prodDesign) {
@@ -2017,6 +2023,7 @@ App.Studio = {
             this._answerTimerId = null;
             if (App.State.currentQIndex !== qAt || this._answerTimerFor !== playerId) return;
             if (![2, 3].includes(this.currentStepId)) return;
+            if (this._pb) { this.pbJudge(false, true); return; } // パネル指名は時間切れ＝誤答
             const p = (App.Data.players || {})[playerId];
             if (p && p.lastResult) return; // もう判定済み
             App.Ui.showToast(`${(p && p.name) || '---'} さんは時間切れ（誤答）`);
@@ -2037,6 +2044,7 @@ App.Studio = {
 
     resetPlayerStatus: function () {
         if (this._ng) { this._ng = null; this.renderNumGameConsole(); }
+        if (this._pb) { this._pb = null; this.renderPanelConsole(); }
         this._nominatedId = null;
         this._turnTried = {};
         this.clearAnswerTimer();
@@ -2440,6 +2448,7 @@ App.Studio = {
             // 誰かが押したら時計を止める（ルール「制限時間」の詳細設定）
             if (this._timerConf().pauseOnBuzz) this.pauseTimer();
             this.startAnswerTimer(this.buzzWinner);
+            if (this._pb) this.pbRefresh();
         }
     },
 
@@ -2811,6 +2820,7 @@ App.Studio = {
 
     getAnswerString: function (q) {
         if (!q) return "";
+        if (window.App.PanelBoard && window.App.PanelBoard.is(q)) return `${q.panels.length}枚のパネル`;
         if (q.type === 'numgame') return `${(q.items || []).length}項目・目標${q.target || 0}${q.unit || ''}`;
         if (q.type === 'choice' && q.c) {
             if (Array.isArray(q.correct)) return q.correct.map(i => q.c[i]).join(' / ');
@@ -3428,6 +3438,7 @@ App.Studio = {
         App.Ui.showToast(`${p.name || '---'} さんを指名しました`);
         this.toggleParticipantsPage(false);
         this.startAnswerTimer(playerId);
+        if (this._pb) this.pbRefresh();
     },
 
     // 解答ボード ⇔ 参加者のページ

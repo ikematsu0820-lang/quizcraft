@@ -30,13 +30,15 @@ App.RuleEngine = {
         const isOral = !!info.isOral;
         const isMulti = !!(qType && (qType.startsWith('multi') || qType.startsWith('ranking')));
         const isAssoc = !!(firstType.startsWith('assoc') || qType.startsWith('assoc'));
-        const autoJudge = this.AUTO_JUDGE_TYPES.includes(firstType) && !isDobon;
+        // パネル指名モード（panel_board.js）— 口頭で「◯番、答え」と言い、出題者が判定する
+        const isPanel = qs.some(q => q && q.type === 'choice' && q.panel);
+        const autoJudge = this.AUTO_JUDGE_TYPES.includes(firstType) && !isDobon && !isPanel;
         // 答え方 — 口頭（出題者が判定）／手書き（出題者が判定）／ボタン（自動で判定）
-        const answerBy = isOral ? 'oral' : (autoJudge || isDobon || isBlackjack) ? 'button' : 'written';
+        const answerBy = (isOral || isPanel) ? 'oral' : (autoJudge || isDobon || isBlackjack) ? 'button' : 'written';
         return {
             mode: (conf && conf.mode) || 'normal',
             gameType: (conf && conf.gameType) || 'score',
-            firstType, qType, isDobon, isBlackjack, isOral, isMulti, isAssoc, autoJudge, answerBy,
+            firstType, qType, isDobon, isBlackjack, isOral, isMulti, isAssoc, autoJudge, answerBy, isPanel,
             isPlainChoice: firstType === 'choice' && !isDobon,
             // 1人ずつ答える（早押し・順番・指名）
             oneByOne: ['buzz', 'turn', 'nominate', 'solo'].includes((conf && conf.mode) || 'normal'),
@@ -53,13 +55,13 @@ App.RuleEngine = {
             (ctx.firstType.startsWith('free') || ctx.firstType.startsWith('assoc') || ['choice', 'sort', 'letter_select'].includes(ctx.firstType));
         return [
             { value: 'normal', label: '全員が同時に手元で解答',
-              disabled: ctx.isBlackjack || ctx.isOral || ctx.isDobon || ctx.isMulti,
+              disabled: ctx.isBlackjack || ctx.isOral || ctx.isDobon || ctx.isMulti || ctx.isPanel,
               reason: ctx.isOral ? '口頭で答える形式では使えません' : 'この形式では使えません' },
             { value: 'buzz', label: '早く押した人から解答',
               disabled: ctx.isBlackjack || ctx.isDobon, reason: 'この形式では使えません' },
             { value: 'nominate', label: '指名された人のみ解答', disabled: false, hidden: !canNominate },
             // 選択式は「特定の人や順番で解答」を使わない（ダウトは順番で使う）
-            { value: 'turn', label: '特定の人や順番で解答', disabled: false, hidden: ctx.isPlainChoice },
+            { value: 'turn', label: '特定の人や順番で解答', disabled: false, hidden: ctx.isPlainChoice && !ctx.isPanel },
         ];
     },
 
@@ -129,7 +131,7 @@ App.RuleEngine = {
         },
         // 順番：誤答したら次の人へ回す（多答・ダウトは形式の決まりで回る）
         turnWrong: {
-            ok: (ctx) => ctx.mode === 'turn' && !ctx.isMulti && !ctx.isDobon && !ctx.isBlackjack,
+            ok: (ctx) => ctx.mode === 'turn' && !ctx.isMulti && !ctx.isDobon && !ctx.isBlackjack && !ctx.isPanel,
             why: '',
         },
         // 配点：先着◯人だけ得点
@@ -273,7 +275,8 @@ App.RuleEngine = {
         // 正解
         const st = c.scoreType || 'uniform';
         let gain;
-        if (c.gameType === 'timerace') gain = '正解した数を数える';
+        if (ctx.isPanel) gain = '解答者は「◯番、答え」とパネルを指名し、正解したらそのパネルの点';
+        else if (c.gameType === 'timerace') gain = '正解した数を数える';
         else if (st === 'ranked') gain = '正解すると速い順に傾斜した点';
         else if (st === 'hint') gain = '正解すると少ないヒントほど高い点';
         else if (st === 'first') gain = `先着${parseInt(c.firstN) || 1}人だけ得点`;
