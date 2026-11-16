@@ -483,9 +483,10 @@ App.PanelBoard = {
     // ---------------------------------------------------------
     viewer: {
         _pbSeqShown: 0,
-        renderPanelBoard: function (container, mainText, st) {
+        // q を渡すと（作成画面のプレビュー）、その問題で描く
+        renderPanelBoard: function (container, mainText, st, previewQ) {
             const pb = st.pb || {};
-            const q = this.questions[st.qIndex] || {};
+            const q = previewQ || this.questions[st.qIndex] || {};
             const d = q.design || {};
             this.applyDefaultDesign(container, { mainBgColor: d.mainBgColor || '#0a0a0a', bgImage: d.bgImage });
             if (window.App.ChoiceSkin && d.bgFx === 'studio' && !d.bgImage) container.style.backgroundImage = window.App.ChoiceSkin.studioBg(d.mainBgColor);

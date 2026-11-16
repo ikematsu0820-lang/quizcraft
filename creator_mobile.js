@@ -549,7 +549,15 @@ App.CreatorMobile = {
         const st = { step: step === 'answer' ? 'answer' : 'reveal_q', qIndex: 0, revealedMulti: {} };
         try {
             if (!V) throw new Error('viewer not loaded');
-            if (st.step === 'answer' && q.type === 'sort' && V.renderSortReveal) {
+            if (window.App.PanelBoard && window.App.PanelBoard.is(q) && V.renderPanelBoard) {
+                // パネル指名: 問題では表、正解では全部のパネルの裏（答え）を見せる
+                const open = st.step === 'answer';
+                const pb = {
+                    theme: q.q || '', seq: 0, sel: null, finished: open, revealAll: open,
+                    panels: q.panels.map(p => ({ label: p.label, r: null, answer: open ? p.answer : null })),
+                };
+                V.renderPanelBoard(stage, main, { step: 'panelboard', pb }, q);
+            } else if (st.step === 'answer' && q.type === 'sort' && V.renderSortReveal) {
                 V.applyDefaultDesign(stage, q.design);
                 V.renderSortReveal(main, q, st);
             } else {
