@@ -66,17 +66,39 @@ App.Design = {
 
     // デザインの「タイマー」タブの見本 — 10秒を繰り返し数える
     _timerDemoId: null,
+    // タイマーの見本 — 演出タブを開いている間、作成画面のプレビュー（問題の画面）の
+    // 上で実際の位置・大きさに動かして見せる。タブを閉じたら消す。
+    _previewTimerLayer: function (create) {
+        const preview = document.getElementById('creator-monitor-preview');
+        let layer = document.getElementById('creator-timer-layer');
+        if (!create) { layer?.remove(); return null; }
+        if (!preview) return null;
+        if (!layer) {
+            layer = document.createElement('div');
+            layer.id = 'creator-timer-layer';
+            layer.className = 'tv-host';
+            layer.style.cssText = 'position:absolute; inset:0; pointer-events:none; z-index:50;';
+            preview.appendChild(layer);
+        }
+        return layer;
+    },
     _startTimerDemo: function (box, design) {
         if (this._timerDemoId) { clearInterval(this._timerDemoId); this._timerDemoId = null; }
-        if (!box || !window.App.TimerView) return;
+        if (!box || !window.App.TimerView) { this._previewTimerLayer(false); return; }
+        const C = window.App.Creator;
         const total = 10000;
         const t0 = Date.now();
         const tick = () => {
-            if (!box.isConnected) { clearInterval(this._timerDemoId); this._timerDemoId = null; return; }
+            if (!box.isConnected) { clearInterval(this._timerDemoId); this._timerDemoId = null; this._previewTimerLayer(false); return; }
             const elapsed = (Date.now() - t0) % (total + 1500);
             const remain = Math.max(0, total - elapsed);
-            if (window.App.Themes) window.App.Themes.applyToElement(box, design);
-            window.App.TimerView.render(box, design, remain, total);
+            // タイマーが出るのは問題の画面だけ
+            const onQuestion = !C || !C.previewSlide || C.previewSlide === 'question';
+            const layer = this._previewTimerLayer(onQuestion);
+            if (layer) {
+                if (window.App.Themes) window.App.Themes.applyToElement(layer, design);
+                window.App.TimerView.render(layer, design, remain, total);
+            }
         };
         tick();
         this._timerDemoId = setInterval(tick, 100);
@@ -693,28 +715,17 @@ App.Design = {
                     ${rowLabel('文字')}
                     ${miniSelect('フォント', 'fontFamily', fontOpts)}
                 </div>
-                ${(() => {
-                    // 画面の型 — 標準／バラエティ枠（選択式のみ。variety_frame.js）
-                    const tpl = design.layoutTemplate === 'frame' ? 'frame' : '';
-                    const btn = (v, label, sub) => `<button type="button" data-layout-template="${v}" style="flex:1; padding:8px 4px; border-radius:8px; cursor:pointer; text-align:center;
-                        background:${tpl === v ? 'rgba(0,229,255,0.12)' : '#1e293b'}; border:1px solid ${tpl === v ? '#00e5ff' : '#475569'}; color:${tpl === v ? '#00e5ff' : '#e2e8f0'};">
-                        <div style="font-size:0.75rem; font-weight:bold;">${label}</div><div style="font-size:0.6rem; opacity:0.75;">${sub}</div></button>`;
-                    return `
-                        <div style="margin:12px 0 6px; color:#94a3b8; font-size:0.7rem; font-weight:bold;">画面の型</div>
-                        <div style="display:flex; gap:6px;">${btn('', '標準', '問題文と選択肢')}${btn('frame', 'バラエティ枠', 'お題の帯・写真・大きなボタン')}</div>
-                        ${tpl === 'frame' ? `
-                            <input type="text" data-key="frameTitle" value="${String(design.frameTitle || '').replace(/"/g, '&quot;')}" placeholder="上の帯の文字（空欄ならセット名）" style="
-                                width:100%; height:${CONTROL_HEIGHT}; min-height:${CONTROL_HEIGHT}; padding:0 8px; margin:8px 0 6px; background:#1e293b; border:1px solid #475569; border-radius:6px; color:#fff; box-sizing:border-box;">
-                            <div style="display:flex; gap:6px;">${colorSwatch('枠の色', 'frameColor')}${colorSwatch('写真の背景', 'qBgColor')}${colorSwatch('全体の背景', 'mainBgColor')}</div>
-                            <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">※選択式の時に使えます。写真は問題ごとに「写真を付ける」から。問題文は写真の下の名前の欄に出ます</p>` : ''}
-                        ${tpl !== 'frame' && window.App.ChoiceSkin ? window.App.ChoiceSkin.panelHtml(design) : ''}`;
-                })()}
+                <div style="display:flex; gap:6px; align-items:center; margin-top:8px;">
+                    ${rowLabel('色')}
+                    ${colorSwatch('アクセント', 'accentColor')}${colorSwatch('全体の背景', 'mainBgColor')}
+                </div>
+                ${window.App.ChoiceSkin ? window.App.ChoiceSkin.panelHtml(design) : ''}
                 ${(() => {
                     // 問題の枠と回答の枠の割合（プレビューの境目をドラッグしても変えられる）
                     const r = Number(design.splitRatio) || 0;
                     return `
                         <div style="margin:14px 0 6px; color:#94a3b8; font-size:0.7rem; font-weight:bold; display:flex; justify-content:space-between;">
-                            <span>${design.layoutTemplate === 'frame' ? '写真とボタンの大きさ' : '問題の枠と回答の枠の大きさ'}</span>
+                            <span>問題の枠と回答の枠の大きさ</span>
                             <span id="split-ratio-val" style="color:#e2e8f0;">${r ? `問題 ${r}％` : '自動'}</span>
                         </div>
                         <div style="display:flex; gap:8px; align-items:center;">
@@ -723,7 +734,7 @@ App.Design = {
                         </div>
                         <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">※プレビューの境目（点線のつまみ）をドラッグしても変えられます</p>`;
                 })()}
-                <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">※テーマはこのセットの全問題に効きます。色はテキスト／オブジェクトのタブで個別に変えられます</p>
+                <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">※テーマは出発点です。選んだ後に、ここの形・色や、テキスト／オブジェクト／演出のタブで全部の部分を変えられます（このセットの全問題に効きます）</p>
             `;
         };
         activeBody.theme = themeBody;
@@ -741,7 +752,9 @@ App.Design = {
                     <input type="checkbox" data-timer-chk="${key}" ${on ? 'checked' : ''} style="width:auto; height:auto; min-height:0; margin:0; accent-color:#00e5ff;">${label}</label>`;
             };
             return `
-                <div id="design-timer-demo" class="tv-host" style="width:100%; aspect-ratio:16/9; border-radius:8px; background:${design.mainBgColor || '#0a0a0a'}; margin-bottom:10px; overflow:hidden;"></div>
+                <div id="design-timer-demo" style="margin-bottom:10px; padding:8px 10px; border-radius:8px; background:rgba(0,229,255,0.08); border:1px solid rgba(0,229,255,0.3); color:#7dd3fc; font-size:0.7rem; line-height:1.5;">
+                    ▶ 左のプレビュー（問題の画面）に、本番と同じ位置・大きさでタイマーを動かして見せています。秒数はルールの「制限時間」で決めます。
+                </div>
                 <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; margin-bottom:10px;">
                     ${TV.STYLES.map(st => `
                         <button type="button" data-timer-style="${st.id}" style="padding:8px 4px; border-radius:8px; cursor:pointer; font-size:0.72rem; font-weight:bold;

@@ -28,6 +28,18 @@ App.Themes = {
     // 一覧の順番がそのまま選択画面の並び。classic は従来の既定デザイン。
     list: [
         {
+            // 白地に黒い線だけ — ここから色・形を足していけば、ほかのテーマも作れる
+            id: 'plain', name: 'シンプル', desc: '白地に黒線。ここから自由に',
+            font: '', accent: '#111111', timer: 'bar_top', bridge: { style: 'plain', bg: '#ffffff', text: '#111111' },
+            skin: { c: '', pal: '', q: '', fx: '' },
+            colors: {
+                mainBgColor: '#ffffff',
+                qTextColor: '#111111', qBgColor: '#ffffff', qBorderColor: '#111111',
+                cTextColor: '#111111', cBgColor: '#ffffff', cBorderColor: '#111111', cPrefixColor: '#111111',
+                revealTextColor: '#ffffff', revealBorderColor: '#111111', revealBgColor: '#111111',
+            },
+        },
+        {
             id: 'classic', name: 'スタジオ', desc: 'いつもの黒×シアン',
             font: '', accent: '#00e5ff', timer: 'bar_top', bridge: { style: 'band', bg: '#0a0a0a', text: '#ffffff' },
             skin: { c: 'panel', pal: '', q: 'telop', fx: 'studio' },
@@ -51,7 +63,7 @@ App.Themes = {
         },
         {
             id: 'neon', name: 'ネオン', desc: 'クラブ・夜パーティ向け',
-            font: 'heavy', accent: '#ff00aa', timer: 'ring', bridge: { style: 'shutter', bg: '#07000f', text: '#ffffff' },
+            font: 'gothic', accent: '#ff00aa', timer: 'ring', bridge: { style: 'shutter', bg: '#07000f', text: '#ffffff' },
             skin: { c: 'panel', pal: 'four', q: 'telop', fx: 'studio' },
             colors: {
                 mainBgColor: '#07000f',
@@ -95,9 +107,9 @@ App.Themes = {
         },
         {
             id: 'variety', name: 'バラエティ', desc: 'テレビ番組風の枠と大きなボタン',
-            font: 'gothic', accent: '#d62828', timer: 'ball', template: 'frame', frame: '#c9c94a',
+            font: 'gothic', accent: '#d62828', timer: 'ball', frame: '#c9c94a',
             bridge: { style: 'plain', bg: '#f2efdc', text: '#c0392b' },
-            skin: { c: 'button', pal: 'four', q: 'board', fx: '' },
+            skin: { c: 'button', pal: 'four', q: 'caption', fx: '', frame: true, arrange: 'row' },
             colors: {
                 mainBgColor: '#f4eef2',
                 qTextColor: '#222222', qBgColor: '#f2efdc', qBorderColor: '#c9c94a',
@@ -127,19 +139,22 @@ App.Themes = {
     apply: function (design, id) {
         const t = this.get(id);
         if (!design || !t) return design;
+        design.cPrefixColor = '';
         Object.assign(design, t.colors);
         design.fontFamily = t.font;
         design.accentColor = t.accent;
         if (t.timer) design.timerStyle = t.timer; // タイマーの見た目もテーマに合わせる
-        // 画面の型 — 「バラエティ」だけ枠型にする（ほかのテーマは今の型のまま）
-        if (t.template) design.layoutTemplate = t.template;
-        if (t.frame) design.frameColor = t.frame;
+        // 画面の型は1つ（バラエティ枠も標準の設定の組み合わせ）
+        delete design.layoutTemplate;
+        design.frameColor = t.frame || '';
         // 選択肢ボタンの形・問題文の見せ方・背景の照明（choice_skin.js）
         if (t.skin) {
             design.cSkin = t.skin.c;
             design.cPalette = t.skin.pal;
             design.qSkin = t.skin.q;
             design.bgFx = t.skin.fx;
+            design.stageFrame = !!t.skin.frame;
+            if (t.skin.arrange === 'row') { design.gridRows = '1'; design.gridCols = '4'; }
         }
         if (t.bridge) { // ブリッジ（第○問）も黒×白に限らず、テーマに合わせる
             design.bridgeStyle = t.bridge.style;

@@ -20,10 +20,11 @@ App.VarietyFrame = {
         return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     },
 
+    // バラエティ枠は「標準」の設定の組み合わせ（choice_skin.js）に一本化した。
+    // 前に枠で作った問題は、ここで同じ見た目の設定に置き換えて標準の画面で描く。
     applies: function (q) {
-        if (!q || q.type !== 'choice') return false;
-        if (q.mode === 'dobon' || q.mode === 'multi' || q.multi) return false;
-        return ((q.design || {}).layoutTemplate === 'frame') && Array.isArray(q.c) && q.c.length > 0;
+        if (q && q.design && window.App.ChoiceSkin) window.App.ChoiceSkin.migrate(q.design);
+        return false;
     },
 
     correctSet: function (q) {

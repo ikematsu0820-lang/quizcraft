@@ -21,6 +21,7 @@ App.LayoutEditor = {
     C: function () { return window.App.Creator; },
 
     isFrameEditing: function () {
+        if (window.App.ChoiceSkin) window.App.ChoiceSkin.migrate(this.design());
         const C = this.C();
         const t = (C && C.currentType) || '';
         return this.design().layoutTemplate === 'frame' && t === 'choice_single' && !(C && C._previewRevealOn);
@@ -220,7 +221,8 @@ App.LayoutEditor = {
         if (!bar) return;
         let sw = document.getElementById('cvf-switch');
         const C = this.C();
-        const show = C && C.currentType === 'choice_single';
+        // 標準とバラエティ枠は一本化したので、切り替えは出さない
+        const show = false;
         if (!show) { sw?.remove(); return; }
         if (!sw) {
             sw = document.createElement('div');

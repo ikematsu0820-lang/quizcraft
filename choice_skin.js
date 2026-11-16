@@ -27,10 +27,11 @@ App.ChoiceSkin = {
         { id: '', name: '枠' },
         { id: 'telop', name: 'テロップ帯' },
         { id: 'board', name: 'ボード' },
+        { id: 'caption', name: '写真＋字幕' },
     ],
     FOUR: ['#e53935', '#1e63d6', '#14a04a', '#f2a900', '#8e24aa', '#00897b'],
     CLASSES: ['cskin', 'cskin-panel', 'cskin-button', 'cskin-capsule', 'cskin-card', 'cpal-four',
-        'qskin-telop', 'qskin-board', 'cs-framed', 'cs-answer', 'cs-narrow'],
+        'qskin-telop', 'qskin-board', 'qskin-caption', 'cs-framed', 'cs-answer', 'cs-narrow'],
 
     esc: function (v) {
         return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -65,6 +66,7 @@ App.ChoiceSkin = {
     qSolidBg: function (d) {
         const c = d && d.qBgColor;
         if (d && d.qSkin === 'board') return this.isFaint(c) ? '#ffffff' : c;
+        if (d && d.qSkin === 'caption') return this.isFaint(c) ? '#f2efdc' : c;
         return this.isFaint(c) ? '#0d1626' : c;
     },
 
@@ -72,6 +74,20 @@ App.ChoiceSkin = {
         if (st && st.qNumLabel) return st.qNumLabel;
         const i = st && st.qIndex !== undefined ? st.qIndex : (fallbackIdx || 0);
         return `Q${i + 1}`;
+    },
+
+    // 前の「バラエティ枠」（画面の型 frame）を、同じ見た目の設定の組み合わせに置き換える
+    migrate: function (d) {
+        if (!d || d.layoutTemplate !== 'frame') return d;
+        delete d.layoutTemplate;
+        d.stageFrame = true;
+        d.cSkin = d.cSkin || 'button';
+        d.cPalette = 'four';
+        d.qSkin = 'caption';
+        d.gridRows = '1';
+        d.gridCols = '4';
+        if (!d.frameColor) d.frameColor = '#c9c94a';
+        return d;
     },
 
     clear: function (el) {
@@ -109,6 +125,7 @@ App.ChoiceSkin = {
         const qbg = this.qSolidBg(d);
         el.style.setProperty('--qs-bg', qbg);
         el.style.setProperty('--qs-text', this.readable(qbg, d.qTextColor));
+        el.style.setProperty('--qs-captext', this.readable('#ffffff', d.qTextColor));
         el.style.setProperty('--qs-line', d.qBorderColor && d.qBorderColor !== 'transparent' ? d.qBorderColor : this.accent(d));
     },
 
@@ -142,6 +159,16 @@ App.ChoiceSkin = {
         const qa = contentBox.querySelector('.q-area');
         if (qa && d.qSkin) {
             contentBox.classList.add('qskin-' + d.qSkin);
+            // 問題文の文字だけを包む（写真＋字幕では写真の下の帯にする）
+            if (!qa.querySelector(':scope > .qs-text')) {
+                const textNodes = [...qa.childNodes].filter(n => n.nodeType === 3 || (n.nodeType === 1 && !n.classList.contains('q-photo') && !n.classList.contains('qs-num')));
+                if (textNodes.length) {
+                    const wrap = document.createElement('span');
+                    wrap.className = 'qs-text';
+                    qa.insertBefore(wrap, textNodes[0]);
+                    textNodes.forEach(n => wrap.appendChild(n));
+                }
+            }
             if (d.qNumBadge !== false && !qa.querySelector('.qs-num')) {
                 const tag = document.createElement('span');
                 tag.className = 'qs-num';
@@ -230,7 +257,9 @@ App.ChoiceSkin = {
         const C = window.App.Creator;
         const d = window.App.Data.currentDesign || {};
         const t = (C && C.currentType) || '';
+        this.migrate(d);
         this.clear(preview);
+        this.renderCreatorPhoto(d);
         const frameEditing = window.App.LayoutEditor && window.App.LayoutEditor.isFrameEditing();
         if (frameEditing || (C && C._previewRevealOn)) return;
         this.applyVars(preview, d);
@@ -243,7 +272,7 @@ App.ChoiceSkin = {
             preview.classList.add('qskin-' + d.qSkin);
             // 問題文の色は入力欄に直接書かれているので、地の色で読める色に差し替える
             const qt = document.getElementById('question-text');
-            if (qt && d.qTextColor !== 'transparent') qt.style.setProperty('color', this.readable(this.qSolidBg(d), d.qTextColor), 'important');
+            if (qt && d.qTextColor !== 'transparent') qt.style.setProperty('color', this.readable(d.qSkin === 'caption' ? '#ffffff' : this.qSolidBg(d), d.qTextColor), 'important');
             const qa = document.getElementById('creator-monitor-q-area');
             if (qa) {
                 let tag = qa.querySelector(':scope > .qs-num');
@@ -270,6 +299,25 @@ App.ChoiceSkin = {
             const lab = row.querySelector('.choice-label-text');
             if (lab) { lab.style.color = ''; lab.style.textShadow = ''; }
         });
+    },
+
+    // 作成画面: 写真＋字幕の時は、問題の枠の中に写真の場所を出す（押すと写真を選べる）
+    renderCreatorPhoto: function (d) {
+        const qa = document.getElementById('creator-monitor-q-area');
+        if (!qa) return;
+        let box = document.getElementById('cs-photo');
+        const C = window.App.Creator;
+        const on = d.qSkin === 'caption' && !(C && C._previewRevealOn);
+        if (!on) { box?.remove(); return; }
+        if (!box) {
+            box = document.createElement('div');
+            box.id = 'cs-photo';
+            box.onclick = () => document.querySelector('#creator-outside-opts .qimg-input')?.click();
+            const qt = document.getElementById('question-text');
+            qa.insertBefore(box, qt || qa.firstChild);
+        }
+        const img = window.App.QuestionImage && window.App.QuestionImage.current;
+        box.innerHTML = img ? `<img src="${img}" alt="">` : '<span>写真を付ける</span>';
     },
 
     // デザインのパネル（テーマのタブ）に出す設定
@@ -340,7 +388,9 @@ App.ChoiceSkin = {
         const c = t.colors, sk = t.skin || {};
         const accent = t.accent;
         const col = (i) => sk.pal === 'four' ? this.FOUR[i] : accent;
-        const q = sk.q === 'telop'
+        const q = sk.q === 'caption'
+            ? `<div style="width:86%; border-radius:3px; overflow:hidden; background:${this.isFaint(c.qBgColor) ? '#f2efdc' : c.qBgColor};"><div style="height:9px;"></div><div style="background:#fff; color:#222; font-size:0.5rem; font-weight:bold; text-align:center;">お題</div></div>`
+            : sk.q === 'telop'
             ? `<div style="width:100%; padding:2px 0; text-align:center; background:${this.isFaint(c.qBgColor) ? '#0d1626' : c.qBgColor}; border-top:1.5px solid ${accent}; border-bottom:1.5px solid ${accent}; color:${c.qTextColor}; font-size:0.56rem; font-weight:bold;">第1問</div>`
             : sk.q === 'board'
                 ? `<div style="width:86%; border-radius:3px; overflow:hidden; background:${this.isFaint(c.qBgColor) ? '#fff' : c.qBgColor};"><div style="height:3px; background:${accent};"></div><div style="padding:1px 0; text-align:center; color:${c.qTextColor}; font-size:0.56rem; font-weight:bold;">第1問</div></div>`
@@ -371,4 +421,9 @@ App.ChoiceSkin = {
     after('applyDesignToPreview', function () { App.ChoiceSkin.applyToCreator(); });
     after('renderForm', function () { setTimeout(() => App.ChoiceSkin.applyToCreator(), 0); });
     after('setPreviewSlide', function () { App.ChoiceSkin.applyToCreator(); });
+    const QI = window.App.QuestionImage;
+    if (QI && typeof QI.renderControl === 'function') {
+        const orig = QI.renderControl.bind(QI);
+        QI.renderControl = function () { const r = orig(); try { App.ChoiceSkin.applyToCreator(); } catch (e) { /* noop */ } return r; };
+    }
 })();
