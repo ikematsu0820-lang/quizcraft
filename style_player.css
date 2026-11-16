@@ -1749,3 +1749,9 @@ body.buzz-flash::after {
 
 /* 縦向きの「横向きにしてください」はもう出さない */
 #player-rotate-overlay { display: none !important; }
+
+/* 勝ち抜けた人（ルール「勝ち抜け」）— 脱落の画面を金色にして使う */
+.overlay-dead.overlay-cleared { background: radial-gradient(circle at 50% 40%, rgba(251, 191, 36, 0.92), rgba(180, 83, 9, 0.95)); }
+.overlay-dead.overlay-cleared .dead-title { color: #fff; text-shadow: 0 4px 0 rgba(0, 0, 0, 0.25); }
+#player-game-view { position: relative; }
+#player-game-view > .tv-answer-chip { position: fixed; bottom: auto; top: 64px; right: 14px; font-size: 18px; padding: 4px 14px; border-width: 3px; }

@@ -98,6 +98,29 @@ App.TimerView = {
         if (!warn && !expired) this._lastTick = null;
     },
 
+    // 解答者の持ち時間（status.answerTimer = { pid, ms, startAt }）— 右上の小さな残り秒数
+    //   label … 「◯◯さん」など。nowFn … サーバー時刻を返す関数
+    answerChip: function (container, at, label, nowFn) {
+        if (!container) return;
+        let chip = container.querySelector(':scope > .tv-answer-chip');
+        if (chip && chip._iv) { clearInterval(chip._iv); chip._iv = null; }
+        if (!at || !at.ms || !at.startAt) { if (chip) chip.remove(); return; }
+        if (!chip) {
+            chip = document.createElement('div');
+            chip.className = 'tv-answer-chip';
+            container.appendChild(chip);
+        }
+        const tick = () => {
+            const remain = Math.max(0, Number(at.ms) - ((nowFn ? nowFn() : Date.now()) - Number(at.startAt)));
+            const sec = Math.ceil(remain / 1000);
+            chip.innerHTML = `<span class="tv-answer-label">${label || '解答'}</span><b>${sec}</b><span class="tv-answer-unit">秒</span>`;
+            chip.classList.toggle('tv-answer-warn', sec <= 3);
+            if (remain <= 0 && chip._iv) { clearInterval(chip._iv); chip._iv = null; }
+        };
+        tick();
+        chip._iv = setInterval(tick, 200);
+    },
+
     clear: function (container) {
         if (!container) return;
         container.querySelector(':scope > .tv-root')?.remove();

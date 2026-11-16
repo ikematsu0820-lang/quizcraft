@@ -561,12 +561,36 @@ function updateUI() {
     if (st.step !== 'standby' && st.step !== 'reveal_q_num') watchLobbyRoster(false);
 
     const badge = document.getElementById('alive-badge');
-    if (p.isAlive) {
+    if (p.cleared) {
+        // 勝ち抜け — 以降の問題には答えない
+        if (badge) { badge.textContent = `${p.clearedRank || ''}位 勝ち抜け`; badge.style.background = "#fbbf24"; badge.style.color = "#1f2937"; }
+        const ov = document.getElementById('player-dead-overlay');
+        ov.classList.remove('hidden');
+        ov.classList.add('overlay-cleared');
+        ov.querySelector('.dead-title').textContent = '勝ち抜け！';
+        const body = ov.querySelector('p');
+        if (body) body.textContent = `${p.clearedRank || ''}番目に勝ち抜けました。最後まで見守ってください`;
+    } else if (p.isAlive) {
         if (badge) { badge.textContent = "ENTRY"; badge.style.background = "#00bfff"; badge.style.color = "#000"; }
         document.getElementById('player-dead-overlay').classList.add('hidden');
     } else {
         if (badge) { badge.textContent = "LOSE"; badge.style.background = "#555"; badge.style.color = "#aaa"; }
         document.getElementById('player-dead-overlay').classList.remove('hidden');
+    }
+
+    if (!p.cleared) {
+        const ov = document.getElementById('player-dead-overlay');
+        if (ov && ov.classList.contains('overlay-cleared')) {
+            ov.classList.remove('overlay-cleared');
+            ov.querySelector('.dead-title').textContent = (typeof APP_TEXT !== 'undefined' && APP_TEXT.Player && APP_TEXT.Player.MsgDead) || 'GAME OVER';
+            const body = ov.querySelector('p');
+            if (body) body.textContent = (typeof APP_TEXT !== 'undefined' && APP_TEXT.Player && APP_TEXT.Player.MsgDeadBody) || '脱落...';
+        }
+    }
+    // 自分が答える番の持ち時間
+    if (window.App && window.App.TimerView) {
+        const at = st.answerTimer && st.answerTimer.pid === myPlayerId && ['question', 'answering', 'reveal_q'].includes(st.step) ? st.answerTimer : null;
+        window.App.TimerView.answerChip(document.getElementById('player-game-view'), at, 'あと', () => Date.now() + _serverTimeOffset);
     }
 
     if (p.periodScore !== undefined) {
@@ -1051,7 +1075,7 @@ function updateUI() {
         const answered = p.lastAnswer !== null && p.lastAnswer !== undefined && p.lastAnswer !== '' && !isReanswering;
         const lockedOut = (st.isNominateMode && st.currentAnswerer !== myPlayerId)
             || (st.isTurnMode && st.currentAnswerer && st.currentAnswerer !== myPlayerId)
-            || !!p.lastResult || p.isAlive === false;
+            || !!p.lastResult || p.isAlive === false || !!p.cleared;
         choiceFooter.style.display = (answering && !answered && !lockedOut) ? '' : 'none';
     }
 

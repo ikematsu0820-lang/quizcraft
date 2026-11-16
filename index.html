@@ -10,11 +10,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@800;900&display=swap">
-    <link rel="stylesheet" href="style_common.css?v=103">
+    <link rel="stylesheet" href="style_common.css?v=104">
     <link rel="stylesheet" href="style_host.css?v=120">
-    <link rel="stylesheet" href="style_player.css?v=108">
+    <link rel="stylesheet" href="style_player.css?v=109">
     <link rel="stylesheet" href="style_viewer.css?v=101">
     <link rel="stylesheet" href="choice_skin.css?v=2">
+    <link rel="stylesheet" href="rule_panel.css?v=1">
 </head>
 
 <body>
@@ -298,16 +299,20 @@
                     <!-- ルール設定 — 解答形式/勝利条件/制限時間 の3つのサブタブ
                          （以前の「解答方式」タブは 解答形式 サブタブへ統合）。 -->
                     <div id="creator-inline-rules" class="hidden">
-                        <div id="creator-rules-subtabs" style="display:flex; gap:0; margin:-4px -4px 10px; border-radius:8px; overflow:hidden; border:1px solid #333;">
+                        <div id="creator-rules-summary"></div>
+                        <div id="creator-rules-subtabs" style="display:flex; gap:0; margin:0 -4px 10px; border-radius:8px; overflow:hidden; border:1px solid #333;">
                             <button type="button" data-rules-subtab="format" class="creator-rules-subtab-btn" style="flex:1; padding:8px 2px; font-size:0.8rem; font-weight:bold; border:none; cursor:pointer; color:#fff;">答え方</button>
-                            <button type="button" data-rules-subtab="wrong" class="creator-rules-subtab-btn" style="flex:1; padding:8px 2px; font-size:0.8rem; font-weight:bold; border:none; cursor:pointer; color:#fff;">間違えたとき</button>
+                            <button type="button" data-rules-subtab="correct" class="creator-rules-subtab-btn" style="flex:1; padding:8px 2px; font-size:0.8rem; font-weight:bold; border:none; cursor:pointer; color:#fff;">正解</button>
+                            <button type="button" data-rules-subtab="wrong" class="creator-rules-subtab-btn" style="flex:1; padding:8px 2px; font-size:0.8rem; font-weight:bold; border:none; cursor:pointer; color:#fff;">誤答</button>
                             <button type="button" data-rules-subtab="win" class="creator-rules-subtab-btn" style="flex:1; padding:8px 2px; font-size:0.8rem; font-weight:bold; border:none; cursor:pointer; color:#fff;">勝ち方</button>
-                            <button type="button" data-rules-subtab="time" class="creator-rules-subtab-btn" style="flex:1; padding:8px 2px; font-size:0.8rem; font-weight:bold; border:none; cursor:pointer; color:#fff;">制限時間</button>
+                            <button type="button" data-rules-subtab="time" class="creator-rules-subtab-btn" style="flex:1; padding:8px 2px; font-size:0.8rem; font-weight:bold; border:none; cursor:pointer; color:#fff;">時間</button>
                         </div>
                         <div id="creator-rules-sub-format">
                             <!-- 解答形式 (subtype, e.g. 口頭/手書き) and 解答権
                                  side by side as two pulldowns. -->
-                            <div style="display:flex; gap:10px; margin-bottom:10px;">
+                            <!-- 答え方（口頭/手書き）と解答権のプルダウンは、上のタイル（rule_panel.js）
+                                 から操作する — 値の受け渡しのために残して、見せない -->
+                            <div style="display:none; gap:10px; margin-bottom:10px;">
                                 <div id="creator-opt-subtype-area" class="hidden" style="flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:3px;">
                                     <select id="creator-opt-subtype" style="
                                         width:100%; margin:0; padding:6px 8px; background:#1e293b; border:1px solid #475569;
@@ -327,6 +332,9 @@
                         </div>
                         <!-- 誤答時処理 — 早押しの誤答時の問題/誤答者の扱い
                              （App.Config.renderInlineModeChooser が中身を入れる） -->
+                        <div id="creator-rules-sub-correct" class="hidden">
+                            <div id="creator-inline-correct"></div>
+                        </div>
                         <div id="creator-rules-sub-wrong" class="hidden">
                             <div id="creator-inline-wrong-body"></div>
                         </div>
@@ -778,22 +786,23 @@
     <script src="firebase.js"></script>
     <script src="text_config.js?v=235"></script>
     <script src="host_core.js?v=252"></script>
-    <script src="rule_engine.js?v=2"></script>
+    <script src="rule_engine.js?v=4"></script>
     <script src="host_sound_library.js?v=7"></script>
     <script src="theme_presets.js?v=6"></script>
-    <script src="timer_view.js?v=2"></script>
+    <script src="timer_view.js?v=3"></script>
     <script src="bridge_view.js?v=1"></script>
     <script src="host_design.js?v=284"></script>
-    <script src="host_creator.js?v=306"></script>
-    <script src="host_config.js?v=258"></script>
+    <script src="host_creator.js?v=307"></script>
+    <script src="host_config.js?v=259"></script>
     <script src="host_prog_config.js?v=235"></script>
-    <script src="host_studio.js?v=258"></script>
-    <script src="player.js?v=251"></script>
-    <script src="viewer.js?v=274"></script>
-    <script src="creator_mobile.js?v=8"></script>
+    <script src="host_studio.js?v=259"></script>
+    <script src="player.js?v=252"></script>
+    <script src="viewer.js?v=275"></script>
+    <script src="creator_mobile.js?v=9"></script>
     <script src="variety_frame.js?v=4"></script>
     <script src="layout_editor.js?v=3"></script>
     <script src="choice_skin.js?v=2"></script>
+    <script src="rule_panel.js?v=1"></script>
     <script src="creator_desktop.js?v=2"></script>
 
 

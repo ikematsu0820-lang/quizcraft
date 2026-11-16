@@ -287,6 +287,11 @@ window.App.Viewer = {
             if (this.viewerTimeLimitTimerId) { clearInterval(this.viewerTimeLimitTimerId); this.viewerTimeLimitTimerId = null; }
             if (window.App.TimerView) window.App.TimerView.clear(viewContainer);
         }
+        // 解答者の持ち時間（早押し・順番・指名で、ルール「時間」を設定した時）
+        if (window.App.TimerView) {
+            const at = st.answerTimer && ['question', 'answering', 'reveal_q'].includes(st.step) ? st.answerTimer : null;
+            window.App.TimerView.answerChip(viewContainer, at, at ? `${st.currentAnswererName || ''}` : '', () => Date.now() + this._serverOffset);
+        }
         // 回答の見せ方（演出）は描画のあとに重ねる
         setTimeout(() => { this.updateLiveAnswers(); this.updateSpeedReveal(); this.updateSoloResult(); }, 0);
         // テーマのフォント・アクセント色（セット共通なので先頭の問題から取る）

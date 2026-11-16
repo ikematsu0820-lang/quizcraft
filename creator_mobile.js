@@ -351,20 +351,28 @@ App.CreatorMobile = {
     settingsRows: function () {
         const conf = window.App.Data.currentConfig || {};
         const d = window.App.Data.currentDesign || {};
-        const MODE = { normal: '全員が同時に手元で答える', buzz: '早く押した人から答える', nominate: '指名された人だけ答える', turn: '順番に答える' };
-        const SCORE = { uniform: '正解者全員に同じ点', ranked: '速い人ほど高得点', hint: 'ヒントが少ないほど高得点' };
+        const MODE = { normal: '全員が同時に手元で答える', buzz: '早押しで答える', nominate: '指名された人が答える', turn: '順番に答える' };
+        const SCORE = { uniform: '正解者全員に同じ点', ranked: '速い人ほど高得点', hint: 'ヒントが少ないほど高得点', first: `先着${parseInt(conf.firstN) || 1}人だけ得点` };
         const rows = [{ key: 'format', label: '答え方', value: MODE[conf.mode] || MODE.normal }];
-        if (conf.mode === 'buzz') {
-            rows.push({ key: 'wrong', label: '間違えたとき', value: conf.buzzWrongAction === 'end' ? '問題を終える' : '他の人が答えられる' });
-        }
-        const win = conf.gameType === 'survival'
-            ? `最後まで残った人（${conf.survivalLives || 1}回ミスで脱落）`
-            : `得点の高い人（${SCORE[conf.scoreType] || SCORE.uniform}）`;
-        rows.push({ key: 'win', label: '勝ち方', value: win });
+        rows.push({ key: 'correct', label: '正解したとき', value: conf.gameType === 'timerace' ? '1問1点（タイムレース）' : (SCORE[conf.scoreType] || SCORE.uniform) });
+        const RE = window.App.RuleEngine;
+        const loss = RE ? RE.wrongLoss(conf, {}) : 0;
+        let wrong = conf.mode === 'buzz' ? (conf.buzzWrongAction === 'end' ? '問題を終える' : '他の人が答えられる')
+            : conf.mode === 'turn' ? (conf.turnWrongAction === 'next' ? '次の人に回す' : '問題を終える') : '減点のみ';
+        if (loss > 0) wrong += `・−${loss}点`;
+        rows.push({ key: 'wrong', label: '間違えたとき', value: wrong });
+        const WIN = {
+            score: '得点が高い人',
+            survival: `サバイバル（${conf.survivalLives || 1}回ミスで脱落）`,
+            winthrough: `勝ち抜け（${Number(conf.winTarget) || 5}${conf.winBy === 'correct' ? '問正解' : '点'}）`,
+            timerace: 'タイムレース（正解数→合計時間）',
+        };
+        rows.push({ key: 'win', label: '勝ち方', value: WIN[conf.gameType] || WIN.score });
         const sec = parseInt(conf.timeLimitSeconds) || 30;
-        const time = conf.timeLimitEnabled !== 'on' ? 'なし'
+        let time = conf.timeLimitEnabled !== 'on' ? 'なし'
             : (conf.timerKind === 'pool' ? `セット全体で${sec}秒` : `1問${sec}秒`);
-        rows.push({ key: 'time', label: '制限時間', value: time });
+        if (Number(conf.answerSec) > 0) time += `・解答${Number(conf.answerSec)}秒`;
+        rows.push({ key: 'time', label: '時間', value: time });
         const theme = window.App.Themes && window.App.Themes.get(d.themeId);
         // テーマを選んでいない時は、既定の見た目（スタジオ）
         const look = theme ? `${theme.name}${window.App.Themes.isModified(d) ? '（カスタム）' : ''}` : (d.themeId ? 'カスタム' : 'スタジオ（標準）');
@@ -409,7 +417,7 @@ App.CreatorMobile = {
         }
         const ids = { design: 'creator-inline-design', rules: 'creator-inline-rules', bulk: 'creator-bulk-panel' };
         const titles = { design: '見た目（セット全体）', rules: 'ルール（セット全体）', bulk: 'メモのようにまとめて入力' };
-        const SUB_TITLES = { format: '答え方', wrong: '間違えたとき', win: '勝ち方', time: '制限時間' };
+        const SUB_TITLES = { format: '答え方', correct: '正解したとき', wrong: '間違えたとき', win: '勝ち方', time: '時間' };
         if (kind === 'rules' && sub && SUB_TITLES[sub]) titles.rules = `${SUB_TITLES[sub]}（セット全体）`;
         const node = document.getElementById(ids[kind]);
         if (!node) return;

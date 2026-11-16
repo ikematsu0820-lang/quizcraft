@@ -1125,3 +1125,18 @@ button.btn-player-hero:hover {
 @keyframes tvBallBeat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.08); } }
 .tv-ball.tv-expired { animation: vfFade 0.3s reverse forwards; }
 .tv-ball.tv-blink { animation: none; } /* 玉は点滅させず、脈打つだけ */
+
+/* 解答者の持ち時間（timer_view.js answerChip） */
+.tv-answer-chip {
+    position: absolute; bottom: 3cqh; right: 2.5cqw; z-index: 400; pointer-events: none;
+    display: flex; align-items: baseline; gap: 0.4em;
+    padding: 0.6cqh 1.6cqw; border-radius: 99px;
+    background: rgba(0, 0, 0, 0.72); color: #fff; border: 0.35cqh solid #fbbf24;
+    font-weight: 900; font-size: 3cqh; box-shadow: 0 0.6cqh 2cqh rgba(0, 0, 0, 0.4);
+}
+.tv-answer-chip b { font-size: 1.6em; color: #fbbf24; line-height: 1; }
+.tv-answer-label { font-size: 0.75em; opacity: 0.85; }
+.tv-answer-unit { font-size: 0.7em; }
+.tv-answer-chip.tv-answer-warn { border-color: #ff3b30; animation: tvAnsBlink 0.5s ease-in-out infinite alternate; }
+.tv-answer-chip.tv-answer-warn b { color: #ff3b30; }
+@keyframes tvAnsBlink { from { transform: scale(1); } to { transform: scale(1.08); } }

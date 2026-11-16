@@ -1069,7 +1069,7 @@ window.App.Creator = {
     rulesSubTab: 'format',
 
     renderRulesSubtabs: function () {
-        const subs = { format: 'creator-rules-sub-format', wrong: 'creator-rules-sub-wrong', win: 'creator-rules-sub-win', time: 'creator-rules-sub-time' };
+        const subs = { format: 'creator-rules-sub-format', correct: 'creator-rules-sub-correct', wrong: 'creator-rules-sub-wrong', win: 'creator-rules-sub-win', time: 'creator-rules-sub-time' };
         Object.entries(subs).forEach(([k, id]) => {
             document.getElementById(id)?.classList.toggle('hidden', this.rulesSubTab !== k);
         });
@@ -1118,9 +1118,14 @@ window.App.Creator = {
         if (key === 'rules') {
             // ルール設定 = 解答形式/勝利条件/制限時間 のサブタブ（以前の
             // 「解答方式」タブは 解答形式 サブタブに統合）
-            window.App.Config.renderInlineModeChooser(document.getElementById('creator-inline-mode-body'), conf, questions, onChange);
-            window.App.Config.renderInlineGameTypeChooser(document.getElementById('creator-inline-gametype'), conf, onChange);
-            window.App.Config.renderInlineTimeLimitChooser(document.getElementById('creator-inline-timelimit'), conf, onChange);
+            // 5つの軸（答え方／正解／誤答／勝ち方／時間）— rule_panel.js
+            if (window.App.RulePanel) {
+                window.App.RulePanel.render(conf, questions, onChange);
+            } else {
+                window.App.Config.renderInlineModeChooser(document.getElementById('creator-inline-mode-body'), conf, questions, onChange);
+                window.App.Config.renderInlineGameTypeChooser(document.getElementById('creator-inline-gametype'), conf, onChange);
+                window.App.Config.renderInlineTimeLimitChooser(document.getElementById('creator-inline-timelimit'), conf, onChange);
+            }
             this.renderRulesSubtabs();
         } else if (key === 'design' && window.App.Design && window.App.Design.renderInlineChooser) {
             window.App.Design.renderInlineChooser(document.getElementById('creator-inline-design'), window.App.Data.currentDesign, () => {

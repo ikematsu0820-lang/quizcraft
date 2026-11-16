@@ -315,6 +315,7 @@ App.Studio = {
             const players = snap.val() || {};
             App.Data.players = players; // Store globally for access in setStep
             this.checkSurvival(players);
+            this.checkWinThrough(players);
             if (this._ng) this.processNumGamePick(players);
             const count = Object.keys(players).length;
             document.getElementById('studio-player-count-display').textContent = count;
@@ -1182,6 +1183,9 @@ App.Studio = {
                     // Turn/Solo Mode: Only the current turn player can answer
                     // Ensure turnIndex is valid
                     if (this.turnIndex >= this.turnOrder.length) this.turnIndex = 0;
+                    // 脱落・勝ち抜けした人の番は飛ばす
+                    if (isTurn) this.turnIndex = this._nextEligibleTurnIndex(this.turnIndex, true);
+                    this._turnQStart = this.turnIndex;
 
                     const turnPlayerId = this.turnOrder[this.turnIndex];
                     const turnPlayerName = (App.Data.players && App.Data.players[turnPlayerId])
@@ -1233,6 +1237,7 @@ App.Studio = {
 
                     // Start time limit for turn/solo mode
                     this.startTimeLimit(roomId);
+                    if (isTurn) this.startAnswerTimer(turnPlayerId);
 
                 } else {
                     // Normal Mode (Unified Flow: Question -> Answer -> Result)
@@ -1474,6 +1479,19 @@ App.Studio = {
     },
 
     goNext: function () {
+        // 勝ち方の終了条件（勝ち抜けの人数・サバイバルの残り人数）
+        const endMsg = this.checkSetEnd();
+        if (endMsg) {
+            App.Ui.showToast(endMsg);
+            this.handleSetCompletion();
+            return;
+        }
+        // 誤答で解答権が回った問題でも、次の問題は本来の次の人から
+        if (this._turnPassed && this._turnQStart !== undefined && this._turnQStart !== null && (App.Data.currentConfig || {}).mode === 'turn') {
+            this.turnIndex = this._turnQStart;
+            this.turnAdvancedThisQ = false;
+        }
+        this._turnPassed = false;
         let nextIdx = App.State.currentQIndex + 1;
         const questions = App.Data.studioQuestions;
 
@@ -1490,6 +1508,7 @@ App.Studio = {
                     if (!this.turnAdvancedThisQ) {
                         this.turnIndex = (this.turnIndex + 1) % this.turnOrder.length;
                     }
+                    this.turnIndex = this._nextEligibleTurnIndex(this.turnIndex, true);
                     this.turnAdvancedThisQ = false; // Reset for next Q
                 }
 
@@ -1906,16 +1925,121 @@ App.Studio = {
     // 足切りで isAlive:false の人はそのまま）
     resetSurvival: function () {
         this._survivalCounted = {};
+        this._clearedCount = 0;
+        this._turnQStart = null;
         const roomId = App.State.currentRoomId;
         if (!roomId) return;
+        // セットごとの値（ミス・連続正解・正解数・勝ち抜け）を数え直す
         window.db.ref(`rooms/${roomId}/players`).once('value', snap => {
-            snap.forEach(p => { if (p.val() && p.val().survivalMisses) p.ref.update({ survivalMisses: null }); });
+            snap.forEach(p => {
+                const v = p.val();
+                if (!v) return;
+                const upd = {};
+                ['survivalMisses', 'streak', 'periodCorrect', 'cleared', 'clearedRank'].forEach(k => { if (v[k]) upd[k] = null; });
+                if (Object.keys(upd).length) p.ref.update(upd);
+            });
         });
+    },
+
+    // 順番で次に答えられる人（脱落・勝ち抜け・この問題で誤答済みの人は飛ばす）
+    //   includeSelf … from の人自身も候補に入れるか
+    _nextEligibleTurnIndex: function (from, includeSelf) {
+        const order = this.turnOrder || [];
+        const n = order.length;
+        if (!n) return includeSelf ? from : null;
+        const players = App.Data.players || {};
+        const tried = this._turnTried || {};
+        for (let k = includeSelf ? 0 : 1; k <= n; k++) {
+            const i = (from + k) % n;
+            const p = players[order[i]];
+            if (!p || p.isAlive === false || p.cleared || tried[order[i]]) continue;
+            return i;
+        }
+        return includeSelf ? from : null;
+    },
+
+    // 勝ち抜け — 規定の点（または正解数）に達した人を勝ち抜けにする
+    checkWinThrough: function (players) {
+        const conf = App.Data.currentConfig || {};
+        if (conf.gameType !== 'winthrough') return;
+        const roomId = App.State.currentRoomId;
+        const target = Number(conf.winTarget) || 5;
+        const byCorrect = conf.winBy === 'correct';
+        this._clearedCount = Object.values(players || {}).filter(p => p && p.cleared).length;
+        Object.entries(players || {}).forEach(([pid, p]) => {
+            if (!p || p.cleared || p.isAlive === false) return;
+            const v = byCorrect ? (p.periodCorrect || 0) : (p.periodScore || 0);
+            if (v < target) return;
+            this._clearedCount += 1;
+            p.cleared = true; // 同じ通知の中で二重に数えない
+            window.db.ref(`rooms/${roomId}/players/${pid}`).update({ cleared: true, clearedRank: this._clearedCount });
+            App.Ui.showToast(`🎉 ${p.name || '---'} さんが${this._clearedCount}番目に勝ち抜け！`);
+            const quota = Number(conf.winQuota) || 0;
+            if (quota && this._clearedCount >= quota) App.Ui.showToast(`${quota}人が勝ち抜けました。この問題でセット終了です`);
+        });
+    },
+
+    // 勝ち方の終了条件を満たしたか（満たしていれば知らせる文を返す）
+    checkSetEnd: function () {
+        const conf = App.Data.currentConfig || {};
+        const players = Object.values(App.Data.players || {}).filter(Boolean);
+        if (!players.length) return '';
+        if (conf.gameType === 'winthrough') {
+            const quota = Number(conf.winQuota) || 0;
+            const cleared = players.filter(p => p.cleared).length;
+            if (quota && cleared >= quota) return `${quota}人が勝ち抜けたので、セットを終了します`;
+            if (players.every(p => p.cleared || p.isAlive === false)) return '全員が勝ち抜けたので、セットを終了します';
+        }
+        if (conf.gameType === 'survival') {
+            const endN = Number(conf.survivalEndCount) || 0;
+            const alive = players.filter(p => p.isAlive !== false).length;
+            if (endN && alive <= endN) return `残り${alive}人になったので、セットを終了します`;
+        }
+        return '';
+    },
+
+    // ---------------------------------------------------------
+    // 解答者の持ち時間（ルール「時間」— 押してから／順番が来てから◯秒）
+    // 時間内に答えなければ誤答として判定する。
+    // ---------------------------------------------------------
+    startAnswerTimer: function (playerId) {
+        this.clearAnswerTimer();
+        const conf = App.Data.currentConfig || {};
+        const sec = Number(conf.answerSec) || 0;
+        const RE = window.App.RuleEngine;
+        if (!sec || !playerId) return;
+        if (RE && !RE.can('answerSec', RE.context(conf, App.Data.studioQuestions)).ok) return;
+        const roomId = App.State.currentRoomId;
+        const qAt = App.State.currentQIndex;
+        this._answerTimerFor = playerId;
+        window.db.ref(`rooms/${roomId}/status`).update({ answerTimer: { pid: playerId, ms: sec * 1000, startAt: firebase.database.ServerValue.TIMESTAMP } });
+        this._answerTimerId = setTimeout(() => {
+            this._answerTimerId = null;
+            if (App.State.currentQIndex !== qAt || this._answerTimerFor !== playerId) return;
+            if (![2, 3].includes(this.currentStepId)) return;
+            const p = (App.Data.players || {})[playerId];
+            if (p && p.lastResult) return; // もう判定済み
+            App.Ui.showToast(`${(p && p.name) || '---'} さんは時間切れ（誤答）`);
+            const mode = conf.mode;
+            if (mode === 'buzz' && this.buzzWinner === playerId) this.judgeBuzz(false);
+            else if (mode === 'turn' || mode === 'nominate') this.updatePlayerScore(playerId, false);
+        }, sec * 1000);
+    },
+
+    clearAnswerTimer: function () {
+        if (this._answerTimerId) { clearTimeout(this._answerTimerId); this._answerTimerId = null; }
+        if (this._answerTimerFor) {
+            this._answerTimerFor = null;
+            const roomId = App.State.currentRoomId;
+            if (roomId) window.db.ref(`rooms/${roomId}/status/answerTimer`).remove();
+        }
     },
 
     resetPlayerStatus: function () {
         if (this._ng) { this._ng = null; this.renderNumGameConsole(); }
         this._nominatedId = null;
+        this._turnTried = {};
+        this.clearAnswerTimer();
         this._deskSelected = null; // 新しい問題では解答ボードは「回答待ち」から
         const roomId = App.State.currentRoomId;
         this.revealedMultiIndices = {}; // Reset multi-answer reveal state
@@ -2153,10 +2277,12 @@ App.Studio = {
                 window.db.ref(`rooms/${roomId}/players/${turnPlayerId}`).once('value', snap => {
                     const p = snap.val();
                     if (!p) return;
+                    const gain = this._correctPts(p, q);
                     snap.ref.update({
-                        periodScore: (p.periodScore || 0) + pts,
-                        totalScore: (p.totalScore || 0) + pts,
-                        lastResult: 'win'
+                        periodScore: (p.periodScore || 0) + gain,
+                        totalScore: (p.totalScore || 0) + gain,
+                        lastResult: 'win',
+                        ...this._resultFields(p, true)
                     });
                     this.recordWinner(turnPlayerId, p.name);
                 });
@@ -2269,7 +2395,7 @@ App.Studio = {
 
     buzzCandidates: function (players) {
         return Object.entries(players || {}).filter(([_, p]) =>
-            p && p.buzzTime && !p.lastResult &&
+            p && p.buzzTime && !p.lastResult && !p.cleared && p.isAlive !== false &&
             !(p.buzzRest && p.buzzRest > 0) &&
             !(p.buzzBannedUntil && p.buzzBannedUntil > Date.now())
         );
@@ -2313,15 +2439,39 @@ App.Studio = {
             window.db.ref(`rooms/${App.State.currentRoomId}/status`).update({ currentAnswerer: this.buzzWinner, currentAnswererName: name, isBuzzActive: false });
             // 誰かが押したら時計を止める（ルール「制限時間」の詳細設定）
             if (this._timerConf().pauseOnBuzz) this.pauseTimer();
+            this.startAnswerTimer(this.buzzWinner);
         }
     },
 
     // 早押しの誤答で引く点 — ルール設定「誤答者：得点の減点」（なし=0 /
     // あり=-N点）。未設定の保存済みセットは、これまでどおり問題ごとの減点。
+    // ---------------------------------------------------------
+    // 得点の計算はどの解答権でも rule_engine.js の同じ式で
+    // ---------------------------------------------------------
+    // この問題で何番目の正解者か（先着・傾斜用）と、連続正解・連想のヒント数
+    _correctPts: function (p, q) {
+        const RE = window.App.RuleEngine;
+        const conf = App.Data.currentConfig || {};
+        const rank = Object.keys(this._qWinners || {}).length;
+        const info = { rank, streak: ((p && p.streak) || 0) + 1 };
+        if (q && q.type && q.type.startsWith('assoc')) {
+            info.hint = Math.max(1, Object.values(this.revealedMultiIndices || {}).filter(Boolean).length);
+        }
+        return RE ? RE.correctPoints(conf, q, info) : ((q && q.points) || 1);
+    },
+    _wrongLoss: function (q) {
+        const RE = window.App.RuleEngine;
+        return RE ? RE.wrongLoss(App.Data.currentConfig || {}, q) : ((q && q.loss) || 0);
+    },
+    // 正解・誤答と一緒に書く値（連続正解の数・このセットの正解数）
+    _resultFields: function (p, isCorrect) {
+        return isCorrect
+            ? { streak: ((p && p.streak) || 0) + 1, periodCorrect: ((p && p.periodCorrect) || 0) + 1 }
+            : { streak: 0 };
+    },
+
     buzzWrongLoss: function (q) {
-        const d = (App.Data.currentConfig || {}).buzzDeduct;
-        if (d === undefined || d === null || d === '') return (q && q.loss) || 0;
-        return Number(d) || 0;
+        return this._wrongLoss(q);
     },
 
     // 早押しで誤答した人へのペナルティ — ルールの詳細設定「誤答した人」
@@ -2377,8 +2527,10 @@ App.Studio = {
             if (isCorrect) {
                 // 正解時
                 const winnerId = this.buzzWinner;
-                snap.ref.update({ periodScore: (p.periodScore || 0) + pts, lastResult: 'win' });
+                const gain = this._correctPts(p, App.Data.studioQuestions[App.State.currentQIndex]);
+                snap.ref.update({ periodScore: (p.periodScore || 0) + gain, totalScore: (p.totalScore || 0) + gain, lastResult: 'win', ...this._resultFields(p, true) });
                 this.recordWinner(winnerId, p.name);
+                this.clearAnswerTimer();
                 document.getElementById('studio-sub-info').classList.add('hidden');
 
                 // パネルモードの場合はパネル選択へ
@@ -2395,8 +2547,10 @@ App.Studio = {
                     lastResult: 'lose',
                     buzzTime: null,
                     periodScore: (p.periodScore || 0) - loss,
-                    totalScore: (p.totalScore || 0) - loss
+                    totalScore: (p.totalScore || 0) - loss,
+                    ...this._resultFields(p, false)
                 });
+                this.clearAnswerTimer();
                 // 誤答した人へのペナルティ（ルールの詳細設定「誤答した人」）
                 this.applyBuzzPenalty(this.buzzWinner, action);
 
@@ -2546,30 +2700,33 @@ App.Studio = {
                 snap.forEach(pSnap => {
                     const p = pSnap.val();
                     if (!p || p.lastResult) return; // 判定済み
+                    if (p.cleared || p.isAlive === false) return; // 勝ち抜け・脱落した人は答えない
                     const answered = !(p.lastAnswer === null || p.lastAnswer === undefined);
                     const isCor = answered && this._isCorrectAnswer(q, p);
                     if (isCor) {
                         correct.push({ ref: pSnap.ref, p, ms: RE.answerElapsedMs(p, openAt) });
                     } else {
-                        const loss = q.loss || 0;
+                        const loss = this._wrongLoss(q);
                         pSnap.ref.update({
                             periodScore: (p.periodScore || 0) - loss,
                             totalScore: (p.totalScore || 0) - loss,
                             lastResult: 'lose',
-                            lastElapsedMs: answered ? RE.answerElapsedMs(p, openAt) : null
+                            lastElapsedMs: answered ? RE.answerElapsedMs(p, openAt) : null,
+                            ...this._resultFields(p, false)
                         });
                     }
                 });
                 // 正解者を速い順に（時間が分からない人は最後）
                 correct.sort((x, y) => (x.ms === null ? Infinity : x.ms) - (y.ms === null ? Infinity : y.ms));
                 correct.forEach((c, i) => {
-                    const pts = RE.pointsForCorrect(conf, q, c.ms === null ? null : i);
+                    const pts = RE.correctPoints(conf, q, { rank: c.ms === null ? null : i, streak: (c.p.streak || 0) + 1 });
                     const upd = {
                         periodScore: (c.p.periodScore || 0) + pts,
                         totalScore: (c.p.totalScore || 0) + pts,
                         lastResult: 'win',
                         lastElapsedMs: c.ms,
-                        lastCorrectRank: i + 1
+                        lastCorrectRank: i + 1,
+                        ...this._resultFields(c.p, true)
                     };
                     if (c.ms !== null) {
                         upd.periodCorrectTime = (c.p.periodCorrectTime || 0) + c.ms;
@@ -3270,6 +3427,7 @@ App.Studio = {
         window.db.ref(`rooms/${roomId}/status`).update({ currentAnswerer: playerId, currentAnswererName: p.name || '---', isTurnMode: true });
         App.Ui.showToast(`${p.name || '---'} さんを指名しました`);
         this.toggleParticipantsPage(false);
+        this.startAnswerTimer(playerId);
     },
 
     // 解答ボード ⇔ 参加者のページ
@@ -3405,10 +3563,12 @@ App.Studio = {
         window.db.ref(`rooms/${roomId}/players/${playerId}`).once('value', snap => {
             const p = snap.val();
             if (!p) return;
-            const loss = (config.mode === 'buzz') ? this.buzzWrongLoss(q) : (q.loss || 0);
-            const pts = isCorrect ? (q.points || 1) : -loss;
+            const loss = this._wrongLoss(q);
+            const pts = isCorrect ? this._correctPts(p, q) : -loss;
             const result = isCorrect ? 'win' : 'lose';
+            const extra = this._resultFields(p, isCorrect);
             if (isCorrect) this.recordWinner(playerId, p.name);
+            if (config.mode !== 'normal') this.clearAnswerTimer();
 
             if (isNormalFreeWritten && answerAttempts === 'single') {
                 // ★ Single attempt mode: store as pending, don't reveal to player yet
@@ -3416,6 +3576,7 @@ App.Studio = {
                     pendingScore: pts,
                     pendingResult: result
                 });
+                // 連続正解・正解数は結果を出す時（flushPendingResults）に反映
                 App.Ui.showToast(`${p.name}：${isCorrect ? '〇' : '✖'}（正解表示時に反映）`);
 
             } else if (isNormalFreeWritten && answerAttempts === 'multiple') {
@@ -3423,7 +3584,8 @@ App.Studio = {
                 snap.ref.update({
                     periodScore: (p.periodScore || 0) + pts,
                     totalScore: (p.totalScore || 0) + pts,
-                    lastResult: result
+                    lastResult: result,
+                    ...extra
                 });
                 App.Ui.showToast(`${p.name} さんを ${isCorrect ? '正解' : '不正解'} に判定しました`);
 
@@ -3442,7 +3604,8 @@ App.Studio = {
                 snap.ref.update({
                     periodScore: (p.periodScore || 0) + pts,
                     totalScore: (p.totalScore || 0) + pts,
-                    lastResult: result
+                    lastResult: result,
+                    ...extra
                 });
                 App.Ui.showToast(`${p.name} さんを ${isCorrect ? '正解' : '不正解'} に判定しました`);
             }
@@ -3621,6 +3784,25 @@ App.Studio = {
                         snap.ref.update({ lastAnswer: null, lastResult: null });
                     }, 1500);
 
+                } else if (!isCorrect && !isDobon && config.turnWrongAction === 'next') {
+                    // 誤答したら次の人に解答権が移る（ルール「誤答」）
+                    this._turnTried = this._turnTried || {};
+                    this._turnTried[playerId] = true;
+                    const nextIdx = this._nextEligibleTurnIndex(this.turnIndex, false);
+                    const nextId = nextIdx === null ? null : this.turnOrder[nextIdx];
+                    if (nextId) {
+                        this._turnPassed = true;
+                        this.turnIndex = nextIdx;
+                        const nextName = (App.Data.players && App.Data.players[nextId] && App.Data.players[nextId].name) || '---';
+                        window.db.ref(`rooms/${roomId}/status`).update({ currentAnswerer: nextId, currentAnswererName: nextName, turnIndex: this.turnIndex });
+                        const info = document.getElementById('studio-sub-info');
+                        if (info) info.innerHTML = `<span style="color:#9b59b6; font-weight:bold;">順番: ${nextName}（誤答のため解答権が移りました）</span>`;
+                        App.Ui.showToast(`不正解… 次は ${nextName} さんが答えます`);
+                        this.startAnswerTimer(nextId);
+                    } else {
+                        App.Ui.showToast('全員が誤答しました（正解発表へ）');
+                        setTimeout(() => { if (this.currentStepId === 2 || this.currentStepId === 3) this.setStep(5); }, 1200);
+                    }
                 } else if (!this.turnAdvancedThisQ && !isDobon && !shouldAdvanceInQuestion) {
                     // Normal question (Single Turn): mark as finished for this person
                     // (The turn will pass to the next person for the NEXT question)
@@ -3642,6 +3824,7 @@ App.Studio = {
             snap.forEach(pSnap => {
                 const p = pSnap.val();
                 if (p.lastResult) return; // already judged
+                if (p.cleared || p.isAlive === false) return; // 勝ち抜け・脱落した人は答えない
                 if (p.pendingResult) {
                     const pts = p.pendingScore || 0;
                     pSnap.ref.update({
@@ -3649,17 +3832,19 @@ App.Studio = {
                         totalScore: (p.totalScore || 0) + pts,
                         lastResult: p.pendingResult,
                         pendingResult: null,
-                        pendingScore: null
+                        pendingScore: null,
+                        ...this._resultFields(p, p.pendingResult === 'win')
                     });
                 } else {
                     // No answer submitted → incorrect
-                    const loss = (q && q.loss) || 0;
+                    const loss = this._wrongLoss(q);
                     pSnap.ref.update({
                         periodScore: (p.periodScore || 0) - loss,
                         totalScore: (p.totalScore || 0) - loss,
                         lastResult: 'lose',
                         pendingResult: null,
-                        pendingScore: null
+                        pendingScore: null,
+                        ...this._resultFields(p, false)
                     });
                 }
             });
