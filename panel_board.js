@@ -19,6 +19,7 @@ window.App = window.App || {};
 
 App.PanelBoard = {
     active: false, // 作成画面で編集中の問題がパネル指名モードか
+    panelQ: false, // パネルごとに問題を出す（表＝ジャンル、選ぶと問題、正解で裏の文字）
 
     esc: function (v) {
         return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -101,6 +102,7 @@ App.PanelBoard = {
     renderEditor: function (C, data) {
         const container = document.getElementById('creator-form-container');
         if (!container) return;
+        this.panelQ = !!(data && data.panelQ);
         const panels = (data && Array.isArray(data.panels) && data.panels.length) ? data.panels
             : (data && Array.isArray(data.c) && data.c.filter(Boolean).length) ? data.c.filter(Boolean).map(a => ({ label: '', answer: a, pts: '' }))
             : Array.from({ length: 6 }, () => ({ label: '', answer: '', pts: '' }));
@@ -108,7 +110,9 @@ App.PanelBoard = {
         container.style.overflowY = 'auto';
         const list = document.createElement('div');
         list.id = 'pb-list';
-        list.style.cssText = 'display:grid; grid-template-columns:1fr 1fr; gap:4px 8px; width:100%; align-content:start;';
+        // 問題付きは1枚の欄が多いので1列に
+        list.className = this.panelQ ? 'pb-qmode' : '';
+        list.style.cssText = `display:grid; grid-template-columns:${this.panelQ ? '1fr' : '1fr 1fr'}; gap:4px 8px; width:100%; align-content:start;`;
         container.appendChild(list);
         panels.forEach(p => this.addRow(list, p));
         // パネルをタップしたら、見た目の設定は「パネル」を対象にする
@@ -124,10 +128,18 @@ App.PanelBoard = {
         wrongSel.querySelector('select').value = (data && data.panelWrong === 'close') ? 'close' : 'keep';
         const paste = mk(`<button type="button" id="pb-paste-btn" style="margin-left:auto; background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4); border-radius:8px; color:#00e5ff; padding:5px 12px; cursor:pointer; font-size:0.8rem;">まとめて貼り付け</button>`);
         const add = mk(`<button type="button" id="pb-add-btn" style="margin-left:4px; background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4); border-radius:8px; color:#00e5ff; padding:5px 12px; cursor:pointer; font-size:0.8rem;">＋ パネルを追加</button>`);
-        const hint = mk(`<span class="pb-hint" style="color:#64748b; font-size:0.75rem; white-space:nowrap;">※答えは口頭。表（問題）が空欄なら番号だけ出す・点が空欄ならルールの配点</span>`);
+        // パネルごとに問題を出す（表＝ジャンル → 選ぶと問題 → 正解で裏の文字）
+        const qmodeChk = mk(`<label class="pb-qmode-wrap" style="display:flex; align-items:center; gap:6px; cursor:pointer; color:#cbd5e1; font-size:0.8rem; white-space:nowrap;"><input type="checkbox" id="pb-qmode-chk" ${this.panelQ ? 'checked' : ''} style="accent-color:#00e5ff; cursor:pointer;"><span>パネルごとに問題を出す</span></label>`);
+        qmodeChk.querySelector('input').onchange = (e) => {
+            const cur = C._readFormDataForPreview();
+            C.renderForm('multi_oral', { ...cur, type: 'multi_oral', panel: true, panelQ: e.target.checked });
+        };
+        const hint = mk(`<span class="pb-hint" style="color:#64748b; font-size:0.75rem; white-space:nowrap;">${this.panelQ
+            ? '※パネルを選ぶと問題が出て、正解すると裏の文字が出ます（裏が空欄なら答え）。答えは口頭・点が空欄ならルールの配点'
+            : '※答えは口頭。表（問題）が空欄なら番号だけ出す・点が空欄ならルールの配点'}</span>`);
         // パネルの配置（行数×列数）— 見た目の「パネルの配置」と同じ設定
         const layoutBtn = window.App.Design && window.App.Design.gridLayoutButton ? window.App.Design.gridLayoutButton('パネル') : null;
-        if (outside) { [hint, wrongSel, layoutBtn, paste, add].filter(Boolean).forEach(el => outside.appendChild(el)); outside.classList.remove('hidden'); }
+        if (outside) { [qmodeChk, hint, wrongSel, layoutBtn, paste, add].filter(Boolean).forEach(el => outside.appendChild(el)); outside.classList.remove('hidden'); }
         paste.onclick = () => this.openPaste(list);
         add.onclick = () => this.addRow(list, { label: '', answer: '', pts: '' });
     },
@@ -140,12 +152,24 @@ App.PanelBoard = {
         const inp = 'height:24px !important; min-height:0; margin:0; padding:0 6px !important; background:rgba(255,255,255,0.06) !important; border:1px solid #334155 !important; border-radius:4px; color:#fff; font-size:0.78rem;';
         row.innerHTML = `
             <span class="pb-no" style="flex:0 0 1.8em; color:#fbbf24; font-weight:900; font-size:0.75rem; text-align:right;"></span>
+            ${this.panelQ ? `
+            <span class="pb-tag pb-tag-front">表</span>
+            <input type="text" class="pb-label" placeholder="表：ジャンルなど（例: 果物）" value="${e(p.label)}" style="flex:1; min-width:0; ${inp}">
+            <span class="pb-tag pb-tag-q">問</span>
+            <input type="text" class="pb-pq" placeholder="問題文" value="${e(p.pq)}" style="flex:2.4; min-width:0; ${inp}">
+            <span class="pb-tag pb-tag-ans">答</span>
+            <input type="text" class="pb-answer" placeholder="答え" value="${e(p.answer)}" style="flex:1; min-width:0; ${inp} color:#86efac !important;">
+            <span class="pb-tag pb-tag-back">裏</span>
+            <input type="text" class="pb-back" placeholder="裏：正解で出す文字（空欄なら答え）" value="${e(p.back)}" style="flex:1; min-width:0; ${inp} color:#fbbf24 !important;">` : `
             <span class="pb-tag pb-tag-front">表</span>
             <input type="text" class="pb-label" placeholder="表：問題（任意）" value="${e(p.label)}" style="flex:1; min-width:0; ${inp}">
             <span class="pb-tag pb-tag-back">裏</span>
-            <input type="text" class="pb-answer" placeholder="裏：答え" value="${e(p.answer)}" style="flex:1; min-width:0; ${inp} color:#86efac !important;">
+            <input type="text" class="pb-answer" placeholder="裏：答え" value="${e(p.answer)}" style="flex:1; min-width:0; ${inp} color:#86efac !important;">`}
             <input type="number" class="pb-pts" placeholder="点" value="${e(p.pts)}" style="flex:0 0 46px; width:46px; ${inp} text-align:right !important; color:#fbbf24 !important;">
             <button type="button" class="pb-del" title="削除" style="flex:0 0 auto; background:none; border:none; color:rgba(255,255,255,0.35); cursor:pointer; padding:0 4px;">×</button>`;
+        // 問題付きをオフにしても、書いた問題・裏の文字は行に持っておく（オンに戻した時に消えないように）
+        row.dataset.pq = p.pq || '';
+        row.dataset.back = p.back || '';
         row.querySelector('.pb-del').onclick = () => { row.remove(); this.renumber(list); };
         list.appendChild(row);
         this.renumber(list);
@@ -161,8 +185,14 @@ App.PanelBoard = {
             const label = (row.querySelector('.pb-label')?.value || '').trim();
             const answer = (row.querySelector('.pb-answer')?.value || '').trim();
             const raw = (row.querySelector('.pb-pts')?.value || '').trim();
-            if (!label && !answer && !keepEmpty) return;
-            out.push({ label, answer, pts: raw === '' ? '' : Number(raw) });
+            const pqEl = row.querySelector('.pb-pq'), backEl = row.querySelector('.pb-back');
+            const pq = (pqEl ? pqEl.value : row.dataset.pq || '').trim();
+            const back = (backEl ? backEl.value : row.dataset.back || '').trim();
+            if (!label && !answer && !(this.panelQ && pq) && !keepEmpty) return;
+            const p = { label, answer, pts: raw === '' ? '' : Number(raw) };
+            if (pq) p.pq = pq;
+            if (back) p.back = back;
+            out.push(p);
         });
         return out;
     },
@@ -175,9 +205,10 @@ App.PanelBoard = {
         overlay.innerHTML = `
             <div class="design-modal-content" style="max-width:440px; padding:20px !important;">
                 <h3 class="modal-title" style="font-size:1rem; margin-bottom:8px;">パネルをまとめて貼り付け</h3>
-                <p style="color:#94a3b8; font-size:0.75rem; margin:0 0 8px;">1行に1枚。表の問題[タブ]答え（[タブ]点）。答えだけの行（1列）なら、パネルは番号だけになります。カンマ区切りでもOK</p>
-                <textarea id="pb-paste-text" placeholder="青森	青森市
-岩手	盛岡市	2" style="width:100%; height:180px !important; min-height:180px !important; padding:8px; box-sizing:border-box; font-family:monospace; font-size:0.8rem; background:#0d1b2a; color:#fff; border:1px solid #475569; border-radius:8px; resize:vertical;"></textarea>
+                <p style="color:#94a3b8; font-size:0.75rem; margin:0 0 8px;">${this.panelQ
+                    ? '1行に1枚。表[タブ]問題文[タブ]答え（[タブ]裏[タブ]点）。カンマ区切りでもOK'
+                    : '1行に1枚。表の問題[タブ]答え（[タブ]点）。答えだけの行（1列）なら、パネルは番号だけになります。カンマ区切りでもOK'}</p>
+                <textarea id="pb-paste-text" placeholder="${this.panelQ ? '果物	りんごの生産量日本一の都道府県は？	青森県	りんご\n野菜	ねぎの生産量日本一の都道府県は？	埼玉県	ねぎ	2' : '青森	青森市\n岩手	盛岡市	2'}" style="width:100%; height:180px !important; min-height:180px !important; padding:8px; box-sizing:border-box; font-family:monospace; font-size:0.8rem; background:#0d1b2a; color:#fff; border:1px solid #475569; border-radius:8px; resize:vertical;"></textarea>
                 <label style="display:flex; align-items:center; gap:6px; color:#cbd5e1; font-size:0.78rem; margin:8px 0;"><input type="checkbox" id="pb-paste-replace" checked> 今のパネルを置き換える（外すと末尾に追加）</label>
                 <div style="display:flex; gap:8px;">
                     <button type="button" id="pb-paste-cancel" style="flex:1; padding:9px; border-radius:8px; background:#333; border:none; color:#ccc; cursor:pointer;">閉じる</button>
@@ -188,13 +219,15 @@ App.PanelBoard = {
         const close = () => overlay.remove();
         overlay.querySelector('#pb-paste-cancel').onclick = close;
         overlay.querySelector('#pb-paste-ok').onclick = () => {
+            const num = (v) => v !== undefined && v !== '' && !isNaN(Number(v)) ? Number(v) : '';
             const rows = overlay.querySelector('#pb-paste-text').value.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => {
                 const parts = l.split(/\t|,|，/).map(x => x.trim());
+                if (this.panelQ) return { label: parts[0] || '', pq: parts[1] || '', answer: parts[2] || '', back: parts[3] || '', pts: num(parts[4]) };
                 if (parts.length < 2) return { label: '', answer: parts[0], pts: '' };
                 const pts = parts[2] !== undefined && parts[2] !== '' && !isNaN(Number(parts[2])) ? Number(parts[2]) : '';
                 return { label: parts[0], answer: parts[1], pts };
-            }).filter(r => r && (r.label || r.answer));
-            if (!rows.length) { alert('「表の問題[タブ]答え」の行が見つかりませんでした'); return; }
+            }).filter(r => r && (r.label || r.answer || r.pq));
+            if (!rows.length) { alert(this.panelQ ? '「表[タブ]問題文[タブ]答え」の行が見つかりませんでした' : '「表の問題[タブ]答え」の行が見つかりませんでした'); return; }
             if (overlay.querySelector('#pb-paste-replace').checked) list.innerHTML = '';
             else list.querySelectorAll('.pb-row').forEach(r => { if (!r.querySelector('.pb-label').value.trim() && !r.querySelector('.pb-answer').value.trim()) r.remove(); });
             rows.forEach(r => this.addRow(list, r));
@@ -210,6 +243,7 @@ App.PanelBoard = {
         const panels = this.readPanels(keepEmpty);
         q.panel = true;
         q.panels = panels;
+        q.panelQ = this.panelQ || null;
         q.panelWrong = document.getElementById('pb-wrong')?.value === 'close' ? 'close' : 'keep';
         // 多答として読む所（一覧・未完成の判定など）のために答えも c/correct に
         q.c = panels.map(p => p.answer);
@@ -234,7 +268,8 @@ App.PanelBoard = {
         startPanelBoard: function (q) {
             const mode = (App.Data.currentConfig || {}).mode;
             this._pb = {
-                panels: (q.panels || []).map(p => ({ label: String(p.label || ''), answer: String(p.answer || ''), pts: p.pts })),
+                panels: (q.panels || []).map(p => ({ label: String(p.label || ''), answer: String(p.answer || ''), pts: p.pts, pq: String(p.pq || ''), back: String(p.back || '') })),
+                panelQ: !!q.panelQ,
                 status: {},
                 sel: null,
                 seq: 0,
@@ -276,9 +311,12 @@ App.PanelBoard = {
                     panels: pb.panels.map((p, i) => {
                         const s = pb.status[i] || {};
                         const open = s.r === 'ok' || s.r === 'closed' || pb.revealAll;
-                        return { label: p.label, r: s.r || null, by: s.by || null, answer: open ? p.answer : null };
+                        // 問題付きは開いたら裏の文字（空欄なら答え）を出す
+                        return { label: p.label, r: s.r || null, by: s.by || null, answer: open ? ((pb.panelQ && p.back) || p.answer) : null };
                     }),
                     sel: pb.sel,
+                    // 問題付き: 選んだパネルの問題だけ送る（答えは送らない）
+                    selQ: pb.panelQ && pb.sel !== null && pb.panels[pb.sel] ? (pb.panels[pb.sel].pq || null) : null,
                     seq: pb.seq,
                     last: pb.last,
                     finished: pb.finished,
@@ -350,7 +388,8 @@ App.PanelBoard = {
             }
             pb.seq += 1;
             pb.last = { idx, ok: !!ok, name, timeout: !!timeout, pts: delta };
-            pb.sel = null;
+            // 問題付きで誤答してもパネルが残る時は、同じ問題のまま次の人が答える
+            if (ok || !pb.panelQ || pb.wrongMode === 'close') pb.sel = null;
             // 得点（パネルの問題は1問の中で何度も答えるので lastResult は付けない）
             window.db.ref(`rooms/${roomId}/players/${pid}`).once('value', snap => {
                 const p = snap.val();
@@ -398,7 +437,7 @@ App.PanelBoard = {
             if (!pb || pb.finished) return;
             const pid = this.pbAnswerer();
             this.clearAnswerTimer();
-            pb.sel = null;
+            if (!pb.panelQ) pb.sel = null; // 問題付きは同じ問題のまま次の人へ
             this.pbNextAnswerer(pid);
             this.pbPush();
             this.renderPanelConsole();
@@ -471,13 +510,13 @@ App.PanelBoard = {
             const canJudge = !pb.finished && pid && selPanel;
             box.innerHTML = `
                 <div style="color:#94a3b8; font-size:12px; margin-bottom:6px; border-bottom:1px solid #333; padding-bottom:5px; display:flex; justify-content:space-between; gap:8px;">
-                    <span>パネル指名 ／ 解答者が言ったパネルを押して〇✕（グレーの小さな文字が答え）</span>
+                    <span>${pb.panelQ ? 'パネルを押すと問題がモニターに出ます。読み上げて〇✕（グレーの小さな文字が答え）' : 'パネル指名 ／ 解答者が言ったパネルを押して〇✕（グレーの小さな文字が答え）'}</span>
                     <span style="color:#e2e8f0; white-space:nowrap;">${who}</span>
                 </div>
                 <div style="display:grid; grid-template-columns:repeat(${cols}, 1fr); gap:5px; margin-bottom:8px;">${grid}</div>
                 <div style="display:flex; gap:8px; align-items:center;">
                     <div style="flex:1; min-width:0; color:#e2e8f0; font-size:14px; padding:8px 10px; background:#1a1a1a; border-radius:8px;">
-                        ${selPanel ? `<b style="color:#fbbf24;">${pb.sel + 1}番</b> ${esc(selPanel.label)} → 答え <b style="color:#86efac;">${esc(selPanel.answer)}</b>` : '<span style="color:#64748b;">パネル未選択</span>'}
+                        ${selPanel ? `<b style="color:#fbbf24;">${pb.sel + 1}番</b> ${esc(selPanel.label)}${pb.panelQ && selPanel.pq ? `<div style="font-size:16px; font-weight:bold; margin:4px 0;">${esc(selPanel.pq)}</div>` : ' → '}答え <b style="color:#86efac;">${esc(selPanel.answer)}</b>` : '<span style="color:#64748b;">パネル未選択</span>'}
                     </div>
                     <button type="button" id="pb-ok" ${canJudge ? '' : 'disabled'} style="flex:0 0 64px; height:48px; border-radius:10px; font-size:24px; font-weight:900; border:none; cursor:pointer; background:${canJudge ? '#16a34a' : '#333'}; color:#fff;">〇</button>
                     <button type="button" id="pb-ng" ${canJudge ? '' : 'disabled'} style="flex:0 0 64px; height:48px; border-radius:10px; font-size:24px; font-weight:900; border:none; cursor:pointer; background:${canJudge ? '#dc2626' : '#333'}; color:#fff;">✕</button>
@@ -531,6 +570,11 @@ App.PanelBoard = {
                             </div>`;
                         }).join('')}
                     </div>
+                    ${pb.selQ && pb.sel !== null && pb.sel !== undefined && panels[pb.sel] ? `
+                    <div class="pbv-qcard">
+                        <div class="pbv-qhead"><span class="pbv-qno">${pb.sel + 1}</span>${esc(panels[pb.sel].label || '')}</div>
+                        <div class="pbv-qtext">${esc(pb.selQ)}</div>
+                    </div>` : ''}
                     <div class="pbv-foot">${pb.finished ? (pb.revealAll ? '答え' : 'ボード終了') : st.currentAnswererName ? `解答者 <b>${esc(st.currentAnswererName)}</b>` : st.isBuzzActive ? '早押し受付中' : ''}</div>
                 </div>`;
         },
@@ -593,9 +637,11 @@ function renderPlayerPanelBoard(st, p) {
     else if (mine) status = `<div class="pbp-status mine">あなたの番です！ 「◯番、答え」と言ってください${pb.sel !== null && pb.sel !== undefined ? `<small>${pb.sel + 1}番を選択中</small>` : '<small>番号を押して伝えることもできます</small>'}</div>`;
     else if (st.isBuzzActive && !out) status = '<div class="pbp-status"><button type="button" class="pbp-buzz">PUSH!</button></div>';
     else status = `<div class="pbp-status">${st.currentAnswererName ? `${esc(st.currentAnswererName)} さんが解答中` : '解答者を待っています'}</div>`;
+    const selP = pb.selQ && pb.sel !== null && pb.sel !== undefined ? panels[pb.sel] : null;
     box.innerHTML = `
         <div class="pbp-theme">${esc(pb.theme || '')}</div>
         ${status}
+        ${selP ? `<div class="pbp-q"><b>${pb.sel + 1}. ${esc(selP.label || '')}</b>${esc(pb.selQ)}</div>` : ''}
         <div class="pbp-grid" style="grid-template-columns:repeat(${Math.min(6, App.PanelBoard.cols(panels.length))}, 1fr);">${panels.map((pp, i) => {
             const done = pp.r === 'ok' || pp.r === 'closed';
             const sel = pb.sel === i && !done;

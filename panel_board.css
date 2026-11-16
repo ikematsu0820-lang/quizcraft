@@ -3,7 +3,7 @@
  * =======================================================*/
 
 /* ---------- モニター ---------- */
-.pbv { width: 100%; height: 100%; display: flex; flex-direction: column; gap: 2cqh; padding: 3cqh 3cqw; box-sizing: border-box; }
+.pbv { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; gap: 2cqh; padding: 3cqh 3cqw; box-sizing: border-box; }
 .pbv-theme {
     flex: 0 0 auto; text-align: center; color: #fff; font-weight: 900; font-size: 5cqh; line-height: 1.3;
     padding: 1.6cqh 3cqw; border-top: 0.6cqh solid var(--pb-accent); border-bottom: 0.6cqh solid var(--pb-accent);
@@ -55,12 +55,27 @@
 .pbv-foot { flex: 0 0 auto; text-align: center; color: #e2e8f0; font-size: 3.4cqh; font-weight: bold; min-height: 4cqh; }
 .pbv-foot b { color: #fbbf24; font-size: 1.2em; }
 
+/* 問題付き: 選んだパネルの問題を盤面の上に大きく */
+.pbv-qcard {
+    position: absolute; left: 8%; right: 8%; top: 24%; z-index: 5;
+    display: flex; flex-direction: column; gap: 2cqh; padding: 3cqh 4cqw; border-radius: 2cqh;
+    background: linear-gradient(180deg, #0f1d44 0%, #0a1430 100%); border: 0.6cqh solid #fbbf24;
+    box-shadow: 0 2cqh 6cqh rgba(0,0,0,0.7), 0 0 4cqh rgba(251,191,36,0.35);
+    animation: pbvQIn 0.35s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+}
+@keyframes pbvQIn { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.pbv-qhead { display: flex; align-items: center; gap: 1.5cqw; color: #fbbf24; font-weight: 900; font-size: 4.5cqh; }
+.pbv-qno { color: #1b1300; background: #fbbf24; border-radius: 99px; padding: 0.1em 0.55em; font-family: 'Arial Black', sans-serif; font-size: 0.8em; }
+.pbv-qtext { color: #fff; font-weight: 900; font-size: 7cqh; line-height: 1.35; text-align: center; text-shadow: 0 0.3cqh 0.6cqh rgba(0,0,0,0.6); word-break: break-word; }
+
 /* ---------- 回答者画面 ---------- */
 #player-panelboard { display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0; }
 #player-panelboard.hidden { display: none !important; }
 .pbp-theme { background: rgba(255,255,255,0.96); color: #1f2937; border-radius: 14px; padding: 8px 14px; font-weight: 900; text-align: center; box-shadow: 0 6px 18px rgba(30,27,75,0.3); }
 .pbp-status { text-align: center; font-weight: 900; color: #fff; padding: 6px 10px; border-radius: 12px; background: rgba(255,255,255,0.16); }
 .pbp-status small { display: block; font-weight: bold; opacity: 0.9; font-size: 0.8em; margin-top: 2px; }
+.pbp-q { background: #0f1d44; border: 2px solid #fbbf24; color: #fff; border-radius: 12px; padding: 8px 12px; font-weight: 900; font-size: 1.05em; line-height: 1.4; }
+.pbp-q b { display: block; color: #fbbf24; font-size: 0.8em; margin-bottom: 2px; }
 .pbp-status.mine { background: #fbbf24; color: #1f2937; }
 .pbp-buzz { width: 100%; padding: 10px; border: none; border-radius: 999px; font-size: 1.3em; font-weight: 900; color: #fff; background: radial-gradient(circle at 30% 30%, #ff6b6b, #c0392b); box-shadow: 0 5px 0 #7f1d1d; cursor: pointer; }
 .pbp-grid { flex: 1; min-height: 0; overflow-y: auto; display: grid; gap: 6px; align-content: start; padding-bottom: 8px; }
@@ -102,3 +117,14 @@
 #creator-view.cm-on #creator-outside-opts .pb-hint { white-space: normal !important; flex-basis: 100%; }
 #creator-view.cm-on #creator-outside-opts .pb-wrong-wrap { white-space: normal !important; flex-wrap: wrap; flex-basis: 100%; }
 #creator-view.cm-on #creator-outside-opts .pb-wrong-wrap select { max-width: 100%; flex: 1 1 auto; }
+
+/* スマホ: 問題付きは 表／問／答＋点／裏 の4段 */
+#creator-view.cm-on #pb-list.pb-qmode .pb-row {
+    grid-template-areas: "no front label label del" ". qt pq pq ." ". at answer pts ." ". back bk bk .";
+}
+#creator-view.cm-on .pb-row .pb-tag-q { grid-area: qt; background: #3b2f0b; color: #fde68a; }
+#creator-view.cm-on .pb-row .pb-tag-ans { grid-area: at; background: #14532d; color: #bbf7d0; }
+#creator-view.cm-on #pb-list.pb-qmode .pb-row .pb-tag-back { background: #4a2a06; color: #fed7aa; }
+#creator-view.cm-on .pb-row .pb-pq { grid-area: pq; }
+#creator-view.cm-on .pb-row .pb-back { grid-area: bk; }
+#creator-view.cm-on #creator-outside-opts .pb-qmode-wrap { flex-basis: 100%; }

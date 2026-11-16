@@ -557,9 +557,12 @@ App.CreatorMobile = {
             if (window.App.PanelBoard && window.App.PanelBoard.is(q) && V.renderPanelBoard) {
                 // パネル指名: 問題では表、正解では全部のパネルの裏（答え）を見せる
                 const open = st.step === 'answer';
+                // 問題付きは、問題を書いた最初のパネルを選んだ時の見え方
+                const first = q.panelQ && !open ? q.panels.findIndex(p => p.pq) : -1;
                 const pb = {
-                    theme: q.q || '', seq: 0, sel: null, finished: open, revealAll: open,
-                    panels: q.panels.map(p => ({ label: p.label, r: null, answer: open ? p.answer : null })),
+                    theme: q.q || '', seq: 0, sel: first >= 0 ? first : null, finished: open, revealAll: open,
+                    selQ: first >= 0 ? q.panels[first].pq : null,
+                    panels: q.panels.map(p => ({ label: p.label, r: null, answer: open ? ((q.panelQ && p.back) || p.answer) : null })),
                 };
                 V.renderPanelBoard(stage, main, { step: 'panelboard', pb }, q);
             } else if (q.type === 'numgame' && V.renderNumGame) {
