@@ -1012,7 +1012,9 @@ window.App.Creator = {
 
         // Keep an already-open 解答権 pulldown in sync as 回答形式 changes
         // (it only reflects restrictions from the moment it opened otherwise).
-        if (this.activeInlinePanel === 'rules') this.renderActivePanelContent('rules');
+        // スマホの下から出るルールのパネルも、開いている間は描き直す
+        const M = window.App.CreatorMobile;
+        if (this.activeInlinePanel === 'rules' || (M && M._sheet === 'rules')) this.renderActivePanelContent('rules');
 
         this.updateInlinePanelButtonStyles();
     },
