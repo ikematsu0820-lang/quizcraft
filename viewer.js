@@ -266,6 +266,7 @@ window.App.Viewer = {
             this._players = snap.val() || {};
             this.updateLiveAnswers();
             if (window.App.VarietyFrame && this._st) window.App.VarietyFrame.updateLive(this._st, this._players, this.questions[this._st.qIndex]);
+            if (window.App.ChoiceSkin && this._st) window.App.ChoiceSkin.updateLive(this._st, this._players, this.questions[this._st.qIndex]);
         });
     },
 
@@ -278,6 +279,8 @@ window.App.Viewer = {
 
         this._renderSeq = (this._renderSeq || 0) + 1;
         this._st = st;
+        // 選択式の見せ方（choice_skin.js）の印は、問題の画面を描く時だけ付け直す
+        if (window.App.ChoiceSkin) window.App.ChoiceSkin.clear(mainText);
         // タイマーは出題中だけ（正解発表などの画面では消す — 途中で return する
         // 描画もあるので、ここで先に片づけておく）
         if (!st.timer || !['question', 'answering', 'reveal_q', 'closed'].includes(st.step)) {
@@ -508,13 +511,15 @@ window.App.Viewer = {
                 return;
             }
 
+            // ボタンの形を選んでいる時は、正解の光らせ方も形に合わせて choice_skin.js が済ませている
+            const skinned = window.App.ChoiceSkin && window.App.ChoiceSkin.appliesToChoices(q);
             // Normal choice: TV-show style reveal — light up correct, dim others
             if (q.type === 'choice' && Array.isArray(q.c) && q.c.length > 0) {
                 // 複数回答モードでは正解が複数 — q.correct（配列）を全部光らせる
                 const correctSet = new Set(q.multiCorrect && Array.isArray(q.correct)
                     ? q.correct.map(Number)
                     : [parseInt(q.correctIndex !== undefined ? q.correctIndex : q.correct)]);
-                mainText.querySelectorAll('.choice-item').forEach((el, i) => {
+                if (!skinned) mainText.querySelectorAll('.choice-item').forEach((el, i) => {
                     el.style.transition = 'all 0.35s ease';
                     if (correctSet.has(i)) {
                         el.style.background = 'linear-gradient(135deg, #ffd700 0%, #ffec3d 100%)';
@@ -1333,6 +1338,7 @@ window.App.Viewer = {
         this._renderQuestionLayoutInner(container, contentBox, q, st, revealedMulti);
         if (window.App.VarietyFrame) window.App.VarietyFrame.injectImage(contentBox, q);
         if (window.App.LayoutEditor) window.App.LayoutEditor.applyToViewer(contentBox, q); // 問題と回答の枠の割合
+        if (window.App.ChoiceSkin) window.App.ChoiceSkin.applyToViewer(container, contentBox, q, st); // ボタンの形・テロップ・外枠
     },
 
     _renderQuestionLayoutInner: function (container, contentBox, q, st = {}, revealedMulti = {}) {
@@ -1493,7 +1499,7 @@ window.App.Viewer = {
                     }
 
                     html += `<div class="choice-item" style="${colorStyle} ${bgStyle} ${bStyle} ${transformStyle} font-size:${d.cFontSize || '6vh'}; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-                        <span class="choice-prefix" style="color:${isRevealed || isMissed ? '#fff' : (q.type === 'choice' && d.cPrefixColor ? d.cPrefixColor : '#00e5ff')}; ${isMultiType && !q.type.startsWith('ranking') && !isAssoc ? 'display:none;' : ''}">${prefixLabel}</span>
+                        <span class="choice-prefix" style="color:${isRevealed || isMissed ? '#fff' : (q.type === 'choice' && d.cPrefixColor ? d.cPrefixColor : 'var(--color-primary, #00e5ff)')}; ${isMultiType && !q.type.startsWith('ranking') && !isAssoc ? 'display:none;' : ''}">${prefixLabel}</span>
                         <span style="flex:1; text-align:${d.cAlign || 'left'}; ${isHidden ? 'visibility:hidden;' : ''}">${c}</span>
                     </div>`;
                 });

@@ -30,6 +30,7 @@ App.Themes = {
         {
             id: 'classic', name: 'スタジオ', desc: 'いつもの黒×シアン',
             font: '', accent: '#00e5ff', timer: 'bar_top', bridge: { style: 'band', bg: '#0a0a0a', text: '#ffffff' },
+            skin: { c: 'panel', pal: '', q: 'telop', fx: 'studio' },
             colors: {
                 mainBgColor: '#0a0a0a',
                 qTextColor: '#ffffff', qBgColor: 'rgba(255, 255, 255, 0.05)', qBorderColor: '#00bfff',
@@ -40,6 +41,7 @@ App.Themes = {
         {
             id: 'golden', name: 'ゴールデン', desc: '夜の特番っぽい紺×金',
             font: 'mincho', accent: '#ffd700', timer: 'clock', bridge: { style: 'spotlight', bg: '#0b1a3a', text: '#ffd700' },
+            skin: { c: 'capsule', pal: '', q: 'telop', fx: 'studio' },
             colors: {
                 mainBgColor: '#0b1a3a',
                 qTextColor: '#ffffff', qBgColor: 'rgba(11, 26, 58, 0.85)', qBorderColor: '#d4af37',
@@ -50,6 +52,7 @@ App.Themes = {
         {
             id: 'neon', name: 'ネオン', desc: 'クラブ・夜パーティ向け',
             font: 'heavy', accent: '#ff00aa', timer: 'ring', bridge: { style: 'shutter', bg: '#07000f', text: '#ffffff' },
+            skin: { c: 'panel', pal: 'four', q: 'telop', fx: 'studio' },
             colors: {
                 mainBgColor: '#07000f',
                 qTextColor: '#ffffff', qBgColor: 'rgba(255, 0, 170, 0.10)', qBorderColor: '#ff00aa',
@@ -60,6 +63,7 @@ App.Themes = {
         {
             id: 'pop', name: 'ポップ', desc: '明るいバラエティ',
             font: 'rounded', accent: '#ff5722', timer: 'number', bridge: { style: 'count', bg: '#ffd23f', text: '#2b2b2b' },
+            skin: { c: 'button', pal: 'four', q: 'board', fx: '' },
             colors: {
                 mainBgColor: '#ffd23f',
                 qTextColor: '#2b2b2b', qBgColor: '#ffffff', qBorderColor: '#ff5722',
@@ -70,6 +74,7 @@ App.Themes = {
         {
             id: 'retro', name: 'レトロゲーム', desc: 'ドット文字のゲーム画面',
             font: 'pixel', accent: '#76ff03', timer: 'number', bridge: { style: 'typewriter', bg: '#101010', text: '#76ff03' },
+            skin: { c: '', pal: '', q: '', fx: '' },
             colors: {
                 mainBgColor: '#101010',
                 qTextColor: '#76ff03', qBgColor: '#000000', qBorderColor: '#76ff03',
@@ -80,10 +85,11 @@ App.Themes = {
         {
             id: 'japanese', name: '和', desc: '朱と生成りの落ち着いた画面',
             font: 'mincho', accent: '#c0392b', timer: 'bar_bottom', bridge: { style: 'band', bg: '#2a1a14', text: '#f3ead7' },
+            skin: { c: 'card', pal: '', q: 'board', fx: '' },
             colors: {
                 mainBgColor: '#2a1a14',
                 qTextColor: '#2a1a14', qBgColor: '#f3ead7', qBorderColor: '#c0392b',
-                cTextColor: '#f3ead7', cBgColor: 'rgba(243, 234, 215, 0.08)', cBorderColor: '#8b4513',
+                cTextColor: '#2a1a14', cBgColor: '#fbf6ea', cBorderColor: '#8b4513',
                 revealTextColor: '#f3ead7', revealBorderColor: '#c0392b', revealBgColor: '#c0392b',
             },
         },
@@ -91,6 +97,7 @@ App.Themes = {
             id: 'variety', name: 'バラエティ', desc: 'テレビ番組風の枠と大きなボタン',
             font: 'gothic', accent: '#d62828', timer: 'ball', template: 'frame', frame: '#c9c94a',
             bridge: { style: 'plain', bg: '#f2efdc', text: '#c0392b' },
+            skin: { c: 'button', pal: 'four', q: 'board', fx: '' },
             colors: {
                 mainBgColor: '#f4eef2',
                 qTextColor: '#222222', qBgColor: '#f2efdc', qBorderColor: '#c9c94a',
@@ -101,6 +108,7 @@ App.Themes = {
         {
             id: 'clean', name: 'クリーン', desc: '白基調で見やすく',
             font: 'gothic', accent: '#2563eb', timer: 'ring', bridge: { style: 'count', bg: '#f4f6fa', text: '#111827' },
+            skin: { c: 'card', pal: 'four', q: 'board', fx: '' },
             colors: {
                 mainBgColor: '#f4f6fa',
                 qTextColor: '#111827', qBgColor: '#ffffff', qBorderColor: '#2563eb',
@@ -126,6 +134,13 @@ App.Themes = {
         // 画面の型 — 「バラエティ」だけ枠型にする（ほかのテーマは今の型のまま）
         if (t.template) design.layoutTemplate = t.template;
         if (t.frame) design.frameColor = t.frame;
+        // 選択肢ボタンの形・問題文の見せ方・背景の照明（choice_skin.js）
+        if (t.skin) {
+            design.cSkin = t.skin.c;
+            design.cPalette = t.skin.pal;
+            design.qSkin = t.skin.q;
+            design.bgFx = t.skin.fx;
+        }
         if (t.bridge) { // ブリッジ（第○問）も黒×白に限らず、テーマに合わせる
             design.bridgeStyle = t.bridge.style;
             design.bridgeBgColor = t.bridge.bg;
@@ -141,6 +156,7 @@ App.Themes = {
         const t = design && this.get(design.themeId);
         if (!t) return false;
         if ((design.fontFamily || '') !== t.font) return true;
+        if (t.skin && ((design.cSkin || '') !== t.skin.c || (design.cPalette || '') !== t.skin.pal || (design.qSkin || '') !== t.skin.q)) return true;
         return Object.keys(t.colors).some(k => (design[k] || '') !== (t.colors[k] || ''));
     },
 

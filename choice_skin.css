@@ -1,0 +1,341 @@
+/* =========================================================
+ * choice_skin.css — 選択式の見せ方（choice_skin.js）
+ *   モニター:   #viewer-main-text.cskin … .choice-item.cs-item
+ *   作成画面:   #creator-monitor-preview.cskin … .choice-row > .choice-frame
+ * モニターの大きさは cqh（16:9 のステージ基準）、作成画面は % と em。
+ * =======================================================*/
+
+/* ---------- 共通 ---------- */
+.cskin .cs-item {
+    position: relative;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    transition: transform 0.25s ease, filter 0.25s ease, opacity 0.25s ease, box-shadow 0.25s ease;
+}
+.cskin .cs-item > * { position: relative; z-index: 1; }
+.cskin .cs-badge { font-family: 'Arial Black', 'M PLUS 1p', sans-serif; text-shadow: none !important; flex: 0 0 auto; }
+.cskin .c-area {
+    gap: 2.2cqh !important;
+    /* 問題文の下の残りの高さの中で、選択肢を上下の真ん中に */
+    flex: 1 1 auto; min-height: 0; margin-bottom: 3cqh;
+    align-content: center; justify-content: center;
+}
+.cskin .c-area[style*="grid"] .cs-item { min-height: 15cqh; }
+
+/* 横に3つ以上 — 記号は左上の小さな丸、名前は真ん中 */
+.cs-narrow .cs-item { justify-content: center; padding: 3cqh 1.6cqh !important; text-align: center; min-height: 24cqh !important; }
+.cs-narrow .cs-badge {
+    position: absolute !important; left: 1.6cqh; top: 1.6cqh; z-index: 2 !important;
+    width: 1.4em; height: 1.4em; min-width: 0 !important; margin: 0 !important; padding: 0 !important;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%; clip-path: none !important; font-size: 0.55em !important;
+}
+.cs-narrow .cs-label { text-align: center !important; }
+.cs-narrow .cs-count { position: absolute; right: 1.2cqh; bottom: 1.2cqh; margin: 0; }
+.cskin-panel.cs-narrow .cs-item { padding-left: 1.6cqh !important; }
+.cskin-capsule.cs-narrow .cs-badge::after { content: ''; }
+
+/* ---------- 放送パネル ---------- */
+.cskin-panel .cs-item {
+    color: #fff;
+    background: linear-gradient(180deg, #3a4559 0%, #1a2230 47%, #0b1018 53%, #161e2b 100%);
+    border: 0.35cqh solid color-mix(in srgb, var(--cs-btn) 75%, #ffffff);
+    border-radius: 1cqh;
+    padding: 1.8cqh 3cqh 1.8cqh 0;
+    overflow: hidden;
+    box-shadow: 0 0.8cqh 2cqh rgba(0, 0, 0, 0.55), inset 0 0.3cqh 0 rgba(255, 255, 255, 0.22), 0 0 2cqh color-mix(in srgb, var(--cs-btn) 35%, transparent);
+    text-shadow: 0 0.3cqh 0.6cqh rgba(0, 0, 0, 0.6);
+}
+.cskin-panel .cs-badge {
+    align-self: stretch;
+    display: flex; align-items: center; justify-content: center;
+    min-width: 2.1em; margin: -1.8cqh 2.6cqh -1.8cqh 0 !important; padding-right: 0.35em;
+    font-size: 1em !important;
+    color: #fff !important;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--cs-btn) 60%, #fff) 0%, var(--cs-btn) 48%, color-mix(in srgb, var(--cs-btn) 70%, #000) 100%);
+    clip-path: polygon(0 0, 100% 0, 80% 100%, 0 100%);
+}
+.cskin-panel .cs-item::after { /* 右端の細い光 */
+    content: ''; position: absolute; right: 0; top: 18%; bottom: 18%; width: 0.6cqh;
+    background: var(--cs-btn); border-radius: 0.6cqh 0 0 0.6cqh; box-shadow: 0 0 1.4cqh var(--cs-btn);
+}
+
+/* ---------- カラーボタン ---------- */
+.cskin-button .cs-item {
+    color: #fff;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--cs-btn) 62%, #fff) 0%, var(--cs-btn) 46%, color-mix(in srgb, var(--cs-btn) 72%, #000) 100%);
+    border: 0.45cqh solid rgba(0, 0, 0, 0.78);
+    border-radius: 1.8cqh;
+    padding: 2cqh 3cqh;
+    justify-content: center;
+    box-shadow: 0 0.9cqh 0 color-mix(in srgb, var(--cs-btn) 40%, #000), 0 1.8cqh 2.6cqh rgba(0, 0, 0, 0.45), inset 0 0.35cqh 0 rgba(255, 255, 255, 0.45);
+    text-shadow: 0 0.35cqh 0 rgba(0, 0, 0, 0.5), 0 0 0.9cqh rgba(0, 0, 0, 0.35);
+    margin-bottom: 0.9cqh;
+}
+.cskin-button .cs-item::before { /* つや */
+    content: ''; position: absolute; left: 2.5%; right: 2.5%; top: 7%; height: 40%; z-index: 0;
+    border-radius: 1.4cqh 1.4cqh 40% 40% / 1.4cqh 1.4cqh 100% 100%;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.04));
+    pointer-events: none;
+}
+.cskin-button .cs-badge {
+    width: 1.55em; height: 1.55em; margin-right: 0.6em !important;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%; background: #fff; color: var(--cs-btn) !important;
+    font-size: 0.78em !important;
+    box-shadow: 0 0.35cqh 0 rgba(0, 0, 0, 0.35);
+}
+.cskin-button .cs-label { text-align: center !important; }
+
+/* ---------- カプセル ---------- */
+.cskin-capsule .cs-item {
+    --cs-cut: 3.4cqh;
+    color: #fff;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--cs-btn) 55%, #fff), var(--cs-btn) 50%, color-mix(in srgb, var(--cs-btn) 70%, #000));
+    border: none !important;
+    border-radius: 0;
+    padding: 1.9cqh 6cqh;
+    clip-path: polygon(var(--cs-cut) 0, calc(100% - var(--cs-cut)) 0, 100% 50%, calc(100% - var(--cs-cut)) 100%, var(--cs-cut) 100%, 0 50%);
+    text-shadow: 0 0.3cqh 0.6cqh rgba(0, 0, 0, 0.7);
+}
+.cskin-capsule .cs-item::before {
+    content: ''; position: absolute; inset: 0.4cqh; z-index: 0;
+    clip-path: polygon(calc(var(--cs-cut) - 0.2cqh) 0, calc(100% - var(--cs-cut) + 0.2cqh) 0, 100% 50%, calc(100% - var(--cs-cut) + 0.2cqh) 100%, calc(var(--cs-cut) - 0.2cqh) 100%, 0 50%);
+    background: linear-gradient(180deg, #24346b 0%, #0d1740 49%, #060c26 51%, #0f1b4a 100%);
+}
+.cskin-capsule .cs-badge { color: var(--cs-btn) !important; margin-right: 0.5em !important; font-size: 1em !important; }
+.cskin-capsule .cs-badge::after { content: ':'; }
+
+/* ---------- カード ---------- */
+.cskin-card .cs-item {
+    color: var(--cs-cardtext, #1f2937);
+    background: var(--cs-card, #ffffff);
+    border: none !important;
+    border-radius: 1.4cqh;
+    padding: 1.8cqh 3cqh 1.8cqh 0;
+    overflow: hidden;
+    box-shadow: 0 0.9cqh 2.2cqh rgba(0, 0, 0, 0.28), 0 0.25cqh 0 rgba(0, 0, 0, 0.08);
+    text-shadow: none;
+}
+.cskin-card .cs-badge {
+    align-self: stretch;
+    display: flex; align-items: center; justify-content: center;
+    min-width: 2em; margin: -1.8cqh 2.6cqh -1.8cqh 0 !important;
+    font-size: 1em !important;
+    background: var(--cs-btn); color: #fff !important;
+}
+
+/* ---------- 押した・正解発表 ---------- */
+.cskin .cs-item.cs-lit {
+    transform: scale(1.02); filter: brightness(1.25) saturate(1.15); z-index: 5;
+    box-shadow: 0 0 0 0.6cqh #fff, 0 0 4cqh 1cqh color-mix(in srgb, var(--cs-btn) 70%, transparent);
+    animation: csPulse 0.8s ease-in-out infinite alternate;
+}
+.cskin-capsule .cs-item.cs-lit { filter: brightness(1.35) drop-shadow(0 0 1.2cqh #fff); }
+@keyframes csPulse { from { filter: brightness(1.1); } to { filter: brightness(1.4); } }
+
+.cs-answer .cs-item.cs-dim { opacity: 0.32; filter: grayscale(0.85) brightness(0.6); transform: scale(0.97); }
+.cs-answer .cs-item.cs-correct {
+    z-index: 6; transform: scale(1.02);
+    box-shadow: 0 0 0 0.6cqh #fff, 0 0 4.5cqh 1.2cqh rgba(255, 210, 63, 0.75);
+    animation: csWin 0.55s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+@keyframes csWin { 0% { transform: scale(0.96); } 60% { transform: scale(1.05); } 100% { transform: scale(1.02); } }
+.cskin-panel.cs-answer .cs-correct {
+    background: linear-gradient(180deg, #fff6c2 0%, #ffd23f 47%, #e9a600 53%, #ffcf3a 100%);
+    color: #2a1a00; text-shadow: none; border-color: #fff;
+}
+.cskin-capsule.cs-answer .cs-correct { filter: drop-shadow(0 0 2cqh rgba(255, 210, 63, 0.9)); box-shadow: none; }
+.cskin-capsule.cs-answer .cs-correct::before { background: linear-gradient(180deg, #fff1a6 0%, #ffbf1f 49%, #e69500 51%, #ffcd45 100%); }
+.cskin-capsule.cs-answer .cs-correct { color: #241400; text-shadow: none; }
+.cskin-capsule.cs-answer .cs-correct .cs-badge { color: #241400 !important; }
+
+/* 〇／× のスタンプ（1人が答えた時、そのボタンに押す） */
+.cs-stamp {
+    position: absolute; right: 2.5cqh; top: 50%; z-index: 3 !important;
+    width: 10cqh; height: 10cqh; margin-top: -5cqh;
+    pointer-events: none;
+    animation: csStamp 0.4s cubic-bezier(0.2, 1.7, 0.4, 1) both;
+}
+.cs-stamp-ok { border-radius: 50%; border: 1.7cqh solid #e8202a; box-sizing: border-box; filter: drop-shadow(0 0 0.4cqh #fff) drop-shadow(0 0 0.4cqh #fff); }
+.cs-stamp-ng::before, .cs-stamp-ng::after {
+    content: ''; position: absolute; left: -10%; right: -10%; top: 50%; height: 1.8cqh; margin-top: -0.9cqh;
+    background: #1e5be0; border-radius: 1cqh; box-shadow: 0 0 0 0.4cqh #fff;
+    transform: rotate(45deg);
+}
+.cs-stamp-ng::after { transform: rotate(-45deg); }
+@keyframes csStamp { 0% { transform: scale(2.4); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+/* 全員同時の時の人数 */
+.cs-count {
+    margin-left: 1.2em; padding: 0.4cqh 1.6cqh; border-radius: 99px;
+    background: rgba(0, 0, 0, 0.6); color: #fff; font-size: 0.62em; text-shadow: none; white-space: nowrap;
+}
+
+/* ---------- 問題文: テロップ帯 ---------- */
+.qskin-telop .q-area, .qskin-board .q-area { margin-top: 3cqh; }
+.qskin-telop .q-area {
+    position: relative;
+    border: none !important;
+    border-top: 0.7cqh solid var(--qs-line) !important;
+    border-bottom: 0.7cqh solid var(--qs-line) !important;
+    border-radius: 0 !important;
+    color: var(--qs-text);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--qs-bg) 78%, #fff) 0%, var(--qs-bg) 38%, color-mix(in srgb, var(--qs-bg) 72%, #000) 100%) !important;
+    box-shadow: 0 1.2cqh 3cqh rgba(0, 0, 0, 0.5), 0 0 3cqh color-mix(in srgb, var(--qs-line) 30%, transparent) !important;
+    backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+    padding: 4cqh 6cqh;
+}
+.qskin-telop .q-area:has(> .qs-num) { padding-left: 17cqh !important; }
+.qskin-telop .qs-num {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    display: flex; align-items: center;
+    padding: 0 4.2cqh 0 2.6cqh;
+    font-size: 5.2cqh; font-weight: 900; font-style: italic; letter-spacing: 0.02em; line-height: 1;
+    color: #fff; text-shadow: 0 0.3cqh 0.6cqh rgba(0, 0, 0, 0.5);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--qs-line) 62%, #fff) 0%, var(--qs-line) 50%, color-mix(in srgb, var(--qs-line) 70%, #000) 100%);
+    clip-path: polygon(0 0, 100% 0, calc(100% - 3cqh) 100%, 0 100%);
+    writing-mode: horizontal-tb;
+}
+
+/* ---------- 問題文: ボード ---------- */
+.qskin-board .q-area {
+    position: relative;
+    overflow: hidden;
+    border: none !important;
+    border-radius: 2.2cqh !important;
+    color: var(--qs-text);
+    background: var(--qs-bg) !important;
+    box-shadow: 0 1.1cqh 0 color-mix(in srgb, var(--qs-line) 55%, #000), 0 2.2cqh 4cqh rgba(0, 0, 0, 0.35) !important;
+    backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+    text-shadow: none !important;
+}
+.qskin-board .qs-num {
+    display: block;
+    margin: -5cqh -5cqh 3cqh;
+    padding: 1cqh 0;
+    text-align: center;
+    font-size: 3.4cqh; font-weight: 900; letter-spacing: 0.15em; line-height: 1.2;
+    color: #fff;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--qs-line) 75%, #fff), var(--qs-line));
+    writing-mode: horizontal-tb;
+}
+
+/* ---------- 画面の外枠と上の帯 ---------- */
+#viewer-main-text.cs-framed { position: relative; box-sizing: border-box; padding: 10cqh 4cqh 4cqh !important; }
+#viewer-main-text.cs-framed::before {
+    content: ''; position: absolute; inset: 1.4cqh; z-index: 0; pointer-events: none;
+    border-radius: 3cqh;
+    border: 1.8cqh solid var(--cs-frame);
+    box-shadow: inset 0 0 0 0.35cqh rgba(255, 255, 255, 0.35), 0 0 0 0.35cqh rgba(0, 0, 0, 0.35), 0 1cqh 3cqh rgba(0, 0, 0, 0.45);
+}
+#viewer-main-text.cs-framed::after {
+    content: attr(data-frame-title);
+    position: absolute; left: 1.4cqh; right: 1.4cqh; top: 1.4cqh; height: 7cqh; z-index: 1;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 3cqh 3cqh 0 0;
+    font-size: 4cqh; font-weight: 900; letter-spacing: 0.12em; color: #fff;
+    text-shadow: 0 0.3cqh 0.6cqh rgba(0, 0, 0, 0.5);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--cs-frame) 70%, #fff) 0%, var(--cs-frame) 55%, color-mix(in srgb, var(--cs-frame) 72%, #000) 100%);
+}
+#viewer-main-text.cs-framed > * { position: relative; z-index: 2; }
+
+/* =========================================================
+ * 作成画面のプレビュー（入力欄のまま、同じ見た目に寄せる）
+ * =======================================================*/
+#creator-monitor-preview.cskin .choice-row { position: relative; }
+#creator-monitor-preview.cskin .choice-label-text {
+    position: absolute; left: 0; top: 0; bottom: 0; z-index: 2;
+    display: flex !important; align-items: center; justify-content: center;
+    width: clamp(22px, 2.4vw, 34px); min-width: 0 !important; font-weight: 900; pointer-events: none;
+    text-shadow: none !important;
+}
+#creator-monitor-preview.cskin .choice-frame { position: relative; }
+#creator-monitor-preview.cskin .choice-text-input { font-weight: 900 !important; }
+
+#creator-monitor-preview.cskin-panel .choice-frame {
+    background: linear-gradient(180deg, #3a4559 0%, #1a2230 47%, #0b1018 53%, #161e2b 100%) !important;
+    border: 2px solid color-mix(in srgb, var(--cs-btn) 75%, #fff) !important;
+    border-radius: 6px !important; padding-left: calc(clamp(22px, 2.4vw, 34px) + 8px) !important;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+}
+#creator-monitor-preview.cskin-panel .choice-label-text {
+    color: #fff !important; padding-right: 0.3em;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--cs-btn) 60%, #fff), var(--cs-btn) 48%, color-mix(in srgb, var(--cs-btn) 70%, #000));
+    clip-path: polygon(0 0, 100% 0, 80% 100%, 0 100%); border-radius: 6px 0 0 6px;
+}
+
+#creator-monitor-preview.cskin-button .choice-frame {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--cs-btn) 62%, #fff) 0%, var(--cs-btn) 46%, color-mix(in srgb, var(--cs-btn) 72%, #000) 100%) !important;
+    border: 2px solid rgba(0, 0, 0, 0.78) !important; border-radius: 10px !important; padding-left: calc(clamp(22px, 2.4vw, 34px) + 8px) !important;
+    box-shadow: 0 4px 0 color-mix(in srgb, var(--cs-btn) 40%, #000), inset 0 2px 0 rgba(255, 255, 255, 0.45) !important;
+}
+#creator-monitor-preview.cskin-button .choice-row { margin-bottom: 4px; }
+#creator-monitor-preview.cskin-button .choice-label-text { color: var(--cs-btn) !important; }
+#creator-monitor-preview.cskin-button .choice-label-text::before {
+    content: ''; position: absolute; width: 1.5em; height: 1.5em; border-radius: 50%; background: #fff; z-index: -1;
+}
+#creator-monitor-preview.cskin-button .choice-text-input { text-align: center !important; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45) !important; }
+
+#creator-monitor-preview.cskin-capsule .choice-frame {
+    background: linear-gradient(180deg, #24346b 0%, #0d1740 49%, #060c26 51%, #0f1b4a 100%) !important;
+    border: 2px solid var(--cs-btn) !important; border-radius: 999px !important; padding-left: calc(clamp(22px, 2.4vw, 34px) + 12px) !important;
+}
+#creator-monitor-preview.cskin-capsule .choice-label-text { color: var(--cs-btn) !important; left: 0.6em; }
+#creator-monitor-preview.cskin-capsule .choice-label-text::after { content: ':'; }
+
+#creator-monitor-preview.cskin-card .choice-frame {
+    background: var(--cs-card, #fff) !important; border: none !important; border-radius: 8px !important; padding-left: calc(clamp(22px, 2.4vw, 34px) + 8px) !important;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.28) !important; overflow: hidden;
+}
+#creator-monitor-preview.cskin-card .choice-label-text { background: var(--cs-btn); color: #fff !important; border-radius: 8px 0 0 8px; }
+#creator-monitor-preview.cskin-card .choice-text-input::placeholder { color: rgba(0, 0, 0, 0.35) !important; }
+
+#creator-monitor-preview.cskin .choice-row:has(.choice-correct-chk:checked) .choice-frame {
+    outline: 3px solid #ffd23f; outline-offset: 1px;
+}
+
+/* 作成画面: テロップ帯・ボード */
+#creator-monitor-preview.qskin-telop #creator-monitor-q-area,
+#creator-monitor-preview.qskin-board #creator-monitor-q-area { position: relative; }
+#creator-monitor-preview.qskin-telop #creator-monitor-q-area {
+    border: none !important; border-radius: 0 !important;
+    border-top: 3px solid var(--qs-line) !important; border-bottom: 3px solid var(--qs-line) !important;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--qs-bg) 78%, #fff) 0%, var(--qs-bg) 38%, color-mix(in srgb, var(--qs-bg) 72%, #000) 100%) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+    padding-left: 13% !important;
+}
+#creator-monitor-preview.qskin-telop .qs-num {
+    position: absolute; left: 0; top: 0; bottom: 0; display: flex; align-items: center;
+    padding: 0 1.4em 0 0.8em; font-size: clamp(0.75rem, 1.6vw, 1.15rem); font-weight: 900; font-style: italic; color: #fff;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--qs-line) 62%, #fff), var(--qs-line) 50%, color-mix(in srgb, var(--qs-line) 70%, #000));
+    clip-path: polygon(0 0, 100% 0, calc(100% - 0.9em) 100%, 0 100%);
+}
+#creator-monitor-preview.qskin-board #creator-monitor-q-area {
+    border: none !important; border-radius: 10px !important; overflow: hidden;
+    background: var(--qs-bg) !important;
+    box-shadow: 0 4px 0 color-mix(in srgb, var(--qs-line) 55%, #000), 0 8px 16px rgba(0, 0, 0, 0.3) !important;
+    padding: 0 0 1% !important;
+}
+#creator-monitor-preview.qskin-board #question-text { padding: 0 4% !important; }
+#creator-monitor-preview.qskin-board .qs-num {
+    display: block; margin: 0 0 0.6%; padding: 0.25em 0; text-align: center;
+    font-size: clamp(0.6rem, 1.2vw, 0.85rem); font-weight: 900; letter-spacing: 0.15em; color: #fff;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--qs-line) 75%, #fff), var(--qs-line));
+}
+#creator-monitor-preview.qskin-board #question-text { color: var(--qs-text) !important; text-shadow: none !important; }
+
+/* 作成画面: 外枠と上の帯 */
+#creator-monitor-preview.cs-framed #creator-monitor-flexwrap { padding: 6.6% 2.6% 2.4% !important; }
+#creator-monitor-preview.cs-framed::before {
+    content: ''; position: absolute; inset: 1.4%; z-index: 0; pointer-events: none; border-radius: 14px;
+    border: clamp(4px, 0.8vw, 10px) solid var(--cs-frame);
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.3), 0 3px 10px rgba(0, 0, 0, 0.4);
+}
+#creator-monitor-preview.cs-framed::after {
+    content: attr(data-frame-title); position: absolute; left: 1.4%; right: 1.4%; top: 1.4%; height: 9%; z-index: 0;
+    display: flex; align-items: center; justify-content: center; border-radius: 14px 14px 0 0;
+    font-size: clamp(0.65rem, 1.3vw, 1rem); font-weight: 900; letter-spacing: 0.12em; color: #fff;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--cs-frame) 70%, #fff), var(--cs-frame) 55%, color-mix(in srgb, var(--cs-frame) 72%, #000));
+}
+#creator-monitor-preview.cs-framed #creator-monitor-flexwrap { z-index: 1; }

@@ -675,14 +675,9 @@ App.Design = {
                     <button type="button" data-theme-id="${t.id}" style="
                         display:flex; flex-direction:column; gap:4px; padding:6px; min-width:0;
                         background:#1e293b; border:2px solid ${on ? '#00e5ff' : '#334155'}; border-radius:8px; cursor:pointer; text-align:left;">
-                        <div style="width:100%; aspect-ratio:16/9; box-sizing:border-box; border-radius:4px; background:${c.mainBgColor};
+                        <div style="width:100%; aspect-ratio:16/9; box-sizing:border-box; border-radius:4px; background:${c.mainBgColor}; font-family:${font};
                             display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:4px; overflow:hidden;">
-                            <div style="width:86%; padding:2px 0; text-align:center; border:1.5px solid ${c.qBorderColor}; background:${c.qBgColor};
-                                color:${c.qTextColor}; font-family:${font}; font-size:0.62rem; font-weight:bold; border-radius:3px;">第1問</div>
-                            <div style="display:flex; gap:3px; width:86%;">
-                                <div style="flex:1; height:8px; border:1px solid ${c.cBorderColor}; background:${c.cBgColor}; border-radius:2px;"></div>
-                                <div style="flex:1; height:8px; border:1px solid ${c.cBorderColor}; background:${c.cBgColor}; border-radius:2px;"></div>
-                            </div>
+                            ${window.App.ChoiceSkin ? window.App.ChoiceSkin.miniHtml(t) : ''}
                         </div>
                         <span style="font-size:0.68rem; font-weight:bold; color:${on ? '#00e5ff' : '#e2e8f0'};">${t.name}${on && modified ? '<span style="color:#94a3b8; font-weight:normal;">（カスタム）</span>' : ''}</span>
                         <span style="font-size:0.56rem; color:#94a3b8; line-height:1.3;">${t.desc}</span>
@@ -711,7 +706,8 @@ App.Design = {
                             <input type="text" data-key="frameTitle" value="${String(design.frameTitle || '').replace(/"/g, '&quot;')}" placeholder="上の帯の文字（空欄ならセット名）" style="
                                 width:100%; height:${CONTROL_HEIGHT}; min-height:${CONTROL_HEIGHT}; padding:0 8px; margin:8px 0 6px; background:#1e293b; border:1px solid #475569; border-radius:6px; color:#fff; box-sizing:border-box;">
                             <div style="display:flex; gap:6px;">${colorSwatch('枠の色', 'frameColor')}${colorSwatch('写真の背景', 'qBgColor')}${colorSwatch('全体の背景', 'mainBgColor')}</div>
-                            <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">※選択式の時に使えます。写真は問題ごとに「写真を付ける」から。問題文は写真の下の名前の欄に出ます</p>` : ''}`;
+                            <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">※選択式の時に使えます。写真は問題ごとに「写真を付ける」から。問題文は写真の下の名前の欄に出ます</p>` : ''}
+                        ${tpl !== 'frame' && window.App.ChoiceSkin ? window.App.ChoiceSkin.panelHtml(design) : ''}`;
                 })()}
                 ${(() => {
                     // 問題の枠と回答の枠の割合（プレビューの境目をドラッグしても変えられる）
@@ -859,6 +855,9 @@ App.Design = {
                     renderBody();
                 };
             });
+
+            // 選択肢ボタンの形・問題文の見せ方（choice_skin.js）
+            if (window.App.ChoiceSkin) window.App.ChoiceSkin.wirePanel(body, design, onChange, renderBody);
 
             // テーマカード
             body.querySelectorAll('button[data-theme-id]').forEach(btn => {
