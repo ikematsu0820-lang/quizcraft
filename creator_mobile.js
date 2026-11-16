@@ -60,9 +60,9 @@ App.CreatorMobile = {
                 <button type="button" id="cm-bulk-btn" class="cm-ghost-btn">メモのようにまとめて入力</button>
             </div>
             <div id="cm-list-bar" class="cm-bottom-bar">
-                <button type="button" data-cm-sheet="design" class="cm-bar-btn">🎨<span>見た目</span></button>
-                <button type="button" data-cm-sheet="rules" class="cm-bar-btn">⚙️<span>ルール</span></button>
-                <button type="button" id="cm-preview-list-btn" class="cm-bar-btn">📺<span>見る</span></button>
+                <button type="button" data-cm-sheet="design" class="cm-bar-btn">${window.App.Icons.svg('palette')}<span>見た目</span></button>
+                <button type="button" data-cm-sheet="rules" class="cm-bar-btn">${window.App.Icons.svg('sliders')}<span>ルール</span></button>
+                <button type="button" id="cm-preview-list-btn" class="cm-bar-btn">${window.App.Icons.svg('monitor')}<span>見る</span></button>
                 <button type="button" id="cm-save-btn" class="cm-bar-btn cm-primary">保存して完了</button>
             </div>
         `;
@@ -74,7 +74,6 @@ App.CreatorMobile = {
         head.innerHTML = `
             <button type="button" id="cm-back-btn" class="cm-ghost-btn">一覧に戻る</button>
             <span id="cm-edit-title"></span>
-            <button type="button" id="cm-detail-btn" class="cm-ghost-btn">詳細設定</button>
         `;
         view.insertBefore(head, wrap);
 
@@ -82,8 +81,8 @@ App.CreatorMobile = {
         editBar.id = 'cm-edit-bar';
         editBar.className = 'cm-bottom-bar';
         editBar.innerHTML = `
-            <button type="button" id="cm-preview-btn" class="cm-bar-btn">📺<span>見る</span></button>
-            <button type="button" id="cm-edit-settings-btn" class="cm-bar-btn">⚙️<span>セット設定</span></button>
+            <button type="button" id="cm-preview-btn" class="cm-bar-btn">${window.App.Icons.svg('monitor')}<span>見る</span></button>
+            <button type="button" id="cm-edit-settings-btn" class="cm-bar-btn">${window.App.Icons.svg('sliders')}<span>セット設定</span></button>
             <button type="button" id="cm-next-btn" class="cm-bar-btn cm-primary">次の問題へ</button>
         `;
         view.appendChild(editBar);
@@ -130,7 +129,6 @@ App.CreatorMobile = {
         document.getElementById('cm-save-btn').onclick = () => C().save();
         document.getElementById('cm-back-btn').onclick = () => this.backToList();
         document.getElementById('cm-next-btn').onclick = () => this.next();
-        document.getElementById('cm-detail-btn').onclick = () => this.toggleDetail();
         document.getElementById('cm-preview-btn').onclick = () => this.openPreview();
         document.getElementById('cm-edit-settings-btn').onclick = () => this.openSheet('menu');
         document.getElementById('cm-preview-list-btn').onclick = () => this.openPreview();
@@ -177,13 +175,11 @@ App.CreatorMobile = {
         // 新しいセットはすぐ1問目を書き始められるように編集画面から
         this.screen = (opts.fresh && qs.length === 0) ? 'edit' : 'list';
         const view = this.view();
-        if (view) view.classList.remove('cm-detail-open');
         this.apply();
     },
 
     showList: function () {
         this.screen = 'list';
-        this.view()?.classList.remove('cm-detail-open');
         this.apply();
         window.scrollTo(0, 0);
     },
@@ -197,7 +193,6 @@ App.CreatorMobile = {
             C.edit(index);
         }
         this.screen = 'edit';
-        this.view()?.classList.remove('cm-detail-open');
         this.apply();
         window.scrollTo(0, 0);
         if (index === null || index === undefined) this.focusQuestion();
@@ -256,19 +251,6 @@ App.CreatorMobile = {
             if (C.editingIndex !== null) return;
         }
         this.showList();
-    },
-
-    // この問題だけの細かい設定（従来の「その他」パネル）
-    toggleDetail: function () {
-        const view = this.view();
-        const C = this.C();
-        const open = !view.classList.contains('cm-detail-open');
-        view.classList.toggle('cm-detail-open', open);
-        if (open) {
-            C.editSubTab = 'home';
-            C.toggleInlinePanel('edit');
-        }
-        document.getElementById('cm-detail-btn').textContent = open ? '詳細を閉じる' : '詳細設定';
     },
 
     // ---------------------------------------------------------
@@ -415,6 +397,7 @@ App.CreatorMobile = {
             this.renderSettingsSummary(body.firstChild);
             document.getElementById('cm-sheet-title').textContent = 'セットの設定';
             document.getElementById('cm-sheet-stage-wrap').classList.add('hidden');
+            document.querySelector('#cm-sheet .cm-sheet-panel')?.classList.remove('cm-fixed');
             document.getElementById('cm-sheet').classList.remove('hidden');
             document.body.classList.add('cm-noscroll');
             this._sheet = 'menu';
@@ -422,8 +405,7 @@ App.CreatorMobile = {
         }
         const ids = { design: 'creator-inline-design', rules: 'creator-inline-rules', bulk: 'creator-bulk-panel' };
         const titles = { design: '見た目（セット全体）', rules: 'ルール（セット全体）', bulk: 'メモのようにまとめて入力' };
-        const SUB_TITLES = { format: '答え方', correct: '正解したとき', wrong: '間違えたとき', win: '勝ち方', time: '時間' };
-        if (kind === 'rules' && sub && SUB_TITLES[sub]) titles.rules = `${SUB_TITLES[sub]}（セット全体）`;
+        // タブを切り替えても題名がずれないよう、ルールは「ルール」のまま（どの設定かはタブで分かる）
         const node = document.getElementById(ids[kind]);
         if (!node) return;
         this._moved = { node, parent: node.parentNode, next: node.nextSibling, wasHidden: node.classList.contains('hidden') };
@@ -446,9 +428,13 @@ App.CreatorMobile = {
             C.renderBulkPanel();
         }
         document.getElementById('cm-sheet-stage-wrap').classList.toggle('hidden', kind !== 'design');
+        // 高さを固定して、タブや選択を変えてもパネルが上下しないように（中身だけスクロール）
+        document.querySelector('#cm-sheet .cm-sheet-panel')?.classList.add('cm-fixed');
         document.getElementById('cm-sheet').classList.remove('hidden');
         document.body.classList.add('cm-noscroll');
         if (kind === 'design') this.renderSheetStage();
+        App.CreatorInput.watchSheet();
+        App.CreatorInput.segmentSelects(document.getElementById('cm-sheet-body'));
     },
 
     closeSheet: function () {
@@ -718,6 +704,89 @@ App.CreatorInput = {
         });
         const list = document.getElementById('creator-choices-list');
         if (list && !(C && C.oxMode)) set(list, { display: 'flex', 'flex-direction': 'column', 'grid-template-columns': 'none' });
+        this.sectionLabels();
+        this.segmentSelects(document.getElementById('creator-outside-opts'));
+    },
+
+    // スマホでは、選ぶものが少ないプルダウン（2〜3個、または短い言葉の6個まで）を
+    // 全部見えるボタンの並びにする。元の select は隠して値を持たせたまま、押したら change を送る。
+    segmentSelects: function (root) {
+        const M = window.App.CreatorMobile;
+        if (!root || !M || !M.isMobile()) return;
+        root.querySelectorAll('select').forEach(sel => {
+            const opts = [...sel.options];
+            const short = opts.every(o => o.text.trim().length <= 4);
+            if (opts.length < 2 || !(opts.length <= 3 || (opts.length <= 6 && short))) return;
+            const key = opts.map(o => o.value + '=' + o.text).join('|');
+            let seg = sel.nextElementSibling;
+            // 同じ選択肢で作ってあれば作り直さない（見張り役が自分の書き換えで回り続けないように）
+            if (!seg || !seg.classList.contains('seg-from-select') || seg.dataset.key !== key) {
+                if (seg && seg.classList.contains('seg-from-select')) seg.remove();
+                seg = document.createElement('div');
+                seg.className = 'seg-ctl seg-from-select' + (short ? ' seg-short' : '');
+                seg.dataset.key = key;
+                seg.setAttribute('role', 'radiogroup');
+                seg.innerHTML = opts.map(o => `<button type="button" role="radio" data-v="${o.value.replace(/"/g, '&quot;')}">${o.text.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</button>`).join('');
+                sel.after(seg);
+                sel.classList.add('seg-src');
+            }
+            const sync = () => seg.querySelectorAll('button').forEach(b => {
+                const on = b.dataset.v === sel.value;
+                b.classList.toggle('on', on);
+                b.setAttribute('aria-checked', on);
+            });
+            sync();
+            seg.querySelectorAll('button').forEach(b => {
+                b.onclick = () => {
+                    if (sel.value === b.dataset.v) return;
+                    sel.value = b.dataset.v;
+                    sync();
+                    sel.dispatchEvent(new Event('input', { bubbles: true }));
+                    sel.dispatchEvent(new Event('change', { bubbles: true }));
+                };
+            });
+        });
+    },
+
+    // 下から出るパネル（ルール・見た目）は中身をよく描き直すので、描き直されたら切り替えを付け直す
+    watchSheet: function () {
+        const body = document.getElementById('cm-sheet-body');
+        if (!body || this._sheetObserver || !window.MutationObserver) return;
+        let queued = false;
+        this._sheetObserver = new MutationObserver(() => {
+            if (queued) return;
+            queued = true;
+            requestAnimationFrame(() => { queued = false; this.segmentSelects(body); });
+        });
+        this._sheetObserver.observe(body, { childList: true, subtree: true });
+    },
+
+    // 何を書く欄かが分かるよう、問題文・答えの欄の上に小さな見出し（スマホだけ表示）
+    sectionLabels: function () {
+        const flex = document.getElementById('creator-monitor-flexwrap');
+        const qArea = document.getElementById('creator-monitor-q-area');
+        const form = document.getElementById('creator-form-container');
+        if (!flex || !qArea || !form) return;
+        const label = (id, before, text) => {
+            let el = document.getElementById(id);
+            if (!el) { el = document.createElement('div'); el.id = id; el.className = 'cm-sec'; }
+            if (el.nextSibling !== before) flex.insertBefore(el, before);
+            el.textContent = text;
+            el.hidden = !text;
+        };
+        const C = window.App.Creator;
+        const t = (C && C.currentType) || '';
+        const PB = window.App.PanelBoard;
+        const formText = (PB && PB.active && document.getElementById('pb-list')) ? 'パネル'
+            : t === 'numgame' ? '項目と数'
+            : t.startsWith('ranking') ? '順位と答え'
+            : t.startsWith('multi') ? '正解（すべて）'
+            : t.startsWith('assoc') ? 'ヒント'
+            : t === 'sort' ? '並べる項目（正しい順に右の四角をタップ）'
+            : t.startsWith('choice') ? ((C && C.oxMode) ? '〇か×（正解をタップ）' : '選択肢')
+            : '';
+        label('cm-sec-q', qArea, '問題文');
+        label('cm-sec-form', form, form.children.length ? formText : '');
     },
 
     init: function () {
@@ -906,6 +975,7 @@ App.CreatorDraft = {
     after('updateRowSizes', function () { App.CreatorInput.enforceMobileSize(); });
     after('renderForm', function () { setTimeout(() => App.CreatorInput.enforceMobileSize(), 0); });
     after('renderRulesSection', function () { App.CreatorDraft.saveSoon(); });
+
 })();
 
 document.addEventListener('DOMContentLoaded', () => {

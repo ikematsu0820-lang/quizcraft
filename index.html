@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@800;900&display=swap">
     <link rel="stylesheet" href="style_common.css?v=104">
-    <link rel="stylesheet" href="style_host.css?v=121">
+    <link rel="stylesheet" href="style_host.css?v=123">
     <link rel="stylesheet" href="style_player.css?v=109">
     <link rel="stylesheet" href="style_viewer.css?v=101">
     <link rel="stylesheet" href="choice_skin.css?v=2">
@@ -44,7 +44,7 @@
             <!-- クイズに参加する -->
             <div class="login-form-area" style="margin: 0 auto;">
                 <input type="text" id="room-id-input" class="modern-input" placeholder="ルームID" style="margin-bottom:10px;">
-                <button id="join-quiz-btn" class="landing-btn" style="background:linear-gradient(135deg, #ffae00 0%, #ff6a00 100%); color:#000; box-shadow:0 8px 25px rgba(255,140,0,0.3);">🎮 クイズに参加する</button>
+                <button id="join-quiz-btn" class="landing-btn" style="background:linear-gradient(135deg, #ffae00 0%, #ff6a00 100%); color:#000; box-shadow:0 8px 25px rgba(255,140,0,0.3);">クイズに参加する</button>
             </div>
         </div>
     </div>
@@ -59,15 +59,15 @@
             <h2 style="text-align:center; font-size:1.5rem; margin-bottom:30px; color:#fff;">ホストメニュー</h2>
             <div style="display:flex; flex-direction:column; gap:25px;">
                 <button id="menu-btn-create" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:35px 20px; font-size:1.4rem; font-weight:bold; background:linear-gradient(135deg, #00c6ff 0%, #0072ff 100%); border:none; border-radius:18px; box-shadow:0 8px 25px rgba(0,114,255,0.35); color:#fff; cursor:pointer; transition:transform 0.2s;">
-                    <span style="font-size:2.2rem; margin-bottom:8px;">📝</span>
+                    <span style="display:flex; margin-bottom:10px;"><svg class="ic ic-edit" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>
                     <span>問題を作る</span>
                 </button>
                 <button id="menu-btn-host" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:35px 20px; font-size:1.4rem; font-weight:bold; background:linear-gradient(135deg, #11998e 0%, #38ef7d 100%); border:none; border-radius:18px; box-shadow:0 8px 25px rgba(56,239,125,0.35); color:#fff; cursor:pointer; transition:transform 0.2s;">
-                    <span style="font-size:2.2rem; margin-bottom:8px;">📺</span>
+                    <span style="display:flex; margin-bottom:10px;"><svg class="ic ic-monitor" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>
                     <span>問題を出す</span>
                 </button>
                 <button id="menu-btn-sound-library" style="display:flex; align-items:center; justify-content:center; gap:8px; padding:14px 20px; font-size:0.95rem; font-weight:bold; background:rgba(255,255,255,0.06); border:1px dashed rgba(255,255,255,0.25); border-radius:14px; color:#ccc; cursor:pointer;">
-                    <span style="font-size:1.2rem;">🔊</span>
+                    <span style="display:flex;"><svg class="ic ic-speaker" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg></span>
                     <span>サウンド編集</span>
                 </button>
             </div>
@@ -79,7 +79,7 @@
          選ぶだけになる（host_sound_library.js / host_design.js._openSoundModal）。 -->
     <div id="sound-library-view" class="view hidden">
         <div class="view-header" style="display:flex; justify-content:space-between; align-items:center; width:100%; border-bottom:1px solid #333; padding-bottom:12px; margin-bottom:20px;">
-            <h3 style="margin:0;">🔊 サウンド編集</h3>
+            <h3 style="margin:0;">サウンド編集</h3>
             <button class="header-back-btn back-to-menu" style="background:rgba(255,255,255,0.1); border:1px solid #555; color:#fff; padding:8px 16px; border-radius:8px; cursor:pointer;">メニューに戻る</button>
         </div>
         <div style="max-width:600px; margin:0 auto; width:100%; padding:0 16px 30px; box-sizing:border-box;">
@@ -398,7 +398,7 @@
                     display:flex; align-items:center; justify-content:center;
                     background:#1e293b; border:1px solid #475569;
                     border-radius:10px; color:#fff; cursor:pointer;
-                ">💾 リストを保存する</button>
+                "><svg class="ic ic-save" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg><span style="margin-left:6px;">リストを保存する</span></button>
             </div>
         </div>
 
@@ -422,7 +422,7 @@
                 style="padding:15px; font-size:1.1em; font-weight:bold;">+ 追加</button>
             <select id="prog-set-select" class="btn-block config-select mb-20"></select>
 
-            <button id="prog-open-load-modal-btn" class="btn-dark btn-block" style="opacity:0.7;">📂
+            <button id="prog-open-load-modal-btn" class="btn-dark btn-block" style="opacity:0.7;">
                 保存済み番組を読み込む</button>
         </div>
 
@@ -786,25 +786,26 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
     <script src="firebase.js"></script>
     <script src="text_config.js?v=235"></script>
+    <script src="icons.js?v=1"></script>
     <script src="host_core.js?v=254"></script>
     <script src="rule_engine.js?v=6"></script>
     <script src="host_sound_library.js?v=7"></script>
     <script src="theme_presets.js?v=6"></script>
     <script src="timer_view.js?v=3"></script>
     <script src="bridge_view.js?v=1"></script>
-    <script src="host_design.js?v=285"></script>
-    <script src="host_creator.js?v=309"></script>
+    <script src="host_design.js?v=286"></script>
+    <script src="host_creator.js?v=310"></script>
     <script src="host_config.js?v=261"></script>
     <script src="host_prog_config.js?v=235"></script>
     <script src="host_studio.js?v=260"></script>
     <script src="player.js?v=253"></script>
     <script src="viewer.js?v=277"></script>
-    <script src="creator_mobile.js?v=13"></script>
+    <script src="creator_mobile.js?v=14"></script>
     <script src="variety_frame.js?v=4"></script>
     <script src="layout_editor.js?v=3"></script>
     <script src="choice_skin.js?v=2"></script>
     <script src="rule_panel.js?v=1"></script>
-    <script src="panel_board.js?v=7"></script>
+    <script src="panel_board.js?v=8"></script>
     <script src="creator_desktop.js?v=2"></script>
 
 
@@ -818,13 +819,13 @@
                 <div style="display:flex; flex-direction:column; gap:12px;">
                     <button id="edit-menu-questions" class="btn-block btn-primary"
                         style="padding:15px; font-size:1.1em;">
-                        📝 問題作成
+                        問題作成
                     </button>
                     <button id="edit-menu-rules" class="btn-block btn-info" style="padding:15px; font-size:1.1em;">
-                        ⚙️ ルール設定
+                        ルール設定
                     </button>
                     <button id="edit-menu-design" class="btn-block btn-success" style="padding:15px; font-size:1.1em;">
-                        🎨 問題デザイン
+                        問題デザイン
                     </button>
 
                 </div>

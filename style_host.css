@@ -4544,14 +4544,8 @@ input:checked+.pro-slider:before {
 #creator-view.cm-on #creator-inline-listactions {
     display: none !important;
 }
-/* 「詳細設定」を開いた時だけ、この問題の細かい設定を出す */
-#creator-view.cm-on.cm-edit:not(.cm-detail-open) #creator-inline-edit-area { display: none !important; }
-#creator-view.cm-on.cm-edit.cm-detail-open #creator-inline-edit-area {
-    display: block !important;
-    height: auto !important;
-    max-height: none !important;
-    padding: 14px 16px !important;
-}
+/* この問題の設定（#creator-options-extra）は中身がある時だけ出す（下の :has の指定） */
+#creator-view.cm-on.cm-edit #creator-inline-edit-area { display: none !important; }
 #creator-view.cm-on #creator-inline-edit-area *:not(.creator-edit-subtab-btn):not(.creator-rules-subtab-btn):not(.design-subtab-btn) {
     font-size: 0.85rem !important;
 }
@@ -5132,3 +5126,142 @@ details.rule-adv[open] > summary { border-bottom: 1px solid #2a3342; }
 #creator-view.cm-on .ng-row input { min-height: 40px !important; font-size: 16px !important; box-sizing: border-box; }
 #creator-view.cm-on .ng-row .ng-value { flex-basis: 84px !important; width: 84px !important; }
 #creator-view.cm-on .ng-row .ng-del { font-size: 1.1rem; }
+
+/* スマホの下から出るパネル: 高さを固定（タブや選択で上下しない）。中身だけスクロール */
+.cm-sheet-panel.cm-fixed { height: 88vh; height: 88dvh; max-height: none; overscroll-behavior: contain; }
+/* ルールのタブは題名の下に留める */
+#cm-sheet-body #creator-rules-subtabs { position: sticky; top: 62px; z-index: 2; background: #111827; margin-top: 0 !important; padding-top: 2px; }
+
+/* 線のアイコン（icons.js） */
+.ic { flex: 0 0 auto; }
+.cm-bar-btn .ic { display: block; margin: 0 auto 3px; opacity: 0.9; }
+/* 見た目のパネル: いまどこを編集しているか */
+.ds-target { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; color: #e2e8f0; font-size: 0.75rem; font-weight: bold; }
+.ds-target-tag { font-size: 0.62rem; color: #00e5ff; border: 1px solid rgba(0, 229, 255, 0.45); border-radius: 99px; padding: 1px 7px; font-weight: bold; }
+
+/* =========================================================
+ * 切り替え（2〜3択から1つ）— 多答の「通常／ランキング／パネル指名」など
+ * ======================================================= */
+.seg-ctl { display: inline-flex; gap: 2px; padding: 2px; background: #0f172a; border: 1px solid #334155; border-radius: 9px; }
+#creator-view .seg-ctl button, .seg-ctl button {
+    flex: 1 1 0; min-width: 0; margin: 0; padding: 4px 12px !important; border: none; border-radius: 7px;
+    background: transparent; color: #94a3b8; font-weight: bold; cursor: pointer; white-space: nowrap;
+}
+.seg-ctl button.on { background: #163447 !important; color: #00e5ff !important; box-shadow: inset 0 0 0 1px rgba(0, 229, 255, 0.5); }
+
+/* =========================================================
+ * スマホの入力画面 — 見出し・入力欄・オン/オフ・ボタンを整理した縦の並びに
+ * ======================================================= */
+.cm-sec { display: none; }
+#creator-view.cm-on.cm-edit .cm-sec {
+    display: block; margin: 2px 2px -4px; color: #94a3b8; font-size: 0.75rem; font-weight: bold; letter-spacing: 0.04em;
+}
+#creator-view.cm-on.cm-edit #creator-outside-opts {
+    display: flex !important; flex-direction: row !important; flex-wrap: wrap !important; align-items: stretch !important;
+    gap: 10px !important; padding: 14px 12px 16px !important; background: #161b24 !important; border-top: 1px solid #222a36;
+}
+#creator-view.cm-on.cm-edit #creator-outside-opts * { font-size: 0.9rem !important; }
+#creator-view.cm-on.cm-edit #creator-outside-opts > * { margin: 0 !important; box-sizing: border-box; }
+/* 入力欄（正解・目標・単位・誤答したパネル など）: 名前を上、欄は横幅いっぱい */
+#creator-view.cm-on.cm-edit #creator-outside-opts > label:has(input[type="text"]),
+#creator-view.cm-on.cm-edit #creator-outside-opts > label:has(input[type="number"]),
+#creator-view.cm-on.cm-edit #creator-outside-opts > label:has(select) {
+    order: 1; flex: 1 1 100% !important; min-width: 0 !important; display: flex !important; flex-direction: column !important; flex-wrap: nowrap !important;
+    align-items: stretch !important; gap: 6px !important; white-space: normal !important; color: #94a3b8 !important; font-weight: bold;
+}
+#creator-view.cm-on.cm-edit #creator-outside-opts > label > span { color: #94a3b8 !important; font-size: 0.75rem !important; }
+#creator-view.cm-on.cm-edit #creator-outside-opts input[type="text"],
+#creator-view.cm-on.cm-edit #creator-outside-opts input[type="number"],
+#creator-view.cm-on.cm-edit #creator-outside-opts select {
+    width: 100% !important; height: 44px !important; min-height: 44px !important; padding: 0 12px !important; font-size: 16px !important;
+    background: #0f141c !important; color: #fff !important; border: 1px solid #334155 !important; border-radius: 10px !important;
+}
+#creator-view.cm-on.cm-edit #creator-outside-opts input[type="text"]::placeholder { color: #64748b !important; }
+/* 2〜3択の切り替え */
+#creator-view.cm-on.cm-edit #creator-outside-opts > .seg-ctl,
+#creator-view.cm-on.cm-edit #creator-outside-opts > label > .seg-ctl { order: 0; flex: 1 1 100%; display: flex; }
+#creator-view.cm-on.cm-edit .seg-ctl button { min-height: 40px; }
+/* 追加・貼り付けなどのボタン: 2つずつ並べる */
+#creator-view.cm-on.cm-edit #creator-outside-opts > button {
+    order: 2; flex: 1 1 40% !important; min-height: 44px !important; padding: 8px 10px !important; border-radius: 10px !important;
+    display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap;
+}
+/* オン/オフ: 名前を左、スイッチを右に1行ずつ */
+#creator-view.cm-on.cm-edit #creator-outside-opts > label:has(input[type="checkbox"]),
+#creator-view.cm-on.cm-edit #creator-options-extra label:has(input[type="checkbox"]) {
+    order: 3; flex: 1 1 100% !important; display: flex !important; flex-direction: row-reverse !important;
+    justify-content: space-between !important; align-items: center !important; min-height: 44px; padding: 0 2px;
+    white-space: normal !important; color: #e2e8f0 !important; border-top: 1px solid #222a36;
+}
+#creator-view.cm-on.cm-edit #creator-outside-opts > label:has(input[type="checkbox"]) span,
+#creator-view.cm-on.cm-edit #creator-options-extra label:has(input[type="checkbox"]) span { color: #e2e8f0 !important; font-size: 0.9rem !important; }
+#creator-view.cm-on.cm-edit #creator-outside-opts input[type="checkbox"],
+#creator-view.cm-on.cm-edit #creator-options-extra input[type="checkbox"] {
+    -webkit-appearance: none; appearance: none; position: relative; flex: 0 0 46px; width: 46px !important; height: 28px !important;
+    min-height: 0 !important; margin: 0 !important; padding: 0 !important; border: none !important; border-radius: 99px;
+    background: #334155 !important; cursor: pointer; transition: background 0.18s;
+}
+#creator-view.cm-on.cm-edit #creator-outside-opts input[type="checkbox"]::before,
+#creator-view.cm-on.cm-edit #creator-options-extra input[type="checkbox"]::before {
+    content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%;
+    background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4); transition: transform 0.18s;
+}
+#creator-view.cm-on.cm-edit #creator-outside-opts input[type="checkbox"]:checked,
+#creator-view.cm-on.cm-edit #creator-options-extra input[type="checkbox"]:checked { background: #00a9c7 !important; }
+#creator-view.cm-on.cm-edit #creator-outside-opts input[type="checkbox"]:checked::before,
+#creator-view.cm-on.cm-edit #creator-options-extra input[type="checkbox"]:checked::before { transform: translateX(18px); }
+/* 案内文（※…）は小さく控えめに */
+#creator-view.cm-on.cm-edit #creator-outside-opts > span {
+    order: 4; flex: 1 1 100% !important; white-space: normal !important; color: #64748b !important; font-size: 0.75rem !important; line-height: 1.5;
+}
+/* 写真は一番下 */
+#creator-view.cm-on.cm-edit #creator-outside-opts > .qimg-ctl { order: 5; flex: 1 1 100%; }
+#creator-view.cm-on.cm-edit #creator-outside-opts .qimg-pick { width: 100%; min-height: 44px !important; border-radius: 10px !important; }
+
+/* 「この問題の設定」（シャッフル・並べ替えの＋項目を追加 など）は詳細を開かなくても出す */
+#creator-view.cm-on.cm-edit #creator-inline-edit-area:has(#creator-options-extra > *) {
+    display: block !important; height: auto !important; max-height: none !important; overflow: visible !important;
+    padding: 4px 12px 12px !important; background: #161b24 !important; border-top: none !important;
+}
+#creator-view.cm-on.cm-edit #creator-inline-edit-area #creator-edit-subtabs,
+#creator-view.cm-on.cm-edit #creator-inline-edit-area > #creator-bulk-panel,
+#creator-view.cm-on.cm-edit #creator-inline-edit-area > #creator-inline-listedit,
+#creator-view.cm-on.cm-edit #creator-inline-edit-area > #creator-inline-design,
+#creator-view.cm-on.cm-edit #creator-inline-edit-area > #creator-inline-rules { display: none !important; }
+#creator-view.cm-on.cm-edit #creator-edit-home-panel,
+#creator-view.cm-on.cm-edit #creator-options-extra { display: block !important; }
+#creator-view.cm-on.cm-edit #creator-options-extra * { font-size: 0.9rem !important; }
+#creator-view.cm-on.cm-edit #creator-options-extra > div { margin: 0 !important; }
+#creator-view.cm-on.cm-edit #creator-options-extra button {
+    width: 100% !important; min-height: 44px !important; border-radius: 10px !important; margin: 6px 0 !important;
+}
+/* プルダウンから作った切り替え（スマホ） */
+select.seg-src { display: none !important; }
+.seg-ctl.seg-from-select { display: flex; flex-wrap: wrap; width: 100%; box-sizing: border-box; }
+.seg-ctl.seg-from-select button { min-height: 40px; white-space: normal !important; line-height: 1.25; padding: 6px 8px !important; font-size: 0.85rem !important; }
+/* 状態だけ持って見せないチェック（多答のランキングモード → 切り替えで選ぶ） */
+#creator-view #creator-outside-opts > label.ctl-hidden,
+#creator-view.cm-on.cm-edit #creator-outside-opts > label.ctl-hidden:has(input[type="checkbox"]) { display: none !important; }
+/* 短い言葉の切り替えは折り返さない（足りなければ行ごと折り返す） */
+.seg-ctl.seg-short button { flex: 1 0 auto; white-space: nowrap !important; }
+/* 見た目のパネル（スマホ）: 小さなプルダウンを切り替えにしたものは1行ずつ（名前を左） */
+#cm-sheet-body #creator-inline-design div:has(> div > select.seg-src) { flex-wrap: wrap !important; }
+#cm-sheet-body #creator-inline-design div:has(> select.seg-src) { flex: 1 1 100% !important; flex-direction: row !important; align-items: center !important; gap: 10px !important; }
+#cm-sheet-body #creator-inline-design div:has(> select.seg-src) > span { order: -1; flex: 0 0 3.5em; font-size: 0.75rem !important; color: #94a3b8 !important; text-align: left; }
+#cm-sheet-body #creator-inline-design div:has(> select.seg-src) > .seg-ctl { flex: 1 1 auto; }
+/* 下から出るパネルのオン/オフもスイッチに（名前を左、スイッチを右） */
+#cm-sheet-body label:has(> input[type="checkbox"]) {
+    display: flex !important; flex-direction: row-reverse !important; justify-content: space-between !important;
+    align-items: center !important; gap: 10px; min-height: 40px; font-size: 0.85rem !important; color: #e2e8f0 !important;
+}
+#cm-sheet-body input[type="checkbox"] {
+    -webkit-appearance: none; appearance: none; position: relative; flex: 0 0 46px; width: 46px !important; height: 28px !important;
+    min-height: 0 !important; margin: 0 !important; padding: 0 !important; border: none !important; border-radius: 99px;
+    background: #334155 !important; cursor: pointer; transition: background 0.18s;
+}
+#cm-sheet-body input[type="checkbox"]::before {
+    content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%;
+    background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4); transition: transform 0.18s;
+}
+#cm-sheet-body input[type="checkbox"]:checked { background: #00a9c7 !important; }
+#cm-sheet-body input[type="checkbox"]:checked::before { transform: translateX(18px); }

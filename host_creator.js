@@ -272,7 +272,9 @@ window.App.Creator = {
         const el = document.getElementById('creator-set-title');
         if (!el) return;
         const name = (this.editingTitle || '').trim();
-        el.textContent = name ? `${name} ✎` : 'セット名を入力 ✎';
+        // 名前の後ろに鉛筆の線アイコン（タップで変更できると分かるように）
+        el.textContent = name || 'セット名を入力';
+        el.insertAdjacentHTML('beforeend', ` <span style="display:inline-flex; vertical-align:-2px; opacity:0.7;">${window.App.Icons.svg('pencil', 14)}</span>`);
         el.style.color = name ? '' : '#64748b';
         el.onclick = () => this.editSetTitle();
     },
@@ -1081,7 +1083,18 @@ window.App.Creator = {
             const k = btn.dataset.rulesSubtab;
             btn.style.background = (this.rulesSubTab === k) ? '#2d3748' : '#232a35';
             btn.style.color = (this.rulesSubTab === k) ? '#e2e8f0' : '#8b95a5';
-            btn.onclick = () => { this.rulesSubTab = k; this.renderRulesSubtabs(); };
+            btn.onclick = () => {
+                this.rulesSubTab = k;
+                this.renderRulesSubtabs();
+                // スマホの下から出るパネル: 下までスクロールしていたら、新しいタブの頭から見せる
+                const panel = btn.closest('.cm-sheet-panel');
+                // タブ自体は貼り付いているので、すぐ上の「遊び方」の下端で本来の位置を測る
+                const above = document.getElementById('creator-rules-summary');
+                if (panel && above) {
+                    const top = above.getBoundingClientRect().bottom - panel.getBoundingClientRect().top + panel.scrollTop - 62;
+                    if (panel.scrollTop > top) panel.scrollTop = Math.max(0, top);
+                }
+            };
         });
     },
 
@@ -2748,7 +2761,7 @@ ${spec.memo}" style="
 
         const rows = questions.map((q, i) => {
             const displayQ = q.q.length > 20 ? q.q.substring(0, 20) + "..." : q.q;
-            const shuffleIcon = (q.type === 'choice' || q.type === 'sort') && q.shuffle !== false ? ' 🔀' : '';
+            const shuffleIcon = (q.type === 'choice' || q.type === 'sort') && q.shuffle !== false ? ` <span title="シャッフル" style="display:inline-flex; vertical-align:-2px; color:#64748b;">${window.App.Icons.svg('shuffle', 13)}</span>` : '';
             const isEditing = this.editingIndex === i;
             // 未完成（正解が未入力など）の問題は赤く — このままだと出題できない
             const missing = window.App.QuizCheck ? window.App.QuizCheck.missing(q) : [];
@@ -2770,8 +2783,8 @@ ${spec.memo}" style="
 
         const badCount = window.App.QuizCheck ? window.App.QuizCheck.incompleteIn(questions).length : 0;
         list.innerHTML = `
-            <div style="color:#94a3b8; font-size:0.75rem; font-weight:bold; margin-bottom:6px;">📋 作成済みの問題（クリックで編集） (${questions.length})</div>
-            ${badCount ? `<div style="color:#f87171; font-size:0.72rem; margin-bottom:6px;">⚠️ 未完成の問題が${badCount}問あります。保存はできますが、完成させるまでこのセットは出題できません</div>` : ''}
+            <div style="color:#94a3b8; font-size:0.75rem; font-weight:bold; margin-bottom:6px;">作成済みの問題（クリックで編集） (${questions.length})</div>
+            ${badCount ? `<div style="color:#f87171; font-size:0.72rem; margin-bottom:6px;">未完成の問題が${badCount}問あります。保存はできますが、完成させるまでこのセットは出題できません</div>` : ''}
             ${rows}
         `;
 

@@ -61,42 +61,67 @@ App.PanelBoard = {
     // 作成画面
     // ---------------------------------------------------------
     afterRenderForm: function (C, type, data) {
-        // 多答（ランキングモードではない時）— 形式の名前は 'multi' のまとまりで来ることもあるので画面で見る
+        // 多答・ランキング — 形式の名前は 'multi' のまとまりで来ることもあるので画面で見る
         const rk = document.getElementById('multi-ranking-mode-chk');
-        const isMulti = /^multi/.test(type || '') && !!rk && !rk.checked;
-        if (!isMulti) { this.active = false; return; }
-        if (data && typeof data.panel === 'boolean') this.active = data.panel;
+        const isRanking = !!rk && rk.checked;
+        const isMultiFamily = /^(multi|ranking)/.test(type || '') && !!rk;
+        if (!isMultiFamily) { this.active = false; return; }
+        if (isRanking) this.active = false;
+        else if (data && typeof data.panel === 'boolean') this.active = data.panel;
         else if (data && data.panel) this.active = true;
-        const outside = document.getElementById('creator-outside-opts');
-        // 「パネル指名モード」のチェック（ランキングモードの隣）
-        if (outside && !document.getElementById('multi-panel-chk')) {
-            const lbl = document.createElement('label');
-            lbl.style.cssText = 'display:flex; align-items:center; gap:6px; cursor:pointer; color:#cbd5e1; font-size:0.8rem; white-space:nowrap;';
-            lbl.innerHTML = `<input type="checkbox" id="multi-panel-chk" ${this.active ? 'checked' : ''} style="accent-color:#00e5ff; cursor:pointer;"><span>パネル指名モード</span>`;
-            const rkLabel = rk && rk.closest('label');
-            if (rkLabel && rkLabel.nextSibling) outside.insertBefore(lbl, rkLabel.nextSibling); else outside.appendChild(lbl);
-            outside.classList.remove('hidden');
-            lbl.querySelector('input').onchange = (e) => {
-                const cur = C._readFormDataForPreview();
-                const on = e.target.checked;
-                this.active = on;
-                if (on) {
-                    // 今の答えをそのままパネルの答えに（パネル指名は口頭で答える）
-                    const panels = (cur.panels && cur.panels.length) ? cur.panels
-                        : (cur.c || []).filter(Boolean).map(a => ({ label: '', answer: a, pts: '' }));
-                    C.renderForm('multi_oral', { ...cur, type: 'multi_oral', panel: true, panels });
-                } else {
-                    const answers = (cur.panels || []).map(p => p.answer).filter(Boolean);
-                    const sub = document.getElementById('creator-opt-subtype')?.value;
-                    C.renderForm(/^multi_/.test(sub || '') ? sub : 'multi_oral', { ...cur, panel: false, c: answers, correct: answers });
-                }
-            };
-        }
+        this.renderModeSwitch(C, rk, isRanking);
         if (!this.active) return;
-        // ランキング・正解の追加は使わない（パネルの追加に置き換え）
-        document.getElementById('multi-ranking-mode-chk')?.closest('label')?.remove();
+        // 正解の追加は使わない（パネルの追加に置き換え）
         document.getElementById('multi-add-btn')?.remove();
         this.renderEditor(C, data);
+    },
+
+    // 多答の形式「通常／ランキング／パネル」— どれか1つなので、2つのチェックではなく1つの切り替えで選ぶ
+    renderModeSwitch: function (C, rk, isRanking) {
+        const outside = document.getElementById('creator-outside-opts');
+        const rkLabel = rk.closest('label');
+        if (!outside || !rkLabel) return;
+        rkLabel.classList.add('ctl-hidden'); // 状態はこのチェックが持ったまま、見せるのは切り替えだけ
+        const cur = isRanking ? 'ranking' : this.active ? 'panel' : 'normal';
+        const seg = document.createElement('div');
+        seg.className = 'seg-ctl';
+        seg.id = 'multi-mode-seg';
+        seg.setAttribute('role', 'radiogroup');
+        seg.innerHTML = [['normal', '通常'], ['ranking', 'ランキング'], ['panel', 'パネル指名']].map(([v, t]) =>
+            `<button type="button" role="radio" aria-checked="${v === cur}" data-mode="${v}" class="${v === cur ? 'on' : ''}">${t}</button>`).join('');
+        outside.insertBefore(seg, rkLabel);
+        const setRanking = (on) => {
+            const r = document.getElementById('multi-ranking-mode-chk');
+            if (!r || r.checked === on) return;
+            r.checked = on;
+            r.dispatchEvent(new Event('change'));
+        };
+        seg.querySelectorAll('button').forEach(b => {
+            b.onclick = () => {
+                const to = b.dataset.mode;
+                if (to === cur) return;
+                if (cur === 'panel') this.setPanel(C, false);
+                if (cur === 'ranking') setRanking(false);
+                if (to === 'ranking') setRanking(true);
+                if (to === 'panel') this.setPanel(C, true);
+            };
+        });
+    },
+
+    // パネル指名モードのオン／オフ（今の答えは引き継ぐ）
+    setPanel: function (C, on) {
+        const cur = C._readFormDataForPreview();
+        this.active = on;
+        if (on) {
+            // 今の答えをそのままパネルの答えに（パネル指名は口頭で答える）
+            const panels = (cur.panels && cur.panels.length) ? cur.panels
+                : (cur.c || []).filter(Boolean).map(a => ({ label: '', answer: a, pts: '' }));
+            C.renderForm('multi_oral', { ...cur, type: 'multi_oral', panel: true, panels });
+        } else {
+            const answers = (cur.panels || []).map(p => p.answer).filter(Boolean);
+            const sub = document.getElementById('creator-opt-subtype')?.value;
+            C.renderForm(/^multi_/.test(sub || '') ? sub : 'multi_oral', { ...cur, panel: false, c: answers, correct: answers });
+        }
     },
 
     renderEditor: function (C, data) {

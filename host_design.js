@@ -339,9 +339,7 @@ App.Design = {
         };
         const OBJECT_TITLES = { question: '問題文', qtitle: 'タイトル', choices: choicesLabel, background: '全体背景', reveal: '正解表示' };
         const selectionHeader = (sel) => `
-            <div style="display:flex; align-items:center; gap:5px; margin-bottom:8px; color:#00e5ff; font-size:0.68rem; font-weight:bold;">
-                <span>👆</span><span>${OBJECT_TITLES[sel]}を編集中</span>
-            </div>
+            <div class="ds-target"><span class="ds-target-tag">編集中</span><span>${OBJECT_TITLES[sel]}</span></div>
         `;
 
         const bodyHtml = {
@@ -462,7 +460,7 @@ App.Design = {
                                         border:1px ${hasBgImg ? 'solid #00e5ff' : 'dashed #475569'};
                                         background:${hasBgImg ? `center/cover no-repeat url(${bgImg})` : '#1e293b'};
                                         color:#94a3b8; font-size:0.66rem;
-                                    ">${hasBgImg ? '' : '🖼️ 画像を選ぶ'}</button>
+                                    ">${hasBgImg ? '' : `<span style="display:inline-flex; align-items:center; gap:4px;">${window.App.Icons.svg('image', 14)}画像を選ぶ</span>`}</button>
                                     ${hasBgImg ? `<button type="button" data-bgimg-clear title="画像を外す" style="
                                         flex:0 0 auto; width:28px; height:32px; padding:0; border:1px dashed #ff8888; border-radius:6px;
                                         background:none; color:#ff8888; cursor:pointer;">×</button>` : ''}
@@ -522,7 +520,7 @@ App.Design = {
                             padding:7px 2px; background:#1e293b; border:1px solid ${isSet ? '#00e5ff' : '#475569'};
                             border-radius:8px; color:#fff; cursor:pointer;
                         ">
-                            <span style="font-size:1rem; line-height:1;">${icon}</span>
+                            <span style="display:flex; line-height:1;">${icon}</span>
                             <span style="font-size:0.56rem; color:#94a3b8; white-space:nowrap;">${label}</span>
                             <span style="font-size:0.52rem; color:${isSet ? '#00e5ff' : '#555'};">${isSet ? (hasFile ? 'あり' : 'URL') : '未設定'}</span>
                         </button>
@@ -530,10 +528,10 @@ App.Design = {
                 };
                 return `
                     <div style="display:flex; gap:6px; margin-bottom:8px;">
-                        ${soundTile('出題中BGM', 'bgmThinking', '🎵')}
-                        ${soundTile('ボタンSE', 'seButton', '🔘')}
-                        ${soundTile('正解音', 'seCorrect', '⭕')}
-                        ${soundTile('不正解音', 'seWrong', '❌')}
+                        ${soundTile('出題中BGM', 'bgmThinking', window.App.Icons.svg('music'))}
+                        ${soundTile('ボタンSE', 'seButton', window.App.Icons.svg('button'))}
+                        ${soundTile('正解音', 'seCorrect', window.App.Icons.svg('correct'))}
+                        ${soundTile('不正解音', 'seWrong', window.App.Icons.svg('wrong'))}
                     </div>
                 `;
             },
@@ -545,9 +543,7 @@ App.Design = {
         // design、ブリッジの文言だけは問題ごと — App.Creator.qNumText）。
         const slide = (window.App.Creator && window.App.Creator.previewSlide) || 'question';
         const slideHeader = (title) => `
-            <div style="display:flex; align-items:center; gap:5px; margin-bottom:8px; color:#00e5ff; font-size:0.68rem; font-weight:bold;">
-                <span>👆</span><span>${title}を編集中</span>
-            </div>
+            <div class="ds-target"><span class="ds-target-tag">編集中</span><span>${title}</span></div>
         `;
         const slideSoundTile = (label, key, icon) => {
             const isSet = !!(design[key] || '');
@@ -557,7 +553,7 @@ App.Design = {
                     padding:7px 10px; background:#1e293b; border:1px solid ${isSet ? '#00e5ff' : '#475569'};
                     border-radius:8px; color:#fff; cursor:pointer;
                 ">
-                    <span style="font-size:1rem; line-height:1;">${icon}</span>
+                    <span style="display:flex; line-height:1;">${icon}</span>
                     <span style="font-size:0.56rem; color:#94a3b8; white-space:nowrap;">${label}</span>
                     <span style="font-size:0.52rem; color:${isSet ? '#00e5ff' : '#555'};">${isSet ? 'あり' : '未設定'}</span>
                 </button>
@@ -602,7 +598,7 @@ App.Design = {
             `,
             sound: () => `
                 ${slideHeader('ブリッジスライド')}
-                <div style="display:flex; gap:6px;">${slideSoundTile('問題番号音', 'seQNum', '🔢')}</div>
+                <div style="display:flex; gap:6px;">${slideSoundTile('問題番号音', 'seQNum', window.App.Icons.svg('hash'))}</div>
                 <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">※「第○問」がモニターに出た瞬間に、モニター画面で鳴ります</p>
             `,
             animation: bodyHtml.animation,
@@ -642,7 +638,7 @@ App.Design = {
             `,
             sound: () => `
                 ${slideHeader('結果表示')}
-                <div style="display:flex; gap:6px;">${slideSoundTile('結果発表音', 'seResult', '🏆')}</div>
+                <div style="display:flex; gap:6px;">${slideSoundTile('結果発表音', 'seResult', window.App.Icons.svg('trophy'))}</div>
                 <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">※結果発表の画面に切り替わった瞬間に、モニター画面で鳴ります</p>
             `,
             animation: bodyHtml.animation,
@@ -754,7 +750,7 @@ App.Design = {
             };
             return `
                 <div id="design-timer-demo" style="margin-bottom:10px; padding:8px 10px; border-radius:8px; background:rgba(0,229,255,0.08); border:1px solid rgba(0,229,255,0.3); color:#7dd3fc; font-size:0.7rem; line-height:1.5;">
-                    ▶ 左のプレビュー（問題の画面）に、本番と同じ位置・大きさでタイマーを動かして見せています。秒数はルールの「制限時間」で決めます。
+                    プレビューの問題の画面で、本番と同じ位置・大きさでタイマーが動きます。秒数はルールの「時間」で決めます。
                 </div>
                 <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; margin-bottom:10px;">
                     ${TV.STYLES.map(st => `
@@ -1122,7 +1118,7 @@ App.Design = {
                         flex:1; min-width:0; padding:5px 6px; font-size:0.68rem; background:none;
                         border:1px dashed ${hasBgImg ? '#00ff88' : '#475569'}; border-radius:5px;
                         color:${hasBgImg ? '#00ff88' : '#94a3b8'}; cursor:pointer;
-                    ">🖼️ 画像を使う${hasBgImg ? '（設定済み）' : ''}</button>
+                    ">画像を使う${hasBgImg ? '（設定済み）' : ''}</button>
                     ${hasBgImg ? `<button type="button" id="color-popover-bgimg-clear-btn" title="画像をクリア" style="
                         flex:0 0 auto; padding:5px 8px; font-size:0.62rem; background:none; border:1px dashed #ff8888;
                         border-radius:5px; color:#ff8888; cursor:pointer;
@@ -1203,7 +1199,7 @@ App.Design = {
                                 background:${currentVal === it.data ? 'rgba(0,229,255,0.14)' : '#1e293b'}; border:1px solid ${currentVal === it.data ? '#00e5ff' : '#475569'};
                                 border-radius:8px; color:#fff; cursor:pointer; font-size:0.85rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
                             ">${it.name}</button>
-                            <button type="button" data-preview="${it.id}" title="再生して確認" style="flex:0 0 auto; padding:8px 10px; background:#00a8cc; border:none; border-radius:6px; color:#fff; cursor:pointer;">▶</button>
+                            <button type="button" data-preview="${it.id}" title="再生して確認" style="flex:0 0 auto; display:flex; align-items:center; padding:8px 10px; background:#00a8cc; border:none; border-radius:6px; color:#fff; cursor:pointer;">${window.App.Icons.svg('play', 14)}</button>
                         </div>
                     `).join('')}
                     ${items.length === 0 ? '<p style="color:#666; font-size:0.78rem; text-align:center; margin:8px 0;">まだ音源が登録されていません</p>' : ''}
@@ -1256,11 +1252,11 @@ App.Design = {
                 if (onChange) onChange();
                 if (window.db) {
                     window.db.ref(`sound_library/${key}`).push().set({ name, data })
-                        .then(() => window.App.Ui && window.App.Ui.showToast('✅ 音源を追加して設定しました'))
-                        .catch(() => window.App.Ui && window.App.Ui.showToast('⚠️ サウンド編集への登録に失敗しました（この問題には設定済み）'));
+                        .then(() => window.App.Ui && window.App.Ui.showToast('音源を追加して設定しました'))
+                        .catch(() => window.App.Ui && window.App.Ui.showToast('サウンド編集への登録に失敗しました（この問題には設定済み）'));
                 }
             };
-            reader.onerror = () => window.App.Ui && window.App.Ui.showToast('⚠️ ファイルを読み込めませんでした');
+            reader.onerror = () => window.App.Ui && window.App.Ui.showToast('ファイルを読み込めませんでした');
             reader.readAsDataURL(file);
         };
     },
