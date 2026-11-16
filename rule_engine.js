@@ -31,7 +31,7 @@ App.RuleEngine = {
         const isMulti = !!(qType && (qType.startsWith('multi') || qType.startsWith('ranking')));
         const isAssoc = !!(firstType.startsWith('assoc') || qType.startsWith('assoc'));
         // パネル指名モード（panel_board.js）— 口頭で「◯番、答え」と言い、出題者が判定する
-        const isPanel = qs.some(q => q && q.type === 'choice' && q.panel);
+        const isPanel = qs.some(q => q && q.panel && (q.type === 'choice' || String(q.type || '').startsWith('multi')));
         const autoJudge = this.AUTO_JUDGE_TYPES.includes(firstType) && !isDobon && !isPanel;
         // 答え方 — 口頭（出題者が判定）／手書き（出題者が判定）／ボタン（自動で判定）
         const answerBy = (isOral || isPanel) ? 'oral' : (autoJudge || isDobon || isBlackjack) ? 'button' : 'written';
@@ -51,8 +51,8 @@ App.RuleEngine = {
     //   hidden  : 出さない（その形式ではそもそも意味がない）
     // ---------------------------------------------------------
     modes: function (ctx) {
-        const canNominate = !ctx.isBlackjack && !ctx.isDobon &&
-            (ctx.firstType.startsWith('free') || ctx.firstType.startsWith('assoc') || ['choice', 'sort', 'letter_select'].includes(ctx.firstType));
+        const canNominate = !ctx.isBlackjack && !ctx.isDobon && (ctx.isPanel ||
+            ctx.firstType.startsWith('free') || ctx.firstType.startsWith('assoc') || ['choice', 'sort', 'letter_select'].includes(ctx.firstType));
         return [
             { value: 'normal', label: '全員が同時に手元で解答',
               disabled: ctx.isBlackjack || ctx.isOral || ctx.isDobon || ctx.isMulti || ctx.isPanel,

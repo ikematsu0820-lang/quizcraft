@@ -1,5 +1,5 @@
 /* =========================================================
- * panel_board.js — 選択式の「パネル指名モード」
+ * panel_board.js — 多答クイズの「パネル指名モード」
  *
  * プレッシャースタディ（Qさま）やファイブボンバー（ネプリーグ）のように、
  * 1問の中に番号の付いたパネルが複数並び、解答者が「4番、○○」と
@@ -24,8 +24,20 @@ App.PanelBoard = {
         return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     },
 
-    // 問題がパネル指名モードか
-    is: function (q) { return !!(q && q.type === 'choice' && q.panel && Array.isArray(q.panels)); },
+    // 問題がパネル指名モードか（前に選択式で作ったものも同じに扱う）
+    is: function (q) {
+        return !!(q && q.panel && Array.isArray(q.panels) && (String(q.type || '').startsWith('multi') || q.type === 'choice'));
+    },
+
+    // 選択式で作ったパネル指名の問題を、多答（口頭）のパネル指名に置き換える
+    migrate: function (q) {
+        if (!q || q.type !== 'choice' || !q.panel) return q;
+        q.type = 'multi_oral';
+        q.c = (q.panels || []).map(p => p.answer);
+        q.correct = q.c.slice();
+        ['correctIndex', 'multiCorrect', 'ox', 'multi', 'mode', 'shuffle'].forEach(k => { delete q[k]; });
+        return q;
+    },
 
     // モニター・回答者画面のパネルの列の数
     cols: function (n) {
@@ -42,34 +54,41 @@ App.PanelBoard = {
     // 作成画面
     // ---------------------------------------------------------
     afterRenderForm: function (C, type, data) {
-        const isChoice = (type === 'choice_single' || type === 'choice') && C.choiceSubtype !== 'multi';
-        if (!isChoice) { this.active = false; return; }
+        // 多答（ランキングモードではない時）— 形式の名前は 'multi' のまとまりで来ることもあるので画面で見る
+        const rk = document.getElementById('multi-ranking-mode-chk');
+        const isMulti = /^multi/.test(type || '') && !!rk && !rk.checked;
+        if (!isMulti) { this.active = false; return; }
         if (data && typeof data.panel === 'boolean') this.active = data.panel;
         else if (data && data.panel) this.active = true;
         const outside = document.getElementById('creator-outside-opts');
-        // 「パネル指名モード」のチェック（まるばつモードの隣）
-        if (outside && !document.getElementById('choice-panel-chk')) {
+        // 「パネル指名モード」のチェック（ランキングモードの隣）
+        if (outside && !document.getElementById('multi-panel-chk')) {
             const lbl = document.createElement('label');
             lbl.style.cssText = 'display:flex; align-items:center; gap:6px; cursor:pointer; color:#cbd5e1; font-size:0.8rem; white-space:nowrap;';
-            lbl.innerHTML = `<input type="checkbox" id="choice-panel-chk" ${this.active ? 'checked' : ''} style="accent-color:#00e5ff; cursor:pointer;"><span>パネル指名モード</span>`;
-            const ox = document.getElementById('choice-ox-chk');
-            const oxLabel = ox && ox.closest('label');
-            if (oxLabel && oxLabel.nextSibling) outside.insertBefore(lbl, oxLabel.nextSibling); else outside.appendChild(lbl);
+            lbl.innerHTML = `<input type="checkbox" id="multi-panel-chk" ${this.active ? 'checked' : ''} style="accent-color:#00e5ff; cursor:pointer;"><span>パネル指名モード</span>`;
+            const rkLabel = rk && rk.closest('label');
+            if (rkLabel && rkLabel.nextSibling) outside.insertBefore(lbl, rkLabel.nextSibling); else outside.appendChild(lbl);
             outside.classList.remove('hidden');
             lbl.querySelector('input').onchange = (e) => {
                 const cur = C._readFormDataForPreview();
-                this.active = e.target.checked;
-                C.oxMode = false;
-                C.renderForm('choice_single', this.active
-                    ? { ...cur, ox: false, panel: true, panels: cur.panels || [] }
-                    : { ...cur, ox: false, panel: false, c: [], correct: [] });
+                const on = e.target.checked;
+                this.active = on;
+                if (on) {
+                    // 今の答えをそのままパネルの答えに（パネル指名は口頭で答える）
+                    const panels = (cur.panels && cur.panels.length) ? cur.panels
+                        : (cur.c || []).filter(Boolean).map(a => ({ label: '', answer: a, pts: '' }));
+                    C.renderForm('multi_oral', { ...cur, type: 'multi_oral', panel: true, panels });
+                } else {
+                    const answers = (cur.panels || []).map(p => p.answer).filter(Boolean);
+                    const sub = document.getElementById('creator-opt-subtype')?.value;
+                    C.renderForm(/^multi_/.test(sub || '') ? sub : 'multi_oral', { ...cur, panel: false, c: answers, correct: answers });
+                }
             };
         }
         if (!this.active) return;
-        // まるばつ・選択肢の追加・同じ選択肢は使わない
-        ['choice-ox-chk', 'choice-same-chk'].forEach(id => document.getElementById(id)?.closest('label')?.remove());
-        document.getElementById('choice-add-btn')?.remove();
-        outside?.querySelectorAll('span').forEach(sp => { if (/タップして選択/.test(sp.textContent)) sp.remove(); });
+        // ランキング・正解の追加は使わない（パネルの追加に置き換え）
+        document.getElementById('multi-ranking-mode-chk')?.closest('label')?.remove();
+        document.getElementById('multi-add-btn')?.remove();
         this.renderEditor(C, data);
     },
 
@@ -77,6 +96,7 @@ App.PanelBoard = {
         const container = document.getElementById('creator-form-container');
         if (!container) return;
         const panels = (data && Array.isArray(data.panels) && data.panels.length) ? data.panels
+            : (data && Array.isArray(data.c) && data.c.filter(Boolean).length) ? data.c.filter(Boolean).map(a => ({ label: '', answer: a, pts: '' }))
             : Array.from({ length: 6 }, () => ({ label: '', answer: '', pts: '' }));
         container.innerHTML = '';
         container.style.overflowY = 'auto';
@@ -96,7 +116,7 @@ App.PanelBoard = {
         wrongSel.querySelector('select').value = (data && data.panelWrong === 'close') ? 'close' : 'keep';
         const paste = mk(`<button type="button" id="pb-paste-btn" style="margin-left:auto; background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4); border-radius:8px; color:#00e5ff; padding:5px 12px; cursor:pointer; font-size:0.8rem;">まとめて貼り付け</button>`);
         const add = mk(`<button type="button" id="pb-add-btn" style="margin-left:4px; background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4); border-radius:8px; color:#00e5ff; padding:5px 12px; cursor:pointer; font-size:0.8rem;">＋ パネルを追加</button>`);
-        const hint = mk(`<span style="color:#64748b; font-size:0.75rem; white-space:nowrap;">※パネルに出す文字と、その答え（点は空欄ならルールの配点）</span>`);
+        const hint = mk(`<span style="color:#64748b; font-size:0.75rem; white-space:nowrap;">※答えは口頭。パネルの文字が空欄なら番号だけ出す・点が空欄ならルールの配点</span>`);
         if (outside) { [hint, wrongSel, paste, add].forEach(el => outside.appendChild(el)); outside.classList.remove('hidden'); }
         paste.onclick = () => this.openPaste(list);
         add.onclick = () => this.addRow(list, { label: '', answer: '', pts: '' });
@@ -110,7 +130,7 @@ App.PanelBoard = {
         const inp = 'height:24px !important; min-height:0; margin:0; padding:0 6px !important; background:rgba(255,255,255,0.06) !important; border:1px solid #334155 !important; border-radius:4px; color:#fff; font-size:0.78rem;';
         row.innerHTML = `
             <span class="pb-no" style="flex:0 0 1.8em; color:#fbbf24; font-weight:900; font-size:0.75rem; text-align:right;"></span>
-            <input type="text" class="pb-label row-input" placeholder="パネルの文字" value="${e(p.label)}" style="flex:1; min-width:0; ${inp}">
+            <input type="text" class="pb-label row-input" placeholder="パネルの文字（任意）" value="${e(p.label)}" style="flex:1; min-width:0; ${inp}">
             <input type="text" class="pb-answer" placeholder="答え" value="${e(p.answer)}" style="flex:1; min-width:0; ${inp} color:#86efac !important;">
             <input type="number" class="pb-pts" placeholder="点" value="${e(p.pts)}" style="flex:0 0 46px; width:46px; ${inp} text-align:right !important; color:#fbbf24 !important;">
             <button type="button" class="pb-del" title="削除" style="flex:0 0 auto; background:none; border:none; color:rgba(255,255,255,0.35); cursor:pointer; padding:0 4px;">×</button>`;
@@ -143,7 +163,7 @@ App.PanelBoard = {
         overlay.innerHTML = `
             <div class="design-modal-content" style="max-width:440px; padding:20px !important;">
                 <h3 class="modal-title" style="font-size:1rem; margin-bottom:8px;">パネルをまとめて貼り付け</h3>
-                <p style="color:#94a3b8; font-size:0.75rem; margin:0 0 8px;">1行に1枚。パネルの文字[タブ]答え（[タブ]点）。表計算ソフトの列をそのまま貼り付けられます。カンマ区切りでもOK</p>
+                <p style="color:#94a3b8; font-size:0.75rem; margin:0 0 8px;">1行に1枚。パネルの文字[タブ]答え（[タブ]点）。答えだけの行（1列）なら、パネルは番号だけになります。カンマ区切りでもOK</p>
                 <textarea id="pb-paste-text" placeholder="青森	青森市
 岩手	盛岡市	2" style="width:100%; height:180px !important; min-height:180px !important; padding:8px; box-sizing:border-box; font-family:monospace; font-size:0.8rem; background:#0d1b2a; color:#fff; border:1px solid #475569; border-radius:8px; resize:vertical;"></textarea>
                 <label style="display:flex; align-items:center; gap:6px; color:#cbd5e1; font-size:0.78rem; margin:8px 0;"><input type="checkbox" id="pb-paste-replace" checked> 今のパネルを置き換える（外すと末尾に追加）</label>
@@ -158,7 +178,7 @@ App.PanelBoard = {
         overlay.querySelector('#pb-paste-ok').onclick = () => {
             const rows = overlay.querySelector('#pb-paste-text').value.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => {
                 const parts = l.split(/\t|,|，/).map(x => x.trim());
-                if (parts.length < 2) return null;
+                if (parts.length < 2) return { label: '', answer: parts[0], pts: '' };
                 const pts = parts[2] !== undefined && parts[2] !== '' && !isNaN(Number(parts[2])) ? Number(parts[2]) : '';
                 return { label: parts[0], answer: parts[1], pts };
             }).filter(r => r && (r.label || r.answer));
@@ -173,15 +193,15 @@ App.PanelBoard = {
 
     // 保存する問題データに入れる
     fillData: function (q, keepEmpty) {
-        if (!q || q.type !== 'choice') return q;
-        if (!this.active) { if (q.panel) { q.panel = null; q.panels = null; } return q; }
+        if (!q || !/^multi/.test(q.type || '')) return q;
+        if (!this.active || !document.getElementById('pb-list')) { if (q.panel) { q.panel = null; q.panels = null; } return q; }
         const panels = this.readPanels(keepEmpty);
         q.panel = true;
         q.panels = panels;
         q.panelWrong = document.getElementById('pb-wrong')?.value === 'close' ? 'close' : 'keep';
-        q.c = panels.map(p => p.label);
-        q.correct = []; q.correctIndex = null; q.multiCorrect = null; q.ox = null;
-        q.multi = false; q.mode = 'single';
+        // 多答として読む所（一覧・未完成の判定など）のために答えも c/correct に
+        q.c = panels.map(p => p.answer);
+        q.correct = q.c.slice();
         return q;
     },
 
@@ -488,10 +508,10 @@ App.PanelBoard = {
                             const isSel = pb.sel === i && !p.r;
                             const anim = fresh && last.idx === i ? (last.ok ? ' pbv-flip' : ' pbv-shake') : '';
                             return `<div class="pbv-panel ${cls}${isSel ? ' sel' : ''}${anim}">
-                                <span class="pbv-no">${i + 1}</span>
+                                ${p.label || (p.answer !== null && p.answer !== undefined) ? `<span class="pbv-no">${i + 1}</span>` : ''}
                                 ${p.answer !== null && p.answer !== undefined
-                                    ? `<span class="pbv-ans">${esc(p.answer)}</span><span class="pbv-sub">${esc(p.label)}${p.by && p.r === 'ok' ? `・${esc(p.by)}` : ''}</span>`
-                                    : `<span class="pbv-label">${esc(p.label)}</span>`}
+                                    ? `<span class="pbv-ans">${esc(p.answer)}</span><span class="pbv-sub">${[p.label, p.by && p.r === 'ok' ? p.by : ''].filter(Boolean).map(esc).join('・')}</span>`
+                                    : (p.label ? `<span class="pbv-label">${esc(p.label)}</span>` : `<span class="pbv-big">${i + 1}</span>`)}
                                 ${fresh && last.idx === i && !last.ok ? '<span class="pbv-x">✕</span>' : ''}
                             </div>`;
                         }).join('')}
@@ -524,6 +544,14 @@ if (window.App.Viewer) Object.assign(window.App.Viewer, App.PanelBoard.viewer);
     wrap('getData', function (q) { return PB.fillData(q, false); });
     wrap('_readFormDataForPreview', function (q) { return PB.fillData(q, true); });
     wrap('init', function () { PB.active = false; });
+    // 前に選択式で作ったパネル指名の問題は、開く前に多答へ置き換える
+    const origEdit = C.edit;
+    if (typeof origEdit === 'function') {
+        C.edit = function (index) {
+            try { PB.migrate((window.App.Data.createdQuestions || [])[index]); } catch (e) { /* noop */ }
+            return origEdit.apply(this, arguments);
+        };
+    }
     wrap('initWithType', function () { PB.active = false; });
 })();
 
@@ -558,7 +586,7 @@ function renderPlayerPanelBoard(st, p) {
             const sel = pb.sel === i && !done;
             return `<button type="button" class="pbp-panel ${pp.r || ''} ${sel ? 'sel' : ''}" data-i="${i}" ${!mine || done ? 'disabled' : ''}>
                 <span class="pbp-no">${i + 1}</span>
-                <span class="pbp-label">${pp.answer !== null && pp.answer !== undefined ? esc(pp.answer) : esc(pp.label)}</span>
+                <span class="pbp-label">${pp.answer !== null && pp.answer !== undefined ? esc(pp.answer) : (pp.label ? esc(pp.label) : '？')}</span>
             </button>`;
         }).join('')}</div>`;
     box.querySelectorAll('.pbp-panel:not([disabled])').forEach(b => {
