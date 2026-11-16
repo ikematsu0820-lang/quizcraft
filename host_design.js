@@ -323,7 +323,8 @@ App.Design = {
         // どのタイプにも共通で効く（#creator-choices-list を使う全タイプ、
         // applyDesignToPreview 側）。
         const isAssoc = ((window.App.Creator && window.App.Creator.currentType) || '').startsWith('assoc');
-        const choicesLabel = isAssoc ? 'ヒント' : '選択肢';
+        const isPanel = !!(window.App.PanelBoard && window.App.PanelBoard.active && document.getElementById('pb-list'));
+        const choicesLabel = isPanel ? 'パネル' : isAssoc ? 'ヒント' : '選択肢';
 
         // プレビューでタップした対象に応じて、テキスト/オブジェクトタブの
         // 中身をその対象に関係する項目だけへ絞り込む。何が選ばれているか
@@ -426,7 +427,7 @@ App.Design = {
                 if (sel === 'choices') {
                     return `
                         ${selectionHeader(sel)}
-                        ${colorRow([
+                        ${isPanel ? '' : colorRow([
                             [`${choicesLabel}枠`, 'cBorderColor'],
                             [`${choicesLabel}背景`, 'cBgColor'],
                         ])}
@@ -1264,6 +1265,25 @@ App.Design = {
         };
     },
 
+    // 入力欄の下に置く「○○の配置」ボタン（パネル指名・数字予想）—
+    // 見た目の「配置」と同じ設定（行数×列数）を開く
+    gridLayoutButton: function (itemWord) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.style.cssText = 'background:#1e293b; border:1px solid #475569; border-radius:8px; color:#fff; padding:5px 12px; cursor:pointer; font-size:0.8rem; white-space:nowrap;';
+        const label = () => {
+            const d = window.App.Data.currentDesign || {};
+            const r = parseInt(d.gridRows) || 0, c = parseInt(d.gridCols) || 0;
+            btn.innerHTML = `${itemWord}の配置 <b style="color:#00e5ff;">${(r > 0 && c > 0) ? `${r}行×${c}列` : '自動'}</b>`;
+        };
+        label();
+        btn.onclick = () => this._openGridModal(window.App.Data.currentDesign, () => {
+            label();
+            if (window.App.CreatorDraft) window.App.CreatorDraft.saveSoon();
+        });
+        return btn;
+    },
+
     // 選択肢の配置 popup — rows × cols must cover every choice already
     // added, or the grid would silently drop some off-screen; block
     // confirming until it does instead of letting that happen quietly.
@@ -1275,10 +1295,15 @@ App.Design = {
         // input is .choice-text-input) — without it this count silently
         // read 0 for those types, so "not enough cells" validation below
         // never actually caught anything for them.
-        const choiceCount = document.querySelectorAll('#creator-form-container .choice-text-input, #creator-form-container .row-input').length;
+        // パネル指名モードはパネルの数で数える
+        const panelRows = document.querySelectorAll('#pb-list .pb-row');
+        const isPanel = panelRows.length > 0;
+        const isNumGame = !!document.getElementById('ng-items-list');
+        const choiceCount = isPanel ? panelRows.length
+            : document.querySelectorAll('#creator-form-container .choice-text-input, #creator-form-container .row-input').length;
         const isAssoc = ((window.App.Creator && window.App.Creator.currentType) || '').startsWith('assoc');
-        const gridLabel = isAssoc ? 'ヒントの配置' : '選択肢の配置';
-        const itemWord = isAssoc ? 'ヒント' : '選択肢';
+        const itemWord = isPanel ? 'パネル' : isNumGame ? '項目' : isAssoc ? 'ヒント' : '選択肢';
+        const gridLabel = `${itemWord}の配置`;
 
         const overlay = document.createElement('div');
         overlay.id = 'design-grid-modal';

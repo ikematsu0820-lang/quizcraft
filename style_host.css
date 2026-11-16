@@ -4532,7 +4532,7 @@ input:checked+.pro-slider:before {
     display: none;
 }
 #creator-view.cm-on {
-    padding-bottom: calc(92px + env(safe-area-inset-bottom));
+    padding-bottom: calc(92px + env(safe-area-inset-bottom)) !important; /* .view:not(.landing-view) の padding !important に負けないように */
 }
 #creator-view.cm-on.cm-list #cm-list-screen { display: block; }
 #creator-view.cm-on.cm-list #creator-editor-wrap { display: none !important; }
@@ -5124,3 +5124,11 @@ details.rule-adv[open] > summary { border-bottom: 1px solid #2a3342; }
 #cvf-switch { display: flex; border: 1px solid #333; border-radius: 6px; overflow: hidden; }
 #cvf-switch button { padding: 3px 9px; font-size: 0.66rem; font-weight: bold; border: none; cursor: pointer; color: #cbd5e1; background: #1e293b; margin: 0; min-height: 0; }
 #cvf-switch button.on { background: #f59e0b; color: #1a1000; }
+
+/* スマホ: 数字予想の項目は1行に1つ（項目名を広く、数は右に） */
+#creator-view.cm-on #ng-items-list { grid-template-columns: 1fr !important; gap: 6px !important; }
+#creator-view.cm-on .ng-row { gap: 6px !important; }
+#creator-view.cm-on .ng-row .ng-no { font-size: 0.9rem !important; color: #fbbf24 !important; font-weight: 900; }
+#creator-view.cm-on .ng-row input { min-height: 40px !important; font-size: 16px !important; box-sizing: border-box; }
+#creator-view.cm-on .ng-row .ng-value { flex-basis: 84px !important; width: 84px !important; }
+#creator-view.cm-on .ng-row .ng-del { font-size: 1.1rem; }

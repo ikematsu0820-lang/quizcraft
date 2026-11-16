@@ -156,6 +156,7 @@ App.CreatorMobile = {
         if (!view) return;
         this.ensureDom();
         const on = this.isMobile();
+        const changed = view.classList.contains('cm-on') !== on;
         view.classList.toggle('cm-on', on);
         view.classList.toggle('cm-list', on && this.screen === 'list');
         view.classList.toggle('cm-edit', on && this.screen === 'edit');
@@ -163,6 +164,10 @@ App.CreatorMobile = {
         if (!on) { this.closeSheet(); this.closePreview(); }
         if (on && this.screen === 'list') this.renderList();
         if (on && this.screen === 'edit') this.renderEditHead();
+        // スマホ ⇔ PC で入力欄の見た目（見やすさ優先／本番どおり）を切り替える
+        if (changed && window.App.Creator && !view.classList.contains('hidden')) {
+            try { window.App.Creator.applyDesignToPreview(); } catch (e) { /* noop */ }
+        }
     },
 
     // 作成画面を開いた時（新規・保存済みセットの読み込み）
@@ -557,6 +562,16 @@ App.CreatorMobile = {
                     panels: q.panels.map(p => ({ label: p.label, r: null, answer: open ? p.answer : null })),
                 };
                 V.renderPanelBoard(stage, main, { step: 'panelboard', pb }, q);
+            } else if (q.type === 'numgame' && V.renderNumGame) {
+                // 数字予想: 問題では項目の盤面、正解では全部の項目の数を見せる
+                const open = st.step === 'answer';
+                const items = (q.items || []).map(it => it.name || '');
+                const ng = {
+                    rule: q.ngRule, target: q.target, unit: q.unit, theme: q.q || '', items, order: [], names: {}, totals: {},
+                    values: open ? Object.fromEntries((q.items || []).map((it, i) => [i, it.value])) : {},
+                    used: open ? items.map((_, i) => i) : [],
+                };
+                V.renderNumGame(stage, main, { step: 'numgame', ng }, q);
             } else if (st.step === 'answer' && q.type === 'sort' && V.renderSortReveal) {
                 V.applyDefaultDesign(stage, q.design);
                 V.renderSortReveal(main, q, st);
@@ -657,6 +672,49 @@ App.CreatorInput = {
             const px = parseFloat(getComputedStyle(el).fontSize) || 0;
             if (px < this.MIN_MOBILE_PX) el.style.setProperty('font-size', `${this.MIN_MOBILE_PX}px`, 'important');
         });
+    },
+
+    // スマホの入力画面は見やすさ優先 — 見た目（文字の大きさ・色・縦書き・
+    // 配置・スキン）は入力欄に映さず、決まった読みやすい形で出す。
+    // 本番の見え方は「見る」で確かめる。見た目の反映の後に毎回かける。
+    plainEditor: function () {
+        const M = window.App.CreatorMobile;
+        if (!M || !M.isMobile()) return;
+        const C = window.App.Creator;
+        const set = (el, props) => { if (el) Object.entries(props).forEach(([k, v]) => el.style.setProperty(k, v, 'important')); };
+        const preview = document.getElementById('creator-monitor-preview');
+        if (preview) {
+            set(preview, { 'background-image': 'none', 'background-color': '#111' });
+            [...preview.classList].forEach(c => { if (/^(qskin-|cskin|cpal-|cs-framed$|cvf$)/.test(c)) preview.classList.remove(c); });
+            preview.removeAttribute('data-frame-title');
+        }
+        document.querySelector('#creator-monitor-q-area > .qs-num')?.remove();
+        document.getElementById('cs-photo')?.remove(); // 写真は下の「写真を付ける」から
+        set(document.getElementById('creator-monitor-flexwrap'), { 'flex-direction': 'column', 'justify-content': 'flex-start' });
+        set(document.getElementById('creator-monitor-q-area'), {
+            width: '100%', 'align-self': 'stretch', display: 'flex', 'flex-direction': 'column', 'align-items': 'stretch',
+            'justify-content': 'flex-start', 'min-height': '0', 'border-color': '#00e5ff', 'background-color': '#1a1a1a', 'box-shadow': 'none',
+        });
+        set(document.getElementById('creator-form-container'), { position: 'static', width: '100%', 'align-self': 'stretch', flex: '1 1 auto' });
+        const title = document.getElementById('question-title');
+        set(title, { 'font-size': '16px', 'text-align': 'left' });
+        const qText = document.getElementById('question-text');
+        if (qText) {
+            set(qText, { 'font-size': '18px', color: '#fff', 'text-align': 'left', 'writing-mode': 'horizontal-tb', width: '100%' });
+            ['max-height', 'min-height', 'align-self'].forEach(k => qText.style.removeProperty(k));
+            if (C && C.fitQuestionTextHeight) {
+                // 縦書きの設定でも、入力中は横書きで高さを合わせる
+                const d = window.App.Data.currentDesign || {};
+                const wm = d.qWritingMode;
+                d.qWritingMode = '';
+                try { C.fitQuestionTextHeight(); } finally { d.qWritingMode = wm; }
+            }
+        }
+        document.querySelectorAll('#creator-form-container .choice-text-input, #creator-form-container .row-input').forEach(el => {
+            set(el, { 'font-size': '17px', color: '#fff', 'text-align': 'left', 'line-height': '1.3' });
+        });
+        const list = document.getElementById('creator-choices-list');
+        if (list && !(C && C.oxMode)) set(list, { display: 'flex', 'flex-direction': 'column', 'grid-template-columns': 'none' });
     },
 
     init: function () {
@@ -850,6 +908,17 @@ App.CreatorDraft = {
 document.addEventListener('DOMContentLoaded', () => {
     App.CreatorDraft.start();
     App.CreatorInput.init();
+    // ほかのファイル（スキン・枠・パネル）も見た目の反映に足しているので、
+    // 全部読み込んだ後に一番外側から包み、最後にスマホの見やすい形に戻す
+    const C = window.App.Creator;
+    if (C && typeof C.applyDesignToPreview === 'function') {
+        const orig = C.applyDesignToPreview;
+        C.applyDesignToPreview = function () {
+            const r = orig.apply(this, arguments);
+            try { App.CreatorInput.plainEditor(); } catch (e) { console.warn('plainEditor', e); }
+            return r;
+        };
+    }
     // 作成画面以外を開いた時は、スマホ版の下部バーを消す
     const ui = window.App.Ui;
     if (ui && typeof ui.showView === 'function' && !ui._cmHooked) {

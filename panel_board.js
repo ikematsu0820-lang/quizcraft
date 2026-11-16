@@ -39,6 +39,12 @@ App.PanelBoard = {
         return q;
     },
 
+    // 見た目の「パネルの配置」（行数×列数）。未設定なら 0
+    gridCols: function (d) {
+        const r = parseInt(d && d.gridRows) || 0, c = parseInt(d && d.gridCols) || 0;
+        return (r > 0 && c > 0) ? c : 0;
+    },
+
     // モニター・回答者画面のパネルの列の数
     cols: function (n) {
         if (n <= 3) return n;
@@ -105,6 +111,8 @@ App.PanelBoard = {
         list.style.cssText = 'display:grid; grid-template-columns:1fr 1fr; gap:4px 8px; width:100%; align-content:start;';
         container.appendChild(list);
         panels.forEach(p => this.addRow(list, p));
+        // パネルをタップしたら、見た目の設定は「パネル」を対象にする
+        list.addEventListener('click', () => { if (window.App.Design) window.App.Design.selectObject('choices'); });
 
         const outside = document.getElementById('creator-outside-opts');
         const mk = (html) => { const d = document.createElement('span'); d.innerHTML = html; return d.firstElementChild; };
@@ -117,7 +125,9 @@ App.PanelBoard = {
         const paste = mk(`<button type="button" id="pb-paste-btn" style="margin-left:auto; background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4); border-radius:8px; color:#00e5ff; padding:5px 12px; cursor:pointer; font-size:0.8rem;">まとめて貼り付け</button>`);
         const add = mk(`<button type="button" id="pb-add-btn" style="margin-left:4px; background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4); border-radius:8px; color:#00e5ff; padding:5px 12px; cursor:pointer; font-size:0.8rem;">＋ パネルを追加</button>`);
         const hint = mk(`<span class="pb-hint" style="color:#64748b; font-size:0.75rem; white-space:nowrap;">※答えは口頭。表（問題）が空欄なら番号だけ出す・点が空欄ならルールの配点</span>`);
-        if (outside) { [hint, wrongSel, paste, add].forEach(el => outside.appendChild(el)); outside.classList.remove('hidden'); }
+        // パネルの配置（行数×列数）— 見た目の「パネルの配置」と同じ設定
+        const layoutBtn = window.App.Design && window.App.Design.gridLayoutButton ? window.App.Design.gridLayoutButton('パネル') : null;
+        if (outside) { [hint, wrongSel, layoutBtn, paste, add].filter(Boolean).forEach(el => outside.appendChild(el)); outside.classList.remove('hidden'); }
         paste.onclick = () => this.openPaste(list);
         add.onclick = () => this.addRow(list, { label: '', answer: '', pts: '' });
     },
@@ -233,6 +243,7 @@ App.PanelBoard = {
                 revealAll: false,
                 wrongMode: q.panelWrong === 'close' ? 'close' : 'keep',
                 theme: q.q || '',
+                design: q.design || {},
             };
             if (mode === 'turn') this.turnIndex = this._nextEligibleTurnIndex(this.turnIndex || 0, true);
             if (mode === 'buzz') { this.buzzWinner = null; this.clearBuzzWindow(); }
@@ -440,7 +451,8 @@ App.PanelBoard = {
             const ansName = pid ? ((players[pid] && players[pid].name) || '---') : null;
             const who = pb.finished ? 'ボード終了' : ansName ? `解答者：<b style="color:#fbbf24;">${esc(ansName)}</b>`
                 : mode === 'buzz' ? '早押し受付中（押した人が答えます）' : mode === 'nominate' ? '参加者リストから解答者を指名してください' : '解答者待ち';
-            const cols = Math.min(5, App.PanelBoard.cols(pb.panels.length));
+            // モニターと同じ並びにする（配置が未設定なら自動）
+            const cols = App.PanelBoard.gridCols(pb.design) || Math.min(5, App.PanelBoard.cols(pb.panels.length));
             const grid = pb.panels.map((p, i) => {
                 const s = pb.status[i] || {};
                 const done = s.r === 'ok' || s.r === 'closed';
@@ -492,8 +504,8 @@ App.PanelBoard = {
             if (window.App.ChoiceSkin && d.bgFx === 'studio' && !d.bgImage) container.style.backgroundImage = window.App.ChoiceSkin.studioBg(d.mainBgColor);
             const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
             const panels = pb.panels || [];
-            const cols = App.PanelBoard.cols(panels.length);
-            const rows = Math.ceil(panels.length / cols) || 1;
+            const cols = App.PanelBoard.gridCols(d) || App.PanelBoard.cols(panels.length);
+            const rows = Math.max(parseInt(d.gridRows) || 0, Math.ceil(panels.length / cols)) || 1;
             const accent = d.accentColor || d.qBorderColor || '#00e5ff';
             const fresh = pb.seq && pb.seq !== this._pbSeqShown;
             this._pbSeqShown = pb.seq || 0;

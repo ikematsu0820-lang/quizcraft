@@ -772,6 +772,8 @@ window.App.Creator = {
             addOutside(wrap('ルール', ruleSel));
             addOutside(wrap('目標', target));
             addOutside(wrap('単位', unit));
+            // モニターの項目の盤面の並び（行数×列数）
+            if (window.App.Design && window.App.Design.gridLayoutButton) addOutside(window.App.Design.gridLayoutButton('項目'));
             outsideButton('ng-paste-btn', 'まとめて貼り付け', () => this.openNumGamePaste(list));
             const addBtn = document.getElementById('ng-paste-btn');
             outsideButton('ng-add-btn', '＋ 項目を追加', () => this.addNumGameRow(list, '', ''));

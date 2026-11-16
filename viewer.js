@@ -1522,9 +1522,10 @@ window.App.Viewer = {
     // 全体の合計）、右に項目の盤面（選ばれた項目は数を表示）。選ばれた瞬間は
     // 項目名と数を大きく公開し、最後は結果発表。
     _ngSeqShown: 0,
-    renderNumGame: function (container, mainText, st) {
+    // q を渡すと（作成画面のプレビュー）、その問題で描く
+    renderNumGame: function (container, mainText, st, previewQ) {
         const ng = st.ng || {};
-        const q = this.questions[st.qIndex] || {};
+        const q = previewQ || this.questions[st.qIndex] || {};
         const d = q.design || {};
         this.applyDefaultDesign(container, { mainBgColor: d.mainBgColor || '#0a0a0a', bgImage: d.bgImage });
         const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -1582,7 +1583,10 @@ window.App.Viewer = {
                 }).join('');
 
         // 右: 項目の盤面
-        const cols = items.length > 60 ? 8 : items.length > 30 ? 6 : items.length > 12 ? 5 : 4;
+        // 見た目の「項目の配置」（行数×列数）があればそれで、なければ数に合わせて
+        const gd = q.design || {};
+        const gRows = parseInt(gd.gridRows) || 0, gCols = parseInt(gd.gridCols) || 0;
+        const cols = (gRows > 0 && gCols > 0) ? gCols : items.length > 60 ? 8 : items.length > 30 ? 6 : items.length > 12 ? 5 : 4;
         const cell = items.map((name, i) => {
             const isUsed = used.has(i);
             const isLast = ng.last && ng.last.idx === i;
@@ -1592,7 +1596,7 @@ window.App.Viewer = {
                 ${isUsed ? `<div style="font-size:${cols >= 8 ? 1.7 : 2.2}vh; font-weight:900; color:${isLast ? '#1a1000' : '#ffd700'};">${values[i] ?? ''}${unit}</div>` : ''}
             </div>`;
         }).join('');
-        const rows = Math.ceil(items.length / cols) || 1;
+        const rows = Math.max(gCols ? gRows : 0, Math.ceil(items.length / cols)) || 1;
 
         mainText.innerHTML = `
             <div style="display:flex; flex-direction:column; height:100%; padding:2vh 2vw; box-sizing:border-box; font-family:'M PLUS 1p',sans-serif;">
