@@ -163,6 +163,7 @@ App.CreatorMobile = {
         if (on && this.screen === 'list') this.renderList();
         if (on && this.screen === 'edit') this.renderEditHead();
         // スマホ ⇔ PC で入力欄の見た目（見やすさ優先／本番どおり）を切り替える
+        if (changed && !on) App.CreatorInput.arrangeListControls(false);
         if (changed && window.App.Creator && !view.classList.contains('hidden')) {
             try { window.App.Creator.applyDesignToPreview(); } catch (e) { /* noop */ }
         }
@@ -710,6 +711,7 @@ App.CreatorInput = {
             if (f.classList.contains('row-frame')) f.style.background = '';
         });
         this.sectionLabels();
+        this.arrangeListControls(true);
         this.segmentSelects(document.getElementById('creator-outside-opts'));
     },
 
@@ -764,6 +766,44 @@ App.CreatorInput = {
             requestAnimationFrame(() => { queued = false; this.segmentSelects(body); });
         });
         this._sheetObserver.observe(body, { childList: true, subtree: true });
+    },
+
+    // スマホの入力画面はモニターの見た目どおりではないので、操作は意味の近い所に置く:
+    // 「＋ ○○を追加」「まとめて貼り付け」は一覧の真下、多答の「通常／ランキング／パネル指名」は一覧の真上。
+    // PC に戻ったら（on=false）元の場所（プレビュー直下の行）へ戻す。
+    LIST_ADD_IDS: ['choice-add-btn', 'assoc-add-btn', 'multi-add-btn', 'pb-add-btn', 'pb-paste-btn', 'ng-add-btn', 'ng-paste-btn', 'btn-reset-sort-ranks'],
+    arrangeListControls: function (on) {
+        const flex = document.getElementById('creator-monitor-flexwrap');
+        const form = document.getElementById('creator-form-container');
+        const outside = document.getElementById('creator-outside-opts');
+        if (!flex || !form || !outside) return;
+        const M = window.App.CreatorMobile;
+        if (on && !(M && M.isMobile())) return;
+        const slot = (id, before) => {
+            let el = document.getElementById(id);
+            if (!el) { el = document.createElement('div'); el.id = id; el.className = 'cm-list-slot'; }
+            if (el.parentNode !== flex || el.nextSibling !== before) flex.insertBefore(el, before);
+            return el;
+        };
+        const above = slot('cm-above-list', document.getElementById('cm-sec-form') || form);
+        const below = slot('cm-below-list', form.nextSibling);
+        if (!on) {
+            [...above.children, ...below.children].forEach(el => {
+                if (el.dataset.cmFrom === 'extra') document.getElementById('creator-options-extra')?.prepend(el);
+                else outside.appendChild(el);
+            });
+            return;
+        }
+        const seg = document.getElementById('multi-mode-seg');
+        if (seg && seg.parentNode !== above) { above.innerHTML = ''; above.appendChild(seg); }
+        if (!seg) above.innerHTML = '';
+        const want = this.LIST_ADD_IDS.map(id => document.getElementById(id)).filter(Boolean);
+        // 並べ替えの「＋ 項目を追加」は ID が無く、この問題の設定（#creator-options-extra）にある
+        const extraAdd = below.querySelector('[data-cm-from="extra"]')
+            || [...document.querySelectorAll('#creator-options-extra button')].find(b => b.textContent.trim().startsWith('＋'));
+        if (extraAdd) { extraAdd.dataset.cmFrom = 'extra'; want.unshift(extraAdd); }
+        [...below.children].forEach(el => { if (!want.includes(el)) el.remove(); });
+        want.forEach(el => below.appendChild(el)); // 追加 → 貼り付け → その他 の順に並べ直す
     },
 
     // 何を書く欄かが分かるよう、問題文・答えの欄の上に小さな見出し（スマホだけ表示）
@@ -978,8 +1018,17 @@ App.CreatorDraft = {
     });
     after('applyDesignToPreview', function () { App.CreatorMobile.renderSheetStage(); App.CreatorInput.enforceMobileSize(); });
     after('updateRowSizes', function () { App.CreatorInput.enforceMobileSize(); });
-    after('renderForm', function () { setTimeout(() => App.CreatorInput.enforceMobileSize(), 0); });
+    // パネル指名などは描き直しの後にボタンを足すので、並べ替えも一拍おいてから
+    after('renderForm', function () { setTimeout(() => { App.CreatorInput.enforceMobileSize(); App.CreatorInput.arrangeListControls(true); }, 0); });
     after('renderRulesSection', function () { App.CreatorDraft.saveSoon(); });
+    // 描き直すとボタンは元の場所に作り直されるので、前に一覧の上下へ移した古いものは先に片付ける
+    const origRender = C.renderForm;
+    if (typeof origRender === 'function') {
+        C.renderForm = function () {
+            ['cm-above-list', 'cm-below-list'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ''; });
+            return origRender.apply(this, arguments);
+        };
+    }
 
 })();
 

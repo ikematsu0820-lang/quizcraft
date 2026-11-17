@@ -5267,3 +5267,12 @@ select.seg-src { display: none !important; }
 #cm-sheet-body input[type="checkbox"]:checked::before { transform: translateX(18px); }
 #cm-sheet-body #creator-inline-design div:has(> select.seg-src):has(> .seg-ctl:not(.seg-short)) { flex-direction: column !important; align-items: stretch !important; gap: 6px !important; }
 #cm-sheet-body #creator-inline-design div:has(> select.seg-src):has(> .seg-ctl:not(.seg-short)) > span { flex: 0 0 auto; }
+/* スマホ: 一覧の真上（形式の切り替え）・真下（追加・貼り付け）に置く操作 */
+.cm-list-slot { display: none; }
+#creator-view.cm-on.cm-edit .cm-list-slot:not(:empty) { display: flex; flex-wrap: wrap; gap: 8px; }
+#creator-view.cm-on.cm-edit #cm-above-list .seg-ctl { flex: 1 1 100%; display: flex; }
+#creator-view.cm-on.cm-edit #cm-above-list .seg-ctl button { min-height: 40px; font-size: 0.9rem !important; }
+#creator-view.cm-on.cm-edit #cm-below-list > button {
+    flex: 1 1 40%; min-height: 44px !important; margin: 0 !important; padding: 8px 10px !important; border-radius: 10px !important;
+    font-size: 0.9rem !important; white-space: nowrap; display: flex; align-items: center; justify-content: center;
+}
