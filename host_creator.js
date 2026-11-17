@@ -1434,14 +1434,19 @@ window.App.Creator = {
     // Background for a .choice-row, reflecting 選択背景 (cBgColor) as the
     // base tint while keeping the correct-answer highlight visible on top
     // (an editor-only affordance — the real viewer has no "checked" state).
+    // スマホの入力画面は見やすさ優先 — 選択肢の背景・枠の色（見た目の設定）は映さない
+    plainEditing: function () {
+        const M = window.App.CreatorMobile;
+        return !!(M && M.isMobile());
+    },
     rowBackground: function (checked) {
-        const c = (window.App.Data.currentDesign || {}).cBgColor;
+        const c = this.plainEditing() ? '' : (window.App.Data.currentDesign || {}).cBgColor;
         if (checked) return c ? `linear-gradient(90deg, rgba(0,229,255,0.35) 0%, ${c} 100%)` : 'linear-gradient(90deg,rgba(0,229,255,0.12) 0%,transparent 100%)';
         return c || 'linear-gradient(90deg, rgba(255,255,255,0.04) 0%, transparent 100%)';
     },
     rowHoverBackground: function (checked) {
         if (checked) return this.rowBackground(true);
-        const c = (window.App.Data.currentDesign || {}).cBgColor;
+        const c = this.plainEditing() ? '' : (window.App.Data.currentDesign || {}).cBgColor;
         return c ? `linear-gradient(90deg, rgba(255,255,255,0.15) 0%, ${c} 100%)` : 'linear-gradient(90deg,rgba(255,255,255,0.08) 0%,transparent 100%)';
     },
 

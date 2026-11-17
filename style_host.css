@@ -5265,3 +5265,5 @@ select.seg-src { display: none !important; }
 }
 #cm-sheet-body input[type="checkbox"]:checked { background: #00a9c7 !important; }
 #cm-sheet-body input[type="checkbox"]:checked::before { transform: translateX(18px); }
+#cm-sheet-body #creator-inline-design div:has(> select.seg-src):has(> .seg-ctl:not(.seg-short)) { flex-direction: column !important; align-items: stretch !important; gap: 6px !important; }
+#cm-sheet-body #creator-inline-design div:has(> select.seg-src):has(> .seg-ctl:not(.seg-short)) > span { flex: 0 0 auto; }

@@ -704,6 +704,11 @@ App.CreatorInput = {
         });
         const list = document.getElementById('creator-choices-list');
         if (list && !(C && C.oxMode)) set(list, { display: 'flex', 'flex-direction': 'column', 'grid-template-columns': 'none' });
+        // 選択肢・項目の枠の色（見た目の設定）も入力中は既定の色に
+        document.querySelectorAll('#creator-form-container .choice-frame, #creator-form-container .row-frame').forEach(f => {
+            f.style.borderColor = 'rgba(255,255,255,0.1)';
+            if (f.classList.contains('row-frame')) f.style.background = '';
+        });
         this.sectionLabels();
         this.segmentSelects(document.getElementById('creator-outside-opts'));
     },

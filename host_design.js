@@ -89,7 +89,8 @@ App.Design = {
         const total = 10000;
         const t0 = Date.now();
         const tick = () => {
-            if (!box.isConnected) { clearInterval(this._timerDemoId); this._timerDemoId = null; this._previewTimerLayer(false); return; }
+            // 演出タブが見えなくなったら止める（スマホは閉じても部品が隠れた所に残るので isConnected だけでは止まらない）
+            if (!box.isConnected || !box.offsetParent) { clearInterval(this._timerDemoId); this._timerDemoId = null; this._previewTimerLayer(false); return; }
             const elapsed = (Date.now() - t0) % (total + 1500);
             const remain = Math.max(0, total - elapsed);
             // タイマーが出るのは問題の画面だけ
@@ -740,6 +741,17 @@ App.Design = {
         const TV = window.App.TimerView;
         const timerBody = () => {
             if (!TV) return '';
+            // 時間の制限が「なし」の時はタイマーが出ないので、見た目の設定もしない
+            if ((window.App.Data.currentConfig || {}).timeLimitEnabled !== 'on') {
+                return `
+                    <div style="padding:14px 12px; border-radius:10px; background:#161b24; border:1px solid #2a3342; color:#cbd5e1; font-size:0.78rem; line-height:1.6;">
+                        <div style="color:#e2e8f0; font-weight:bold; margin-bottom:4px;">タイマー</div>
+                        時間の制限が「なし」なので、タイマーは出ません。
+                        <button type="button" data-goto-rules-time style="display:block; width:100%; margin-top:10px; padding:10px; border-radius:8px; background:#1e293b; border:1px solid #475569; color:#fff; font-weight:bold; cursor:pointer;">ルールの「時間」で制限時間を決める</button>
+                    </div>
+                    ${liveSection()}
+                `;
+            }
             const cur = design.timerStyle || 'bar_top';
             if (design.timerWarnSec === undefined || design.timerWarnSec === '') design.timerWarnSec = '5';
             const warnSec = design.timerWarnSec !== undefined && design.timerWarnSec !== '' ? Number(design.timerWarnSec) : 5;
@@ -846,6 +858,13 @@ App.Design = {
                 chk.onchange = () => { design[chk.dataset.timerChk] = chk.checked; if (onChange) onChange(); };
             });
             this._startTimerDemo(body.querySelector('#design-timer-demo'), design);
+            body.querySelector('[data-goto-rules-time]')?.addEventListener('click', () => {
+                const C = window.App.Creator, M = window.App.CreatorMobile;
+                if (!C) return;
+                C.rulesSubTab = 'time';
+                if (M && M.isMobile()) M.openSheet('rules', 'time');
+                else C.toggleInlinePanel('rules');
+            });
 
             // 問題の枠と回答の枠の割合
             const splitRange = body.querySelector('#split-ratio-range');
