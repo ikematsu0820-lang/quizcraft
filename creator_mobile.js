@@ -175,12 +175,14 @@ App.CreatorMobile = {
         const qs = window.App.Data.createdQuestions || [];
         // 新しいセットはすぐ1問目を書き始められるように編集画面から
         this.screen = (opts.fresh && qs.length === 0) ? 'edit' : 'list';
-        const view = this.view();
+        // 形式選択からそのまま入力画面に来た時は、左上の戻るボタンで形式選択に戻れるように
+        this._fromSelect = this.screen === 'edit';
         this.apply();
     },
 
     showList: function () {
         this.screen = 'list';
+        this._fromSelect = false; // 一覧を見たら、入力画面の「戻る」は一覧へ
         this.apply();
         window.scrollTo(0, 0);
     },
@@ -208,6 +210,9 @@ App.CreatorMobile = {
         const el = document.getElementById('cm-edit-title');
         const qs = window.App.Data.createdQuestions || [];
         const nextBtn = document.getElementById('cm-next-btn');
+        // 左上のボタン — 押すと戻る先をそのまま書く（「戻る」は来た画面に戻る時だけ）
+        const back = document.getElementById('cm-back-btn');
+        if (back) back.textContent = !this._fromSelect ? '一覧に戻る' : qs.length ? '問題一覧へ' : '形式選択に戻る';
         if (C.editingIndex === null) {
             if (el) el.textContent = `新しい問題（Q${qs.length + 1}）`;
             if (nextBtn) nextBtn.textContent = '追加して次の問題へ';
@@ -240,6 +245,8 @@ App.CreatorMobile = {
     backToList: function () {
         const C = this.C();
         const qs = window.App.Data.createdQuestions;
+        // まだ1問も無いまま形式選択から来た時は、形式選択に戻る（書きかけがあれば確認が出る）
+        if (this._fromSelect && !qs.length) { document.getElementById('creator-back-btn')?.click(); return; }
         const text = (document.getElementById('question-text')?.value || '').trim();
         if (C.editingIndex === null) {
             if (text) {
