@@ -5247,7 +5247,7 @@ select.seg-src { display: none !important; }
 /* 見た目のパネル（スマホ）: 小さなプルダウンを切り替えにしたものは1行ずつ（名前を左） */
 #cm-sheet-body #creator-inline-design div:has(> div > select.seg-src) { flex-wrap: wrap !important; }
 #cm-sheet-body #creator-inline-design div:has(> select.seg-src) { flex: 1 1 100% !important; flex-direction: row !important; align-items: center !important; gap: 10px !important; }
-#cm-sheet-body #creator-inline-design div:has(> select.seg-src) > span { order: -1; flex: 0 0 3.5em; font-size: 0.75rem !important; color: #94a3b8 !important; text-align: left; }
+#cm-sheet-body #creator-inline-design div:has(> select.seg-src) > span { order: -1; flex: 0 0 5em; font-size: 0.75rem !important; color: #94a3b8 !important; text-align: left; }
 #cm-sheet-body #creator-inline-design div:has(> select.seg-src) > .seg-ctl { flex: 1 1 auto; }
 /* 下から出るパネルのオン/オフもスイッチに（名前を左、スイッチを右） */
 #cm-sheet-body label:has(> input[type="checkbox"]) {
@@ -5276,3 +5276,12 @@ select.seg-src { display: none !important; }
     flex: 1 1 40%; min-height: 44px !important; margin: 0 !important; padding: 8px 10px !important; border-radius: 10px !important;
     font-size: 0.9rem !important; white-space: nowrap; display: flex; align-items: center; justify-content: center;
 }
+
+/* 見た目のパネル（スマホ）: 何の設定かを見出し（パネル・記号など）にして、色やサイズは1行ずつ名前を左に */
+#cm-sheet-body #creator-inline-design div:has(> .ds-rowlabel),
+#cm-sheet-body #creator-inline-design div:has(> .ds-swatch) { flex-wrap: wrap !important; row-gap: 8px !important; }
+#cm-sheet-body #creator-inline-design .ds-rowlabel { flex: 1 1 100% !important; justify-content: flex-start !important; margin-top: 4px; }
+#cm-sheet-body #creator-inline-design .ds-rowlabel span { font-size: 0.8rem !important; color: #e2e8f0 !important; }
+#cm-sheet-body #creator-inline-design .ds-swatch { flex: 1 1 100% !important; flex-direction: row !important; align-items: center !important; gap: 10px !important; }
+#cm-sheet-body #creator-inline-design .ds-swatch > span { order: -1; flex: 0 0 5em; text-align: left; font-size: 0.75rem !important; color: #94a3b8 !important; white-space: normal !important; }
+#cm-sheet-body #creator-inline-design .ds-swatch > button { flex: 1 1 auto; height: 40px !important; border-radius: 10px !important; }

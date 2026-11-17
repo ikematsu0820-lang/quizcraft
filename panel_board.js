@@ -568,12 +568,14 @@ App.PanelBoard = {
             const fresh = pb.seq && pb.seq !== this._pbSeqShown;
             this._pbSeqShown = pb.seq || 0;
             const last = pb.last || {};
-            const fontPx = Math.max(2.4, Math.min(6, 40 / rows));
+            // 見た目の「パネル」の文字サイズ（小・中・大）と文字色を、まだ開いていないパネルの表に
+            const sizeRate = { '4vh': 0.8, '6vh': 1, '9vh': 1.3 }[d.cFontSize] || 1;
+            const fontPx = Math.max(2.4, Math.min(6, 40 / rows)) * sizeRate;
             mainText.style.flexDirection = 'column';
             mainText.style.justifyContent = 'flex-start';
             mainText.style.alignItems = 'stretch';
             mainText.innerHTML = `
-                <div class="pbv" style="--pb-accent:${accent};">
+                <div class="pbv" style="--pb-accent:${accent}; --pb-text:${d.cTextColor || '#fff'};">
                     <div class="pbv-theme">${esc(pb.theme || q.q || '')}</div>
                     <div class="pbv-grid" style="grid-template-columns:repeat(${cols}, 1fr); grid-template-rows:repeat(${rows}, 1fr); font-size:${fontPx}cqh;">
                         ${panels.map((p, i) => {

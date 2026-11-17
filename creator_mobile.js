@@ -514,6 +514,14 @@ App.CreatorMobile = {
         if ((this.screen === 'edit' || !this.isMobile()) && C._readFormDataForPreview) {
             try { q = C._readFormDataForPreview(); } catch (e) { q = null; }
             if (q && !q.q) q.q = '（ここに問題文が入ります）';
+            // まだ書いていない選択肢・項目も見本の文字で出す（色や大きさを変えた時に、どこが変わるか見えるように）
+            const rows = document.querySelectorAll('#creator-choices-list > *').length;
+            if (q && rows && !(Array.isArray(q.c) && q.c.some(Boolean))) q.c = Array(rows).fill('');
+            if (q && Array.isArray(q.c) && q.c.length) {
+                const t = q.type || '';
+                const word = t.startsWith('assoc') ? 'ヒント' : t === 'sort' ? '項目' : t.startsWith('multi') ? '正解' : t.startsWith('ranking') ? '答え' : '選択肢';
+                q.c = q.c.map((x, i) => x || (word === '選択肢' || word === '項目' ? `${word}${String.fromCharCode(65 + i)}` : `${word}${i + 1}`));
+            }
         }
         if (!q) {
             if (qs.length) {
@@ -729,7 +737,7 @@ App.CreatorInput = {
         if (!root || !M || !M.isMobile()) return;
         root.querySelectorAll('select').forEach(sel => {
             const opts = [...sel.options];
-            const short = opts.every(o => o.text.trim().length <= 4);
+            const short = opts.every(o => o.text.trim().length <= 5);
             if (opts.length < 2 || !(opts.length <= 3 || (opts.length <= 6 && short))) return;
             const key = opts.map(o => o.value + '=' + o.text).join('|');
             let seg = sel.nextElementSibling;

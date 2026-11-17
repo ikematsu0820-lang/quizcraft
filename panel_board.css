@@ -18,7 +18,7 @@
     background: linear-gradient(180deg, #2f4a8a 0%, #1b2f63 48%, #10204a 52%, #1a2d5e 100%);
     border: 0.4cqh solid color-mix(in srgb, var(--pb-accent) 60%, #ffffff);
     box-shadow: 0 0.8cqh 2cqh rgba(0,0,0,0.5), inset 0 0.3cqh 0 rgba(255,255,255,0.25);
-    color: #fff; font-weight: 900; text-align: center;
+    color: var(--pb-text, #fff); font-weight: 900; text-align: center;
     transition: transform 0.3s, box-shadow 0.3s, filter 0.3s;
 }
 .pbv-no {

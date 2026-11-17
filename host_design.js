@@ -237,7 +237,7 @@ App.Design = {
         // tab to merge each field's 透明 toggle / 全体背景's image button
         // directly into its own swatch instead of a separate section.
         const colorSwatch = (label, key, extraHtml = '') => `
-            <div style="display:flex; flex-direction:column; align-items:center; gap:3px; flex:1 1 38px; min-width:0;">
+            <div class="ds-swatch" style="display:flex; flex-direction:column; align-items:center; gap:3px; flex:1 1 38px; min-width:0;">
                 <button type="button" data-color-swatch-key="${key}" data-color-swatch-label="${label}" title="${design[key] ?? ''}" style="
                     width:100%; height:32px; box-sizing:border-box; padding:0; border:1px solid #475569; border-radius:6px; cursor:pointer;
                     background:${design[key] || 'transparent'};
@@ -314,7 +314,7 @@ App.Design = {
         // colorSwatch/miniText/miniSelect — the row itself centers it
         // vertically against their (control + caption) height.
         const rowLabel = (text) => `
-            <div style="flex:0 0 34px; display:flex; align-items:center; justify-content:center;">
+            <div class="ds-rowlabel" style="flex:0 0 34px; display:flex; align-items:center; justify-content:center;">
                 <span style="font-size:0.66rem; color:#94a3b8; font-weight:bold; white-space:nowrap;">${text}</span>
             </div>
         `;
@@ -364,7 +364,7 @@ App.Design = {
                             ${rowLabel(choicesLabel)}
                             ${colorSwatch('文字色', 'cTextColor')}
                             ${miniSelect('サイズ', 'cFontSize', C_SIZE_OPTS)}
-                            ${miniSelect('左右', 'cAlign', ALIGN_OPTS)}
+                            ${isPanel ? '' : miniSelect('左右', 'cAlign', ALIGN_OPTS)}
                         </div>
                         ${(((window.App.Creator && window.App.Creator.currentType) || '').startsWith('choice') && !(window.App.Creator && window.App.Creator.oxMode)) ? `
                         <div style="display:flex; gap:6px; margin-bottom:6px; align-items:center;">
