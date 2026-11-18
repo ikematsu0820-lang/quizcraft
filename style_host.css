@@ -5309,3 +5309,7 @@ body:has(> #unified-toggle-container:not([style*="none"])) #viewer-content {
     width: min(100vw, calc((100dvh - var(--view-dock-h)) * 16 / 9)) !important;
     height: min(calc(100dvh - var(--view-dock-h)), 56.25vw) !important;
 }
+/* 入力画面の「まとめて入力」への入口（スマホ） */
+#cm-edit-bulk { display: none; }
+#creator-view.cm-on.cm-edit #cm-edit-bulk:not(.hidden) { display: block; margin: 12px 0 0; }
+#cm-edit-bulk .cm-ghost-btn { width: 100%; min-height: 44px; }

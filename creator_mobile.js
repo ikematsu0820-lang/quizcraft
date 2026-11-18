@@ -77,6 +77,12 @@ App.CreatorMobile = {
         `;
         view.insertBefore(head, wrap);
 
+        // 入力画面からも「まとめて入力」へ（新しいセットは一覧を通らずにここから始まるので）
+        const bulkEdit = document.createElement('div');
+        bulkEdit.id = 'cm-edit-bulk';
+        bulkEdit.innerHTML = `<button type="button" id="cm-edit-bulk-btn" class="cm-ghost-btn">メモのようにまとめて入力</button>`;
+        view.insertBefore(bulkEdit, wrap.nextSibling);
+
         const editBar = document.createElement('div');
         editBar.id = 'cm-edit-bar';
         editBar.className = 'cm-bottom-bar';
@@ -126,6 +132,7 @@ App.CreatorMobile = {
         const C = () => this.C();
         document.getElementById('cm-add-btn').onclick = () => this.showEdit(null);
         document.getElementById('cm-bulk-btn').onclick = () => this.openSheet('bulk');
+        document.getElementById('cm-edit-bulk-btn').onclick = () => this.openSheet('bulk');
         document.getElementById('cm-save-btn').onclick = () => C().save();
         document.getElementById('cm-back-btn').onclick = () => this.backToList();
         document.getElementById('cm-next-btn').onclick = () => this.next();
@@ -213,6 +220,7 @@ App.CreatorMobile = {
         // 左上のボタン — 押すと戻る先をそのまま書く（「戻る」は来た画面に戻る時だけ）
         const back = document.getElementById('cm-back-btn');
         if (back) back.textContent = !this._fromSelect ? '一覧に戻る' : qs.length ? '問題一覧へ' : '形式選択に戻る';
+        document.getElementById('cm-edit-bulk')?.classList.toggle('hidden', C.editingIndex !== null);
         if (C.editingIndex === null) {
             if (el) el.textContent = `新しい問題（Q${qs.length + 1}）`;
             if (nextBtn) nextBtn.textContent = '追加して次の問題へ';
@@ -433,6 +441,7 @@ App.CreatorMobile = {
             if (sub) C.rulesSubTab = sub; // 要約でタップした設定のタブを開く
             C.renderActivePanelContent('rules');
         } else if (kind === 'bulk') {
+            this._bulkBefore = (window.App.Data.createdQuestions || []).length;
             C.renderBulkPanel();
         }
         document.getElementById('cm-sheet-stage-wrap').classList.toggle('hidden', kind !== 'design');
@@ -457,6 +466,8 @@ App.CreatorMobile = {
         document.getElementById('cm-sheet')?.classList.add('hidden');
         document.body.classList.remove('cm-noscroll');
         if (kind === 'bulk' || kind === 'rules' || kind === 'design') this.renderList();
+        // まとめて入力で問題が増えたら、入った問題が見える一覧へ
+        if (kind === 'bulk' && this.screen === 'edit' && (window.App.Data.createdQuestions || []).length > (this._bulkBefore || 0)) this.showList();
     },
 
     // 見た目パネルの上に、本番と同じ描画の小さなプレビュー
@@ -1036,6 +1047,11 @@ App.CreatorDraft = {
     // パネル指名などは描き直しの後にボタンを足すので、並べ替えも一拍おいてから
     after('renderForm', function () { setTimeout(() => { App.CreatorInput.enforceMobileSize(); App.CreatorInput.arrangeListControls(true); }, 0); });
     after('renderRulesSection', function () { App.CreatorDraft.saveSoon(); });
+    // まとめて入力で追加できたら、パネルを閉じて一覧で見せる（増えていなければ直す所があるので開いたまま）
+    after('runBulkAdd', function () {
+        const M = App.CreatorMobile;
+        if (M._sheet === 'bulk' && (window.App.Data.createdQuestions || []).length > (M._bulkBefore || 0)) M.closeSheet();
+    });
     // 描き直すとボタンは元の場所に作り直されるので、前に一覧の上下へ移した古いものは先に片付ける
     const origRender = C.renderForm;
     if (typeof origRender === 'function') {
