@@ -1449,7 +1449,10 @@ window.App.Viewer = {
             if (q.c) {
                 const rows = parseInt(d.gridRows) || 0;
                 const cols = parseInt(d.gridCols) || 0;
-                const gridStyle = (rows > 0 && cols > 0) ? `display:grid; grid-template-columns: repeat(${cols}, 1fr); gap:2vh;` : '';
+                // 配置が自動で選択肢が5つ以上なら2列に（縦に並べると画面からはみ出す）
+                const autoTwo = !(rows > 0 && cols > 0) && q.type === 'choice' && !q.ox && !isRow && q.c.length > 4;
+                const gridStyle = (rows > 0 && cols > 0) ? `display:grid; grid-template-columns: repeat(${cols}, 1fr); gap:2vh;`
+                    : autoTwo ? 'display:grid; grid-template-columns: repeat(2, 1fr); gap:2vh;' : '';
                 const cAreaStyle = isRow ? `width:${92 - rowQW}vw; box-sizing:border-box;` : '';
                 // まるばつモード: ○ を左半分、× を右半分に大きく
                 const isOx = !!q.ox && q.type === 'choice';
@@ -1461,7 +1464,9 @@ window.App.Viewer = {
                     ? `${gridStyle || 'display:flex; flex-direction:column;'} gap:1.5vh; flex:1; min-height:0; margin-bottom:2vh; ${cAreaStyle}${gridStyle ? ' grid-auto-rows:1fr;' : ''}`
                     : '';
 
-                html += `<div class="c-area" style="${isOx ? oxAreaStyle : isMultiQ ? multiAreaStyle : `${gridStyle} ${cAreaStyle}`}">`;
+                // 選択式など: 問題文（写真付きなど）の下に残った高さに収める — 足りない時だけ行が縮む
+                const fitStyle = `flex:1 1 auto; min-height:0;${gridStyle ? ' grid-auto-rows:minmax(0, max-content);' : ''}`;
+                html += `<div class="c-area${isOx || isMultiQ ? '' : ' c-fit'}" style="${isOx ? oxAreaStyle : isMultiQ ? multiAreaStyle : `${gridStyle} ${cAreaStyle} ${fitStyle}`}">`;
                 q.c.forEach((c, i) => {
                     if (isOx) {
                         html += `<div class="choice-item" style="justify-content:center; align-items:center; font-size:30vh; font-weight:900; line-height:1; color:${i === 0 ? '#ff4d4d' : '#3b82f6'}; ${d.cBgColor ? `background:${d.cBgColor};` : ''} ${d.cBorderColor ? `border:1px solid ${d.cBorderColor};` : ''} transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">

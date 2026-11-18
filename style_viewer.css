@@ -113,6 +113,9 @@ body {
     transition: transform 0.3s;
 }
 
+/* 選択肢の行は、残りの高さが足りない時だけ縮む（はみ出して見えなくならないように） */
+.c-area.c-fit > .choice-item { flex: 0 1 auto; min-height: 0; overflow: hidden; }
+
 .choice-item:last-child {
     border-bottom: none;
 }
