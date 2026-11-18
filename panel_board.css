@@ -126,3 +126,31 @@
 #creator-view.cm-on .pb-row .pb-tag-ans { grid-area: at; background: #14532d; color: #bbf7d0; }
 #creator-view.cm-on .pb-row .pb-pq { grid-area: pq; }
 #creator-view.cm-on #creator-outside-opts .pb-qmode-wrap { flex-basis: 100%; }
+
+/* =========================================================
+ * スマホ: 多答の「通常／ランキング／パネル指名」を同じ形の行に揃える
+ *   左に番号（同じ色・大きさ）→ 入力欄（同じ枠）→ 右端に ×
+ * ======================================================= */
+#creator-view.cm-on.cm-edit #creator-choices-list:has(> .multi-row) { counter-reset: cmn; gap: 8px !important; }
+#creator-view.cm-on.cm-edit .multi-row {
+    display: grid !important; grid-template-columns: 2.4em minmax(0, 1fr) 28px; align-items: center !important; gap: 6px !important;
+    height: auto !important; min-height: 0 !important; padding: 8px !important;
+    border: 1px solid #1f2733 !important; border-radius: 10px !important; background: rgba(255, 255, 255, 0.03) !important;
+}
+/* 枠の中の入力欄と × を、行の中に直接並べる */
+#creator-view.cm-on.cm-edit .multi-row .row-frame { display: contents !important; }
+/* 通常（多答）にも番号（順番の意味は無いが、何個目かが分かるように） */
+#creator-view.cm-on.cm-edit .multi-row:not(:has(.multi-label))::before { counter-increment: cmn; content: counter(cmn); }
+#creator-view.cm-on.cm-edit .multi-row::before,
+#creator-view.cm-on.cm-edit .multi-row .multi-label,
+#creator-view.cm-on.cm-edit .pb-row .pb-no {
+    color: #00e5ff !important; font-family: inherit !important; font-weight: 900 !important; font-size: 0.95rem !important;
+    text-shadow: none !important; text-align: center !important; min-width: 0 !important; margin: 0 !important;
+}
+#creator-view.cm-on.cm-edit .multi-row .multi-text-input {
+    width: 100% !important; min-height: 40px !important; padding: 0 10px !important; box-sizing: border-box;
+    background: rgba(255, 255, 255, 0.06) !important; border: 1px solid #334155 !important; border-radius: 4px !important;
+}
+#creator-view.cm-on.cm-edit .multi-row .btn-remove-multi,
+#creator-view.cm-on.cm-edit .pb-row .pb-del { font-size: 1.1rem !important; color: rgba(255, 255, 255, 0.35) !important; margin: 0 !important; padding: 0 !important; text-align: center; }
+#creator-view.cm-on.cm-edit .pb-row { grid-template-columns: 2.4em 1.6em minmax(0, 1fr) 64px 28px !important; }
