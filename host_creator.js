@@ -676,7 +676,10 @@ window.App.Creator = {
                 this.titleEnabled = on;
                 if (titleInput) {
                     titleInput.classList.toggle('hidden', !on);
-                    if (on) titleInput.focus();
+                    // スマホでは文字盤が急に出て煩わしいので、欄を出すだけにする
+                    // （書きたい時に欄を押せば文字盤が出る）
+                    const M = window.App.CreatorMobile;
+                    if (on && !(M && M.isMobile())) titleInput.focus();
                 }
                 // オンにしたらタイトルを選択して、すぐ文字の設定ができるように
                 if (window.App.Design) window.App.Design.selectObject(on ? 'qtitle' : 'question');
