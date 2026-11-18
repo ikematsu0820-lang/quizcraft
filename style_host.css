@@ -5285,3 +5285,27 @@ select.seg-src { display: none !important; }
 #cm-sheet-body #creator-inline-design .ds-swatch { flex: 1 1 100% !important; flex-direction: row !important; align-items: center !important; gap: 10px !important; }
 #cm-sheet-body #creator-inline-design .ds-swatch > span { order: -1; flex: 0 0 5em; text-align: left; font-size: 0.75rem !important; color: #94a3b8 !important; white-space: normal !important; }
 #cm-sheet-body #creator-inline-design .ds-swatch > button { flex: 1 1 auto; height: 40px !important; border-radius: 10px !important; }
+
+/* =========================================================
+ * 司会者／モニターの切り替え — 画面の一番下に固定した帯（host_studio.js）
+ * 帯が出ている間は、司会者画面の進行ボタンもモニターも帯の上で終わる（重ならない）
+ * ======================================================= */
+:root { --view-dock-h: calc(60px + env(safe-area-inset-bottom, 0px)); }
+#unified-toggle-container {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 2147483647;
+    display: flex; justify-content: center; align-items: center;
+    height: var(--view-dock-h); padding: 0 12px env(safe-area-inset-bottom, 0px); box-sizing: border-box;
+    background: #0b0f16; border-top: 1px solid #222a36;
+}
+#unified-toggle-container .view-dock-seg { width: 100%; max-width: 420px; }
+#unified-toggle-container .view-dock-seg button {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    min-height: 40px; font-size: 0.95rem;
+}
+body:has(> #unified-toggle-container:not([style*="none"])) #host-control-view { padding-bottom: var(--view-dock-h) !important; }
+body:has(> #unified-toggle-container:not([style*="none"])) #host-control-view .studio-bottom-bar { bottom: var(--view-dock-h) !important; }
+body:has(> #unified-toggle-container:not([style*="none"])) #viewer-main-view { min-height: 0 !important; height: calc(100vh - var(--view-dock-h)) !important; height: calc(100dvh - var(--view-dock-h)) !important; }
+body:has(> #unified-toggle-container:not([style*="none"])) #viewer-content {
+    width: min(100vw, calc((100dvh - var(--view-dock-h)) * 16 / 9)) !important;
+    height: min(calc(100dvh - var(--view-dock-h)), 56.25vw) !important;
+}

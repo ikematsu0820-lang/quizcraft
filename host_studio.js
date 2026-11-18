@@ -41,92 +41,36 @@ App.Studio = {
         // テストプレイの画面切替（プルダウン）がある間は unified-toggle を表示しない
         if (document.getElementById('test-view-select')) return;
 
-        let container = document.getElementById('unified-toggle-container');
-        if (container) {
-            // Reset to host state
-            const activeStyle = 'background:linear-gradient(135deg, #00bfff 0%, #0077aa 100%); color:#fff; border-radius:20px; padding:10px 20px; font-weight:bold; border:none; box-shadow:0 0 15px rgba(0,191,255,0.4); cursor:pointer;';
-            const inactiveStyle = 'background:transparent; color:#aaa; border-radius:20px; padding:10px 20px; font-weight:normal; border:none; cursor:pointer; transition:all 0.2s;';
-            container.querySelectorAll('button').forEach(btn => btn.style.cssText = inactiveStyle);
-            container.querySelector('[data-role="host"]').style.cssText = activeStyle;
-            container.dataset.view = 'host';
-            return;
-        }
+        const mark = (container, view) => {
+            container.dataset.view = view;
+            container.querySelectorAll('button').forEach(btn => {
+                const on = btn.dataset.role === view;
+                btn.classList.toggle('on', on);
+                btn.setAttribute('aria-checked', on);
+            });
+        };
 
+        let container = document.getElementById('unified-toggle-container');
+        if (container) { mark(container, 'host'); return; }
+
+        // 画面の一番下に固定した帯（司会者／モニターの切り替え）。画面の上に浮かせず、
+        // 司会者画面の進行ボタンやモニターはこの帯の上で終わるようにする（重ならないように）— style_host.css
         container = document.createElement('div');
         container.id = 'unified-toggle-container';
-        container.dataset.view = 'host';
-        // モニター画面（#viewer-main-view）は z-index が最大値なので、同じ値にして
-        // 後から body に足すこの切替をその上に出す（下に隠れて司会者に戻れなかった）
-        container.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:2147483647; display:flex; gap:6px; background:rgba(0,0,0,0.75); padding:8px 10px; border-radius:30px; backdrop-filter:blur(10px); box-shadow:0 8px 24px rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.1); white-space:nowrap;';
-
-        const activeStyle = 'background:linear-gradient(135deg, #00bfff 0%, #0077aa 100%); color:#fff; border-radius:20px; padding:10px 18px; font-weight:bold; border:none; box-shadow:0 0 15px rgba(0,191,255,0.4); cursor:pointer; font-size:0.95em;';
-        const inactiveStyle = 'background:transparent; color:#aaa; border-radius:20px; padding:10px 18px; font-weight:normal; border:none; cursor:pointer; transition:all 0.2s; font-size:0.95em;';
-
-        const btnHost   = document.createElement('button');
-        const btnViewer = document.createElement('button');
-
-        btnHost.dataset.role   = 'host';
-        btnViewer.dataset.role = 'viewer';
-
-        btnHost.textContent   = "🎤 司会者";
-        btnViewer.textContent = "📺 モニター";
-
-        btnHost.style.cssText   = activeStyle;
-        btnViewer.style.cssText = inactiveStyle;
+        container.setAttribute('role', 'radiogroup');
+        container.innerHTML = `<div class="seg-ctl view-dock-seg">
+            <button type="button" role="radio" data-role="host">${window.App.Icons ? window.App.Icons.svg('sliders', 18) : ''}<span>司会者</span></button>
+            <button type="button" role="radio" data-role="viewer">${window.App.Icons ? window.App.Icons.svg('monitor', 18) : ''}<span>モニター</span></button>
+        </div>`;
+        mark(container, 'host');
 
         const switchView = (target) => {
             if (container.dataset.view === target) return;
-            container.dataset.view = target;
-            container.querySelectorAll('button').forEach(btn => btn.style.cssText = inactiveStyle);
-
-            if (target === 'host') {
-                btnHost.style.cssText = activeStyle;
-                App.Ui.showView(App.Ui.views.hostControl);
-            } else if (target === 'viewer') {
-                btnViewer.style.cssText = activeStyle;
-                App.Ui.showView(App.Ui.views.viewerMain);
-            }
+            mark(container, target);
+            App.Ui.showView(target === 'host' ? App.Ui.views.hostControl : App.Ui.views.viewerMain);
         };
-
-        btnHost.onclick   = () => switchView('host');
-        btnViewer.onclick = () => switchView('viewer');
-
-        // Allow dragging toggle if it covers UI (touch drag)
-        let isDragging = false;
-        let startY, startX, initialBottom, initialLeft;
-
-        container.addEventListener('touchstart', (e) => {
-            if (e.touches.length > 1) return;
-            isDragging = false;
-            startY = e.touches[0].clientY;
-            startX = e.touches[0].clientX;
-            const rect = container.getBoundingClientRect();
-            initialBottom = window.innerHeight - rect.bottom;
-            initialLeft = rect.left;
-            container.style.transform = 'none';
-            container.style.left = initialLeft + 'px';
-            container.style.transition = 'none';
-        }, {passive:true});
-
-        container.addEventListener('touchmove', (e) => {
-            if (e.touches.length > 1) return;
-            const dy = startY - e.touches[0].clientY;
-            const dx = e.touches[0].clientX - startX;
-            if (Math.abs(dy) > 5 || Math.abs(dx) > 5) isDragging = true;
-
-            if (isDragging) {
-                let newBottom = initialBottom + dy;
-                let newLeft   = initialLeft + dx;
-                newBottom = Math.max(10, Math.min(newBottom, window.innerHeight - 70));
-                newLeft   = Math.max(10, Math.min(newLeft, window.innerWidth - container.offsetWidth - 10));
-                container.style.bottom = newBottom + 'px';
-                container.style.left   = newLeft + 'px';
-            }
-        }, {passive:true});
-
-        container.addEventListener('touchend', () => {
-            container.style.transition = 'opacity 0.2s';
-        });
+        container.querySelector('[data-role="host"]').onclick = () => switchView('host');
+        container.querySelector('[data-role="viewer"]').onclick = () => switchView('viewer');
 
         // Show/hide based on whether any of the watched views is active
         const watchedIds = ['host-control-view', 'viewer-main-view'];
@@ -138,31 +82,8 @@ App.Studio = {
             const el = document.getElementById(id);
             if (el) new MutationObserver(updateVisibility).observe(el, {attributes: true, attributeFilter: ['class']});
         });
-
-        container.appendChild(btnHost);
-        container.appendChild(btnViewer);
         document.body.appendChild(container);
-
-        // Mobile-only back-to-host button inside viewer, injected once
-        if (window.innerWidth <= 800) {
-            const viewerView = document.getElementById('viewer-main-view');
-            if (viewerView && !document.getElementById('viewer-back-to-host-btn')) {
-                const backBtn = document.createElement('button');
-                backBtn.id = 'viewer-back-to-host-btn';
-                backBtn.textContent = '🎤 出題者画面へ';
-                backBtn.style.cssText = 'position:fixed; bottom:80px; left:50%; transform:translateX(-50%); z-index:2147483647; background:linear-gradient(135deg,#00bfff 0%,#0077aa 100%); color:#fff; border:none; border-radius:24px; padding:12px 28px; font-size:1em; font-weight:bold; box-shadow:0 4px 16px rgba(0,0,0,0.4); cursor:pointer; white-space:nowrap;';
-                backBtn.onclick = () => switchView('host');
-
-                // Show only when viewer-main-view is visible
-                const toggleBackBtn = () => {
-                    backBtn.style.display = viewerView.classList.contains('hidden') ? 'none' : 'block';
-                };
-                new MutationObserver(toggleBackBtn).observe(viewerView, {attributes: true, attributeFilter: ['class']});
-                toggleBackBtn();
-
-                document.body.appendChild(backBtn);
-            }
-        }
+        updateVisibility();
     },
 
     startRoom: function (isQuick = false) {
