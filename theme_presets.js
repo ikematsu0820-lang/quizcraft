@@ -95,29 +95,6 @@ App.Themes = {
             },
         },
         {
-            id: 'japanese', name: '和', desc: '朱と生成りの落ち着いた画面',
-            font: 'mincho', accent: '#c0392b', timer: 'bar_bottom', bridge: { style: 'band', bg: '#2a1a14', text: '#f3ead7' },
-            skin: { c: 'card', pal: '', q: 'board', fx: '' },
-            colors: {
-                mainBgColor: '#2a1a14',
-                qTextColor: '#2a1a14', qBgColor: '#f3ead7', qBorderColor: '#c0392b',
-                cTextColor: '#2a1a14', cBgColor: '#fbf6ea', cBorderColor: '#8b4513',
-                revealTextColor: '#f3ead7', revealBorderColor: '#c0392b', revealBgColor: '#c0392b',
-            },
-        },
-        {
-            id: 'variety', name: 'バラエティ', desc: 'テレビ番組風の枠と大きなボタン',
-            font: 'gothic', accent: '#d62828', timer: 'ball', frame: '#c9c94a',
-            bridge: { style: 'plain', bg: '#f2efdc', text: '#c0392b' },
-            skin: { c: 'button', pal: 'four', q: 'caption', fx: '', frame: true, arrange: 'row' },
-            colors: {
-                mainBgColor: '#f4eef2',
-                qTextColor: '#222222', qBgColor: '#f2efdc', qBorderColor: '#c9c94a',
-                cTextColor: '#ffffff', cBgColor: 'transparent', cBorderColor: '#1a1a1a',
-                revealTextColor: '', revealBorderColor: '', revealBgColor: '',
-            },
-        },
-        {
             id: 'clean', name: 'クリーン', desc: '白基調で見やすく',
             font: 'gothic', accent: '#2563eb', timer: 'ring', bridge: { style: 'count', bg: '#f4f6fa', text: '#111827' },
             skin: { c: 'card', pal: 'four', q: 'board', fx: '' },
