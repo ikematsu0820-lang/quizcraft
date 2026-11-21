@@ -35,7 +35,12 @@ App.RuleEngine = {
         const autoJudge = this.AUTO_JUDGE_TYPES.includes(firstType) && !isDobon && !isPanel;
         // 答え方 — 口頭（出題者が判定）／手書き（出題者が判定）／ボタン（自動で判定）
         const answerBy = (isOral || isPanel) ? 'oral' : (autoJudge || isDobon || isBlackjack) ? 'button' : 'written';
+        // 早押し × 手書き（一問一答）— 押す順番・判定の仕方・正解後に続けるかを選べる
+        const writtenBuzz = ((conf && conf.mode) || 'normal') === 'buzz' && firstType === 'free_written';
         return {
+            writtenBuzz,
+            wbContinue: writtenBuzz && conf.wbAfterCorrect === 'continue',
+            wbQueue: writtenBuzz && conf.wbJudge === 'queue',
             mode: (conf && conf.mode) || 'normal',
             gameType: (conf && conf.gameType) || 'score',
             firstType, qType, isDobon, isBlackjack, isOral, isMulti, isAssoc, autoJudge, answerBy, isPanel,
@@ -101,8 +106,8 @@ App.RuleEngine = {
     FEATURES: {
         // 配点：正解スピードに応じて傾斜（全員同時 × 自動判定だけ）
         scoreRanked: {
-            ok: (ctx) => ctx.mode === 'normal' && ctx.autoJudge,
-            why: '「正解スピードで傾斜」は、全員が同時に答える選択式・並べ替え・文字パネルで使えます',
+            ok: (ctx) => (ctx.mode === 'normal' && ctx.autoJudge) || ctx.wbContinue,
+            why: '「正解スピードで傾斜」は、全員が同時に答える選択式・並べ替え・文字パネルと、早押し×手書きで「正解した人は抜けて続ける」時に使えます',
         },
         // 配点：ヒント数に応じて傾斜（連想クイズだけ）
         scoreHint: {
@@ -292,6 +297,13 @@ App.RuleEngine = {
         parts.push(gain + '。');
         // 誤答
         const wrong = [];
+        if (ctx.writtenBuzz) {
+            parts.push(`${c.wbTiming === 'push_first' ? '押してから書く' : '書いてから押す'}。${ctx.wbQueue ? '押した順に答えが並び、判定中も他の人は押せる' : '1人ずつ判定する'}。`);
+            if (ctx.wbContinue) {
+                const n = parseInt(c.wbWinCount) || 0;
+                parts.push(`正解した人は抜けて問題は続き、${n ? `${n}人正解したら` : '全員が答え終わるまで'}終わらない。`);
+            }
+        }
         if (ctx.mode === 'buzz') wrong.push(c.buzzWrongAction === 'end' ? '誤答したら問題は終わり' : '誤答したら他の人が押せる');
         if (ctx.mode === 'turn' && this.can('turnWrong', ctx).ok) wrong.push(c.turnWrongAction === 'next' ? '誤答したら次の人に解答権が移る' : '誤答したらその問題は終わり');
         const loss = this.wrongLoss(c, {});

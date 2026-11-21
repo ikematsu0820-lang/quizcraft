@@ -124,6 +124,7 @@ App.RulePanel = {
             ${group === 'specific' && specificTiles.length > 1 ? this.tiles('specific', specificTiles, conf.mode) : ''}
             <p class="rule-basic-note">${modeNote}</p>
             <div id="rp-mode-detail"></div>
+            ${ctx.writtenBuzz ? this.writtenBuzzHtml(conf) : ''}
             ${/^free/.test((window.App.Creator && window.App.Creator.currentType) || ctx.firstType || '') ? `
             ${this.head('問題文の出し方')}
             <label class="rp-check"><input type="checkbox" id="rp-read-aloud" ${conf.readAloud ? 'checked' : ''}><span>問題文を画面に出さない（司会者が読み上げる）</span></label>
@@ -136,6 +137,7 @@ App.RulePanel = {
             this.Cfg()._wireModeDetailFields(detail, conf.mode, conf, () => this.changed());
         }
 
+        if (ctx.writtenBuzz) this.wireWrittenBuzz(box, conf);
         const ra = box.querySelector('#rp-read-aloud');
         if (ra) ra.onchange = () => { conf.readAloud = ra.checked || null; this.changed(); };
         box.querySelectorAll('[data-rp="answerBy"]').forEach(b => {
@@ -165,6 +167,48 @@ App.RulePanel = {
         box.querySelectorAll('[data-rp="specific"]').forEach(b => {
             b.onclick = () => { if (b.dataset.val !== conf.mode) setMode(b.dataset.val); };
         });
+    },
+
+    // ---------------------------------------------------------
+    // 早押し × 手書き — 書くのと押す順番・判定の仕方・正解した後
+    // ---------------------------------------------------------
+    writtenBuzzHtml: function (conf) {
+        const cont = conf.wbAfterCorrect === 'continue';
+        const n = parseInt(conf.wbWinCount) || 0;
+        return `
+            ${this.head('早押し × 手書きの進め方')}
+            ${this.row('書くのと押すのは', this.select('rp-wb-timing', [
+                { v: 'write_first', t: '書いてから押す' },
+                { v: 'push_first', t: '押してから書く' },
+            ], conf.wbTiming === 'push_first' ? 'push_first' : 'write_first'))}
+            ${this.note(conf.wbTiming === 'push_first'
+                ? 'PUSH! で順番を取ってから書きます。誤答した人や押していない人は、その間も考えられます。'
+                : '手書き欄に書いてから PUSH! を押すと、答えも一緒に届きます。分かった速さがそのまま順番になります。')}
+            ${this.row('判定は', this.select('rp-wb-judge', [
+                { v: 'one', t: '1人ずつ' },
+                { v: 'queue', t: '押した順に並べる' },
+            ], conf.wbJudge === 'queue' ? 'queue' : 'one'))}
+            ${this.note(conf.wbJudge === 'queue'
+                ? '判定している間も、他の人は押せます。手書きなので答えは聞こえません。押した人の答えが司会者の画面に押した順で並び、上から〇×を付けます。'
+                : '1人を判定している間は、他の人は押せません。')}
+            ${this.row('正解した人が出たら', this.select('rp-wb-after', [
+                { v: 'end', t: '問題を終える' },
+                { v: 'continue', t: '抜けて続ける' },
+            ], cont ? 'continue' : 'end'))}
+            ${cont ? this.row('問題を終えるのは', this.select('rp-wb-count', [
+                { v: 0, t: '全員が答え終わるまで' },
+                ...[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(k => ({ v: k, t: `${k}人正解したら` })),
+            ], n)) : ''}
+            ${this.note(cont ? '' : '正解が出たら、その問題は終わって正解発表に進みます。')}
+            ${cont ? this.note('正解した人はその問題から抜けて、残りの人で続けます。正解した順に点を傾けるには、「正解」のタブで「速さで傾斜」を選びます（1番目・2番目…の点を決められます）。司会者はいつでも問題を打ち切れます。') : ''}`;
+    },
+
+    wireWrittenBuzz: function (box, conf) {
+        const on = (id, fn) => { const el = box.querySelector('#' + id); if (el) el.onchange = () => fn(el.value); };
+        on('rp-wb-timing', v => { conf.wbTiming = v; this.changed(); });
+        on('rp-wb-judge', v => { conf.wbJudge = v; this.changed(); });
+        on('rp-wb-after', v => { conf.wbAfterCorrect = v; this.changed(); });
+        on('rp-wb-count', v => { conf.wbWinCount = parseInt(v) || 0; this.changed(); });
     },
 
     // ---------------------------------------------------------

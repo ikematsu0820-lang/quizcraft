@@ -2346,6 +2346,8 @@ App.Studio = {
     },
 
     checkBuzz: function (players) {
+        // 早押し×手書きの「押した順に並べる」— 解答権は1人に絞らず、解答ボードに押した順で並べる
+        if (this.wbOn('queue')) { this.clearBuzzWindow(); return; }
         if (this.currentStepId !== 2 || this.buzzWinner) { this.clearBuzzWindow(); return; }
         // 受付時間中は最新の状態だけ覚えておき、締め切りでまとめて判定
         this._buzzWindowPlayers = players;
@@ -2475,6 +2477,11 @@ App.Studio = {
                 // パネルモードの場合はパネル選択へ
                 if (App.Data.currentConfig.gameType === 'panel') {
                     this.showPanelSelection(winnerId);
+                } else if (this.wbOn('continue')) {
+                    // 早押し×手書き: 正解した人は抜けて、問題を続ける
+                    this.buzzWinner = null;
+                    App.Ui.showToast(`${p.name || '---'} さん正解（${Object.keys(this._qWinners || {}).length}人目）`);
+                    this.wbAfterJudge();
                 } else {
                     this.setStep(4);
                 }
@@ -2485,6 +2492,8 @@ App.Studio = {
                 snap.ref.update({
                     lastResult: 'lose',
                     buzzTime: null,
+                    // 手書きは前の答えを消しておく（もう一度押す時に書き直して送る）
+                    ...(this.wbOn() ? { lastAnswer: null, answerTime: null } : {}),
                     periodScore: (p.periodScore || 0) - loss,
                     totalScore: (p.totalScore || 0) - loss,
                     ...this._resultFields(p, false)
@@ -2510,7 +2519,95 @@ App.Studio = {
                     window.db.ref(`rooms/${roomId}/status`).update({ currentAnswerer: null, isBuzzActive: true });
                     App.Ui.showToast("誤答のため、他のプレイヤーに解答権が移ります");
                     this.resumeTimer();
+                    // 正解した人が抜けていく時は、もう答えられる人がいなければ終える
+                    if (this.wbOn('continue')) this.wbAfterJudge();
                 }
+            }
+        });
+    },
+
+    // ---------------------------------------------------------
+    // 早押し × 手書き（一問一答）— ルール「早押し × 手書きの進め方」
+    //   wbOn()          … 今の問題が早押し×手書きか
+    //   wbOn('queue')   … 押した順に並べて判定（解答権を1人に絞らない）
+    //   wbOn('continue')… 正解した人は抜けて、問題を続ける
+    // ---------------------------------------------------------
+    wbOn: function (what) {
+        const conf = App.Data.currentConfig || {};
+        const q = (App.Data.studioQuestions || [])[App.State.currentQIndex];
+        if (conf.mode !== 'buzz' || !q || q.type !== 'free_written') return false;
+        if (what === 'queue') return conf.wbJudge === 'queue';
+        if (what === 'continue') return conf.wbAfterCorrect === 'continue';
+        return true;
+    },
+
+    // まだ答えられる人がいるか・決めた人数が正解したかを見て、終えるか続けるか
+    wbAfterJudge: function () {
+        const roomId = App.State.currentRoomId;
+        const qAt = App.State.currentQIndex;
+        const conf = App.Data.currentConfig || {};
+        window.db.ref(`rooms/${roomId}/players`).once('value', snap => {
+            if (App.State.currentQIndex !== qAt || ![2, 3].includes(this.currentStepId)) return;
+            const players = snap.val() || {};
+            const limit = parseInt(conf.wbWinCount) || 0;
+            const winners = Object.keys(this._qWinners || {}).length;
+            const penalty = conf.buzzPenalty || 'none';
+            // 誤答で「この問題は押せない」「◯問休み」になった人は、もう答えられない
+            const canStill = Object.values(players).some(p => p && p.isAlive !== false && !p.cleared
+                && p.lastResult !== 'win'
+                && !(p.lastResult === 'lose' && (penalty === 'otetski' || penalty === 'rest'))
+                && !(p.buzzRest && p.buzzRest > 0));
+            if ((limit > 0 && winners >= limit) || !canStill) {
+                window.db.ref(`rooms/${roomId}/status`).update({ currentAnswerer: null, currentAnswererName: null, isBuzzActive: false });
+                App.Ui.showToast(limit > 0 && winners >= limit ? `${winners}人が正解したので、この問題を終えます` : '答えられる人がいなくなったので、この問題を終えます');
+                this.clearAnswerTimer();
+                this.setStep(4);
+                return;
+            }
+            if (!this.wbOn('queue')) {
+                window.db.ref(`rooms/${roomId}/status`).update({ currentAnswerer: null, currentAnswererName: null, isBuzzActive: true });
+                this.resumeTimer();
+            }
+        });
+    },
+
+    // 押した順に並べた答えを、解答ボードで1つずつ判定する
+    judgeWrittenQueue: function (playerId, isCorrect) {
+        const roomId = App.State.currentRoomId;
+        const q = App.Data.studioQuestions[App.State.currentQIndex];
+        const conf = App.Data.currentConfig || {};
+        const action = conf.buzzWrongAction || 'next';
+        this.adjustTimer(isCorrect);
+        window.db.ref(`rooms/${roomId}/players/${playerId}`).once('value', snap => {
+            const p = snap.val();
+            if (!p || p.lastResult) return;
+            if (isCorrect) {
+                const gain = this._correctPts(p, q);
+                snap.ref.update({ periodScore: (p.periodScore || 0) + gain, totalScore: (p.totalScore || 0) + gain, lastResult: 'win', ...this._resultFields(p, true) });
+                this.recordWinner(playerId, p.name);
+                if (!this.wbOn('continue')) {
+                    window.db.ref(`rooms/${roomId}/status`).update({ isBuzzActive: false });
+                    this.setStep(4);
+                    return;
+                }
+                App.Ui.showToast(`${p.name || '---'} さん正解（${Object.keys(this._qWinners || {}).length}人目・+${gain}点）`);
+                this.wbAfterJudge();
+            } else {
+                const loss = this._wrongLoss(q);
+                snap.ref.update({
+                    lastResult: 'lose', buzzTime: null, lastAnswer: null, answerTime: null,
+                    periodScore: (p.periodScore || 0) - loss, totalScore: (p.totalScore || 0) - loss,
+                    ...this._resultFields(p, false)
+                });
+                this.applyBuzzPenalty(playerId, action);
+                if (action === 'end') {
+                    window.db.ref(`rooms/${roomId}/status`).update({ isBuzzActive: false });
+                    App.Ui.showToast('誤答のため、この問題を終了します');
+                    this.setStep(4);
+                    return;
+                }
+                App.Ui.showToast(`${p.name || '---'} さん不正解`);
+                if (this.wbOn('continue')) this.wbAfterJudge();
             }
         });
     },
@@ -2942,9 +3039,10 @@ App.Studio = {
             .map(id => ({ id, ...players[id] }))
             // .filter(p => p.lastAnswer !== null || p.buzzTime) // REMOVED: Show all players for manual judging
             .sort((a, b) => {
-                const timeA = a.answerTime || (a.buzzTime ? this.buzzEffectiveTime(a) : Infinity);
-                const timeB = b.answerTime || (b.buzzTime ? this.buzzEffectiveTime(b) : Infinity);
-                return timeA - timeB;
+                // 早押しは押した順（手書きの答えが届いた時刻ではなく）
+                const isBuzzMode = (App.Data.currentConfig || {}).mode === 'buzz';
+                const t = (p) => (isBuzzMode && p.buzzTime) ? this.buzzEffectiveTime(p) : (p.answerTime || (p.buzzTime ? this.buzzEffectiveTime(p) : Infinity));
+                return t(a) - t(b);
             });
 
         this.renderAnswerDesk(sortedPlayers);
@@ -3324,7 +3422,8 @@ App.Studio = {
             b.onclick = () => {
                 if (!canJudge) return;
                 const ok = b.dataset.deskJudge === '1';
-                if (mode === 'buzz' && sel.id === this.buzzWinner) this.judgeBuzz(ok); // 早押しの判定（誤答時の処理も含む）
+                if (mode === 'buzz' && this.wbOn('queue')) this.judgeWrittenQueue(sel.id, ok); // 早押し×手書き（押した順に並べる）
+                else if (mode === 'buzz' && sel.id === this.buzzWinner) this.judgeBuzz(ok); // 早押しの判定（誤答時の処理も含む）
                 else if (mode === 'solo') this.judgeBuzz(ok);
                 else this.updatePlayerScore(sel.id, ok);
                 // 次の未判定の人を自動で選ぶ

@@ -199,6 +199,9 @@ let _pendingBuzzAnswer = null;
 function isWrittenBuzz() {
     return roomConfig.mode === 'buzz' && currentQuestion && currentQuestion.type === 'free_written';
 }
+// 早押し×手書きの進め方（ルール） — 押してから書く／押した順に並べて判定
+function wbPushFirst() { return isWrittenBuzz() && roomConfig.wbTiming === 'push_first'; }
+function wbQueue() { return isWrittenBuzz() && roomConfig.wbJudge === 'queue'; }
 
 let isReanswering = false;
 let localOptimisticResult = null;
@@ -280,12 +283,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (buzzBtn) {
         buzzBtn.addEventListener('click', () => {
             if (!myRoomId || !myPlayerId) return;
-            if (isWrittenBuzz()) {
+            let sendNow = null;
+            if (isWrittenBuzz() && !wbPushFirst()) {
                 if (!_currentPad || !_currentPad.hasDrawn()) {
                     playerNotice('先に答えを書いてから PUSH! を押してください');
                     return;
                 }
-                _pendingBuzzAnswer = _currentPad.getDataUrl();
+                // 押した順に並べる時は、押すと同時に答えも送る（解答権を待たない）
+                if (wbQueue()) sendNow = _currentPad.getDataUrl();
+                else _pendingBuzzAnswer = _currentPad.getDataUrl();
             }
             if (currentQuestion && currentQuestion.design && currentQuestion.design.seButton) {
                 playSound(currentQuestion.design.seButton);
@@ -302,6 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 buzzTime: firebase.database.ServerValue.TIMESTAMP,
                 buzzPressAt: pressAt
             });
+            if (sendNow) submitAnswer(myRoomId, myPlayerId, sendNow);
         });
     }
 });
@@ -830,11 +837,16 @@ function updateUI() {
                 // 早押しボタン受付中 — 解答権を得るまでは入力欄自体を隠す
                 // （手書きの一問一答だけは、先に書いてから押すので見せておく）
                 const writtenBuzz = isWrittenBuzz();
-                quizArea.classList.toggle('hidden', !writtenBuzz);
+                const pushFirst = wbPushFirst();
+                const hasMyAns = p.lastAnswer !== null && p.lastAnswer !== undefined && p.lastAnswer !== '';
+                // 書いてから押す → 押す前から手書き欄を出す
+                // 押してから書く × 押した順 → 押した後に手書き欄と送信を出す
+                const showPad = writtenBuzz && !hasMyAns && (!pushFirst || (wbQueue() && !!p.buzzTime));
+                quizArea.classList.toggle('hidden', !showPad);
                 buzzArea.classList.remove('hidden');
-                toggleInputEnabled(writtenBuzz);
+                toggleInputEnabled(showPad);
                 const writtenSubmit = document.getElementById('written-submit-btn');
-                if (writtenSubmit) writtenSubmit.classList.toggle('hidden', writtenBuzz);
+                if (writtenSubmit) writtenSubmit.classList.toggle('hidden', writtenBuzz && !(pushFirst && showPad));
                 const btn = document.getElementById('player-buzz-btn');
 
                 if (p.buzzRest && p.buzzRest > 0) {
@@ -873,7 +885,7 @@ function updateUI() {
                 } else if (p.buzzTime) {
                     // 押した後はランプが点いたまま（本物の早押し機のように）
                     btn.disabled = true;
-                    btn.textContent = "判定中…";
+                    btn.textContent = wbQueue() ? (hasMyAns ? '判定待ち' : '書いて送信') : "判定中…";
                     btn.style.background = "radial-gradient(circle at 30% 30%, #ffe08a, #f39c12)";
                 } else {
                     btn.disabled = false;
@@ -901,7 +913,7 @@ function updateUI() {
                     if (inp) inp.focus();
                 }, 100);
             }
-            else if (st.currentAnswerer && isWrittenBuzz() && p.lastResult !== 'lose') {
+            else if (st.currentAnswerer && isWrittenBuzz() && !wbPushFirst() && p.lastResult !== 'lose') {
                 // 手書き×早押しで他の人が解答中 — 手書き欄はそのまま使えるように
                 // しておき、書いておいて次に早押しが開いたら PUSH! で送れる
                 quizArea.classList.remove('hidden');
