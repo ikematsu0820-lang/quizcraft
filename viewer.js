@@ -294,6 +294,8 @@ window.App.Viewer = {
             const at = st.answerTimer && ['question', 'answering', 'reveal_q'].includes(st.step) ? st.answerTimer : null;
             window.App.TimerView.answerChip(viewContainer, at, at ? `${st.currentAnswererName || ''}` : '', () => Date.now() + this._serverOffset);
         }
+        // 早押し×手書きで「正解した人は抜けて続ける」— 抜けた順（1抜け・2抜け…）
+        this.renderWbWinners(viewContainer, ['question', 'answering', 'reveal_q', 'closed'].includes(st.step) ? st.wbWinners : null);
         // 回答の見せ方（演出）は描画のあとに重ねる
         setTimeout(() => { this.updateLiveAnswers(); this.updateSpeedReveal(); this.updateSoloResult(); }, 0);
         // テーマのフォント・アクセント色（セット共通なので先頭の問題から取る）
@@ -1256,6 +1258,20 @@ window.App.Viewer = {
     },
 
     // 一問一答の「読み上げ」（ルールの答え方）— 問題文の代わりに出す得点の一覧
+    renderWbWinners: function (container, list) {
+        if (!container) return;
+        let box = container.querySelector(':scope > .vw-wb-winners');
+        const arr = Array.isArray(list) ? list : (list ? Object.values(list) : []);
+        if (!arr.length) { if (box) box.remove(); return; }
+        if (!box) {
+            box = document.createElement('div');
+            box.className = 'vw-wb-winners';
+            container.appendChild(box);
+        }
+        const esc = (t) => String(t || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+        box.innerHTML = arr.map((w, i) => `<div class="vw-wb-row"><span class="vw-wb-rank">${i + 1}抜け</span><b>${esc(w.name)}</b>${w.gain ? `<span class="vw-wb-gain">+${w.gain}</span>` : ''}</div>`).join('');
+    },
+
     readAloud: function (q) {
         const RE = window.App.RuleEngine;
         return !!(RE && RE.readAloud && q && RE.readAloud(this.config || {}, { qType: q.type }));

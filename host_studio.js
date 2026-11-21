@@ -2007,9 +2007,12 @@ App.Studio = {
             speedRanking: null,  // 正解者の早い順（全員同時）も問題ごとに消す
             isNominateMode: null, // 指名モードは出題時（step 2）に付け直す
             resultShowWinners: null,
-            resultWinners: null
+            resultWinners: null,
+            wbWinners: null       // 早押し×手書きの抜けた順
         });
         this._qWinners = {}; // この問題の正解者（結果発表で表示）
+        this._wbWinners = [];
+        this.wbClearAllTimers();
 
         window.db.ref(`rooms/${roomId}/players`).once('value', snap => {
             snap.forEach(p => {
@@ -2021,7 +2024,10 @@ App.Studio = {
                     pendingScore: null,
                     buzzTime: null,
                     answerTime: null,
-                    buzzBannedUntil: null
+                    buzzBannedUntil: null,
+                    winRank: null,
+                    lastGain: null,
+                    wbDeadline: null
                 };
                 // Decrement buzzRest if player is serving rest penalty
                 if (pVal && pVal.buzzRest && pVal.buzzRest > 0) {
@@ -2347,7 +2353,7 @@ App.Studio = {
 
     checkBuzz: function (players) {
         // 早押し×手書きの「押した順に並べる」— 解答権は1人に絞らず、解答ボードに押した順で並べる
-        if (this.wbOn('queue')) { this.clearBuzzWindow(); return; }
+        if (this.wbOn('queue')) { this.clearBuzzWindow(); this.wbWatchTimers(players); return; }
         if (this.currentStepId !== 2 || this.buzzWinner) { this.clearBuzzWindow(); return; }
         // 受付時間中は最新の状態だけ覚えておき、締め切りでまとめて判定
         this._buzzWindowPlayers = players;
@@ -2469,8 +2475,10 @@ App.Studio = {
                 // 正解時
                 const winnerId = this.buzzWinner;
                 const gain = this._correctPts(p, App.Data.studioQuestions[App.State.currentQIndex]);
-                snap.ref.update({ periodScore: (p.periodScore || 0) + gain, totalScore: (p.totalScore || 0) + gain, lastResult: 'win', ...this._resultFields(p, true) });
+                const winRank = Object.keys(this._qWinners || {}).length + 1;
+                snap.ref.update({ periodScore: (p.periodScore || 0) + gain, totalScore: (p.totalScore || 0) + gain, lastResult: 'win', winRank, lastGain: gain, ...this._resultFields(p, true) });
                 this.recordWinner(winnerId, p.name);
+                if (this.wbOn('continue')) this.wbNoteWin(winnerId, p.name, gain);
                 this.clearAnswerTimer();
                 document.getElementById('studio-sub-info').classList.add('hidden');
 
@@ -2571,6 +2579,46 @@ App.Studio = {
         });
     },
 
+    // 抜けた順（1抜け・2抜け…）をモニターと回答者に知らせる
+    wbNoteWin: function (playerId, name, gain) {
+        this._wbWinners = (this._wbWinners || []).concat([{ id: playerId, name: name || '---', gain }]);
+        window.db.ref(`rooms/${App.State.currentRoomId}/status`).update({ wbWinners: this._wbWinners });
+    },
+
+    // 押してから書く × 押した順 — 押した人ごとの持ち時間（ルール「時間」の解答者の持ち時間）
+    //   押した時刻から◯秒たっても答えが届かなければ誤答にする
+    wbWatchTimers: function (players) {
+        const conf = App.Data.currentConfig || {};
+        const sec = Number(conf.answerSec) || 0;
+        if (!sec || conf.wbTiming !== 'push_first' || !this.wbOn('queue') || this.currentStepId !== 2) return;
+        this._wbTimers = this._wbTimers || {};
+        const qAt = App.State.currentQIndex;
+        Object.entries(players || {}).forEach(([pid, p]) => {
+            if (!p || !p.buzzTime || p.lastResult || this._wbTimers[pid]) return;
+            const hasAns = p.lastAnswer !== null && p.lastAnswer !== undefined && p.lastAnswer !== '';
+            if (hasAns) return;
+            const deadline = Number(p.buzzTime) + sec * 1000; // サーバーの時計
+            window.db.ref(`rooms/${App.State.currentRoomId}/players/${pid}`).update({ wbDeadline: deadline });
+            this._wbTimers[pid] = setTimeout(() => {
+                delete this._wbTimers[pid];
+                if (App.State.currentQIndex !== qAt || this.currentStepId !== 2) return;
+                const cur = (App.Data.players || {})[pid];
+                if (!cur || cur.lastResult) return;
+                const sent = cur.lastAnswer !== null && cur.lastAnswer !== undefined && cur.lastAnswer !== '';
+                if (sent) return; // 届いた答えは司会者が判定する
+                App.Ui.showToast(`${cur.name || '---'} さんは時間切れ（誤答）`);
+                this.judgeWrittenQueue(pid, false);
+            }, sec * 1000 + 300);
+        });
+    },
+    wbClearTimer: function (pid) {
+        if (this._wbTimers && this._wbTimers[pid]) { clearTimeout(this._wbTimers[pid]); delete this._wbTimers[pid]; }
+    },
+    wbClearAllTimers: function () {
+        Object.values(this._wbTimers || {}).forEach(t => clearTimeout(t));
+        this._wbTimers = {};
+    },
+
     // 押した順に並べた答えを、解答ボードで1つずつ判定する
     judgeWrittenQueue: function (playerId, isCorrect) {
         const roomId = App.State.currentRoomId;
@@ -2583,8 +2631,11 @@ App.Studio = {
             if (!p || p.lastResult) return;
             if (isCorrect) {
                 const gain = this._correctPts(p, q);
-                snap.ref.update({ periodScore: (p.periodScore || 0) + gain, totalScore: (p.totalScore || 0) + gain, lastResult: 'win', ...this._resultFields(p, true) });
+                const winRank = Object.keys(this._qWinners || {}).length + 1;
+                snap.ref.update({ periodScore: (p.periodScore || 0) + gain, totalScore: (p.totalScore || 0) + gain, lastResult: 'win', winRank, lastGain: gain, ...this._resultFields(p, true) });
                 this.recordWinner(playerId, p.name);
+                this.wbClearTimer(playerId);
+                if (this.wbOn('continue')) this.wbNoteWin(playerId, p.name, gain);
                 if (!this.wbOn('continue')) {
                     window.db.ref(`rooms/${roomId}/status`).update({ isBuzzActive: false });
                     this.setStep(4);
@@ -2595,10 +2646,11 @@ App.Studio = {
             } else {
                 const loss = this._wrongLoss(q);
                 snap.ref.update({
-                    lastResult: 'lose', buzzTime: null, lastAnswer: null, answerTime: null,
+                    lastResult: 'lose', buzzTime: null, lastAnswer: null, answerTime: null, wbDeadline: null,
                     periodScore: (p.periodScore || 0) - loss, totalScore: (p.totalScore || 0) - loss,
                     ...this._resultFields(p, false)
                 });
+                this.wbClearTimer(playerId);
                 this.applyBuzzPenalty(playerId, action);
                 if (action === 'end') {
                     window.db.ref(`rooms/${roomId}/status`).update({ isBuzzActive: false });
@@ -3346,8 +3398,11 @@ App.Studio = {
 
         this.renderParticipantsPage(sortedPlayers);
 
+        // 押してから書く × 押した順 — 押してまだ書いている人も、押した順の列に先に並べる
+        const wbQ = mode === 'buzz' && this.wbOn('queue');
+        const isWriting = (p) => wbQ && !!p.buzzTime && !hasAns(p) && !resultOf(p);
         // 左の欄は解答した人（と早押しで解答権を取った人）だけ — 全員は「参加者を見る」
-        const shown = sortedPlayers.filter(p => hasAns(p) || resultOf(p));
+        const shown = sortedPlayers.filter(p => hasAns(p) || resultOf(p) || isWriting(p));
         listEl.innerHTML = '';
         if (!shown.length) {
             listEl.innerHTML = '<div style="color:#666; font-size:12px; text-align:center; padding:10px 0;">まだ解答した人はいません</div>';
@@ -3368,6 +3423,12 @@ App.Studio = {
                 box-shadow:${glow ? '0 0 14px rgba(239,68,68,0.75)' : 'none'};
             `;
             btn.textContent = (res === 'win' ? '〇 ' : res === 'lose' ? '✕ ' : '') + (p.name || '---');
+            if (isWriting(p)) {
+                const w = document.createElement('span');
+                w.textContent = '書いています';
+                w.style.cssText = 'display:block; font-size:11px; font-weight:700; color:#94a3b8;';
+                btn.appendChild(w);
+            }
             btn.onclick = () => {
                 this._deskSelected = p.id;
                 this.renderAnswerDesk(sortedPlayers);

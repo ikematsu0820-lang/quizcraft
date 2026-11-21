@@ -1155,3 +1155,19 @@ button.btn-player-hero:hover {
 .qimg-big .q-photo { flex: 1 1 auto; min-height: 0; max-height: none; width: 100%; object-fit: contain; margin: 0 0 1.5cqh !important; }
 .qimg-big.qimg-small { min-height: 40cqh; }
 .qimg-big.qimg-large { min-height: 60cqh; }
+
+/* 早押し×手書きで「正解した人は抜けて続ける」— モニターの抜けた順（viewer.js renderWbWinners） */
+.vw-wb-winners {
+    position: absolute; bottom: 3cqh; left: 2.5cqw; z-index: 400; pointer-events: none;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 0.8cqh; max-height: 60cqh; overflow: hidden;
+}
+.vw-wb-row {
+    display: flex; align-items: baseline; gap: 0.6em;
+    padding: 0.6cqh 1.4cqw; border-radius: 99px;
+    background: rgba(0, 0, 0, 0.72); color: #fff; border: 0.3cqh solid #2ecc71;
+    font-size: 2.6cqh; box-shadow: 0 0.6cqh 2cqh rgba(0, 0, 0, 0.35);
+    animation: vwWbIn 0.35s ease-out;
+}
+.vw-wb-rank { font-size: 0.75em; font-weight: 900; color: #2ecc71; }
+.vw-wb-gain { font-size: 0.8em; font-weight: 900; color: #fbbf24; }
+@keyframes vwWbIn { from { opacity: 0; transform: translateX(2cqw); } to { opacity: 1; transform: none; } }

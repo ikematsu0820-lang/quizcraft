@@ -199,6 +199,23 @@ let _pendingBuzzAnswer = null;
 function isWrittenBuzz() {
     return roomConfig.mode === 'buzz' && currentQuestion && currentQuestion.type === 'free_written';
 }
+// 正解した時の表示 — 何番目に正解したか・何点入ったか
+// （早押し×手書きで「正解した人は抜けて続ける」時は、残りの様子も）
+function winMessageHtml(p, st) {
+    const rankTxt = p && p.winRank > 1 ? `${p.winRank}番目に正解` : (p && p.winRank === 1 && roomConfig.wbAfterCorrect === 'continue' && isWrittenBuzz() ? '1番目に正解' : '正解です！');
+    const gain = p && p.lastGain !== undefined && p.lastGain !== null ? Number(p.lastGain) : null;
+    let rest = '';
+    if (isWrittenBuzz() && roomConfig.wbAfterCorrect === 'continue' && st && ['answering', 'question', 'reveal_q'].includes(st.step)) {
+        const done = (st.wbWinners || []).length;
+        const limit = parseInt(roomConfig.wbWinCount) || 0;
+        rest = limit ? `あと${Math.max(0, limit - done)}人正解で終わり` : '残りの人で続いています';
+    }
+    return `<div class="status-badge" style="background:#2ecc71;">CORRECT</div>`
+        + `<p style="margin-top:10px; font-weight:bold; font-size:1.5em;">${rankTxt}</p>`
+        + (gain !== null && gain !== 0 ? `<p style="margin-top:4px; font-weight:900; font-size:1.3em;">+${gain}点</p>` : '')
+        + (rest ? `<p style="margin-top:8px; font-size:0.9em; opacity:0.85;">${rest}</p>` : '');
+}
+
 // 早押し×手書きの進め方（ルール） — 押してから書く／押した順に並べて判定
 function wbPushFirst() { return isWrittenBuzz() && roomConfig.wbTiming === 'push_first'; }
 function wbQueue() { return isWrittenBuzz() && roomConfig.wbJudge === 'queue'; }
@@ -563,6 +580,7 @@ function updateSpeedBadge(st, p) {
 function updateUI() {
     const st = localStatus;
     const p = localPlayerData;
+    clearInterval(window._wbCountdown); // 書く持ち時間の表示は、必要な時だけ下で付け直す
     updateSpeedBadge(st, p);
     // 入室者の名前の購読は待機画面の間だけ
     if (st.step !== 'standby' && st.step !== 'reveal_q_num') watchLobbyRoster(false);
@@ -769,7 +787,7 @@ function updateUI() {
             waitMsg.style.color = "#2ecc71";
             waitMsg.style.border = "1px solid #2ecc71";
             waitMsg.style.padding = "20px";
-            waitMsg.innerHTML = `<div class="status-badge" style="background:#2ecc71;">CORRECT</div><p style="margin-top:10px; font-weight:bold; font-size:1.5em;">正解です！</p>`;
+            waitMsg.innerHTML = winMessageHtml(p, st);
         } else if (p.lastResult === 'lose') {
             if (isMultipleAttempts) {
                 // Multiple attempts: show "wrong" briefly, player will be allowed to retry
@@ -831,7 +849,7 @@ function updateUI() {
                 waitMsg.style.color = "#2ecc71";
                 waitMsg.style.border = "1px solid #2ecc71";
                 waitMsg.style.padding = "20px";
-                waitMsg.innerHTML = `<div class="status-badge" style="background:#2ecc71;">CORRECT</div><p style="margin-top:10px; font-weight:bold; font-size:1.5em;">正解です！</p>`;
+                waitMsg.innerHTML = winMessageHtml(p, st);
             }
             else if (st.isBuzzActive) {
                 // 早押しボタン受付中 — 解答権を得るまでは入力欄自体を隠す
@@ -886,6 +904,17 @@ function updateUI() {
                     // 押した後はランプが点いたまま（本物の早押し機のように）
                     btn.disabled = true;
                     btn.textContent = wbQueue() ? (hasMyAns ? '判定待ち' : '書いて送信') : "判定中…";
+                    // 押してから書く × 押した順 — 書く持ち時間（司会者が決めた締め切り）
+                    clearInterval(window._wbCountdown);
+                    if (wbQueue() && !hasMyAns && p.wbDeadline) {
+                        const tick = () => {
+                            const left = Math.max(0, Math.ceil((p.wbDeadline - (Date.now() + _serverTimeOffset)) / 1000));
+                            btn.textContent = `書いて送信 あと${left}秒`;
+                            if (left <= 0) clearInterval(window._wbCountdown);
+                        };
+                        tick();
+                        window._wbCountdown = setInterval(tick, 250);
+                    }
                     btn.style.background = "radial-gradient(circle at 30% 30%, #ffe08a, #f39c12)";
                 } else {
                     btn.disabled = false;
@@ -961,7 +990,7 @@ function updateUI() {
                 waitMsg.style.color = "#2ecc71";
                 waitMsg.style.border = "1px solid #2ecc71";
                 waitMsg.style.padding = "20px";
-                waitMsg.innerHTML = `<div class="status-badge" style="background:#2ecc71;">CORRECT</div><p style="margin-top:10px; font-weight:bold; font-size:1.5em;">正解です！</p>`;
+                waitMsg.innerHTML = winMessageHtml(p, st);
             } else if (p.lastResult === 'lose') {
                 if (isMultipleAttempts) {
                     toggleInputEnabled(false);
@@ -1011,7 +1040,7 @@ function updateUI() {
             waitMsg.style.color = "#2ecc71";
             waitMsg.style.border = "1px solid #2ecc71";
             waitMsg.style.padding = "20px";
-            waitMsg.innerHTML = `<div class="status-badge" style="background:#2ecc71;">CORRECT</div><p style="margin-top:10px; font-weight:bold; font-size:1.5em;">正解です！</p>`;
+            waitMsg.innerHTML = winMessageHtml(p, st);
         } else if (p.lastResult === 'lose') {
             waitMsg.style.background = "rgba(231, 76, 60, 0.2)";
             waitMsg.style.color = "#e74c3c";
