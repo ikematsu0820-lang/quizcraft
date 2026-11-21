@@ -1322,6 +1322,12 @@ App.Studio = {
                     btnMain.classList.remove('action-next');
                     btnMain.classList.add('action-ready');
                     btnMain.onclick = () => this.setStep(4);
+                } else if (App.Data.currentConfig.resultEachQ === 'skip') {
+                    // ルール「1問ごとの結果発表: 出さない」— 正解を見せたら次の問題へ
+                    btnMain.textContent = "次の問題へ";
+                    btnMain.classList.remove('action-ready');
+                    btnMain.classList.add('action-next');
+                    btnMain.onclick = () => this.goNext();
                 } else {
                     btnMain.textContent = "結果発表へ";
                     btnMain.classList.remove('action-next');
@@ -1970,6 +1976,7 @@ App.Studio = {
             this._pclockRun = { pid: playerId, startLocal: Date.now() };
         }
         window.db.ref(`rooms/${roomId}/status`).update({ answerTimer: { pid: playerId, ms, startAt: firebase.database.ServerValue.TIMESTAMP, personal: byPersonal || null } });
+        this._answerLocal = { pid: playerId, ms, start: Date.now(), personal: byPersonal }; // 司会者画面の時計の表示用
         this._answerTimerId = setTimeout(() => {
             this._answerTimerId = null;
             if (App.State.currentQIndex !== qAt || this._answerTimerFor !== playerId) return;
@@ -2052,6 +2059,7 @@ App.Studio = {
 
     clearAnswerTimer: function () {
         if (this._answerTimerId) { clearTimeout(this._answerTimerId); this._answerTimerId = null; }
+        this._answerLocal = null;
         this._pclockStop();
         if (this._answerTimerFor) {
             this._answerTimerFor = null;
@@ -2079,7 +2087,6 @@ App.Studio = {
         // Reset judge queue
         this.judgeQueue = [];
         this.judgeCurrentRevealed = false;
-        this.renderJudgeQueue();
 
         if (document.getElementById('console-multi-controls')) {
             document.getElementById('console-multi-controls').innerHTML = '';
@@ -3574,7 +3581,7 @@ App.Studio = {
                 body = '<div style="color:#666; font-size:14px;">回答待ち</div>';
             } else if (noData) {
                 // 口頭（早押し/順番）— 解答は声で聞いて判定
-                body = `<div style="color:#111; font-size:20px; font-weight:900; text-align:center;">${mode === 'buzz' ? '🔔 早押し' : '🎤 解答中'}<br><span style="font-size:14px; color:#555;">口頭の解答を聞いて〇✕を押してください</span></div>`;
+                body = `<div style="color:#111; font-size:20px; font-weight:900; text-align:center;">${mode === 'buzz' ? '早押し' : '解答中'}<br><span style="font-size:14px; color:#555;">口頭の解答を聞いて〇✕を押してください</span></div>`;
             } else if (typeof ans === 'string' && ans.startsWith('data:image')) {
                 body = `<img src="${ans}" style="max-width:100%; max-height:170px; border-radius:8px; background:#fff; display:block;">`;
             } else {
@@ -3667,84 +3674,6 @@ App.Studio = {
         if (btn) btn.textContent = this._showParticipants ? '解答を見る' : '参加者リスト';
     },
 
-    renderJudgeQueue: function () {
-        const area = document.getElementById('judge-queue-area');
-        if (!area) return;
-
-        const q = this.judgeQueue;
-        if (q.length === 0) {
-            area.classList.add('hidden');
-            area.innerHTML = '';
-            return;
-        }
-
-        area.classList.remove('hidden');
-
-        const current = q[0];
-        const next    = q[1] || null;
-        // 手書き（記述式）の解答は data:image の画像 — テキストとして
-        // エスケープ表示すると巨大な base64 文字列がそのまま出てしまうので
-        // <img> で見せる。記述式はもともと司会者の目視・手動判定。
-        const isImageAnswer = typeof current.answer === 'string' && current.answer.startsWith('data:image');
-        const answerHtml = isImageAnswer
-            ? `<img src="${current.answer}" style="max-width:100%; max-height:110px; border-radius:8px; background:#fff;">`
-            : this._esc(String(current.answer));
-
-        area.innerHTML = `
-            <div class="jq-label">判定キュー</div>
-            <div class="jq-row">
-                <div class="jq-panel jq-current" id="jq-current-panel">
-                    <div class="jq-tag">判定中</div>
-                    <div class="jq-name">${this._esc(current.name)}</div>
-                </div>
-                ${next ? `
-                <div class="jq-panel jq-next">
-                    <div class="jq-tag jq-tag-next">NEXT</div>
-                    <div class="jq-name jq-name-next">${this._esc(next.name)}</div>
-                </div>` : '<div class="jq-panel jq-next jq-empty"></div>'}
-                <div class="jq-panel jq-answer" id="jq-answer-panel">
-                    <div class="jq-tag">解答</div>
-                    <div class="jq-answer-text" id="jq-answer-text">
-                        ${this.judgeCurrentRevealed ? answerHtml : '<span class="jq-hidden">タップで開示</span>'}
-                    </div>
-                </div>
-                <div class="jq-panel jq-buttons">
-                    <div class="jq-tag">判定</div>
-                    <div class="jq-btn-row">
-                        <button class="jq-btn jq-btn-o ${this.judgeCurrentRevealed ? '' : 'jq-btn-disabled'}" id="jq-btn-o">〇</button>
-                        <button class="jq-btn jq-btn-x ${this.judgeCurrentRevealed ? '' : 'jq-btn-disabled'}" id="jq-btn-x">✕</button>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        // Tap current panel → reveal answer
-        const currentPanel = document.getElementById('jq-current-panel');
-        const answerPanel  = document.getElementById('jq-answer-panel');
-        const revealToggle = () => {
-            if (this.judgeCurrentRevealed) return;
-            this.judgeCurrentRevealed = true;
-            this.renderJudgeQueue();
-        };
-        if (currentPanel) currentPanel.addEventListener('click', revealToggle);
-        if (answerPanel)  answerPanel.addEventListener('click',  revealToggle);
-
-        // Judge buttons
-        const btnO = document.getElementById('jq-btn-o');
-        const btnX = document.getElementById('jq-btn-x');
-        if (btnO && !btnO.classList.contains('jq-btn-disabled')) {
-            btnO.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.advanceJudgeQueue(current.id, true);
-            });
-        }
-        if (btnX && !btnX.classList.contains('jq-btn-disabled')) {
-            btnX.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.advanceJudgeQueue(current.id, false);
-            });
-        }
-    },
 
     advanceJudgeQueue: function (playerId, isCorrect) {
         this.updatePlayerScore(playerId, isCorrect);
@@ -3752,8 +3681,7 @@ App.Studio = {
         setTimeout(() => {
             this.judgeQueue = this.judgeQueue.filter(e => e.id !== playerId);
             this.judgeCurrentRevealed = false;
-            this.renderJudgeQueue();
-        }, 300);
+            }, 300);
     },
 
     _esc: function (str) {
@@ -4336,6 +4264,18 @@ App.Studio = {
         t.startLocal = Date.now();
         this._writeTimer();
         this._armTimer();
+    },
+
+    // 司会者が問題の時計を延ばす（司会者画面の「+10秒」）
+    extendTimer: function (sec) {
+        const t = this._timer;
+        if (!t) return false;
+        t.remainMs = Math.max(0, this._timerRemaining() + sec * 1000);
+        if (t.running) t.startLocal = Date.now();
+        if (t.remainMs > t.totalMs) t.totalMs = t.remainMs;
+        this._writeTimer();
+        this._armTimer();
+        return true;
     },
 
     // 正誤に応じて持ち時間を増減（セット全体の持ち時間の時だけ）

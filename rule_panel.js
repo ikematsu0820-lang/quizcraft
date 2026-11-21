@@ -430,6 +430,9 @@ App.RulePanel = {
                 { v: 'none', t: '出さない' },
             ], conf.playerScoreView || 'score'))}
             ${this.note('「出さない」にすると、回答者は自分の得点も順位も分からず、モニターや結果発表で初めて知ります。会場の発表で盛り上げたい時に。')}
+            ${this.head('進行')}
+            ${this.row('1問ごとの結果発表', this.select('rp-result-each', [{ v: 'show', t: '出す' }, { v: 'skip', t: '出さない' }], conf.resultEachQ === 'skip' ? 'skip' : 'show'))}
+            ${this.note('「出さない」にすると、正解を見せた後すぐ次の問題へ進めます（1問あたり押す回数が1回へる）。全員同時の選択式などは「解答オープン」で結果を見せます。')}
             <div id="gametype-solo"></div>`;
         this.Cfg().wireAdvancedBlocks(box);
         this.Cfg()._renderSoloRules(box.querySelector('#gametype-solo'), conf, () => this.soft());
@@ -439,6 +442,7 @@ App.RulePanel = {
         const bind = (id, fn) => { const el = box.querySelector('#' + id); if (el) el.onchange = () => { fn(el.value); this.soft(); }; };
         bind('rp-lives', v => { conf.survivalLives = Math.max(1, parseInt(v) || 1); });
         bind('rp-score-view', v => { conf.playerScoreView = v; });
+        bind('rp-result-each', v => { conf.resultEachQ = v; });
         bind('rp-surv-end', v => { conf.survivalEndCount = Math.max(0, parseInt(v) || 0); });
         bind('rp-win-target', v => { conf.winTarget = Math.max(1, parseFloat(v) || 5); });
         bind('rp-win-by', v => { conf.winBy = v; });

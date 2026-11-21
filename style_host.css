@@ -5469,3 +5469,104 @@ body:has(> #unified-toggle-container:not([style*="none"])) #viewer-content {
 .sm-pc-btn { width: 100%; margin-top: 8px; padding: 10px; border-radius: 10px; background: transparent; border: 1px solid #334155; color: #94a3b8; font-size: 0.85rem; cursor: pointer; }
 .sm-pc-btn:hover { border-color: #00e5ff; color: #e2e8f0; }
 @media (max-width: 420px) { .sm-sets { grid-template-columns: minmax(0, 1fr); } }
+
+/* =========================================================
+ * 出題者画面の本番用の部品（host_console.js）
+ * ======================================================= */
+/* 進み具合「第1問／全10問・解答受付中」 */
+#studio-q-number-large { gap: 6px; padding: 4px 10px; font-size: 15px !important; }
+#studio-q-number-large .hc-of { font-weight: 700; color: #475569; }
+#studio-q-number-large .hc-phase { margin-left: 6px; padding: 1px 8px; border-radius: 99px; background: #0f172a; color: #67e8f9; font-size: 12px; font-weight: 700; }
+
+/* 時計 */
+.hc-clock { width: 100%; max-width: 600px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 0 0 8px; }
+.hc-clock.hidden { display: none; }
+.hc-clock-main, .hc-clock-ans { display: flex; align-items: center; gap: 8px; padding: 4px 12px; border-radius: 10px; background: #0f172a; border: 1px solid #334155; }
+.hc-clock-main { flex: 1 1 200px; }
+.hc-clock-main.hidden, .hc-clock-ans.hidden, .hc-clock-btns.hidden { display: none; }
+.hc-clock-k { color: #94a3b8; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.hc-clock-v { color: #fff; font-size: 26px; font-weight: 900; font-variant-numeric: tabular-nums; min-width: 2.6em; text-align: right; }
+.hc-clock-bar { flex: 1; height: 6px; border-radius: 3px; background: #1e293b; overflow: hidden; }
+.hc-clock-bar i { display: block; height: 100%; background: #22d3ee; transition: width 0.2s linear; }
+.hc-clock-main.warn .hc-clock-v, .hc-clock-ans.warn .hc-clock-v { color: #f87171; }
+.hc-clock-main.warn .hc-clock-bar i { background: #ef4444; }
+.hc-clock-main.paused .hc-clock-v { color: #fbbf24; }
+.hc-clock-ans { border-color: #f59e0b; }
+.hc-clock-ans .hc-clock-k { color: #fcd34d; }
+.hc-clock-btns { display: flex; gap: 6px; }
+.hc-btn { padding: 6px 12px; border-radius: 8px; border: 1px solid #475569; background: #1e293b; color: #e2e8f0; font-size: 13px; font-weight: 700; cursor: pointer; }
+
+/* 上位3人（スマホ） */
+.hc-top3 { width: 100%; max-width: 600px; display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; font-size: 12px; color: #cbd5e1; }
+.hc-top3.hidden { display: none; }
+.hc-top3 span { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 99px; background: #1e293b; }
+.hc-top3 i { font-style: normal; color: #fbbf24; font-weight: 900; }
+.hc-top3 b { color: #fff; }
+.hc-top3 em { font-style: normal; color: #64748b; align-self: center; }
+
+/* 判定（下に大きく） */
+.hc-judge { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.hc-judge.hidden { display: none; }
+.hc-judge-who { display: flex; align-items: baseline; justify-content: center; gap: 10px; color: #fff; }
+.hc-judge-who b { font-size: 20px; }
+.hc-judge-who span { color: #cbd5e1; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hc-judge-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.hc-judge-btns button {
+    height: 72px; border: none; border-radius: 14px; color: #fff; font-size: 34px; font-weight: 900; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 6px 0 rgba(0, 0, 0, 0.35);
+}
+.hc-judge-btns button small { font-size: 14px; font-weight: 700; }
+.hc-judge-btns button:active { transform: translateY(3px); box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35); }
+.hc-judge-ok { background: linear-gradient(180deg, #22c55e, #15803d); }
+.hc-judge-ng { background: linear-gradient(180deg, #ef4444, #b91c1c); }
+/* 判定の間は、進行ボタンを控えめに（押し間違えないように） */
+#host-control-view.hc-judging #console-btn-phase-main { height: 38px !important; font-size: 15px !important; opacity: 0.75; }
+
+/* 1つ戻る・押すと何が起きるか */
+.hc-row { width: 100%; max-width: 400px; display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.hc-back { flex: none; padding: 6px 10px; border-radius: 8px; border: 1px solid #475569; background: transparent; color: #cbd5e1; font-size: 12px; font-weight: 700; cursor: pointer; max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hc-back:disabled { opacity: 0.35; cursor: default; }
+.hc-next { flex: 1; min-width: 0; color: #94a3b8; font-size: 12px; text-align: right; }
+
+/* 得点を直す（参加者リスト） */
+.hc-score { display: flex; gap: 4px; margin-top: 6px; }
+.hc-score button { flex: 1; padding: 4px 0; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: #e2e8f0; font-size: 12px; font-weight: 700; cursor: pointer; }
+
+/* 問題と正解を大きく（司会者が読み上げ・確認する所） */
+#console-card-question { font-size: 18px !important; line-height: 1.6 !important; }
+#console-card-correct { font-size: 20px !important; }
+
+/* 案内（トースト）は、出題者画面では下の進行ボタンの上に（上の情報に重ねない） */
+body:has(#host-control-view:not(.hidden)) #toast-container { top: 46%; }
+/* 4つの小さな札（番号表示・問題表示…）は「第1問／全10問・解答受付中」の1行にまとめたので出さない */
+#host-control-view #studio-monitor-status-row { display: none !important; }
+#host-control-view #studio-q-number-large { margin-bottom: 0 !important; min-height: 36px; }
+
+/* モニターの縮小表示（PCだけ） */
+.hc-monitor { display: none; }
+@media (min-width: 1100px) {
+    /* PCは2列: 左に参加者（得点・指名・直す）、右に解答ボード・問題と正解。上にモニター */
+    #host-control-view .simple-studio-main {
+        display: grid !important; grid-template-columns: 320px minmax(0, 1fr); column-gap: 24px; align-items: start;
+        max-width: 1280px; margin: 0 auto;
+    }
+    #host-control-view .simple-studio-main > * { max-width: none !important; width: auto !important; }
+    #host-control-view .simple-studio-main > #studio-standby-panel,
+    #host-control-view .simple-studio-main > #studio-loader-ui { grid-column: 1 / -1; justify-self: center; width: 100% !important; max-width: 560px !important; }
+    #host-control-view #console-participants-page { display: block !important; grid-column: 1; grid-row: 1 / span 5; position: sticky; top: 180px; }
+    #host-control-view #console-participants-grid { grid-template-columns: 1fr !important; }
+    #host-control-view #console-participants-toggle { display: none; }
+    #host-control-view .simple-player-section,
+    #host-control-view .console-card-wrapper,
+    #host-control-view #judge-queue-area,
+    #host-control-view .hc-monitor { grid-column: 2; }
+    #host-control-view .simple-player-section { display: block !important; }
+    .hc-monitor { display: block; margin-bottom: 12px; }
+    .hc-monitor-head { display: flex; align-items: center; justify-content: space-between; color: #94a3b8; font-size: 12px; font-weight: 700; margin-bottom: 6px; }
+    .hc-monitor-frame { display: none; }
+    .hc-monitor.on .hc-monitor-frame { display: block; aspect-ratio: 16 / 9; width: 100%; max-height: 42vh; border-radius: 10px; overflow: hidden; border: 1px solid #334155; background: #000; }
+    .hc-monitor-frame iframe { width: 100%; height: 100%; border: 0; display: block; }
+    #host-control-view .simple-studio-controls > div:first-child,
+    .hc-clock, .hc-top3 { max-width: 1280px !important; }
+    .hc-top3 { display: none !important; }
+}
