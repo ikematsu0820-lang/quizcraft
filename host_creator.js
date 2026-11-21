@@ -1087,8 +1087,9 @@ window.App.Creator = {
         });
         document.querySelectorAll('.creator-rules-subtab-btn').forEach(btn => {
             const k = btn.dataset.rulesSubtab;
-            btn.style.background = (this.rulesSubTab === k) ? '#2d3748' : '#232a35';
-            btn.style.color = (this.rulesSubTab === k) ? '#e2e8f0' : '#8b95a5';
+            btn.style.background = '';
+            btn.style.color = '';
+            btn.classList.toggle('on', this.rulesSubTab === k); // 見た目は rule_panel.css（選んだタブの上に光る線）
             btn.onclick = () => {
                 this.rulesSubTab = k;
                 this.renderRulesSubtabs();

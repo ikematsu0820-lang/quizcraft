@@ -42,7 +42,7 @@ App.RulePanel = {
     num: function (id, val, unit, opt) {
         const o = opt || {};
         const v = (val === undefined || val === null || val === '') ? '' : val;
-        return `<span class="rp-num"><input type="number" id="${id}" value="${v}" ${o.min !== undefined ? `min="${o.min}"` : 'min="0"'} ${o.max !== undefined ? `max="${o.max}"` : ''} step="${o.step || 1}" inputmode="${o.step && o.step < 1 ? 'decimal' : 'numeric'}" placeholder="${o.placeholder || ''}"><span class="rp-num-unit">${unit || ''}</span>${o.zero ? `<span class="rp-num-hint">0＝${o.zero}</span>` : ''}</span>`;
+        return `<span class="rp-num"><span class="rp-num-box"><button type="button" class="rp-step" data-step="-1" aria-label="1つ減らす">−</button><input type="number" id="${id}" value="${v}" ${o.min !== undefined ? `min="${o.min}"` : 'min="0"'} ${o.max !== undefined ? `max="${o.max}"` : ''} step="${o.step || 1}" inputmode="${o.step && o.step < 1 ? 'decimal' : 'numeric'}" placeholder="${o.placeholder || ''}"><button type="button" class="rp-step" data-step="1" aria-label="1つ増やす">＋</button></span><span class="rp-num-unit">${unit || ''}</span>${o.zero ? `<span class="rp-num-hint">0＝${o.zero}</span>` : ''}</span>`;
     },
     // 入れた数字を読む（空や変な値は既定に）
     readNum: function (el, def, min, max) {
@@ -101,7 +101,7 @@ App.RulePanel = {
     renderSummary: function () {
         const box = document.getElementById('creator-rules-summary');
         if (!box) return;
-        box.innerHTML = `<span class="rp-sum-label">遊び方</span>${this.RE().describe(this._conf, this._questions)}`;
+        box.innerHTML = `<span class="rp-sum-label">現在の遊び方</span>${this.RE().describe(this._conf, this._questions)}`;
     },
 
     ctx: function () { return this.RE().context(this._conf, this._questions); },
@@ -599,3 +599,19 @@ App.RulePanel = {
     },
 
 };
+
+// 数字の − ＋（rule_panel.js num）— 入力欄の値を1つ（小数の時はその刻みで）動かし、change を送る
+document.addEventListener('click', (e) => {
+    const b = e.target.closest && e.target.closest('.rp-step');
+    if (!b) return;
+    const input = b.parentNode.querySelector('input[type="number"]');
+    if (!input) return;
+    const step = parseFloat(input.step) || 1;
+    const min = input.min !== '' ? parseFloat(input.min) : -Infinity;
+    const max = input.max !== '' ? parseFloat(input.max) : Infinity;
+    const cur = parseFloat(input.value) || 0;
+    const next = Math.min(max, Math.max(min, Math.round((cur + step * Number(b.dataset.step)) * 100) / 100));
+    if (next === cur) return;
+    input.value = next;
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+});

@@ -64,3 +64,147 @@
 .rp-num input:focus { outline: none; border-color: #00e5ff; }
 .rp-num-unit { color: #cbd5e1; font-size: 0.82rem; }
 .rp-num-hint { color: #64748b; font-size: 0.72rem; }
+
+/* =========================================================
+ * 放送卓（スイッチャー）風の見た目 — ルールの画面
+ *   ・無彩色のチャコール（青みを抜く）
+ *   ・枠線をやめ、明るさの差と内側の影（凹み）で区切る
+ *   ・選んだ物は上辺の細いLEDの線（アンバー）で示す
+ *   ・数字は等幅で、凹んだ黒い窓に
+ * ======================================================= */
+:root {
+    --sw-bg: #111114;        /* パネルの地 */
+    --sw-raise: #1b1b20;     /* 一段上がった部品 */
+    --sw-raise-on: #26262d;  /* 押されている部品 */
+    --sw-inset: #09090b;     /* 凹んだ窓 */
+    --sw-text: #ececef;
+    --sw-sub: #8b8b95;
+    --sw-dim: #5e5e67;
+    --sw-led: #f59e0b;       /* アンバーのLED */
+    --sw-led-glow: rgba(245, 158, 11, 0.55);
+    --sw-mono: ui-monospace, "SF Mono", "Menlo", "Consolas", "Roboto Mono", monospace;
+}
+
+/* パネルの地（スマホの下から出るパネル・PCの右の列） */
+.cm-sheet-panel:has(#creator-inline-rules),
+#cp-right:has(#creator-inline-rules:not(.hidden)) { background: var(--sw-bg) !important; }
+#creator-inline-rules { color: var(--sw-text); }
+
+/* 要約 — スペック表示の窓（凹み＋左のLED） */
+#creator-rules-summary {
+    background: var(--sw-inset) !important;
+    border: none !important;
+    border-radius: 6px !important;
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.8), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+    padding-left: 16px !important;
+    position: relative;
+    color: #d4d4d8 !important;
+}
+#creator-rules-summary::before {
+    content: ""; position: absolute; left: 6px; top: 10px; bottom: 10px; width: 3px; border-radius: 2px;
+    background: var(--sw-led); box-shadow: 0 0 8px var(--sw-led-glow);
+}
+.rp-sum-label {
+    display: block; margin: 0 0 2px; padding: 0; border-radius: 0; background: none !important;
+    color: var(--sw-led) !important; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.14em;
+}
+
+/* タブ — 物理スイッチの並び。選んだタブは一段明るく、上にLED */
+#creator-rules-subtabs { border: none !important; background: var(--sw-inset); padding: 3px; gap: 3px !important; border-radius: 8px !important; box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.7); }
+#creator-rules-subtabs .creator-rules-subtab-btn {
+    background: transparent !important; color: var(--sw-sub) !important; border-radius: 5px !important; position: relative;
+    letter-spacing: 0.04em;
+}
+#creator-rules-subtabs .creator-rules-subtab-btn.on { background: var(--sw-raise-on) !important; color: #fff !important; box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 2px 6px rgba(0, 0, 0, 0.5); }
+#creator-rules-subtabs .creator-rules-subtab-btn.on::before {
+    content: ""; position: absolute; left: 22%; right: 22%; top: 0; height: 2px; border-radius: 0 0 2px 2px;
+    background: var(--sw-led); box-shadow: 0 0 6px var(--sw-led-glow);
+}
+
+/* 見出し — 小さく字間を広く */
+#creator-inline-rules .rp-head { color: var(--sw-sub); font-size: 0.66rem; letter-spacing: 0.12em; margin-top: 14px; }
+
+/* カード（タイル）— 枠線なし、地の明るさの差。選んだ物は上辺にLED、裏に等幅の通し番号 */
+#creator-inline-rules .rp-tiles { counter-reset: swtile; gap: 6px; }
+#creator-inline-rules .rp-tile {
+    position: relative; overflow: hidden; counter-increment: swtile;
+    background: var(--sw-raise) !important; border: none !important; border-radius: 8px !important;
+    color: var(--sw-text) !important;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 2px 5px rgba(0, 0, 0, 0.45);
+    padding: 11px 6px 9px !important;
+}
+#creator-inline-rules .rp-tile::after {
+    content: counter(swtile, decimal-leading-zero); position: absolute; right: 6px; bottom: -6px;
+    font: 800 1.9rem/1 var(--sw-mono); color: #fff; opacity: 0.045; pointer-events: none; letter-spacing: -0.04em;
+}
+#creator-inline-rules .rp-tile.on { background: var(--sw-raise-on) !important; color: #fff !important; }
+#creator-inline-rules .rp-tile.on::before {
+    content: ""; position: absolute; left: 14%; right: 14%; top: 0; height: 3px; border-radius: 0 0 3px 3px;
+    background: var(--sw-led); box-shadow: 0 0 10px var(--sw-led-glow), 0 0 2px var(--sw-led);
+}
+#creator-inline-rules .rp-tile.on::after { opacity: 0.09; }
+#creator-inline-rules .rp-tile .rp-tile-sub { color: var(--sw-dim); opacity: 1; }
+#creator-inline-rules .rp-tile.on .rp-tile-sub { color: var(--sw-sub); }
+#creator-inline-rules .rp-tile:disabled { opacity: 0.28; box-shadow: none; }
+
+/* 2〜3択のボタンの並び（スマホでプルダウンから作る物）も同じ部品に */
+#creator-inline-rules .seg-ctl { background: var(--sw-inset) !important; border: none !important; border-radius: 8px !important; box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.7); padding: 3px !important; }
+#creator-inline-rules .seg-ctl button { background: transparent !important; color: var(--sw-sub) !important; border-radius: 6px !important; position: relative; box-shadow: none !important; }
+#creator-inline-rules .seg-ctl button.on { background: var(--sw-raise-on) !important; color: #fff !important; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5) !important; }
+#creator-inline-rules .seg-ctl button.on::before {
+    content: ""; position: absolute; left: 18%; right: 18%; top: 0; height: 2px; border-radius: 0 0 2px 2px;
+    background: var(--sw-led); box-shadow: 0 0 6px var(--sw-led-glow);
+}
+#creator-inline-rules select {
+    background-color: var(--sw-inset) !important; border: none !important; color: var(--sw-text) !important;
+    box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.7); border-radius: 6px !important;
+}
+
+/* 数字 — 凹んだ黒い窓に等幅の数字、両脇に − ＋ */
+.rp-num-box { display: inline-flex; align-items: stretch; background: var(--sw-inset); border-radius: 7px; box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.85); overflow: hidden; }
+#creator-inline-rules .rp-num input, .rp-num input {
+    width: 64px; border: none !important; background: transparent !important; box-shadow: none !important;
+    color: #fff; font: 700 1.25rem/1 var(--sw-mono); font-variant-numeric: tabular-nums; text-align: center;
+    padding: 8px 2px; -moz-appearance: textfield;
+}
+.rp-num input::-webkit-outer-spin-button, .rp-num input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.rp-num input:focus { outline: none; color: var(--sw-led); }
+.rp-step {
+    width: 34px; border: none; background: transparent; color: var(--sw-sub); font: 700 1.05rem/1 var(--sw-mono); cursor: pointer;
+}
+.rp-step:active { background: rgba(255, 255, 255, 0.06); color: #fff; }
+.rp-num-unit { color: #d4d4d8 !important; }
+.rp-num-hint { color: var(--sw-dim) !important; }
+
+/* 説明文・行の名前 — 色を落として、数字と見出しを立たせる */
+#creator-inline-rules .rp-row-label { color: var(--sw-sub); }
+#creator-inline-rules .rule-adv-note, #creator-inline-rules .rule-basic-note, #creator-inline-rules .rp-why { color: var(--sw-dim) !important; }
+
+/* 詳細設定 — 枠線なしの一段沈んだ箱 */
+#creator-inline-rules details.rule-adv { background: #0c0c0f !important; border: none !important; border-radius: 8px !important; box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.6); }
+#creator-inline-rules details.rule-adv > summary { color: var(--sw-sub) !important; letter-spacing: 0.08em; }
+#creator-inline-rules details.rule-adv[open] > summary { border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important; }
+
+/* チェックの印もアンバーに */
+#creator-inline-rules input[type="checkbox"] { accent-color: var(--sw-led); }
+
+/* スマホの入力欄・ボタンの共通の指定（高さ26px・最低44px など）より強く — 数字の窓を整える */
+#creator-view #creator-inline-rules .rp-num-box,
+#cm-sheet-body #creator-inline-rules .rp-num-box { height: 42px; }
+#creator-view #creator-inline-rules .rp-num-box input[type="number"],
+#cm-sheet-body #creator-inline-rules .rp-num-box input[type="number"] {
+    height: 42px !important; min-height: 0 !important; line-height: 42px !important; margin: 0 !important; padding: 0 2px !important;
+    width: 58px !important; font-size: 20px !important; font-family: var(--sw-mono) !important; font-weight: 700 !important;
+    background: transparent !important; border: none !important; box-shadow: none !important; color: #fff !important; text-align: center !important;
+}
+#creator-view #creator-inline-rules .rp-step,
+#cm-sheet-body #creator-inline-rules .rp-step {
+    height: 42px !important; min-height: 0 !important; width: 36px !important; min-width: 0 !important; margin: 0 !important; padding: 0 !important;
+    background: transparent !important; border: none !important; box-shadow: none !important; color: var(--sw-sub) !important; font-size: 18px !important;
+}
+/* 下から出るパネルの見出しとタブの帯も、パネルと同じ地に */
+.cm-sheet-panel:has(#creator-inline-rules) .cm-sheet-head { background: var(--sw-bg) !important; }
+#cm-sheet-body #creator-rules-subtabs { background: var(--sw-inset) !important; }
+/* オン/オフのスイッチはアンバー */
+#cm-sheet-body #creator-inline-rules input[type="checkbox"] { background: #2a2a31 !important; }
+#cm-sheet-body #creator-inline-rules input[type="checkbox"]:checked { background: var(--sw-led) !important; }
