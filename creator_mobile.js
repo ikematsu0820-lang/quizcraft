@@ -750,7 +750,7 @@ App.CreatorInput = {
         set(document.getElementById('creator-monitor-flexwrap'), { 'flex-direction': 'column', 'justify-content': 'flex-start' });
         set(document.getElementById('creator-monitor-q-area'), {
             width: '100%', 'align-self': 'stretch', display: 'flex', 'flex-direction': 'column', 'align-items': 'stretch',
-            'justify-content': 'flex-start', 'min-height': '0', 'border-color': '#00e5ff', 'background-color': '#1a1a1a', 'box-shadow': 'none',
+            'justify-content': 'flex-start', 'min-height': '0', 'border-color': '#f59e0b', 'background-color': '#1a1a1a', 'box-shadow': 'none',
         });
         set(document.getElementById('creator-form-container'), { position: 'static', width: '100%', 'align-self': 'stretch', flex: '1 1 auto' });
         const title = document.getElementById('question-title');

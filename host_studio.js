@@ -427,8 +427,8 @@ App.Studio = {
                 mobBtn.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)'; // Red for Stop
                 mobBtn.style.boxShadow = '0 4px 15px rgba(231, 76, 60, 0.4)';
             } else if (pcBtn.classList.contains('action-ready')) {
-                mobBtn.style.background = 'linear-gradient(135deg, #00bfff 0%, #0077aa 100%)'; // Blue for Ready/Start
-                mobBtn.style.boxShadow = '0 4px 15px rgba(0, 191, 255, 0.4)';
+                mobBtn.style.background = 'linear-gradient(135deg, #f59e0b 0%, #b45309 100%)'; // Blue for Ready/Start
+                mobBtn.style.boxShadow = '0 4px 15px rgba(245, 158, 11, 0.4)';
             } else {
                 mobBtn.style.background = '#444'; // Default Grey
                 mobBtn.style.boxShadow = 'none';
@@ -476,14 +476,14 @@ App.Studio = {
         const paintModeBtns = () => {
             const isSolo = (this._forcedMode === 'solo');
             if (normalBtn) {
-                normalBtn.style.borderColor = isSolo ? '#333' : '#00e5ff';
-                normalBtn.style.background = isSolo ? '#1a1a1a' : 'rgba(0,229,255,0.1)';
-                normalBtn.style.color = isSolo ? '#ccc' : '#00e5ff';
+                normalBtn.style.borderColor = isSolo ? '#333' : '#f59e0b';
+                normalBtn.style.background = isSolo ? '#1a1a1a' : 'rgba(245, 158, 11,0.1)';
+                normalBtn.style.color = isSolo ? '#ccc' : '#f59e0b';
             }
             if (soloBtn) {
-                soloBtn.style.borderColor = isSolo ? '#00e5ff' : '#333';
-                soloBtn.style.background = isSolo ? 'rgba(0,229,255,0.1)' : '#1a1a1a';
-                soloBtn.style.color = isSolo ? '#00e5ff' : '#ccc';
+                soloBtn.style.borderColor = isSolo ? '#f59e0b' : '#333';
+                soloBtn.style.background = isSolo ? 'rgba(245, 158, 11,0.1)' : '#1a1a1a';
+                soloBtn.style.color = isSolo ? '#f59e0b' : '#ccc';
             }
         };
         if (normalBtn) normalBtn.onclick = () => { this._forcedMode = null; paintModeBtns(); };
@@ -3482,7 +3482,7 @@ App.Studio = {
             return `<div style="display:flex; align-items:center; gap:8px; padding:6px 10px; border-radius:8px; background:${id === cur && !ng.finished ? 'rgba(251,191,36,0.2)' : '#1f2430'}; border:1px solid ${id === cur && !ng.finished ? '#fbbf24' : '#333'};">
                 <span style="flex:1; color:#fff; font-weight:bold; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(ng.names[id])}${id === cur && !ng.finished ? '（番）' : ''}</span>
                 ${isBJ ? `<span style="color:${out === 'bust' ? '#f87171' : '#fbbf24'}; font-weight:900;">${t}${unit}</span>` : ''}
-                ${out === 'bust' ? '<span style="color:#f87171; font-size:11px;">超えた</span>' : out === 'stand' ? '<span style="color:#94a3b8; font-size:11px;">ストップ</span>' : ''}
+                ${out === 'bust' ? '<span style="color:#f87171; font-size:11px;">超えた</span>' : out === 'stand' ? '<span style="color:#8b8b95; font-size:11px;">ストップ</span>' : ''}
             </div>`;
         }).join('');
         const last = ng.last;
@@ -3494,23 +3494,23 @@ App.Studio = {
         const grid = ng.items.map((it, i) => {
             const used = ng.used.includes(i);
             return `<button type="button" data-ng-idx="${i}" ${used || !canHostPick ? 'disabled' : ''} style="padding:6px 4px; border-radius:6px; font-size:12px; cursor:${used || !canHostPick ? 'default' : 'pointer'};
-                background:${used ? '#111' : '#232a35'}; color:${used ? '#64748b' : '#e2e8f0'}; border:1px solid ${used ? '#222' : '#475569'}; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                ${esc(it.name)}<br><span style="color:${used ? '#fbbf24' : '#64748b'}; font-weight:bold;">${used ? `${it.value}${unit}` : `(${it.value})`}</span></button>`;
+                background:${used ? '#111' : '#1f1f24'}; color:${used ? '#6b6b74' : '#e5e5e8'}; border:1px solid ${used ? '#222' : '#3a3a42'}; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                ${esc(it.name)}<br><span style="color:${used ? '#fbbf24' : '#6b6b74'}; font-weight:bold;">${used ? `${it.value}${unit}` : `(${it.value})`}</span></button>`;
         }).join('');
         const resultHtml = ng.finished ? `<div style="margin-top:8px; padding:10px; border-radius:8px; background:rgba(34,197,94,0.15); border:1px solid #22c55e; color:#fff;">
             <b>結果：</b>${esc(ng.result.text)}<br>${isBJ
                 ? `勝ち：${(ng.result.winners || []).map(esc).join('、') || 'なし'}`
                 : (ng.result.loser ? `負け：${esc(ng.result.loser)}` : '引き分け')}</div>` : '';
         box.innerHTML = `
-            <div style="color:#94a3b8; font-size:12px; margin-bottom:6px; border-bottom:1px solid #333; padding-bottom:5px;">
+            <div style="color:#8b8b95; font-size:12px; margin-bottom:6px; border-bottom:1px solid #333; padding-bottom:5px;">
                 数字予想 ／ ${isBJ ? `近づけた人が勝ち（目標 ${ng.target}${unit}・超えたら脱落）` : `超えたら負け（${ng.target}${unit} を超えさせた人の負け）`}
                 ${!isBJ ? `<span style="float:right; color:#fbbf24; font-weight:bold;">いまの合計 ${ng.shared}${unit}</span>` : ''}
             </div>
             <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:6px; margin-bottom:8px;">${players}</div>
-            <div style="color:#e2e8f0; font-size:14px; padding:8px 10px; background:#1a1a1a; border-radius:8px; margin-bottom:8px;">${lastHtml}</div>
+            <div style="color:#e5e5e8; font-size:14px; padding:8px 10px; background:#1a1a1a; border-radius:8px; margin-bottom:8px;">${lastHtml}</div>
             ${resultHtml}
-            ${isBJ && canHostPick ? `<button type="button" id="ng-host-stand" style="margin:0 0 8px; padding:6px 14px; border-radius:8px; background:#334155; color:#e2e8f0; border:1px solid #475569; cursor:pointer;">${esc(ng.names[cur])} さんをストップにする</button>` : ''}
-            <div style="color:#64748b; font-size:11px; margin-bottom:4px;">項目（押すと今の番の人の代わりに選べます・かっこ内は出題者だけに見える数）</div>
+            ${isBJ && canHostPick ? `<button type="button" id="ng-host-stand" style="margin:0 0 8px; padding:6px 14px; border-radius:8px; background:#2c2c33; color:#e5e5e8; border:1px solid #3a3a42; cursor:pointer;">${esc(ng.names[cur])} さんをストップにする</button>` : ''}
+            <div style="color:#6b6b74; font-size:11px; margin-bottom:4px;">項目（押すと今の番の人の代わりに選べます・かっこ内は出題者だけに見える数）</div>
             <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(92px, 1fr)); gap:4px; max-height:240px; overflow-y:auto;">${grid}</div>`;
         box.querySelectorAll('[data-ng-idx]').forEach(b => {
             b.onclick = () => { const c = this.ngCurrentId(); if (c) this.ngApplyPick(c, parseInt(b.dataset.ngIdx)); };
@@ -3565,16 +3565,16 @@ App.Studio = {
             btn.style.cssText = `
                 width:100%; padding:12px 6px; border-radius:12px; cursor:pointer; font-weight:900; font-size:15px;
                 overflow:hidden; text-overflow:ellipsis; white-space:nowrap; transition:all 0.2s;
-                color:${glow ? '#fff' : res === 'win' ? '#bbf7d0' : res === 'lose' ? '#94a3b8' : '#ddd'};
+                color:${glow ? '#fff' : res === 'win' ? '#bbf7d0' : res === 'lose' ? '#8b8b95' : '#ddd'};
                 background:${glow ? 'linear-gradient(135deg,#ef4444,#b91c1c)' : res === 'win' ? 'rgba(34,197,94,0.18)' : '#222'};
-                border:2px solid ${selected ? '#00e5ff' : glow ? '#fca5a5' : '#444'};
+                border:2px solid ${selected ? '#f59e0b' : glow ? '#fca5a5' : '#444'};
                 box-shadow:${glow ? '0 0 14px rgba(239,68,68,0.75)' : 'none'};
             `;
             btn.textContent = (res === 'win' ? '〇 ' : res === 'lose' ? '✕ ' : '') + (p.name || '---');
             if (isWriting(p)) {
                 const w = document.createElement('span');
                 w.textContent = '書いています';
-                w.style.cssText = 'display:block; font-size:11px; font-weight:700; color:#94a3b8;';
+                w.style.cssText = 'display:block; font-size:11px; font-weight:700; color:#8b8b95;';
                 btn.appendChild(w);
             }
             btn.onclick = () => {
@@ -3621,7 +3621,7 @@ App.Studio = {
         const canJudge = !!(sel && hasAns(sel) && !resultOf(sel));
         const selRes = resultOf(sel);
         judge.innerHTML = `
-            <div style="color:#94a3b8; font-size:12px; font-weight:bold;">判定</div>
+            <div style="color:#8b8b95; font-size:12px; font-weight:bold;">判定</div>
             <div style="display:flex; gap:8px;">
                 <button type="button" data-desk-judge="1" style="width:52px; height:64px; border:none; border-radius:10px; font-size:28px; font-weight:900; color:#fff; cursor:${canJudge ? 'pointer' : 'default'}; background:#22a55a; opacity:${canJudge ? 1 : 0.3};">〇</button>
                 <button type="button" data-desk-judge="0" style="width:52px; height:64px; border:none; border-radius:10px; font-size:28px; font-weight:900; color:#fff; cursor:${canJudge ? 'pointer' : 'default'}; background:#c0392b; opacity:${canJudge ? 1 : 0.3};">✕</button>
@@ -3655,7 +3655,7 @@ App.Studio = {
             const nominated = this._nominatedId === p.id;
             return `<div ${canNominate ? `data-nominate="${p.id}"` : ''} style="padding:10px 8px; border-radius:10px; background:${nominated ? 'rgba(239,68,68,0.25)' : '#222'}; border:1px solid ${nominated ? '#ef4444' : answered ? '#ef4444' : '#444'}; text-align:center; opacity:${out ? 0.45 : 1}; cursor:${canNominate ? 'pointer' : 'default'};">
                 <div style="color:#fff; font-weight:900; font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${this._esc(p.name || '---')}</div>
-                <div style="color:#94a3b8; font-size:11px; margin-top:4px;">${p.periodScore || 0}点${out ? '・脱落' : ''}${answered ? '・解答済み' : ''}${nominated ? '・指名中' : canNominate ? '・押して指名' : ''}</div>
+                <div style="color:#8b8b95; font-size:11px; margin-top:4px;">${p.periodScore || 0}点${out ? '・脱落' : ''}${answered ? '・解答済み' : ''}${nominated ? '・指名中' : canNominate ? '・押して指名' : ''}</div>
             </div>`;
         }).join('') : '<div style="color:#666; font-size:12px;">まだ参加者がいません</div>';
         grid.querySelectorAll('[data-nominate]').forEach(el => {
@@ -4092,8 +4092,8 @@ App.Studio = {
                 chip.textContent = p.name || 'Guest';
                 chip.style.cursor = 'pointer';
                 if (this.selectedPlayerId === p.id) {
-                    chip.style.borderColor = '#00bfff';
-                    chip.style.background = 'rgba(0, 191, 255, 0.2)';
+                    chip.style.borderColor = '#f59e0b';
+                    chip.style.background = 'rgba(245, 158, 11, 0.2)';
                 }
                 chip.onclick = () => {
                     this.selectedPlayerId = p.id;

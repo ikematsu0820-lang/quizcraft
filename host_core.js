@@ -862,7 +862,7 @@ window.App.Dashboard = {
         const originalOnclick = el.onclick;
         el.onclick = null; // Disable click while editing to prevent re-triggering
 
-        el.innerHTML = `<input type="text" id="inline-title-input" value="${oldTitle}" style="width:100%; box-sizing:border-box; padding:6px; border-radius:4px; border:1px solid #00bfff; background:#222; color:#fff; font-size:1em; outline:none;">`;
+        el.innerHTML = `<input type="text" id="inline-title-input" value="${oldTitle}" style="width:100%; box-sizing:border-box; padding:6px; border-radius:4px; border:1px solid #f59e0b; background:#222; color:#fff; font-size:1em; outline:none;">`;
         const input = document.getElementById('inline-title-input');
 
         // Prevent click bubble bubbling up to overlay close
@@ -960,7 +960,7 @@ window.App.Dashboard = {
                     </div>
                     <div class="item-menu-body" style="display:flex; flex-direction:column; gap:8px;">
                         <button class="item-menu-btn" onclick="${startAction}; document.getElementById('item-menu-modal').remove()">
-                            <i class="fas fa-play" style="color:#00e5ff;"></i><span>スタート</span>
+                            <i class="fas fa-play" style="color:#f59e0b;"></i><span>スタート</span>
                         </button>
                         <button class="item-menu-btn" onclick="${testAction}; document.getElementById('item-menu-modal').remove()">
                             <i class="fas fa-flask" style="color:#f39c12;"></i><span>テスト</span>
@@ -1133,7 +1133,7 @@ window.App.Dashboard = {
 
         // Update Title with Back Button
         titleEl.innerHTML = `
-            <button onclick="window.App.Dashboard.openItemMenu('${key}', 'set')" style="background:none; border:none; color:#00e5ff; font-size:0.8em; cursor:pointer; padding:0 10px 0 0; display:flex; align-items:center; opacity:0.8; transition:0.2s; flex-shrink:0;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">戻る</button>
+            <button onclick="window.App.Dashboard.openItemMenu('${key}', 'set')" style="background:none; border:none; color:#f59e0b; font-size:0.8em; cursor:pointer; padding:0 10px 0 0; display:flex; align-items:center; opacity:0.8; transition:0.2s; flex-shrink:0;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">戻る</button>
             <span>編集メニュー</span>
         `;
         titleEl.onclick = null;

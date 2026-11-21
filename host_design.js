@@ -240,10 +240,10 @@ App.Design = {
         const colorSwatch = (label, key, extraHtml = '') => `
             <div class="ds-swatch" style="display:flex; flex-direction:column; align-items:center; gap:3px; flex:1 1 38px; min-width:0;">
                 <button type="button" data-color-swatch-key="${key}" data-color-swatch-label="${label}" title="${design[key] ?? ''}" style="
-                    width:100%; height:32px; box-sizing:border-box; padding:0; border:1px solid #475569; border-radius:6px; cursor:pointer;
+                    width:100%; height:32px; box-sizing:border-box; padding:0; border:1px solid #3a3a42; border-radius:6px; cursor:pointer;
                     background:${design[key] || 'transparent'};
                 "></button>
-                <span style="font-size:0.58rem; color:#94a3b8; white-space:nowrap;">${label}</span>
+                <span style="font-size:0.58rem; color:#8b8b95; white-space:nowrap;">${label}</span>
                 ${extraHtml}
             </div>
         `;
@@ -264,21 +264,21 @@ App.Design = {
         const miniText = (label, key) => `
             <div style="display:flex; flex-direction:column; align-items:center; gap:3px; flex:1; min-width:0;">
                 <input type="text" data-key="${key}" value="${design[key] ?? ''}" style="
-                    width:100%; height:${CONTROL_HEIGHT}; min-height:${CONTROL_HEIGHT}; margin:0; padding:0 4px; background:#1e293b; border:1px solid #475569;
+                    width:100%; height:${CONTROL_HEIGHT}; min-height:${CONTROL_HEIGHT}; margin:0; padding:0 4px; background:#1b1b20; border:1px solid #3a3a42;
                     border-radius:6px; color:#fff; font-size:0.72rem; text-align:center; box-sizing:border-box;
                 ">
-                <span style="font-size:0.58rem; color:#94a3b8; white-space:nowrap;">${label}</span>
+                <span style="font-size:0.58rem; color:#8b8b95; white-space:nowrap;">${label}</span>
             </div>
         `;
         const miniSelect = (label, key, options) => `
             <div style="display:flex; flex-direction:column; align-items:center; gap:3px; flex:1; min-width:0;">
                 <select data-key="${key}" style="
-                    width:100%; height:${CONTROL_HEIGHT}; min-height:${CONTROL_HEIGHT}; margin:0; padding:0 2px; background:#1e293b; border:1px solid #475569;
+                    width:100%; height:${CONTROL_HEIGHT}; min-height:${CONTROL_HEIGHT}; margin:0; padding:0 2px; background:#1b1b20; border:1px solid #3a3a42;
                     border-radius:6px; color:#fff; font-size:0.66rem; box-sizing:border-box;
                 ">
                     ${options.map(o => `<option value="${o.v}" ${(design[key] ?? '') === o.v ? 'selected' : ''}>${o.t}</option>`).join('')}
                 </select>
-                <span style="font-size:0.58rem; color:#94a3b8; white-space:nowrap;">${label}</span>
+                <span style="font-size:0.58rem; color:#8b8b95; white-space:nowrap;">${label}</span>
             </div>
         `;
         const ALIGN_OPTS = [{ v: 'left', t: '左寄せ' }, { v: 'center', t: '中央' }, { v: 'right', t: '右寄せ' }];
@@ -316,7 +316,7 @@ App.Design = {
         // vertically against their (control + caption) height.
         const rowLabel = (text) => `
             <div class="ds-rowlabel" style="flex:0 0 34px; display:flex; align-items:center; justify-content:center;">
-                <span style="font-size:0.66rem; color:#94a3b8; font-weight:bold; white-space:nowrap;">${text}</span>
+                <span style="font-size:0.66rem; color:#8b8b95; font-weight:bold; white-space:nowrap;">${text}</span>
             </div>
         `;
 
@@ -440,12 +440,12 @@ App.Design = {
                         ])}
                         <div style="display:flex; gap:6px; margin-top:8px;">
                             <button type="button" id="design-grid-config-btn" style="
-                                flex:1; min-width:0; padding:6px 6px; background:#1e293b; border:1px solid #475569;
+                                flex:1; min-width:0; padding:6px 6px; background:#1b1b20; border:1px solid #3a3a42;
                                 border-radius:8px; color:#fff; font-size:0.72rem; cursor:pointer;
                                 display:flex; flex-direction:row; align-items:center; justify-content:center; gap:5px;
                             ">
                                 <span>${choicesLabel}の配置</span>
-                                <span id="design-grid-summary" style="color:#00e5ff; font-weight:bold;">${gridSummary()}</span>
+                                <span id="design-grid-summary" style="color:#f59e0b; font-weight:bold;">${gridSummary()}</span>
                             </button>
                         </div>
                         ${window.App.ItemImage && window.App.ItemImage.supports() ? `
@@ -474,15 +474,15 @@ App.Design = {
                                 <div style="display:flex; width:100%; gap:4px;">
                                     <button type="button" data-bgimg-pick title="背景に画像を使う" style="
                                         flex:1; min-width:0; height:32px; box-sizing:border-box; padding:0; border-radius:6px; cursor:pointer;
-                                        border:1px ${hasBgImg ? 'solid #00e5ff' : 'dashed #475569'};
-                                        background:${hasBgImg ? `center/cover no-repeat url(${bgImg})` : '#1e293b'};
-                                        color:#94a3b8; font-size:0.66rem;
+                                        border:1px ${hasBgImg ? 'solid #f59e0b' : 'dashed #3a3a42'};
+                                        background:${hasBgImg ? `center/cover no-repeat url(${bgImg})` : '#1b1b20'};
+                                        color:#8b8b95; font-size:0.66rem;
                                     ">${hasBgImg ? '' : `<span style="display:inline-flex; align-items:center; gap:4px;">${window.App.Icons.svg('image', 14)}画像を選ぶ</span>`}</button>
                                     ${hasBgImg ? `<button type="button" data-bgimg-clear title="画像を外す" style="
                                         flex:0 0 auto; width:28px; height:32px; padding:0; border:1px dashed #ff8888; border-radius:6px;
                                         background:none; color:#ff8888; cursor:pointer;">×</button>` : ''}
                                 </div>
-                                <span style="font-size:0.58rem; color:#94a3b8; white-space:nowrap;">背景画像</span>
+                                <span style="font-size:0.58rem; color:#8b8b95; white-space:nowrap;">背景画像</span>
                                 <input type="file" accept="image/*" data-bgimg-input style="display:none;">
                             </div>
                         </div>
@@ -554,12 +554,12 @@ App.Design = {
                     return `
                         <button type="button" data-sound-tile="${key}" data-sound-label="${label}" style="
                             flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:2px;
-                            padding:7px 2px; background:#1e293b; border:1px solid ${isSet ? '#00e5ff' : '#475569'};
+                            padding:7px 2px; background:#1b1b20; border:1px solid ${isSet ? '#f59e0b' : '#3a3a42'};
                             border-radius:8px; color:#fff; cursor:pointer;
                         ">
                             <span style="display:flex; line-height:1;">${icon}</span>
-                            <span style="font-size:0.56rem; color:#94a3b8; white-space:nowrap;">${label}</span>
-                            <span style="font-size:0.52rem; color:${isSet ? '#00e5ff' : '#555'};">${isSet ? (hasFile ? 'あり' : 'URL') : '未設定'}</span>
+                            <span style="font-size:0.56rem; color:#8b8b95; white-space:nowrap;">${label}</span>
+                            <span style="font-size:0.52rem; color:${isSet ? '#f59e0b' : '#555'};">${isSet ? (hasFile ? 'あり' : 'URL') : '未設定'}</span>
                         </button>
                     `;
                 };
@@ -587,18 +587,18 @@ App.Design = {
             return `
                 <button type="button" data-sound-tile="${key}" data-sound-label="${label}" style="
                     flex:0 0 auto; min-width:90px; display:flex; flex-direction:column; align-items:center; gap:2px;
-                    padding:7px 10px; background:#1e293b; border:1px solid ${isSet ? '#00e5ff' : '#475569'};
+                    padding:7px 10px; background:#1b1b20; border:1px solid ${isSet ? '#f59e0b' : '#3a3a42'};
                     border-radius:8px; color:#fff; cursor:pointer;
                 ">
                     <span style="display:flex; line-height:1;">${icon}</span>
-                    <span style="font-size:0.56rem; color:#94a3b8; white-space:nowrap;">${label}</span>
-                    <span style="font-size:0.52rem; color:${isSet ? '#00e5ff' : '#555'};">${isSet ? 'あり' : '未設定'}</span>
+                    <span style="font-size:0.56rem; color:#8b8b95; white-space:nowrap;">${label}</span>
+                    <span style="font-size:0.52rem; color:${isSet ? '#f59e0b' : '#555'};">${isSet ? 'あり' : '未設定'}</span>
                 </button>
             `;
         };
         const bgImageCheck = (key, checked) => `
-            <label style="display:flex; align-items:center; gap:6px; margin-top:8px; color:#cbd5e1; font-size:0.72rem; cursor:pointer;">
-                <input type="checkbox" data-check-key="${key}" ${checked ? 'checked' : ''} style="accent-color:#00e5ff; cursor:pointer;">全体背景の画像を使う
+            <label style="display:flex; align-items:center; gap:6px; margin-top:8px; color:#c9c9cf; font-size:0.72rem; cursor:pointer;">
+                <input type="checkbox" data-check-key="${key}" ${checked ? 'checked' : ''} style="accent-color:#f59e0b; cursor:pointer;">全体背景の画像を使う
             </label>
         `;
         const esc = (v) => String(v || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
@@ -618,7 +618,7 @@ App.Design = {
             text: () => `
                 ${slideHeader('ブリッジスライド')}
                 <input type="text" data-qnum-text value="${esc(window.App.Creator && window.App.Creator.qNumText)}" placeholder="空欄なら「第○問」（この問題だけの文言）" style="
-                    width:100%; height:${CONTROL_HEIGHT}; min-height:${CONTROL_HEIGHT}; padding:0 8px; margin:0 0 8px; background:#1e293b; border:1px solid #475569;
+                    width:100%; height:${CONTROL_HEIGHT}; min-height:${CONTROL_HEIGHT}; padding:0 8px; margin:0 0 8px; background:#1b1b20; border:1px solid #3a3a42;
                     border-radius:6px; color:#fff; box-sizing:border-box;
                 ">
                 <div style="display:flex; gap:6px; align-items:center;">
@@ -649,7 +649,7 @@ App.Design = {
                     <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:6px;">
                         ${BV.STYLES.map(st => `
                             <button type="button" data-bridge-style="${st.id}" style="padding:10px 4px; border-radius:8px; cursor:pointer; font-size:0.72rem; font-weight:bold;
-                                background:${cur === st.id ? 'rgba(0,229,255,0.12)' : '#1e293b'}; border:1px solid ${cur === st.id ? '#00e5ff' : '#475569'}; color:${cur === st.id ? '#00e5ff' : '#e2e8f0'};">${st.name}</button>
+                                background:${cur === st.id ? 'rgba(245, 158, 11,0.12)' : '#1b1b20'}; border:1px solid ${cur === st.id ? '#f59e0b' : '#3a3a42'}; color:${cur === st.id ? '#f59e0b' : '#e5e5e8'};">${st.name}</button>
                         `).join('')}
                     </div>
                     <p style="color:#555; font-size:0.62rem; margin:8px 0 0;">※押すとプレビューで動きを確認できます。帯や光の色はテーマのアクセント色です</p>`;
@@ -690,7 +690,7 @@ App.Design = {
             text: () => `
                 ${slideHeader('タイトル画面')}
                 <input type="text" data-key="titleText" value="${esc(design.titleText)}" placeholder="空欄ならセット名（${esc((window.App.Creator && window.App.Creator.editingTitle) || '未設定')}）" style="
-                    width:100%; height:${CONTROL_HEIGHT}; min-height:${CONTROL_HEIGHT}; padding:0 8px; margin:0 0 8px; background:#1e293b; border:1px solid #475569;
+                    width:100%; height:${CONTROL_HEIGHT}; min-height:${CONTROL_HEIGHT}; padding:0 8px; margin:0 0 8px; background:#1b1b20; border:1px solid #3a3a42;
                     border-radius:6px; color:#fff; box-sizing:border-box;
                 ">
                 <div style="display:flex; gap:6px; align-items:center;">
@@ -730,13 +730,13 @@ App.Design = {
                 return `
                     <button type="button" data-theme-id="${t.id}" style="
                         display:flex; flex-direction:column; gap:4px; padding:6px; min-width:0;
-                        background:#1e293b; border:2px solid ${on ? '#00e5ff' : '#334155'}; border-radius:8px; cursor:pointer; text-align:left;">
+                        background:#1b1b20; border:2px solid ${on ? '#f59e0b' : '#2c2c33'}; border-radius:8px; cursor:pointer; text-align:left;">
                         <div style="width:100%; aspect-ratio:16/9; box-sizing:border-box; border-radius:4px; background:${c.mainBgColor}; font-family:${font};
                             display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:4px; overflow:hidden;">
                             ${window.App.ChoiceSkin ? window.App.ChoiceSkin.miniHtml(t) : ''}
                         </div>
-                        <span style="font-size:0.68rem; font-weight:bold; color:${on ? '#00e5ff' : '#e2e8f0'};">${t.name}${on && modified ? '<span style="color:#94a3b8; font-weight:normal;">（カスタム）</span>' : ''}</span>
-                        <span style="font-size:0.56rem; color:#94a3b8; line-height:1.3;">${t.desc}</span>
+                        <span style="font-size:0.68rem; font-weight:bold; color:${on ? '#f59e0b' : '#e5e5e8'};">${t.name}${on && modified ? '<span style="color:#8b8b95; font-weight:normal;">（カスタム）</span>' : ''}</span>
+                        <span style="font-size:0.56rem; color:#8b8b95; line-height:1.3;">${t.desc}</span>
                     </button>
                 `;
             };
@@ -758,13 +758,13 @@ App.Design = {
                     // 問題の枠と回答の枠の割合（プレビューの境目をドラッグしても変えられる）
                     const r = Number(design.splitRatio) || 0;
                     return `
-                        <div style="margin:14px 0 6px; color:#94a3b8; font-size:0.7rem; font-weight:bold; display:flex; justify-content:space-between;">
+                        <div style="margin:14px 0 6px; color:#8b8b95; font-size:0.7rem; font-weight:bold; display:flex; justify-content:space-between;">
                             <span>問題の枠と回答の枠の大きさ</span>
-                            <span id="split-ratio-val" style="color:#e2e8f0;">${r ? `問題 ${r}％` : '自動'}</span>
+                            <span id="split-ratio-val" style="color:#e5e5e8;">${r ? `問題 ${r}％` : '自動'}</span>
                         </div>
                         <div style="display:flex; gap:8px; align-items:center;">
-                            <input type="range" id="split-ratio-range" min="15" max="80" step="1" value="${r || 40}" style="flex:1; height:auto !important; min-height:0 !important; margin:0; accent-color:#00e5ff;">
-                            <button type="button" id="split-ratio-auto" style="flex:0 0 auto; padding:5px 10px; border-radius:6px; background:${r ? '#1e293b' : 'rgba(0,229,255,0.12)'}; border:1px solid ${r ? '#475569' : '#00e5ff'}; color:${r ? '#e2e8f0' : '#00e5ff'}; font-size:0.7rem; cursor:pointer;">自動</button>
+                            <input type="range" id="split-ratio-range" min="15" max="80" step="1" value="${r || 40}" style="flex:1; height:auto !important; min-height:0 !important; margin:0; accent-color:#f59e0b;">
+                            <button type="button" id="split-ratio-auto" style="flex:0 0 auto; padding:5px 10px; border-radius:6px; background:${r ? '#1b1b20' : 'rgba(245, 158, 11,0.12)'}; border:1px solid ${r ? '#3a3a42' : '#f59e0b'}; color:${r ? '#e5e5e8' : '#f59e0b'}; font-size:0.7rem; cursor:pointer;">自動</button>
                         </div>
                         <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">※プレビューの境目（点線のつまみ）をドラッグしても変えられます</p>`;
                 })()}
@@ -780,10 +780,10 @@ App.Design = {
             // 時間の制限が「なし」の時はタイマーが出ないので、見た目の設定もしない
             if ((window.App.Data.currentConfig || {}).timeLimitEnabled !== 'on') {
                 return `
-                    <div style="padding:14px 12px; border-radius:10px; background:#161b24; border:1px solid #2a3342; color:#cbd5e1; font-size:0.78rem; line-height:1.6;">
-                        <div style="color:#e2e8f0; font-weight:bold; margin-bottom:4px;">タイマー</div>
+                    <div style="padding:14px 12px; border-radius:10px; background:#17171b; border:1px solid #2a2a30; color:#c9c9cf; font-size:0.78rem; line-height:1.6;">
+                        <div style="color:#e5e5e8; font-weight:bold; margin-bottom:4px;">タイマー</div>
                         時間の制限が「なし」なので、タイマーは出ません。
-                        <button type="button" data-goto-rules-time style="display:block; width:100%; margin-top:10px; padding:10px; border-radius:8px; background:#1e293b; border:1px solid #475569; color:#fff; font-weight:bold; cursor:pointer;">ルールの「時間」で制限時間を決める</button>
+                        <button type="button" data-goto-rules-time style="display:block; width:100%; margin-top:10px; padding:10px; border-radius:8px; background:#1b1b20; border:1px solid #3a3a42; color:#fff; font-weight:bold; cursor:pointer;">ルールの「時間」で制限時間を決める</button>
                     </div>
                     ${liveSection()}
                 `;
@@ -793,17 +793,17 @@ App.Design = {
             const warnSec = design.timerWarnSec !== undefined && design.timerWarnSec !== '' ? Number(design.timerWarnSec) : 5;
             const chk = (key, label, def) => {
                 const on = design[key] === undefined ? def : !!design[key];
-                return `<label style="display:flex; align-items:center; gap:6px; color:#cbd5e1; font-size:0.72rem; cursor:pointer;">
-                    <input type="checkbox" data-timer-chk="${key}" ${on ? 'checked' : ''} style="width:auto; height:auto; min-height:0; margin:0; accent-color:#00e5ff;">${label}</label>`;
+                return `<label style="display:flex; align-items:center; gap:6px; color:#c9c9cf; font-size:0.72rem; cursor:pointer;">
+                    <input type="checkbox" data-timer-chk="${key}" ${on ? 'checked' : ''} style="width:auto; height:auto; min-height:0; margin:0; accent-color:#f59e0b;">${label}</label>`;
             };
             return `
-                <div id="design-timer-demo" style="margin-bottom:10px; padding:8px 10px; border-radius:8px; background:rgba(0,229,255,0.08); border:1px solid rgba(0,229,255,0.3); color:#7dd3fc; font-size:0.7rem; line-height:1.5;">
+                <div id="design-timer-demo" style="margin-bottom:10px; padding:8px 10px; border-radius:8px; background:rgba(245, 158, 11,0.08); border:1px solid rgba(245, 158, 11,0.3); color:#7dd3fc; font-size:0.7rem; line-height:1.5;">
                     プレビューの問題の画面で、本番と同じ位置・大きさでタイマーが動きます。秒数はルールの「時間」で決めます。
                 </div>
                 <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; margin-bottom:10px;">
                     ${TV.STYLES.map(st => `
                         <button type="button" data-timer-style="${st.id}" style="padding:8px 4px; border-radius:8px; cursor:pointer; font-size:0.72rem; font-weight:bold;
-                            background:${cur === st.id ? 'rgba(0,229,255,0.12)' : '#1e293b'}; border:1px solid ${cur === st.id ? '#00e5ff' : '#475569'}; color:${cur === st.id ? '#00e5ff' : '#e2e8f0'};">${st.name}</button>
+                            background:${cur === st.id ? 'rgba(245, 158, 11,0.12)' : '#1b1b20'}; border:1px solid ${cur === st.id ? '#f59e0b' : '#3a3a42'}; color:${cur === st.id ? '#f59e0b' : '#e5e5e8'};">${st.name}</button>
                     `).join('')}
                 </div>
                 <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
@@ -824,9 +824,9 @@ App.Design = {
         const liveSection = () => {
             const RE = window.App.RuleEngine;
             const ctx = (window.App.Config && window.App.Config._ruleContext) ? window.App.Config._ruleContext(window.App.Data.currentConfig || {}) : { mode: 'normal', autoJudge: true };
-            const head = `<div style="margin:14px 0 6px; padding-top:10px; border-top:1px solid #2a3342; color:#e2e8f0; font-size:0.75rem; font-weight:bold;">回答の見せ方（モニター）</div>`;
+            const head = `<div style="margin:14px 0 6px; padding-top:10px; border-top:1px solid #2a2a30; color:#e5e5e8; font-size:0.75rem; font-weight:bold;">回答の見せ方（モニター）</div>`;
             if (ctx.mode !== 'normal') {
-                return head + `<p style="color:#64748b; font-size:0.66rem; margin:0;">全員が同時に答える時に設定できます。早押し・順番などは、〇×を判定した瞬間にモニターへ出ます。</p>`;
+                return head + `<p style="color:#6b6b74; font-size:0.66rem; margin:0;">全員が同時に答える時に設定できます。早押し・順番などは、〇×を判定した瞬間にモニターへ出ます。</p>`;
             }
             if (!design.liveAnswerView) design.liveAnswerView = 'none';
             if (!design.speedReveal) design.speedReveal = 'none';
@@ -845,7 +845,7 @@ App.Design = {
                         { v: 'top', t: '正解者の早い順TOP10' },
                         { v: 'countup', t: '下の順位から1人ずつ発表' },
                     ])}
-                </div>` : `<p style="color:#64748b; font-size:0.66rem; margin:4px 0 0;">「正解者の早い順」は、選択式・並べ替え・文字パネルで使えます。</p>`}
+                </div>` : `<p style="color:#6b6b74; font-size:0.66rem; margin:4px 0 0;">「正解者の早い順」は、選択式・並べ替え・文字パネルで使えます。</p>`}
                 <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">※答えている間は正誤を伏せて表示します（まだ答えていない人に答えがばれないように）</p>`;
         };
         if (!activeBody.timer) activeBody.timer = timerBody;
@@ -1020,7 +1020,7 @@ App.Design = {
                     <button type="button" class="design-subtab-btn" data-tab="${t.key}" style="
                         flex:1; height:32px; box-sizing:border-box; padding:0 2px; font-size:0.72rem; font-weight:bold; border:none; cursor:pointer;
                         display:flex; align-items:center; justify-content:center;
-                        background:${this._activeDesignTab === t.key ? '#2d3748' : '#232a35'}; color:${this._activeDesignTab === t.key ? '#e2e8f0' : '#8b95a5'};
+                        background:${this._activeDesignTab === t.key ? '#26262d' : '#1f1f24'}; color:${this._activeDesignTab === t.key ? '#e5e5e8' : '#8b8b95'};
                     ">${t.label}</button>
                 `).join('')}
             </div>
@@ -1030,8 +1030,8 @@ App.Design = {
             btn.onclick = () => {
                 this._activeDesignTab = btn.dataset.tab;
                 container.querySelectorAll('.design-subtab-btn').forEach(b => {
-                    b.style.background = (b.dataset.tab === this._activeDesignTab) ? '#2d3748' : '#232a35';
-                    b.style.color = (b.dataset.tab === this._activeDesignTab) ? '#e2e8f0' : '#8b95a5';
+                    b.style.background = (b.dataset.tab === this._activeDesignTab) ? '#26262d' : '#1f1f24';
+                    b.style.color = (b.dataset.tab === this._activeDesignTab) ? '#e5e5e8' : '#8b8b95';
                 });
                 renderBody();
             };
@@ -1076,13 +1076,13 @@ App.Design = {
             </select>
             <div id="color-popover-grid" style="display:grid; grid-template-columns: repeat(5, 1fr); gap:4px; padding:2px 0 4px;"></div>
             <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
-                <label style="font-size:0.62rem; color:#94a3b8; flex:0 0 auto;">HEX</label>
+                <label style="font-size:0.62rem; color:#8b8b95; flex:0 0 auto;">HEX</label>
                 <input type="text" id="color-popover-hex" value="${isHex(design[key]) ? design[key] : ''}" placeholder="#RRGGBB" style="
-                    flex:1; min-width:0; padding:4px 6px; background:#0d1b2a; border:1px solid #475569;
+                    flex:1; min-width:0; padding:4px 6px; background:#0c0c0f; border:1px solid #3a3a42;
                     border-radius:5px; color:#fff; font-size:0.72rem;
                 ">
                 <input type="color" id="color-popover-native" title="詳細カスタム" value="${this._toHexOrDefault(design[key])}" style="
-                    flex:0 0 24px; width:24px; height:24px; padding:0; border:1px solid #475569; border-radius:5px; background:none; cursor:pointer;
+                    flex:0 0 24px; width:24px; height:24px; padding:0; border:1px solid #3a3a42; border-radius:5px; background:none; cursor:pointer;
                 ">
             </div>
             ${key === 'mainBgColor' ? '<div id="color-popover-bgimg"></div>' : ''}
@@ -1120,8 +1120,8 @@ App.Design = {
             grid.innerHTML = p.colors.map(c => `
                 <button type="button" class="color-palette-tile" data-color="${c}" title="${c}" style="
                     aspect-ratio:1; background:${c}; border-radius:3px; cursor:pointer;
-                    border:${sameColor(c, design[key]) ? '2px solid #00e5ff' : '1px solid rgba(255,255,255,0.15)'};
-                    box-shadow:${sameColor(c, design[key]) ? '0 0 5px rgba(0,229,255,0.7)' : 'none'};
+                    border:${sameColor(c, design[key]) ? '2px solid #f59e0b' : '1px solid rgba(255,255,255,0.15)'};
+                    box-shadow:${sameColor(c, design[key]) ? '0 0 5px rgba(245, 158, 11,0.7)' : 'none'};
                 "></button>
             `).join('');
             grid.querySelectorAll('.color-palette-tile').forEach(tbtn => {
@@ -1186,8 +1186,8 @@ App.Design = {
                 <div style="display:flex; align-items:center; gap:6px; margin-top:8px; padding-top:8px; border-top:1px dashed #333;">
                     <button type="button" id="color-popover-bgimg-file-btn" title="全体背景に画像を使う" style="
                         flex:1; min-width:0; padding:5px 6px; font-size:0.68rem; background:none;
-                        border:1px dashed ${hasBgImg ? '#00ff88' : '#475569'}; border-radius:5px;
-                        color:${hasBgImg ? '#00ff88' : '#94a3b8'}; cursor:pointer;
+                        border:1px dashed ${hasBgImg ? '#00ff88' : '#3a3a42'}; border-radius:5px;
+                        color:${hasBgImg ? '#00ff88' : '#8b8b95'}; cursor:pointer;
                     ">画像を使う${hasBgImg ? '（設定済み）' : ''}</button>
                     ${hasBgImg ? `<button type="button" id="color-popover-bgimg-clear-btn" title="画像をクリア" style="
                         flex:0 0 auto; padding:5px 8px; font-size:0.62rem; background:none; border:1px dashed #ff8888;
@@ -1259,22 +1259,22 @@ App.Design = {
                 <div id="sound-picker-list" style="display:flex; flex-direction:column; gap:6px; max-height:260px; overflow-y:auto; margin-bottom:12px;">
                     <button type="button" data-pick="" style="
                         display:flex; align-items:center; padding:9px 10px; text-align:left;
-                        background:${!currentVal ? 'rgba(0,229,255,0.14)' : '#1e293b'}; border:1px solid ${!currentVal ? '#00e5ff' : '#475569'};
+                        background:${!currentVal ? 'rgba(245, 158, 11,0.14)' : '#1b1b20'}; border:1px solid ${!currentVal ? '#f59e0b' : '#3a3a42'};
                         border-radius:8px; color:#fff; cursor:pointer; font-size:0.85rem;
                     ">未設定にする</button>
                     ${items.map(it => `
                         <div style="display:flex; align-items:center; gap:6px;">
                             <button type="button" data-pick="${it.id}" style="
                                 flex:1; min-width:0; display:flex; align-items:center; padding:9px 10px; text-align:left;
-                                background:${currentVal === it.data ? 'rgba(0,229,255,0.14)' : '#1e293b'}; border:1px solid ${currentVal === it.data ? '#00e5ff' : '#475569'};
+                                background:${currentVal === it.data ? 'rgba(245, 158, 11,0.14)' : '#1b1b20'}; border:1px solid ${currentVal === it.data ? '#f59e0b' : '#3a3a42'};
                                 border-radius:8px; color:#fff; cursor:pointer; font-size:0.85rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
                             ">${it.name}</button>
-                            <button type="button" data-preview="${it.id}" title="再生して確認" style="flex:0 0 auto; display:flex; align-items:center; padding:8px 10px; background:#00a8cc; border:none; border-radius:6px; color:#fff; cursor:pointer;">${window.App.Icons.svg('play', 14)}</button>
+                            <button type="button" data-preview="${it.id}" title="再生して確認" style="flex:0 0 auto; display:flex; align-items:center; padding:8px 10px; background:#d97706; border:none; border-radius:6px; color:#fff; cursor:pointer;">${window.App.Icons.svg('play', 14)}</button>
                         </div>
                     `).join('')}
                     ${items.length === 0 ? '<p style="color:#666; font-size:0.78rem; text-align:center; margin:8px 0;">まだ音源が登録されていません</p>' : ''}
                 </div>
-                <label style="display:block; position:relative; overflow:hidden; box-sizing:border-box; width:100%; margin:0 0 8px; padding:9px; border-radius:8px; background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4); color:#00e5ff; cursor:pointer; font-size:0.85rem; text-align:center;">＋ ファイルから追加（MP3など）
+                <label style="display:block; position:relative; overflow:hidden; box-sizing:border-box; width:100%; margin:0 0 8px; padding:9px; border-radius:8px; background:rgba(245, 158, 11,0.08); border:1px dashed rgba(245, 158, 11,0.4); color:#f59e0b; cursor:pointer; font-size:0.85rem; text-align:center;">＋ ファイルから追加（MP3など）
                     <input type="file" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg" id="sound-modal-file-input" style="position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%;">
                 </label>
                 <p style="color:#666; font-size:0.66rem; margin:0 0 12px; line-height:1.4;">※追加した音源はサウンド編集の一覧にも入り、他のセットでも使えます</p>
@@ -1336,11 +1336,11 @@ App.Design = {
     gridLayoutButton: function (itemWord) {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.style.cssText = 'background:#1e293b; border:1px solid #475569; border-radius:8px; color:#fff; padding:5px 12px; cursor:pointer; font-size:0.8rem; white-space:nowrap;';
+        btn.style.cssText = 'background:#1b1b20; border:1px solid #3a3a42; border-radius:8px; color:#fff; padding:5px 12px; cursor:pointer; font-size:0.8rem; white-space:nowrap;';
         const label = () => {
             const d = window.App.Data.currentDesign || {};
             const r = parseInt(d.gridRows) || 0, c = parseInt(d.gridCols) || 0;
-            btn.innerHTML = `${itemWord}の配置 <b style="color:#00e5ff;">${(r > 0 && c > 0) ? `${r}行×${c}列` : '自動'}</b>`;
+            btn.innerHTML = `${itemWord}の配置 <b style="color:#f59e0b;">${(r > 0 && c > 0) ? `${r}行×${c}列` : '自動'}</b>`;
         };
         label();
         btn.onclick = () => this._openGridModal(window.App.Data.currentDesign, () => {
@@ -1382,16 +1382,16 @@ App.Design = {
                 </p>
                 <div style="display:flex; gap:12px; margin-bottom:6px;">
                     <div style="flex:1;">
-                        <label style="color:#94a3b8; font-size:0.75rem; display:block; margin-bottom:4px; text-align:center;">行数</label>
+                        <label style="color:#8b8b95; font-size:0.75rem; display:block; margin-bottom:4px; text-align:center;">行数</label>
                         <input type="number" id="grid-modal-rows" min="1" max="10" value="${design.gridRows || ''}" placeholder="自動" style="
-                            width:100%; padding:8px; text-align:center; background:#1e293b; border:1px solid #475569;
+                            width:100%; padding:8px; text-align:center; background:#1b1b20; border:1px solid #3a3a42;
                             border-radius:8px; color:#fff; font-size:1rem; box-sizing:border-box;
                         ">
                     </div>
                     <div style="flex:1;">
-                        <label style="color:#94a3b8; font-size:0.75rem; display:block; margin-bottom:4px; text-align:center;">列数</label>
+                        <label style="color:#8b8b95; font-size:0.75rem; display:block; margin-bottom:4px; text-align:center;">列数</label>
                         <input type="number" id="grid-modal-cols" min="1" max="10" value="${design.gridCols || ''}" placeholder="自動" style="
-                            width:100%; padding:8px; text-align:center; background:#1e293b; border:1px solid #475569;
+                            width:100%; padding:8px; text-align:center; background:#1b1b20; border:1px solid #3a3a42;
                             border-radius:8px; color:#fff; font-size:1rem; box-sizing:border-box;
                         ">
                     </div>
@@ -1400,7 +1400,7 @@ App.Design = {
                 <div style="display:flex; gap:10px; margin-top:10px;">
                     <button type="button" id="grid-modal-cancel" style="flex:1; padding:10px; border-radius:8px; background:#333; border:none; color:#ccc; cursor:pointer;">キャンセル</button>
                     <button type="button" id="grid-modal-clear" style="flex:1; padding:10px; border-radius:8px; background:#333; border:none; color:#ccc; cursor:pointer;">自動に戻す</button>
-                    <button type="button" id="grid-modal-ok" style="flex:1; padding:10px; border-radius:8px; background:#00e5ff; border:none; color:#000; font-weight:bold; cursor:pointer;">決定</button>
+                    <button type="button" id="grid-modal-ok" style="flex:1; padding:10px; border-radius:8px; background:#f59e0b; border:none; color:#000; font-weight:bold; cursor:pointer;">決定</button>
                 </div>
             </div>
         `;

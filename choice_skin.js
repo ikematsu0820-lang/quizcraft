@@ -107,7 +107,7 @@ App.ChoiceSkin = {
     },
 
     // 地の色に対して読める文字色（設定の色が読めない時だけ差し替える）
-    readable: function (bg, text, dark = '#1f2937', light = '#ffffff') {
+    readable: function (bg, text, dark = '#1f1f24', light = '#ffffff') {
         const bgLight = this.isLight(bg);
         if (bgLight === null) return text || light;
         const tLight = this.isLight(text);
@@ -312,18 +312,18 @@ App.ChoiceSkin = {
         const btn = (key, v, label) => {
             const on = (design[key] || '') === v;
             return `<button type="button" data-cs-key="${key}" data-cs-val="${v}" style="flex:1; min-width:0; padding:7px 2px; border-radius:7px; cursor:pointer; font-size:0.68rem; font-weight:bold; white-space:nowrap;
-                background:${on ? 'rgba(0,229,255,0.12)' : '#1e293b'}; border:1px solid ${on ? '#00e5ff' : '#475569'}; color:${on ? '#00e5ff' : '#e2e8f0'};">${label}</button>`;
+                background:${on ? 'rgba(245, 158, 11,0.12)' : '#1b1b20'}; border:1px solid ${on ? '#f59e0b' : '#3a3a42'}; color:${on ? '#f59e0b' : '#e5e5e8'};">${label}</button>`;
         };
         const chk = (key, label, def) => {
             const on = design[key] === undefined ? def : !!design[key];
-            return `<label style="display:flex; align-items:center; gap:6px; color:#cbd5e1; font-size:0.72rem; cursor:pointer;">
-                <input type="checkbox" data-cs-chk="${key}" ${on ? 'checked' : ''} style="width:auto; height:auto; min-height:0; margin:0; accent-color:#00e5ff;">${label}</label>`;
+            return `<label style="display:flex; align-items:center; gap:6px; color:#c9c9cf; font-size:0.72rem; cursor:pointer;">
+                <input type="checkbox" data-cs-chk="${key}" ${on ? 'checked' : ''} style="width:auto; height:auto; min-height:0; margin:0; accent-color:#f59e0b;">${label}</label>`;
         };
         const rows = parseInt(design.gridRows) || 0, cols = parseInt(design.gridCols) || 0;
         const arr = (rows === 2 && cols === 2) ? 'g22' : (rows === 1 && cols >= 3) ? 'row' : '';
         const arrBtn = (v, label) => `<button type="button" data-cs-arrange="${v}" style="flex:1; padding:7px 2px; border-radius:7px; cursor:pointer; font-size:0.68rem; font-weight:bold;
-            background:${arr === v ? 'rgba(0,229,255,0.12)' : '#1e293b'}; border:1px solid ${arr === v ? '#00e5ff' : '#475569'}; color:${arr === v ? '#00e5ff' : '#e2e8f0'};">${label}</button>`;
-        const head = (t) => `<div style="margin:12px 0 6px; color:#94a3b8; font-size:0.7rem; font-weight:bold;">${t}</div>`;
+            background:${arr === v ? 'rgba(245, 158, 11,0.12)' : '#1b1b20'}; border:1px solid ${arr === v ? '#f59e0b' : '#3a3a42'}; color:${arr === v ? '#f59e0b' : '#e5e5e8'};">${label}</button>`;
+        const head = (t) => `<div style="margin:12px 0 6px; color:#8b8b95; font-size:0.7rem; font-weight:bold;">${t}</div>`;
         return `
             ${head('選択肢ボタンの形')}
             <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:5px;">${this.SKINS.map(s => btn('cSkin', s.id, s.name)).join('')}</div>
@@ -339,8 +339,8 @@ App.ChoiceSkin = {
             ${design.stageFrame ? `
                 <div style="display:flex; gap:6px; margin-top:8px;">
                     <input type="text" data-key="frameTitle" value="${this.esc(design.frameTitle || '')}" placeholder="上の帯の文字（空欄ならセット名）" style="
-                        flex:1; min-width:0; height:32px; padding:0 8px; background:#1e293b; border:1px solid #475569; border-radius:6px; color:#fff; box-sizing:border-box;">
-                    <button type="button" data-color-swatch-key="frameColor" data-color-swatch-label="枠の色" style="flex:0 0 auto; padding:0 10px; border-radius:6px; background:#1e293b; border:1px solid #475569; color:#e2e8f0; font-size:0.7rem; cursor:pointer; display:flex; align-items:center; gap:6px;">
+                        flex:1; min-width:0; height:32px; padding:0 8px; background:#1b1b20; border:1px solid #3a3a42; border-radius:6px; color:#fff; box-sizing:border-box;">
+                    <button type="button" data-color-swatch-key="frameColor" data-color-swatch-label="枠の色" style="flex:0 0 auto; padding:0 10px; border-radius:6px; background:#1b1b20; border:1px solid #3a3a42; color:#e5e5e8; font-size:0.7rem; cursor:pointer; display:flex; align-items:center; gap:6px;">
                         <span style="width:14px; height:14px; border-radius:3px; background:${design.frameColor || this.accent(design)}; border:1px solid #fff3;"></span>枠の色</button>
                 </div>` : ''}
             <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">※ボタンの形は選択式（まるばつ・ドボン以外）に効きます</p>`;
@@ -384,7 +384,7 @@ App.ChoiceSkin = {
                 : `<div style="width:86%; padding:2px 0; text-align:center; border:1.5px solid ${c.qBorderColor}; background:${c.qBgColor}; color:${c.qTextColor}; font-size:0.56rem; font-weight:bold; border-radius:3px;">第1問</div>`;
         const one = (i) => {
             if (sk.c === 'button') return `<div style="flex:1; height:9px; border-radius:2px; background:linear-gradient(${col(i)}, color-mix(in srgb, ${col(i)} 65%, #000)); box-shadow:0 1.5px 0 #0006;"></div>`;
-            if (sk.c === 'panel') return `<div style="flex:1; height:9px; border-radius:1px; background:linear-gradient(#2b3445, #0b0f16); border:1px solid ${col(i)}; border-left:4px solid ${col(i)};"></div>`;
+            if (sk.c === 'panel') return `<div style="flex:1; height:9px; border-radius:1px; background:linear-gradient(#2b3445, #0b0b0d); border:1px solid ${col(i)}; border-left:4px solid ${col(i)};"></div>`;
             if (sk.c === 'capsule') return `<div style="flex:1; height:9px; clip-path:polygon(12% 0, 88% 0, 100% 50%, 88% 100%, 12% 100%, 0 50%); background:${col(i)}; padding:1px;"><div style="height:100%; clip-path:inherit; background:#0b1430;"></div></div>`;
             if (sk.c === 'card') return `<div style="flex:1; height:9px; border-radius:2px; background:${this.isFaint(c.cBgColor) ? '#fff' : c.cBgColor}; border-left:4px solid ${col(i)}; box-shadow:0 1px 2px #0004;"></div>`;
             return `<div style="flex:1; height:9px; border:1px solid ${c.cBorderColor}; background:${c.cBgColor}; border-radius:2px;"></div>`;

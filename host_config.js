@@ -162,9 +162,9 @@ App.Config = {
         const col = (inner, caption) => `
             <div style="flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:3px;">
                 ${inner}
-                ${caption ? `<span style="font-size:0.58rem; color:#94a3b8; white-space:nowrap;">${caption}</span>` : ''}
+                ${caption ? `<span style="font-size:0.58rem; color:#8b8b95; white-space:nowrap;">${caption}</span>` : ''}
             </div>`;
-        const rowHead = (t) => `<div style="flex:0 0 72px; color:#94a3b8; font-size:0.72rem; font-weight:bold; line-height:1.3; align-self:flex-start; padding-top:6px;">${t}</div>`;
+        const rowHead = (t) => `<div style="flex:0 0 72px; color:#8b8b95; font-size:0.72rem; font-weight:bold; line-height:1.3; align-self:flex-start; padding-top:6px;">${t}</div>`;
         if (mode === 'normal') {
             const single = (conf.answerAttempts || 'single') === 'single';
             const adv = `
@@ -182,7 +182,7 @@ App.Config = {
                 </p>`;
             const oneTap = conf.oneTapSubmit !== false;
             const advTap = `
-                <label style="display:flex; align-items:center; gap:8px; margin-top:12px; color:#cbd5e1; font-size:0.8em; cursor:pointer;">
+                <label style="display:flex; align-items:center; gap:8px; margin-top:12px; color:#c9c9cf; font-size:0.8em; cursor:pointer;">
                     <input type="checkbox" id="config-one-tap" ${oneTap ? 'checked' : ''} style="width:auto; height:auto; min-height:0; margin:0;">選択式は、タップした瞬間に答えを確定する
                 </label>
                 <p style="color:#888; font-size:0.72em; margin:4px 0 0; line-height:1.3;">オフにすると、選んでから「決定」を押す形になります（選び直しができます）</p>`;
@@ -205,10 +205,10 @@ App.Config = {
                         ${allowed.map(o => `<option value="${o.v}" ${buzzPenalty === o.v ? 'selected' : ''}>${o.t}</option>`).join('')}
                     </select>`, '解答権')}
                     <div id="config-buzz-ban-wrap" style="flex:0 0 84px; display:${buzzPenalty === 'time_ban' ? 'flex' : 'none'};">
-                        ${col(`<input type="number" id="config-buzz-ban-sec" value="${banSec}" min="0.5" step="0.5" inputmode="decimal" style="width:100%; margin:0; padding:4px 6px; text-align:center; background:#1e293b; border:1px solid #475569; border-radius:8px; color:#fff;">`, '押せない秒数')}
+                        ${col(`<input type="number" id="config-buzz-ban-sec" value="${banSec}" min="0.5" step="0.5" inputmode="decimal" style="width:100%; margin:0; padding:4px 6px; text-align:center; background:#1b1b20; border:1px solid #3a3a42; border-radius:8px; color:#fff;">`, '押せない秒数')}
                     </div>
                     <div id="config-buzz-rest-wrap" style="flex:0 0 84px; display:${buzzPenalty === 'rest' ? 'flex' : 'none'};">
-                        ${col(`<input type="number" id="config-buzz-rest-count" value="${restN}" min="1" step="1" inputmode="numeric" style="width:100%; margin:0; padding:4px 6px; text-align:center; background:#1e293b; border:1px solid #475569; border-radius:8px; color:#fff;">`, '休む問題数')}
+                        ${col(`<input type="number" id="config-buzz-rest-count" value="${restN}" min="1" step="1" inputmode="numeric" style="width:100%; margin:0; padding:4px 6px; text-align:center; background:#1b1b20; border:1px solid #3a3a42; border-radius:8px; color:#fff;">`, '休む問題数')}
                     </div>
                 </div>
                 ${buzzAction === 'next' ? `<div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
@@ -411,10 +411,10 @@ App.Config = {
     // タイムショック風なら、制限時間を「セット全体の持ち時間」にする。
     _renderSoloRules: function (box, conf, onChange) {
         if (!box) return;
-        const selStyle = 'width:100%; margin:0; padding:6px 8px; background:#1e293b; border:1px solid #475569; border-radius:8px; color:#fff; font-size:0.85rem;';
+        const selStyle = 'width:100%; margin:0; padding:6px 8px; background:#1b1b20; border:1px solid #3a3a42; border-radius:8px; color:#fff; font-size:0.85rem;';
         const life = conf.soloLife === undefined ? 3 : Number(conf.soloLife);
         const clear = Number(conf.soloClearCount) || 0;
-        const row = (label, inner) => `<div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;"><span style="flex:0 0 96px; color:#94a3b8; font-size:0.72rem; font-weight:bold;">${label}</span><div style="flex:1; min-width:0;">${inner}</div></div>`;
+        const row = (label, inner) => `<div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;"><span style="flex:0 0 96px; color:#8b8b95; font-size:0.72rem; font-weight:bold;">${label}</span><div style="flex:1; min-width:0;">${inner}</div></div>`;
         const inner = `
             ${row('ライフ', `<span class="rp-num"><input type="number" id="conf-solo-life" value="${life}" min="0" step="1" inputmode="numeric"><span class="rp-num-unit">回まで間違えられる</span><span class="rp-num-hint">0＝無制限</span></span>`)}
             ${row('クリア条件', `<span class="rp-num"><input type="number" id="conf-solo-clear" value="${clear}" min="0" step="1" inputmode="numeric"><span class="rp-num-unit">問正解でクリア</span><span class="rp-num-hint">0＝なし（全問やる）</span></span>`)}
@@ -449,10 +449,10 @@ App.Config = {
         const col = (inner, caption) => `
             <div style="flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:3px;">
                 ${inner}
-                <span style="font-size:0.58rem; color:#94a3b8; white-space:nowrap;">${caption}</span>
+                <span style="font-size:0.58rem; color:#8b8b95; white-space:nowrap;">${caption}</span>
             </div>
         `;
-        const selStyle = 'width:100%; margin:0; padding:6px 8px; background:#1e293b; border:1px solid #475569; border-radius:8px; color:#fff; font-size:0.85rem;';
+        const selStyle = 'width:100%; margin:0; padding:6px 8px; background:#1b1b20; border:1px solid #3a3a42; border-radius:8px; color:#fff; font-size:0.85rem;';
 
         const renderDetail = () => {
             const side = container.querySelector('#gametype-chooser-side');
@@ -476,7 +476,7 @@ App.Config = {
                 const tie = conf.tieBreak || 'none';
                 const tieHtml = canTie.ok ? `
                     <div style="display:flex; align-items:center; gap:8px; margin-top:10px;">
-                        <span style="flex:0 0 72px; color:#94a3b8; font-size:0.72rem; font-weight:bold;">同点のとき</span>
+                        <span style="flex:0 0 72px; color:#8b8b95; font-size:0.72rem; font-weight:bold;">同点のとき</span>
                         <select id="conf-tie-break" style="${selStyle}">
                             <option value="none" ${tie === 'none' ? 'selected' : ''}>同じ順位にする</option>
                             <option value="time" ${tie === 'time' ? 'selected' : ''}>正解した問題の解答時間の合計が短い人が上</option>
@@ -512,7 +512,7 @@ App.Config = {
                 const slow = parseInt(conf.survivalSlowDrop) || 0;
                 const slowHtml = canSlow.ok ? `
                     <div style="display:flex; align-items:center; gap:8px;">
-                        <span style="flex:0 0 96px; color:#94a3b8; font-size:0.72rem; font-weight:bold;">遅い人も脱落</span>
+                        <span style="flex:0 0 96px; color:#8b8b95; font-size:0.72rem; font-weight:bold;">遅い人も脱落</span>
                         <select id="conf-survival-slow" style="${selStyle}">
                             ${[0, 1, 2, 3].map(n => `<option value="${n}" ${slow === n ? 'selected' : ''}>${n ? `毎問、正解者のうち遅い${n}人が脱落` : 'しない'}</option>`).join('')}
                         </select>
@@ -581,7 +581,7 @@ App.Config = {
             const onExpire = conf.timerOnExpire === 'skip' ? 'skip' : 'close';
             const pauseOnBuzz = conf.timerPauseOnBuzz !== false;
             const sel = (id, opts, val) => `<select id="${id}" class="btn-block config-select" style="margin:0; padding:4px;">${opts.map(o => `<option value="${o.v}" ${String(val) === String(o.v) ? 'selected' : ''}>${o.t}</option>`).join('')}</select>`;
-            const row = (label, inner) => `<div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;"><span style="flex:0 0 96px; color:#94a3b8; font-size:0.72rem; font-weight:bold;">${label}</span><div style="flex:1; min-width:0;">${inner}</div></div>`;
+            const row = (label, inner) => `<div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;"><span style="flex:0 0 96px; color:#8b8b95; font-size:0.72rem; font-weight:bold;">${label}</span><div style="flex:1; min-width:0;">${inner}</div></div>`;
             let adv = '';
             if (enabled) {
                 if (kind === 'per_q') {
@@ -592,7 +592,7 @@ App.Config = {
                     adv += row('不正解なら', sel('tl-penalty', [0, 1, 2, 3, 5].map(n => ({ v: n, t: n ? `−${n}秒` : '増減なし' })), parseFloat(conf.timerPenaltyWrong) || 0));
                 }
                 if (isBuzz) {
-                    adv += `<label style="display:flex; align-items:center; gap:8px; color:#cbd5e1; font-size:0.8em; cursor:pointer;"><input type="checkbox" id="tl-pause-buzz" ${pauseOnBuzz ? 'checked' : ''} style="width:auto; height:auto; min-height:0; margin:0;">誰かが早押ししたら時計を止める</label>`;
+                    adv += `<label style="display:flex; align-items:center; gap:8px; color:#c9c9cf; font-size:0.8em; cursor:pointer;"><input type="checkbox" id="tl-pause-buzz" ${pauseOnBuzz ? 'checked' : ''} style="width:auto; height:auto; min-height:0; margin:0;">誰かが早押ししたら時計を止める</label>`;
                 }
             }
             container.innerHTML = `

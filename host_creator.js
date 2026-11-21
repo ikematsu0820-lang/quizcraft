@@ -275,7 +275,7 @@ window.App.Creator = {
         // 名前の後ろに鉛筆の線アイコン（タップで変更できると分かるように）
         el.textContent = name || 'セット名を入力';
         el.insertAdjacentHTML('beforeend', ` <span style="display:inline-flex; vertical-align:-2px; opacity:0.7;">${window.App.Icons.svg('pencil', 14)}</span>`);
-        el.style.color = name ? '' : '#64748b';
+        el.style.color = name ? '' : '#6b6b74';
         el.onclick = () => this.editSetTitle();
     },
 
@@ -410,29 +410,29 @@ window.App.Creator = {
         };
         const outsideCheck = (id, label, checked, onChange) => {
             const lbl = document.createElement('label');
-            lbl.style.cssText = 'display:flex; align-items:center; gap:6px; cursor:pointer; color:#cbd5e1; font-size:0.8rem; white-space:nowrap;';
-            lbl.innerHTML = `<input type="checkbox" id="${id}" ${checked ? 'checked' : ''} style="accent-color:#00e5ff; cursor:pointer;"><span>${label}</span>`;
+            lbl.style.cssText = 'display:flex; align-items:center; gap:6px; cursor:pointer; color:#c9c9cf; font-size:0.8rem; white-space:nowrap;';
+            lbl.innerHTML = `<input type="checkbox" id="${id}" ${checked ? 'checked' : ''} style="accent-color:#f59e0b; cursor:pointer;"><span>${label}</span>`;
             lbl.querySelector('input').onchange = (e) => onChange(e.target.checked);
             addOutside(lbl);
         };
         // 正解の入力欄（一問一答・連想クイズ）— プレビュー直下の行に置く
         const outsideAnswerInput = (id, value) => {
             const wrap = document.createElement('label');
-            wrap.style.cssText = 'display:flex; align-items:center; gap:6px; color:#cbd5e1; font-size:0.8rem; white-space:nowrap; flex:1; min-width:180px;';
+            wrap.style.cssText = 'display:flex; align-items:center; gap:6px; color:#c9c9cf; font-size:0.8rem; white-space:nowrap; flex:1; min-width:180px;';
             wrap.innerHTML = `<span>正解</span>`;
             const inp = document.createElement('input');
             inp.type = 'text';
             inp.id = id;
             inp.placeholder = '正解を入力';
             inp.value = value || '';
-            inp.style.cssText = 'flex:1; min-width:0; height:26px; min-height:0; margin:0; padding:0 8px; background:#1e293b; border:1px solid #475569; border-radius:6px; color:#fff; font-size:0.85rem; box-sizing:border-box;';
+            inp.style.cssText = 'flex:1; min-width:0; height:26px; min-height:0; margin:0; padding:0 8px; background:#1b1b20; border:1px solid #3a3a42; border-radius:6px; color:#fff; font-size:0.85rem; box-sizing:border-box;';
             wrap.appendChild(inp);
             addOutside(wrap);
         };
         // 形式ごとの案内文もプレビューの外に出して、行の高さを広く取る
         const outsideHint = (text) => {
             const hint = document.createElement('span');
-            hint.style.cssText = 'color:#64748b; font-size:0.75rem; white-space:nowrap;';
+            hint.style.cssText = 'color:#6b6b74; font-size:0.75rem; white-space:nowrap;';
             hint.textContent = `※${text}`;
             addOutside(hint);
         };
@@ -441,7 +441,7 @@ window.App.Creator = {
             btn.type = 'button';
             btn.id = id;
             btn.textContent = label;
-            btn.style.cssText = 'margin-left:auto; background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4); border-radius:8px; color:#00e5ff; padding:5px 12px; cursor:pointer; font-size:0.8rem;';
+            btn.style.cssText = 'margin-left:auto; background:rgba(245, 158, 11,0.08); border:1px dashed rgba(245, 158, 11,0.4); border-radius:8px; color:#f59e0b; padding:5px 12px; cursor:pointer; font-size:0.8rem;';
             btn.onclick = onClick;
             addOutside(btn);
         };
@@ -573,7 +573,7 @@ window.App.Creator = {
             if (optionsExtra) {
                 optionsExtra.innerHTML = `
                     <div style="margin-bottom:14px;">
-                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:#94a3b8; font-size:0.85rem;">
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:#8b8b95; font-size:0.85rem;">
                             <input type="checkbox" id="choice-shuffle-chk" ${data?.shuffle !== false ? 'checked' : ''}>
                             <span>選択肢をシャッフルする</span>
                         </label>
@@ -591,7 +591,7 @@ window.App.Creator = {
             }
 
             container.innerHTML = `
-                <div style="text-align:center; color:#64748b; font-size:0.8rem; margin-bottom:10px;">1文字ずつ正解とダミーを設定</div>
+                <div style="text-align:center; color:#6b6b74; font-size:0.8rem; margin-bottom:10px;">1文字ずつ正解とダミーを設定</div>
                 <div id="letter-step-container" class="letter-step-list"></div>
             `;
             this.renderLetterStepList();
@@ -638,7 +638,7 @@ window.App.Creator = {
                 // appendChild would strip that element's JS-attached listeners)
                 optionsExtra.innerHTML = `
                     <div style="margin-bottom:12px;">
-                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:#94a3b8; font-size:0.9rem;">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:#8b8b95; font-size:0.9rem;">
                             <input type="checkbox" id="sort-shuffle-chk" ${data?.shuffle !== false ? 'checked' : ''}>
                             <span>選択肢をシャッフルする</span>
                         </label>
@@ -649,7 +649,7 @@ window.App.Creator = {
                 addBtnDiv.style.cssText = 'margin-bottom:14px;';
                 const addBtn = document.createElement('button');
                 addBtn.textContent = '＋ 項目を追加';
-                addBtn.style.cssText = 'background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4); border-radius:8px; color:#00e5ff; padding:8px 20px; cursor:pointer; font-size:0.9rem; width:100%;';
+                addBtn.style.cssText = 'background:rgba(245, 158, 11,0.08); border:1px dashed rgba(245, 158, 11,0.4); border-radius:8px; color:#f59e0b; padding:8px 20px; cursor:pointer; font-size:0.9rem; width:100%;';
                 addBtn.onclick = () => this.addSortInput(sortDiv);
                 addBtnDiv.appendChild(addBtn);
                 optionsExtra.insertBefore(addBtnDiv, optionsExtra.firstChild);
@@ -789,11 +789,11 @@ window.App.Creator = {
             const targetVal = data ? data.target : 21;
             container.innerHTML = `
                 <div style="padding:10px;">
-                    <div style="text-align:center; color:#64748b; font-size:0.8rem; margin-bottom:10px;">目標数字を設定してカードを追加</div>
+                    <div style="text-align:center; color:#6b6b74; font-size:0.8rem; margin-bottom:10px;">目標数字を設定してカードを追加</div>
                     <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:14px;">
-                        <span style="color:#94a3b8;">ターゲット:</span>
+                        <span style="color:#8b8b95;">ターゲット:</span>
                         <input type="number" id="bj-target" value="${targetVal}" min="1" max="999" style="
-                            width:80px; padding:8px; background:#0d1b2a; border:1px solid #475569;
+                            width:80px; padding:8px; background:#0c0c0f; border:1px solid #3a3a42;
                             border-radius:8px; color:#ffd700; font-size:1.2rem; font-weight:bold; text-align:center;
                         ">
                     </div>
@@ -814,7 +814,7 @@ window.App.Creator = {
             addBtnWrap.style.cssText = 'text-align:center; margin-top:10px;';
             const addBtn = document.createElement('button');
             addBtn.textContent = '＋ カードを追加';
-            addBtn.style.cssText = 'background:rgba(0,229,255,0.1); border:1px dashed rgba(0,229,255,0.4); border-radius:8px; color:#00e5ff; padding:8px 20px; cursor:pointer; font-size:0.9rem;';
+            addBtn.style.cssText = 'background:rgba(245, 158, 11,0.1); border:1px dashed rgba(245, 158, 11,0.4); border-radius:8px; color:#f59e0b; padding:8px 20px; cursor:pointer; font-size:0.9rem;';
             addBtn.onclick = () => this.addBjCardInput(bjDiv, undefined, '', '');
             addBtnWrap.appendChild(addBtn);
             container.appendChild(addBtnWrap);
@@ -958,7 +958,7 @@ window.App.Creator = {
     highlightSelectedObject: function () {
         if (!window.App.Design) return;
         const sel = window.App.Design._normalizedSelection();
-        const SELECTED = '2px solid #00e5ff';
+        const SELECTED = '2px solid #f59e0b';
         const qAreaEl = document.getElementById('creator-monitor-q-area');
         const formContainerEl = document.getElementById('creator-form-container');
         if (qAreaEl) qAreaEl.style.outline = (sel === 'question') ? SELECTED : 'none';
@@ -1038,8 +1038,8 @@ window.App.Creator = {
             if (!btn) return;
             const isActive = this.activeInlinePanel === key;
             // パネル側のタブは暗め（明るいのは「リストに追加」「リストを保存する」だけ）
-            btn.style.background = isActive ? '#334155' : '#232a35';
-            btn.style.color = isActive ? '#f1f5f9' : '#8b95a5';
+            btn.style.background = isActive ? '#2c2c33' : '#1f1f24';
+            btn.style.color = isActive ? '#f2f2f4' : '#8b8b95';
         });
     },
 
@@ -1113,8 +1113,8 @@ window.App.Creator = {
         const tabs = { home: homeBtn, bulk: bulkBtn };
         Object.entries(tabs).forEach(([k, btn]) => {
             if (!btn) return;
-            btn.style.background = (this.editSubTab === k) ? '#2d3748' : '#232a35';
-            btn.style.color = (this.editSubTab === k) ? '#e2e8f0' : '#8b95a5';
+            btn.style.background = (this.editSubTab === k) ? '#26262d' : '#1f1f24';
+            btn.style.color = (this.editSubTab === k) ? '#e5e5e8' : '#8b8b95';
             btn.onclick = () => { this.editSubTab = k; this.renderEditSubtabs(); this.renderEditPanelBody(); };
         });
     },
@@ -1448,7 +1448,7 @@ window.App.Creator = {
     },
     rowBackground: function (checked) {
         const c = this.plainEditing() ? '' : (window.App.Data.currentDesign || {}).cBgColor;
-        if (checked) return c ? `linear-gradient(90deg, rgba(0,229,255,0.35) 0%, ${c} 100%)` : 'linear-gradient(90deg,rgba(0,229,255,0.12) 0%,transparent 100%)';
+        if (checked) return c ? `linear-gradient(90deg, rgba(245, 158, 11,0.35) 0%, ${c} 100%)` : 'linear-gradient(90deg,rgba(245, 158, 11,0.12) 0%,transparent 100%)';
         return c || 'linear-gradient(90deg, rgba(255,255,255,0.04) 0%, transparent 100%)';
     },
     rowHoverBackground: function (checked) {
@@ -1496,7 +1496,7 @@ window.App.Creator = {
         labelSpan.className = 'choice-label-text';
         labelSpan.style.cssText = `
             flex:0 0 auto; min-width:1.2em; display:flex; align-items:center; justify-content:center;
-            color:#00e5ff; font-weight:900;
+            color:#f59e0b; font-weight:900;
             font-family:'Arial Black',sans-serif;
             font-size:min(1.1rem,3vw);
             text-shadow:0 0 8px rgba(0,229,255,0.4);
@@ -1613,7 +1613,7 @@ window.App.Creator = {
         row.innerHTML = `
             <span class="sort-label row-label" style="color:#00e5ff;font-weight:900;font-family:'Arial Black',sans-serif;margin-right:min(16px,3vw);font-size:min(1.1rem,3vw);min-width:min(22px,4vw);text-shadow:0 0 8px rgba(0,229,255,0.4);">${String.fromCharCode(65 + index)}</span>
             <input type="text" class="sort-text-input row-input" placeholder="項目を入力" value="${text}" style="flex:1;background:transparent;border:none;color:#ddd;font-size:min(1rem,2.8vw);outline:none;padding:2px 0;">
-            <div class="sort-rank-box" style="width:min(36px,5vw);height:min(36px,5vw);border:2px solid #444;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:900;font-size:min(1rem,2.5vw);color:#00e5ff;background:rgba(0,0,0,0.3);margin-left:8px;flex-shrink:0;">
+            <div class="sort-rank-box" style="width:min(36px,5vw);height:min(36px,5vw);border:2px solid #444;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:900;font-size:min(1rem,2.5vw);color:#f59e0b;background:rgba(0,0,0,0.3);margin-left:8px;flex-shrink:0;">
                 ${rank || ''}
             </div>
             <input type="hidden" class="sort-order-input" value="${rank || ''}">
@@ -1740,9 +1740,9 @@ window.App.Creator = {
         row.style.cssText = 'display:flex; align-items:center; gap:4px; min-width:0;';
         const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
         row.innerHTML = `
-            <span class="ng-no" style="flex:0 0 1.8em; color:#64748b; font-size:0.7rem; text-align:right;"></span>
-            <input type="text" class="ng-name row-input" placeholder="項目名" value="${esc(name)}" style="flex:1; min-width:0; height:24px !important; min-height:0; margin:0; padding:0 6px !important; background:rgba(255,255,255,0.06) !important; border:1px solid #334155 !important; border-radius:4px; color:#fff; font-size:0.78rem;">
-            <input type="number" class="ng-value" placeholder="数" value="${esc(value)}" style="flex:0 0 70px; width:70px; height:24px; min-height:0; margin:0; padding:0 6px; background:rgba(255,255,255,0.06) !important; border:1px solid #334155 !important; border-radius:4px; color:#fbbf24 !important; font-size:0.78rem; text-align:right !important;">
+            <span class="ng-no" style="flex:0 0 1.8em; color:#6b6b74; font-size:0.7rem; text-align:right;"></span>
+            <input type="text" class="ng-name row-input" placeholder="項目名" value="${esc(name)}" style="flex:1; min-width:0; height:24px !important; min-height:0; margin:0; padding:0 6px !important; background:rgba(255,255,255,0.06) !important; border:1px solid #2c2c33 !important; border-radius:4px; color:#fff; font-size:0.78rem;">
+            <input type="number" class="ng-value" placeholder="数" value="${esc(value)}" style="flex:0 0 70px; width:70px; height:24px; min-height:0; margin:0; padding:0 6px; background:rgba(255,255,255,0.06) !important; border:1px solid #2c2c33 !important; border-radius:4px; color:#fbbf24 !important; font-size:0.78rem; text-align:right !important;">
             <button type="button" class="ng-del" title="削除" style="flex:0 0 auto; background:none; border:none; color:rgba(255,255,255,0.35); cursor:pointer; padding:0 4px;">×</button>`;
         row.querySelector('.ng-del').onclick = () => { row.remove(); this.renumberNumGame(list); };
         list.appendChild(row);
@@ -1773,13 +1773,13 @@ window.App.Creator = {
         overlay.innerHTML = `
             <div class="design-modal-content" style="max-width:420px; padding:20px !important;">
                 <h3 class="modal-title" style="font-size:1rem; margin-bottom:8px;">項目をまとめて貼り付け</h3>
-                <p style="color:#94a3b8; font-size:0.75rem; margin:0 0 8px;">1行に1項目。項目名[タブ]数 の形で、表計算ソフトの2列をそのまま貼り付けられます（数のカンマは無視します）</p>
+                <p style="color:#8b8b95; font-size:0.75rem; margin:0 0 8px;">1行に1項目。項目名[タブ]数 の形で、表計算ソフトの2列をそのまま貼り付けられます（数のカンマは無視します）</p>
                 <textarea id="ng-paste-text" placeholder="マクドナルド	2900
-スターバックス	1900" style="width:100%; height:180px !important; min-height:180px !important; padding:8px; box-sizing:border-box; font-family:monospace; font-size:0.8rem; background:#0d1b2a; color:#fff; border:1px solid #475569; border-radius:8px; resize:vertical;"></textarea>
-                <label style="display:flex; align-items:center; gap:6px; color:#cbd5e1; font-size:0.78rem; margin:8px 0;"><input type="checkbox" id="ng-paste-replace"> 今の一覧を置き換える（外すと末尾に追加）</label>
+スターバックス	1900" style="width:100%; height:180px !important; min-height:180px !important; padding:8px; box-sizing:border-box; font-family:monospace; font-size:0.8rem; background:#0c0c0f; color:#fff; border:1px solid #3a3a42; border-radius:8px; resize:vertical;"></textarea>
+                <label style="display:flex; align-items:center; gap:6px; color:#c9c9cf; font-size:0.78rem; margin:8px 0;"><input type="checkbox" id="ng-paste-replace"> 今の一覧を置き換える（外すと末尾に追加）</label>
                 <div style="display:flex; gap:8px;">
                     <button type="button" id="ng-paste-cancel" style="flex:1; padding:9px; border-radius:8px; background:#333; border:none; color:#ccc; cursor:pointer;">閉じる</button>
-                    <button type="button" id="ng-paste-ok" style="flex:2; padding:9px; border-radius:8px; background:linear-gradient(135deg,#00c6ff,#0072ff); border:none; color:#fff; font-weight:bold; cursor:pointer;">追加する</button>
+                    <button type="button" id="ng-paste-ok" style="flex:2; padding:9px; border-radius:8px; background:linear-gradient(135deg,#f59e0b,#b45309); border:none; color:#fff; font-weight:bold; cursor:pointer;">追加する</button>
                 </div>
             </div>`;
         document.body.appendChild(overlay);
@@ -1838,9 +1838,9 @@ window.App.Creator = {
             row.className = 'letter-step-row';
             row.style.cssText = 'display:flex; align-items:center; gap:6px; margin-bottom:8px; padding:8px; background:#1a1a1a; border-radius:8px; border:1px solid #333;';
             row.innerHTML = `
-                <span style="color:#00e5ff; font-weight:900; font-size:0.85rem; min-width:18px; text-align:center;">${i + 1}</span>
+                <span style="color:#f59e0b; font-weight:900; font-size:0.85rem; min-width:18px; text-align:center;">${i + 1}</span>
                 <input type="text" class="letter-step-correct" maxlength="2" value="${step.correct || ''}" placeholder="正解" style="
-                    width:42px; padding:6px 2px; text-align:center; background:#0d1b2a; border:1px solid #475569;
+                    width:42px; padding:6px 2px; text-align:center; background:#0c0c0f; border:1px solid #3a3a42;
                     border-radius:6px; color:#00ff88; font-weight:bold; font-size:0.9rem; flex-shrink:0;
                 ">
                 <div class="letter-step-dummies" style="display:flex; gap:4px; flex-wrap:wrap; flex:1; align-items:center;"></div>
@@ -1856,7 +1856,7 @@ window.App.Creator = {
                 dInp.maxLength = 2;
                 dInp.value = d;
                 dInp.placeholder = 'ダミー';
-                dInp.style.cssText = 'width:36px; padding:5px 2px; text-align:center; background:#0d1b2a; border:1px dashed #475569; border-radius:6px; color:#ff8888; font-size:0.8rem;';
+                dInp.style.cssText = 'width:36px; padding:5px 2px; text-align:center; background:#0c0c0f; border:1px dashed #3a3a42; border-radius:6px; color:#ff8888; font-size:0.8rem;';
                 dInp.oninput = () => { step.dummies[di] = dInp.value; };
                 dummiesWrap.appendChild(dInp);
             });
@@ -1864,7 +1864,7 @@ window.App.Creator = {
             addDummyBtn.type = 'button';
             addDummyBtn.textContent = '+';
             addDummyBtn.title = 'ダミー文字を追加';
-            addDummyBtn.style.cssText = 'width:26px; height:26px; background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4); border-radius:6px; color:#00e5ff; cursor:pointer; font-size:0.85rem; flex-shrink:0;';
+            addDummyBtn.style.cssText = 'width:26px; height:26px; background:rgba(245, 158, 11,0.08); border:1px dashed rgba(245, 158, 11,0.4); border-radius:6px; color:#f59e0b; cursor:pointer; font-size:0.85rem; flex-shrink:0;';
             addDummyBtn.onclick = () => { step.dummies.push(''); this.renderLetterStepList(); };
             dummiesWrap.appendChild(addDummyBtn);
 
@@ -1879,7 +1879,7 @@ window.App.Creator = {
         const addBtn = document.createElement('button');
         addBtn.type = 'button';
         addBtn.textContent = '＋ 文字を追加';
-        addBtn.style.cssText = 'background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4); border-radius:8px; color:#00e5ff; padding:8px 20px; cursor:pointer; font-size:0.9rem; width:100%; margin-top:2px;';
+        addBtn.style.cssText = 'background:rgba(245, 158, 11,0.08); border:1px dashed rgba(245, 158, 11,0.4); border-radius:8px; color:#f59e0b; padding:8px 20px; cursor:pointer; font-size:0.9rem; width:100%; margin-top:2px;';
         addBtn.onclick = () => {
             this.currentLetterSteps.push({ correct: '', dummies: [] });
             this.renderLetterStepList();
@@ -2207,8 +2207,8 @@ window.App.Creator = {
     renderPreviewSlideTabs: function () {
         document.querySelectorAll('#creator-preview-slide-tabs [data-preview-slide]').forEach(btn => {
             const on = btn.dataset.previewSlide === this.previewSlide;
-            btn.style.background = on ? '#00a8cc' : '#1e293b';
-            btn.style.color = on ? '#fff' : '#94a3b8';
+            btn.style.background = on ? '#d97706' : '#1b1b20';
+            btn.style.color = on ? '#fff' : '#8b8b95';
             btn.onclick = () => this.setPreviewSlide(btn.dataset.previewSlide);
         });
     },
@@ -2513,7 +2513,7 @@ window.App.Creator = {
     _bulkSpecs: {
         free_written: {
             memo: '日本の首都は？\n東京\n\n富士山の標高は？\n3776',
-            hint: '問題文<span style="color:#00e5ff;">[タブ]</span>答え（複数正解はカンマ区切り）',
+            hint: '問題文<span style="color:#f59e0b;">[タブ]</span>答え（複数正解はカンマ区切り）',
             placeholder: '日本の首都は？\t東京\n富士山の標高は？\t3776',
             parseLine: (cols) => {
                 const [q, ans] = cols;
@@ -2523,7 +2523,7 @@ window.App.Creator = {
         },
         choice: {
             memo: '日本一高い山は？\n*富士山\n北岳\n奥穂高岳\n\n日本の首都は？\n大阪\n*東京\n京都',
-            hint: '問題文<span style="color:#00e5ff;">[タブ]</span>正解<span style="color:#00e5ff;">[タブ]</span>誤答1<span style="color:#00e5ff;">[タブ]</span>誤答2…',
+            hint: '問題文<span style="color:#f59e0b;">[タブ]</span>正解<span style="color:#f59e0b;">[タブ]</span>誤答1<span style="color:#f59e0b;">[タブ]</span>誤答2…',
             placeholder: '日本の首都は？\t東京\t大阪\t京都\t名古屋',
             parseLine: (cols, self) => {
                 const [q, ...opts] = cols;
@@ -2534,7 +2534,7 @@ window.App.Creator = {
         },
         sort: {
             memo: '小さい順に並べて\n1\n3\n5\n7',
-            hint: '問題文<span style="color:#00e5ff;">[タブ]</span>項目（正しい順序で）…',
+            hint: '問題文<span style="color:#f59e0b;">[タブ]</span>項目（正しい順序で）…',
             placeholder: '小さい順に並べて\t1\t3\t5\t7',
             parseLine: (cols) => {
                 const [q, ...opts] = cols;
@@ -2545,7 +2545,7 @@ window.App.Creator = {
         },
         multi: {
             memo: '都道府県を1つ以上挙げて\n東京都\n大阪府\n北海道',
-            hint: '問題文<span style="color:#00e5ff;">[タブ]</span>答え1<span style="color:#00e5ff;">[タブ]</span>答え2…',
+            hint: '問題文<span style="color:#f59e0b;">[タブ]</span>答え1<span style="color:#f59e0b;">[タブ]</span>答え2…',
             placeholder: '都道府県を1つ以上挙げて\t東京都\t大阪府\t北海道',
             parseLine: (cols) => {
                 const [q, ...opts] = cols;
@@ -2555,7 +2555,7 @@ window.App.Creator = {
         },
         assoc: {
             memo: '*すし\n酢飯\nネタ\n握る',
-            hint: '正解<span style="color:#00e5ff;">[タブ]</span>ヒント1<span style="color:#00e5ff;">[タブ]</span>ヒント2…',
+            hint: '正解<span style="color:#f59e0b;">[タブ]</span>ヒント1<span style="color:#f59e0b;">[タブ]</span>ヒント2…',
             placeholder: 'すし\t酢飯\tネタ\t握る',
             parseLine: (cols) => {
                 const [ans, ...hints] = cols;
@@ -2595,19 +2595,19 @@ window.App.Creator = {
             assoc: '「*」を付けた行が答え、ほかの行がヒント',
         }[target.specKey] || '';
         panel.innerHTML = `
-            <div style="color:#94a3b8; font-size:0.75rem; font-weight:bold; margin-bottom:4px;">メモのように書いて、まとめて追加</div>
-            <div style="color:#64748b; font-size:0.7rem; line-height:1.5; margin-bottom:6px;">${memoHint}。問題と問題の間は空行で区切ります。表計算ソフトからのコピペ（${spec.hint}）もそのまま使えます。</div>
+            <div style="color:#8b8b95; font-size:0.75rem; font-weight:bold; margin-bottom:4px;">メモのように書いて、まとめて追加</div>
+            <div style="color:#6b6b74; font-size:0.7rem; line-height:1.5; margin-bottom:6px;">${memoHint}。問題と問題の間は空行で区切ります。表計算ソフトからのコピペ（${spec.hint}）もそのまま使えます。</div>
             <textarea id="creator-bulk-input" placeholder="例:
 ${spec.memo}" style="
-                display:block; width:100%; flex:1; height:auto !important; min-height:140px !important; padding:10px; background:#0d1b2a; border:1px dashed rgba(255,255,255,0.25);
+                display:block; width:100%; flex:1; height:auto !important; min-height:140px !important; padding:10px; background:#0c0c0f; border:1px dashed rgba(255,255,255,0.25);
                 border-radius:8px; color:#fff; font-size:0.85rem; line-height:1.6; resize:vertical; box-sizing:border-box;
                 outline:none; margin:0 0 6px;
             "></textarea>
-            <div id="creator-bulk-preview" style="color:#94a3b8; font-size:0.72rem; min-height:1.2em; margin:0 0 6px;"></div>
+            <div id="creator-bulk-preview" style="color:#8b8b95; font-size:0.72rem; min-height:1.2em; margin:0 0 6px;"></div>
             <button id="creator-bulk-add-btn" style="
                 display:block; width:100%; padding:10px 4px; font-size:0.9rem; font-weight:bold;
-                background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4);
-                border-radius:8px; color:#00e5ff; cursor:pointer; margin:0;
+                background:rgba(245, 158, 11,0.08); border:1px dashed rgba(245, 158, 11,0.4);
+                border-radius:8px; color:#f59e0b; cursor:pointer; margin:0;
             ">＋ まとめて追加</button>
         `;
         // 書いている間に「何問として読めるか」を出す
@@ -2773,7 +2773,7 @@ ${spec.memo}" style="
 
         const rows = questions.map((q, i) => {
             const displayQ = q.q.length > 20 ? q.q.substring(0, 20) + "..." : q.q;
-            const shuffleIcon = (q.type === 'choice' || q.type === 'sort') && q.shuffle !== false ? ` <span title="シャッフル" style="display:inline-flex; vertical-align:-2px; color:#64748b;">${window.App.Icons.svg('shuffle', 13)}</span>` : '';
+            const shuffleIcon = (q.type === 'choice' || q.type === 'sort') && q.shuffle !== false ? ` <span title="シャッフル" style="display:inline-flex; vertical-align:-2px; color:#6b6b74;">${window.App.Icons.svg('shuffle', 13)}</span>` : '';
             const isEditing = this.editingIndex === i;
             // 未完成（正解が未入力など）の問題は赤く — このままだと出題できない
             const missing = window.App.QuizCheck ? window.App.QuizCheck.missing(q) : [];
@@ -2782,10 +2782,10 @@ ${spec.memo}" style="
                 <div class="creator-qlist-row" data-idx="${i}" style="
                     display:flex; align-items:center; gap:8px; padding:6px 8px; margin-bottom:4px;
                     border-radius:8px; cursor:pointer;
-                    border:1px solid ${isEditing ? '#00e5ff' : bad ? '#ef4444' : '#333'};
-                    background:${bad ? 'rgba(239,68,68,0.14)' : isEditing ? 'rgba(0,229,255,0.08)' : '#1a1a1a'};
+                    border:1px solid ${isEditing ? '#f59e0b' : bad ? '#ef4444' : '#333'};
+                    background:${bad ? 'rgba(239,68,68,0.14)' : isEditing ? 'rgba(245, 158, 11,0.08)' : '#1a1a1a'};
                 ">
-                    <span style="flex:1; min-width:0; font-size:0.8rem; color:${isEditing ? '#00e5ff' : bad ? '#fca5a5' : '#ddd'};">Q${i + 1}. ${displayQ}${shuffleIcon}${bad ? `<span style="margin-left:8px; font-size:0.7rem; color:#f87171; font-weight:bold;">未完成：${missing.join('・')}</span>` : ''}</span>
+                    <span style="flex:1; min-width:0; font-size:0.8rem; color:${isEditing ? '#f59e0b' : bad ? '#fca5a5' : '#ddd'};">Q${i + 1}. ${displayQ}${shuffleIcon}${bad ? `<span style="margin-left:8px; font-size:0.7rem; color:#f87171; font-weight:bold;">未完成：${missing.join('・')}</span>` : ''}</span>
                     <button class="creator-qlist-del" data-idx="${i}" title="削除" style="
                         background:none; border:none; color:rgba(255,255,255,0.35); font-size:0.9rem; cursor:pointer; padding:2px 6px; flex-shrink:0;
                     ">×</button>
@@ -2795,7 +2795,7 @@ ${spec.memo}" style="
 
         const badCount = window.App.QuizCheck ? window.App.QuizCheck.incompleteIn(questions).length : 0;
         list.innerHTML = `
-            <div style="color:#94a3b8; font-size:0.75rem; font-weight:bold; margin-bottom:6px;">作成済みの問題（クリックで編集） (${questions.length})</div>
+            <div style="color:#8b8b95; font-size:0.75rem; font-weight:bold; margin-bottom:6px;">作成済みの問題（クリックで編集） (${questions.length})</div>
             ${badCount ? `<div style="color:#f87171; font-size:0.72rem; margin-bottom:6px;">未完成の問題が${badCount}問あります。保存はできますが、完成させるまでこのセットは出題できません</div>` : ''}
             ${rows}
         `;

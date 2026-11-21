@@ -252,7 +252,7 @@ window.App.ProgConfig = {
                         <div style="font-weight:bold; color:#fff; font-size:1em; margin-bottom:4px;">${set.title}</div>
                         <div style="font-size:0.8em; color:#aaa;">${dateStr} / ${set.questions ? set.questions.length : 0}問 (${mode})</div>
                     </div>
-                    <div style="color:#00e5ff; font-weight:bold; border:1px solid #00e5ff; padding:5px 12px; border-radius:20px; font-size:0.8em;">追加</div>
+                    <div style="color:#f59e0b; font-weight:bold; border:1px solid #f59e0b; padding:5px 12px; border-radius:20px; font-size:0.8em;">追加</div>
                 </div>
             `;
         });
@@ -303,7 +303,7 @@ window.App.ProgConfig = {
                     <div class="timeline-card prog-card-compact" draggable="true" data-index="${i}">
                         <div class="prog-card-row">
                             <div class="drag-handle" style="display:flex; align-items:center; padding-right:10px; color:#555; cursor:grab; font-size:1.2em;">☰</div>
-                            <div style="font-weight:bold; color:#00e5ff; font-size:1.2em; margin-right:12px; width:24px; text-align:center; flex-shrink:0;">${i + 1}</div>
+                            <div style="font-weight:bold; color:#f59e0b; font-size:1.2em; margin-right:12px; width:24px; text-align:center; flex-shrink:0;">${i + 1}</div>
                             <div class="prog-card-info" onclick="window.App.ProgConfig.openContainerDetail(${i})">
                                 <div class="prog-card-title"><span style="font-size:0.7em; padding:1px 6px; margin-right:5px; background:rgba(255,170,0,0.2); color:#ffaa00; border-radius:4px; font-weight:bold;">CONTAINER</span>${item.title || '選択コンテナ'}</div>
                                 <div class="prog-card-meta">${optCount}択</div>
@@ -349,7 +349,7 @@ window.App.ProgConfig = {
                     <div class="timeline-card prog-card-compact" draggable="true" data-index="${i}">
                         <div class="prog-card-row">
                             <div class="drag-handle" style="display:flex; align-items:center; padding-right:10px; color:#555; cursor:grab; font-size:1.2em;">☰</div>
-                            <div style="font-weight:bold; color:#00e5ff; font-size:1.2em; margin-right:12px; width:24px; text-align:center; flex-shrink:0;">${i + 1}</div>
+                            <div style="font-weight:bold; color:#f59e0b; font-size:1.2em; margin-right:12px; width:24px; text-align:center; flex-shrink:0;">${i + 1}</div>
                             <div class="prog-card-info" onclick="window.App.ProgConfig.openSettings(${i})">
                                 <div class="prog-card-title"><span class="badge-set" style="font-size:0.7em; padding:1px 6px; margin-right:5px;">SET</span>${item.title || 'Untitled'} ${updateBadge}</div>
                                 <div class="prog-card-meta">${dateStr}${dateStr ? ' / ' : ''}${qCount}Q / ${modeLabel}</div>

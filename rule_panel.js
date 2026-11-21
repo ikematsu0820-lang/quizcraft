@@ -16,7 +16,7 @@
 window.App = window.App || {};
 
 App.RulePanel = {
-    SEL: 'width:100%; margin:0; padding:6px 8px; background:#1e293b; border:1px solid #475569; border-radius:8px; color:#fff; font-size:0.85rem;',
+    SEL: 'width:100%; margin:0; padding:6px 8px; background:#1b1b20; border:1px solid #3a3a42; border-radius:8px; color:#fff; font-size:0.85rem;',
 
     RE: function () { return window.App.RuleEngine; },
     Cfg: function () { return window.App.Config; },
@@ -295,7 +295,7 @@ App.RulePanel = {
         let basic = '';
         if (st === 'uniform') {
             const v = conf.uniformPts !== undefined && conf.uniformPts !== '' ? conf.uniformPts : '';
-            basic = this.row('正解したら', `<div style="display:flex; align-items:center; gap:6px;"><input type="number" id="rp-uniform" value="${v}" placeholder="問題ごと" min="0" style="${this.SEL} width:90px; text-align:center;"><span style="color:#94a3b8; font-size:0.8rem;">点（空欄なら問題ごとの配点）</span></div>`);
+            basic = this.row('正解したら', `<div style="display:flex; align-items:center; gap:6px;"><input type="number" id="rp-uniform" value="${v}" placeholder="問題ごと" min="0" style="${this.SEL} width:90px; text-align:center;"><span style="color:#8b8b95; font-size:0.8rem;">点（空欄なら問題ごとの配点）</span></div>`);
         } else if (st === 'first') {
             const n = parseInt(conf.firstN) || 1;
             const pts = conf.firstPts !== undefined && conf.firstPts !== '' ? conf.firstPts : 1;

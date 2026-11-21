@@ -99,8 +99,8 @@ window.App.SoundLibrary = {
                 <h4 style="margin:0 0 10px; color:#fff; font-size:0.95rem;">${this._labels[key]}</h4>
                 <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:12px;">
                     ${items.length ? items.map(it => `
-                        <div style="display:flex; align-items:center; gap:8px; background:#1e293b; border:1px solid #475569; border-radius:8px; padding:8px 10px;">
-                            <button type="button" data-key="${key}" data-play="${it.id}" title="再生して確認" style="flex:0 0 auto; background:none; border:none; color:#00e5ff; cursor:pointer; font-size:1rem;">▶</button>
+                        <div style="display:flex; align-items:center; gap:8px; background:#1b1b20; border:1px solid #3a3a42; border-radius:8px; padding:8px 10px;">
+                            <button type="button" data-key="${key}" data-play="${it.id}" title="再生して確認" style="flex:0 0 auto; background:none; border:none; color:#f59e0b; cursor:pointer; font-size:1rem;">▶</button>
                             <span style="flex:1; min-width:0; color:#fff; font-size:0.85rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${it.name}</span>
                             <button type="button" data-key="${key}" data-delete="${it.id}" style="flex:0 0 auto; background:none; border:none; color:#ff6666; cursor:pointer; font-size:0.78rem;">削除</button>
                         </div>
@@ -108,15 +108,15 @@ window.App.SoundLibrary = {
                 </div>
                 <div style="display:flex; gap:6px;">
                     <input type="text" data-name-input="${key}" placeholder="名前（例：正解音A）" style="
-                        flex:1; min-width:0; padding:8px; background:#0d1b2a; border:1px solid #475569;
+                        flex:1; min-width:0; padding:8px; background:#0c0c0f; border:1px solid #3a3a42;
                         border-radius:8px; color:#fff; font-size:0.85rem; box-sizing:border-box;
                     ">
                     <!-- label の中にファイル選択を入れて、押すとブラウザが直接ファイル選択を
                          開く（見えない input をスクリプトで押す方式は、ブラウザによって
                          開かないことがあった） -->
                     <label style="
-                        flex:0 0 auto; position:relative; overflow:hidden; padding:8px 14px; background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4);
-                        border-radius:8px; color:#00e5ff; cursor:pointer; font-size:0.85rem; white-space:nowrap;
+                        flex:0 0 auto; position:relative; overflow:hidden; padding:8px 14px; background:rgba(245, 158, 11,0.08); border:1px dashed rgba(245, 158, 11,0.4);
+                        border-radius:8px; color:#f59e0b; cursor:pointer; font-size:0.85rem; white-space:nowrap;
                     ">＋ 追加
                         <input type="file" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg" data-file-input="${key}" style="position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%;">
                     </label>
