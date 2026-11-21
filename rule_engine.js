@@ -278,6 +278,31 @@ App.RuleEngine = {
         return !!(conf && conf.readAloud) && /^free/.test((ctx && (ctx.firstType || ctx.qType)) || '');
     },
 
+    // 回答者の待機画面に出す「今回の遊び方」— 回答者が何をすればいいかだけを短く
+    playerGuide: function (conf, questions) {
+        const c = conf || {};
+        const ctx = this.context(c, questions);
+        if (ctx.isDobon) return '順番に1人ずつ、選択肢を1つ選びます。ダウト（はずれ）を選んだら、その問題は終わりです。';
+        if (ctx.isBlackjack) return '順番に1人ずつ項目を選び、合計を目標の数に近づけます。';
+        if (ctx.isPanel) return ctx.mode === 'buzz' ? '分かったら PUSH! を押し、パネルの番号と答えを口で言います。' : '自分の番が来たら、パネルの番号と答えを口で言います。';
+        const parts = [];
+        if (ctx.mode === 'buzz') {
+            if (ctx.writtenBuzz) parts.push(c.wbTiming === 'push_first' ? '分かったら PUSH! を押してから、答えを書いて送ります。' : '答えを書いてから PUSH! を押します（答えも一緒に届きます）。');
+            else if (ctx.answerBy === 'oral') parts.push('分かったら PUSH! を押して、口で答えます。');
+            else parts.push('分かったら PUSH! を押して、手元で答えます。');
+            if (ctx.wbContinue) parts.push('正解した人は抜けて、問題は続きます。早く正解するほど高い点です。');
+        } else if (ctx.mode === 'normal') {
+            parts.push(ctx.answerBy === 'written' ? '全員が手元に答えを書いて送ります。' : '全員が手元のボタンで答えます。');
+            if (c.scoreType === 'ranked' && this.can('scoreRanked', ctx).ok) parts.push('早く正解するほど高い点です。');
+        } else if (ctx.mode === 'turn') {
+            parts.push(ctx.isMulti ? '順番に1人ずつ、答えを1つ言います。' : '順番に1人ずつ答えます。');
+        } else if (ctx.mode === 'nominate') {
+            parts.push('司会者に指名されたら答えます。');
+        }
+        if (this.readAloud(c, ctx)) parts.push('問題は司会者が読み上げます。');
+        return parts.join('');
+    },
+
     describe: function (conf, questions) {
         const c = conf || {};
         const ctx = this.context(c, questions);

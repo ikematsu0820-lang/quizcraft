@@ -38,6 +38,15 @@ App.RulePanel = {
         return `<select id="${id}" style="${this.SEL}">${opts.map(o => `<option value="${o.v}" ${String(val) === String(o.v) ? 'selected' : ''}>${o.t}</option>`).join('')}</select>`;
     },
     head: function (t) { return `<div class="rp-head">${t}</div>`; },
+    // 選べない解答権は出さない。ただ「答え方を変えれば選べる」時だけ、その道を1行で
+    retryHint: function (ctx, groupTiles) {
+        const all = groupTiles.find(t => t.value === 'all');
+        if (all && all.disabled && ctx.isOral && !ctx.isMulti && !ctx.isPanel && !ctx.isDobon && !ctx.isBlackjack) {
+            return '<p class="rp-why">答え方を「手書き」にすると、「全員（手元で同時に）」も選べます。</p>';
+        }
+        return '';
+    },
+
     // 灰色のタイルの「選べない理由」— スマホでは title が見えないので、タイルの下に1行で出す
     whyNote: function (items) {
         const off = (items || []).filter(it => it.disabled && it.why);
@@ -149,9 +158,9 @@ App.RulePanel = {
         box.innerHTML = `
             ${answerHtml}
             ${this.head('解答権（だれが答えるか）')}
-            ${this.tiles('group', groupTiles, group)}
-            ${this.whyNote(groupTiles)}
-            ${group === 'specific' ? this.tiles('specific', specificTiles, conf.mode) + this.whyNote(specificTiles) : ''}
+            ${this.tiles('group', groupTiles.filter(t => !t.disabled || t.value === group), group)}
+            ${this.retryHint(ctx, groupTiles)}
+            ${group === 'specific' && specificTiles.filter(t => !t.disabled).length > 1 ? this.tiles('specific', specificTiles.filter(t => !t.disabled || t.value === conf.mode), conf.mode) : ''}
             <p class="rule-basic-note">${modeNote}</p>
             <div id="rp-mode-detail"></div>
             ${ctx.writtenBuzz ? this.writtenBuzzHtml(conf) : ''}
@@ -403,6 +412,13 @@ App.RulePanel = {
             ${this.tiles('gameType', types, gt)}
             ${basic}
             ${this.Cfg().advancedBlock('win_' + gt, adv, notes)}
+            ${this.head('回答者の端末に出すもの')}
+            ${this.row('得点・順位', this.select('rp-score-view', [
+                { v: 'score', t: '得点だけ' },
+                { v: 'score_rank', t: '得点と順位' },
+                { v: 'none', t: '出さない' },
+            ], conf.playerScoreView || 'score'))}
+            ${this.note('「出さない」にすると、回答者は自分の得点も順位も分からず、モニターや結果発表で初めて知ります。会場の発表で盛り上げたい時に。')}
             <div id="gametype-solo"></div>`;
         this.Cfg().wireAdvancedBlocks(box);
         this.Cfg()._renderSoloRules(box.querySelector('#gametype-solo'), conf, () => this.soft());
@@ -411,6 +427,7 @@ App.RulePanel = {
         });
         const bind = (id, fn) => { const el = box.querySelector('#' + id); if (el) el.onchange = () => { fn(el.value); this.soft(); }; };
         bind('rp-lives', v => { conf.survivalLives = parseInt(v) || 1; });
+        bind('rp-score-view', v => { conf.playerScoreView = v; });
         bind('rp-surv-end', v => { conf.survivalEndCount = parseInt(v) || 0; });
         bind('rp-win-target', v => { conf.winTarget = parseInt(v) || 5; });
         bind('rp-win-by', v => { conf.winBy = v; });

@@ -235,6 +235,7 @@ App.Studio = {
         window.db.ref(`rooms/${code}/players`).on('value', snap => {
             const players = snap.val() || {};
             App.Data.players = players; // Store globally for access in setStep
+            this.syncRanks(players);
             this.checkSurvival(players);
             this.checkWinThrough(players);
             if (this._ng) this.processNumGamePick(players);
@@ -811,6 +812,8 @@ App.Studio = {
         App.Data.currentConfig = this.applyForcedMode(item.config || { mode: 'normal' });
         App.Data.currentConfig.periodTitle = item.title || "Untitled";
         App.State.currentQIndex = 0;
+        // 回答者の待機画面に出す「今回の遊び方」
+        if (window.App.RuleEngine && App.RuleEngine.playerGuide) App.Data.currentConfig.playerGuide = App.RuleEngine.playerGuide(App.Data.currentConfig, App.Data.studioQuestions);
 
         const roomId = App.State.currentRoomId;
         if (!roomId) {
@@ -1710,6 +1713,8 @@ App.Studio = {
         App.Data.currentConfig = this.applyForcedMode(child.config || { mode: 'normal' });
         App.Data.currentConfig.periodTitle = child.title || "Untitled";
         App.State.currentQIndex = 0;
+        // 回答者の待機画面に出す「今回の遊び方」
+        if (window.App.RuleEngine && App.RuleEngine.playerGuide) App.Data.currentConfig.playerGuide = App.RuleEngine.playerGuide(App.Data.currentConfig, App.Data.studioQuestions);
 
         const roomId = App.State.currentRoomId;
         if (!roomId) {
@@ -2551,6 +2556,20 @@ App.Studio = {
                     if (this.wbOn('continue')) this.wbAfterJudge();
                 }
             }
+        });
+    },
+
+    // 回答者の端末に順位を出す時（ルール「回答者の端末に出すもの：得点と順位」）だけ、
+    // 得点から順位を出して各自に書く（同点は同じ順位）。変わった人の分だけ書く。
+    syncRanks: function (players) {
+        const conf = App.Data.currentConfig || {};
+        if (conf.playerScoreView !== 'score_rank' || !players) return;
+        const roomId = App.State.currentRoomId;
+        const list = Object.entries(players).filter(([, p]) => p && p.name);
+        const scores = list.map(([, p]) => Number(p.periodScore) || 0).sort((a, b) => b - a);
+        list.forEach(([pid, p]) => {
+            const rank = scores.indexOf(Number(p.periodScore) || 0) + 1;
+            if (p.rank !== rank) window.db.ref(`rooms/${roomId}/players/${pid}`).update({ rank });
         });
     },
 

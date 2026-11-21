@@ -210,8 +210,7 @@ function winMessageHtml(p, st) {
         const limit = parseInt(roomConfig.wbWinCount) || 0;
         rest = limit ? `あと${Math.max(0, limit - done)}人正解で終わり` : '残りの人で続いています';
     }
-    return `<div class="status-badge" style="background:#2ecc71;">CORRECT</div>`
-        + `<p style="margin-top:10px; font-weight:bold; font-size:1.5em;">${rankTxt}</p>`
+    return `<p style="margin-top:4px; font-weight:bold; font-size:1.5em;">${rankTxt}</p>`
         + (gain !== null && gain !== 0 ? `<p style="margin-top:4px; font-weight:900; font-size:1.3em;">+${gain}点</p>` : '')
         + (rest ? `<p style="margin-top:8px; font-size:0.9em; opacity:0.85;">${rest}</p>` : '');
 }
@@ -580,6 +579,7 @@ function updateSpeedBadge(st, p) {
 function updateUI() {
     const st = localStatus;
     const p = localPlayerData;
+    document.getElementById('player-input-container')?.classList.remove('pl-hide');
     clearInterval(window._wbCountdown); // 書く持ち時間の表示は、必要な時だけ下で付け直す
     updateSpeedBadge(st, p);
     // 入室者の名前の購読は待機画面の間だけ
@@ -599,7 +599,7 @@ function updateUI() {
         if (badge) { badge.textContent = "ENTRY"; badge.style.background = "#00bfff"; badge.style.color = "#000"; }
         document.getElementById('player-dead-overlay').classList.add('hidden');
     } else {
-        if (badge) { badge.textContent = "LOSE"; badge.style.background = "#555"; badge.style.color = "#aaa"; }
+        if (badge) { badge.textContent = "脱落"; badge.style.background = "#555"; badge.style.color = "#aaa"; }
         document.getElementById('player-dead-overlay').classList.remove('hidden');
     }
 
@@ -607,7 +607,7 @@ function updateUI() {
         const ov = document.getElementById('player-dead-overlay');
         if (ov && ov.classList.contains('overlay-cleared')) {
             ov.classList.remove('overlay-cleared');
-            ov.querySelector('.dead-title').textContent = (typeof APP_TEXT !== 'undefined' && APP_TEXT.Player && APP_TEXT.Player.MsgDead) || 'GAME OVER';
+            ov.querySelector('.dead-title').textContent = (typeof APP_TEXT !== 'undefined' && APP_TEXT.Player && APP_TEXT.Player.MsgDead) || '脱落しました';
             const body = ov.querySelector('p');
             if (body) body.textContent = (typeof APP_TEXT !== 'undefined' && APP_TEXT.Player && APP_TEXT.Player.MsgDeadBody) || '脱落...';
         }
@@ -706,7 +706,6 @@ function updateUI() {
 
         lobby.innerHTML = `
             <div style="text-align:center; padding:20px 0;">
-                <div style="font-size:1.8em; margin-bottom:10px;">📦</div>
                 <div style="font-size:1.2em; font-weight:900; color:#ffd700; margin-bottom:6px;">${cTitle}</div>
                 <div style="font-size:0.85em; color:#aaa; margin-bottom:20px;">司会者がクイズセットを選択中...</div>
                 <div style="display:flex; flex-direction:column; gap:8px; padding:0 10px;">
@@ -743,8 +742,9 @@ function updateUI() {
             </div>
             ${turnOrderHtml}
             <div class="standby-info" style="margin-top:20px; opacity:0.6;">
-                <p style="font-size:0.9em; margin:0;">${turnOrderHtml ? '準備が整うまでお待ちください' : '対戦相手が揃うまでお待ちください...'}</p>
+                <p style="font-size:0.9em; margin:0;">${st.step === 'reveal_q_num' ? 'まもなく問題が出ます' : turnOrderHtml ? '準備が整うまでお待ちください' : '始まるまでお待ちください'}</p>
             </div>
+            ${roomConfig.playerGuide && st.step !== 'reveal_q_num' ? `<div class="pl-guide"><span>今回の遊び方</span><p>${String(roomConfig.playerGuide).replace(/</g, '&lt;')}</p></div>` : ''}
             <div id="player-lobby-roster"></div>
         `;
         renderLobbyRoster();
@@ -800,7 +800,7 @@ function updateUI() {
                 waitMsg.style.color = "#e74c3c";
                 waitMsg.style.border = "1px solid #e74c3c";
                 waitMsg.style.padding = "20px";
-                waitMsg.innerHTML = `<div class="status-badge" style="background:#e74c3c;">WRONG</div><p style="margin-top:10px; font-weight:bold; font-size:1.2em;">不正解...</p><p style="margin-top:5px; font-size:0.9em; color:#aaa;">もう一度解答できます</p>`;
+                waitMsg.innerHTML = `<p style="margin-top:10px; font-weight:bold; font-size:1.2em;">不正解...</p><p style="margin-top:5px; font-size:0.9em; color:#aaa;">もう一度解答できます</p>`;
             } else {
                 toggleInputEnabled(false);
                 const changeArea = document.getElementById('change-btn-area');
@@ -811,7 +811,7 @@ function updateUI() {
                 waitMsg.style.color = "#e74c3c";
                 waitMsg.style.border = "1px solid #e74c3c";
                 waitMsg.style.padding = "20px";
-                waitMsg.innerHTML = `<div class="status-badge" style="background:#e74c3c;">WRONG</div><p style="margin-top:10px; font-weight:bold; font-size:1.5em;">不正解...</p>`;
+                waitMsg.innerHTML = `<p style="margin-top:10px; font-weight:bold; font-size:1.5em;">不正解...</p>`;
             }
         } else if (st.bjCards && currentQuestion && currentQuestion.type === 'blackjack') {
             // Blackjack turn: show card selection buttons
@@ -860,7 +860,9 @@ function updateUI() {
                 // 書いてから押す → 押す前から手書き欄を出す
                 // 押してから書く × 押した順 → 押した後に手書き欄と送信を出す
                 const showPad = writtenBuzz && !hasMyAns && (!pushFirst || (wbQueue() && !!p.buzzTime));
-                quizArea.classList.toggle('hidden', !showPad);
+                // 問題文は見せる（入力欄だけ、書く時まで隠す）— 読み上げの時は問題文が空なので帯だけ
+                quizArea.classList.remove('hidden');
+                document.getElementById('player-input-container')?.classList.toggle('pl-hide', !showPad);
                 buzzArea.classList.remove('hidden');
                 toggleInputEnabled(showPad);
                 const writtenSubmit = document.getElementById('written-submit-btn');
@@ -875,7 +877,7 @@ function updateUI() {
                 } else if (p.otetskiQ !== undefined && p.otetskiQ !== null && p.otetskiQ === localStatus.qIndex) {
                     // おてつき: 次の問題まで解答権なし
                     btn.disabled = true;
-                    btn.textContent = "⛔ 解答権なし";
+                    btn.textContent = "解答権なし";
                     btn.style.background = "#333";
                     // Show wait message below
                     const buzzArea = document.getElementById('player-buzz-area');
@@ -1002,7 +1004,7 @@ function updateUI() {
                     waitMsg.style.color = "#e74c3c";
                     waitMsg.style.border = "1px solid #e74c3c";
                     waitMsg.style.padding = "20px";
-                    waitMsg.innerHTML = `<div class="status-badge" style="background:#e74c3c;">WRONG</div><p style="margin-top:10px; font-weight:bold; font-size:1.2em;">不正解...</p><p style="margin-top:5px; font-size:0.9em; color:#aaa;">もう一度解答できます</p>`;
+                    waitMsg.innerHTML = `<p style="margin-top:10px; font-weight:bold; font-size:1.2em;">不正解...</p><p style="margin-top:5px; font-size:0.9em; color:#aaa;">もう一度解答できます</p>`;
                 } else {
                     toggleInputEnabled(false);
                     const changeArea = document.getElementById('change-btn-area');
@@ -1013,7 +1015,7 @@ function updateUI() {
                     waitMsg.style.color = "#e74c3c";
                     waitMsg.style.border = "1px solid #e74c3c";
                     waitMsg.style.padding = "20px";
-                    waitMsg.innerHTML = `<div class="status-badge" style="background:#e74c3c;">WRONG</div><p style="margin-top:10px; font-weight:bold; font-size:1.5em;">不正解...</p>`;
+                    waitMsg.innerHTML = `<p style="margin-top:10px; font-weight:bold; font-size:1.5em;">不正解...</p>`;
                 }
             } else {
                 handleNormalResponseUI(p, quizArea, waitMsg);
@@ -1028,7 +1030,7 @@ function updateUI() {
         waitMsg.style.background = "rgba(255, 75, 43, 0.1)";
         waitMsg.style.color = "#ff4b2b";
         waitMsg.style.border = "1px solid #ff4b2b";
-        waitMsg.innerHTML = "<b>TIME UP!</b><br>解答を締め切りました";
+        waitMsg.innerHTML = "<b>締め切り</b><br>解答を締め切りました";
     }
     else if (st.step === 'reveal_player') {
         quizArea.classList.remove('hidden');
@@ -1046,7 +1048,7 @@ function updateUI() {
             waitMsg.style.color = "#e74c3c";
             waitMsg.style.border = "1px solid #e74c3c";
             waitMsg.style.padding = "20px";
-            waitMsg.innerHTML = `<div class="status-badge" style="background:#e74c3c;">WRONG</div><p style="margin-top:10px; font-weight:bold; font-size:1.5em;">不正解...</p>`;
+            waitMsg.innerHTML = `<p style="margin-top:10px; font-weight:bold; font-size:1.5em;">不正解...</p>`;
         } else {
             waitMsg.innerHTML = `<div class="status-badge" style="background:#9b59b6;">REVEAL</div><p style="margin-top:10px;">全員の解答を表示しています</p>`;
         }
@@ -1069,15 +1071,15 @@ function updateUI() {
                         <div style="text-align:center;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:14px;padding:14px;">
                             <div style="font-size:0.8em;color:#94a3b8;margin-bottom:6px;">${st.bjPickedPlayerName || ''} ${isStand ? 'がスタンド' : 'が引いたパネル'}</div>
                             ${isStand
-                                ? `<div style="font-size:1.6em;font-weight:900;color:#7c3aed;">✋ STAND</div>`
+                                ? `<div style="font-size:1.6em;font-weight:900;color:#7c3aed;">スタンド</div>`
                                 : `<div style="font-size:2.5em;font-weight:900;color:#d97706;">${st.bjPickedCard || '?'}</div>
                                    <div style="font-size:0.85em;color:#94a3b8;margin-top:4px;">+${st.bjPickedValue || 0}pt</div>`}
                         </div>
                         <div style="text-align:center;background:#fefce8;border:1.5px solid #fde68a;border-radius:14px;padding:14px;">
-                            <div style="font-size:0.78em;font-weight:700;letter-spacing:0.1em;color:#a16207;margin-bottom:6px;">YOUR TOTAL</div>
+                            <div style="font-size:0.78em;font-weight:700;letter-spacing:0.1em;color:#a16207;margin-bottom:6px;">あなたの合計</div>
                             <div style="font-size:2.8em;font-weight:900;color:${totalColor};line-height:1;">${myNewTotal}</div>
                             <div style="font-size:0.78em;color:#94a3b8;margin-top:4px;">目標: ${target}</div>
-                            ${isBusted ? '<div style="color:#dc2626;font-weight:700;margin-top:4px;">💥 BUST!</div>' : isPerfect ? '<div style="color:#d97706;font-weight:700;margin-top:4px;">🎯 ピタリ！</div>' : ''}
+                            ${isBusted ? '<div style="color:#dc2626;font-weight:700;margin-top:4px;">バースト</div>' : isPerfect ? '<div style="color:#d97706;font-weight:700;margin-top:4px;">ピタリ！</div>' : ''}
                         </div>
                     </div>`;
             }
@@ -1093,14 +1095,14 @@ function updateUI() {
             const isWinner = (st.bjWinner === (p.name || ''));
             container.innerHTML = `
                 <div style="padding:20px 14px;font-family:sans-serif;text-align:center;display:flex;flex-direction:column;gap:14px;align-items:center;">
-                    <div style="font-size:0.75em;font-weight:700;letter-spacing:0.15em;color:#94a3b8;">🃏 NUMBER GAME — RESULT</div>
+                    <div style="font-size:0.75em;font-weight:700;letter-spacing:0.15em;color:#94a3b8;">数字予想の結果</div>
                     <div style="background:${isWinner ? '#fefce8' : '#f8fafc'};border:2px solid ${isWinner ? '#fde68a' : '#e2e8f0'};border-radius:18px;padding:18px 28px;width:100%;max-width:280px;box-sizing:border-box;">
-                        <div style="font-size:0.78em;color:#94a3b8;margin-bottom:6px;">WINNER</div>
+                        <div style="font-size:0.78em;color:#94a3b8;margin-bottom:6px;">勝った人</div>
                         <div style="font-size:1.8em;font-weight:900;color:${isWinner ? '#d97706' : '#1e293b'};">${st.bjWinner || '---'}</div>
                         <div style="font-size:0.8em;color:#94a3b8;margin-top:8px;">合計 <strong style="color:${isPerfect ? '#d97706' : '#475569'};">${st.bjWinnerTotal || 0}</strong> / 目標 ${st.bjTarget || 21}</div>
-                        ${isPerfect ? '<div style="color:#d97706;font-weight:700;margin-top:6px;">🎯 ピタリ！</div>' : ''}
+                        ${isPerfect ? '<div style="color:#d97706;font-weight:700;margin-top:6px;">ピタリ！</div>' : ''}
                     </div>
-                    ${isWinner ? '<div style="font-size:1em;font-weight:700;color:#16a34a;">🎉 おめでとうございます！</div>' : ''}
+                    ${isWinner ? '<div style="font-size:1em;font-weight:700;color:#16a34a;">おめでとうございます！</div>' : ''}
                 </div>`;
         }
         quizArea.classList.remove('hidden');
@@ -1134,6 +1136,81 @@ function updateUI() {
 
     // Update time limit UI based on state
     updateTimeLimitDisplay(st);
+    renderStateBanner(st, p);
+    renderScoreHeader(p);
+}
+
+// 画面の上の状態の帯 — あなたの番／◯◯さんが解答中／不正解／◯番目に正解 を大きく出す。
+// 帯が出ている間は、同じことを言っている小さな表示（待機の文・解答中の札）は隠す。
+function renderStateBanner(st, p) {
+    const view = document.getElementById('player-game-view');
+    if (!view) return;
+    let el = document.getElementById('player-state-banner');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'player-state-banner';
+        const bar = document.getElementById('player-status-bar');
+        if (bar && bar.nextSibling) view.insertBefore(el, bar.nextSibling); else view.appendChild(el);
+    }
+    const q = currentQuestion;
+    const mode = roomConfig.mode;
+    const open = ['question', 'answering', 'reveal_q'].includes(st.step) && q;
+    const esc = (t) => String(t || '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    const by = !q ? '' : (/_oral$/.test(q.type || '') || q.panel) ? 'oral' : /_written$/.test(q.type || '') ? 'written' : 'button';
+    let kind = '', title = '', sub = '';
+    if (open && p.isAlive !== false && !p.cleared) {
+        if (p.lastResult === 'win' && mode !== 'normal') {
+            kind = 'win';
+            const cont = isWrittenBuzz() && roomConfig.wbAfterCorrect === 'continue';
+            title = p.winRank && (p.winRank > 1 || cont) ? `${p.winRank}番目に正解` : '正解';
+            const parts = [];
+            if (roomConfig.playerScoreView !== 'none' && p.lastGain !== undefined && p.lastGain !== null && Number(p.lastGain) !== 0) parts.push(`+${p.lastGain}点`);
+            if (cont) {
+                const limit = parseInt(roomConfig.wbWinCount) || 0;
+                parts.push(limit ? `あと${Math.max(0, limit - (st.wbWinners || []).length)}人正解で終わり` : '残りの人で続いています');
+            }
+            sub = parts.join('　');
+        } else if (p.lastResult === 'lose' && mode !== 'normal') {
+            kind = 'lose';
+            title = '不正解';
+            const pen = roomConfig.buzzPenalty || 'none';
+            sub = mode === 'buzz' && pen === 'none' && roomConfig.buzzWrongAction !== 'end' ? 'まもなく、もう一度押せます' : 'この問題はもう答えられません';
+        } else if (st.currentAnswerer === myPlayerId && mode !== 'normal') {
+            kind = 'me';
+            title = 'あなたの番です';
+            sub = by === 'oral' ? '口で答えてください（司会者が判定します）' : by === 'written' ? '書いて「送信」を押してください' : '答えを選んでください';
+        } else if (st.currentAnswerer && st.currentAnswerer !== myPlayerId) {
+            kind = 'other';
+            title = `${esc(st.currentAnswererName || '他の人')} さんが解答中`;
+            sub = mode === 'buzz' ? (isWrittenBuzz() && !wbPushFirst() ? '書いておいて、次に押せる時に PUSH!' : '誤答なら、また押せます') : mode === 'turn' ? 'あなたの番まで待ちましょう' : '';
+        } else if (st.isNominateMode && !st.currentAnswerer) {
+            kind = 'other';
+            title = '司会者の指名を待っています';
+        }
+    }
+    el.className = kind ? `psb psb-${kind}` : 'psb hidden';
+    el.innerHTML = kind ? `<b>${title}</b>${sub ? `<span>${sub}</span>` : ''}` : '';
+    if (kind) {
+        // 同じことを言っている小さな表示は隠す
+        const waitMsg = document.getElementById('player-wait-msg');
+        if (waitMsg && ['win', 'lose', 'other', 'me'].includes(kind) && !(kind === 'me' && by !== 'oral')) waitMsg.classList.add('hidden');
+        document.getElementById('current-turn-header-disp')?.classList.add('hidden');
+        // 正解した後は、入力欄（手書き欄・送信）を片づける
+        if (kind === 'win' || (kind === 'lose' && mode === 'buzz')) document.getElementById('player-input-container')?.classList.add('pl-hide');
+    }
+}
+
+// 上の帯の得点・順位 — ルール「回答者の端末に出すもの」（playerScoreView）
+//   score（既定）… 得点だけ ／ score_rank … 得点と順位 ／ none … 出さない（会場の発表で盛り上げる時）
+function renderScoreHeader(p) {
+    const area = document.getElementById('score-display-area');
+    if (!area) return;
+    const view = roomConfig.playerScoreView || 'score';
+    if (view === 'none') { area.classList.add('hidden'); return; }
+    if (p.periodScore === undefined) return;
+    area.classList.remove('hidden');
+    const rankTxt = view === 'score_rank' && p.rank ? `<span class="score-rank">${p.rank}位</span>` : '';
+    area.innerHTML = `<span id="current-score-value">${p.periodScore}</span>ポイント${rankTxt}`;
 }
 
 let playerTimeLimitTimerId = null;
@@ -1217,8 +1294,7 @@ function toggleInputEnabled(enabled) {
 }
 
 function showLoserMessage(lobby, buzzArea) {
-    lobby.classList.remove('hidden');
-    lobby.innerHTML = `<div style="text-align:center; color:#e94560; font-weight:bold; font-size:1.5em; margin-top:30px;">❌ 不正解</div><p style="text-align:center; color:#aaa;">この問題の解答権はありません</p>`;
+    // 「不正解」は画面上の状態の帯（renderStateBanner）で大きく出す
     buzzArea.classList.add('hidden');
     // クイズエリアは隠さない（見学できるように）
 }
@@ -1256,7 +1332,7 @@ function renderPlayerNumGame(st, p) {
         const r = ng.result || {};
         const iWon = (r.winners || []).includes(myName);
         const iLost = !isBJ && r.loser === myName;
-        status = `<div class="ng-status ${iWon ? 'win' : (iLost || isBJ) ? 'lose' : ''}">${isBJ ? (iWon ? '🏆 あなたの勝ち！' : '結果発表') : (iLost ? '💥 あなたの負け…' : '🎉 セーフ！')}<small>${esc(r.text || '')}</small></div>`;
+        status = `<div class="ng-status ${iWon ? 'win' : (iLost || isBJ) ? 'lose' : ''}">${isBJ ? (iWon ? 'あなたの勝ち！' : '結果発表') : (iLost ? 'あなたの負け…' : 'セーフ！')}<small>${esc(r.text || '')}</small></div>`;
     } else if (isMyTurn && ng.resolved) {
         status = `<div class="ng-status">選びました。次の人を待っています</div>`;
     } else if (isMyTurn) {
@@ -1344,7 +1420,7 @@ function handleNormalResponseUI(p, quizArea, waitMsg) {
             waitMsg.style.border = "1px solid #00b894";
             waitMsg.style.padding = "15px";
             const mine = describeMyAnswer(p.lastAnswer);
-            waitMsg.innerHTML = `<b>ANSWERED</b><br>${mine ? `あなたの解答：${mine}<br>` : ''}発表を待っています...`;
+            waitMsg.innerHTML = `<b>回答しました</b><br>${mine ? `あなたの解答：${mine}<br>` : ''}発表を待っています...`;
 
             if (isMulti) {
                 const oralArea = document.getElementById('player-oral-done-area');
@@ -1416,7 +1492,7 @@ function renderBlackjackCards(st, p) {
                     <div style="height:100%;width:${progress}%;background:${scoreColor};border-radius:999px;transition:width 0.6s ease;box-shadow:0 0 6px ${scoreColor}66;"></div>
                 </div>
                 <div style="text-align:center;font-size:0.78em;color:#94a3b8;font-weight:600;">
-                    ${myTotal > target ? '⚠️ BUST!' : myTotal === target ? '🎯 ピタリ！' : `あと ${diff} pt`}
+                    ${myTotal > target ? 'バースト' : myTotal === target ? 'ピタリ！' : `あと ${diff} pt`}
                 </div>
             </div>
 
@@ -1453,7 +1529,7 @@ function renderBlackjackCards(st, p) {
 
             <!-- Stand button -->
             <button id="bj-stand-btn" style="width:100%;padding:16px;border-radius:14px;border:2px solid rgba(124,58,237,0.3);background:rgba(124,58,237,0.06);color:#7c3aed;font-size:1em;font-weight:700;cursor:pointer;letter-spacing:0.04em;transition:all 0.2s;">
-                ✋ スタンド（このまま勝負）
+                スタンド（このまま勝負）
             </button>
             ` : `
             <!-- Not my turn -->
@@ -1550,13 +1626,13 @@ function renderResultScreen(p) {
     if (p.lastResult === 'win') {
         judgeHtml = `
             <div class="result-symbol result-correct-symbol"></div>
-            <div class="result-badge badge-correct">CORRECT</div>
+            <div class="result-badge badge-correct">正解</div>
         `;
         // Removed flash effect
     } else if (p.lastResult === 'lose') {
         judgeHtml = `
             <div class="result-symbol result-wrong-symbol"></div>
-            <div class="result-badge badge-wrong">WRONG</div>
+            <div class="result-badge badge-wrong">不正解</div>
         `;
         // Removed flash effect
     }
@@ -1571,12 +1647,12 @@ function renderResultScreen(p) {
         <div class="result-answers">
         <div class="result-correct-box" style="background:rgba(0,0,0,0.03); color:var(--color-text); padding:20px; border-radius:12px; font-weight:900; text-align:center; border: 1px solid rgba(0,0,0,0.05);">
             <div style="font-size:0.8em; letter-spacing:1px; margin-bottom:8px; color:var(--color-text-sub);">
-                ${(currentQuestion.mode === 'dobon' || currentQuestion.mode === 'multi' || currentQuestion.multi || roomConfig.mode === 'dobon') ? "NG ANSWER (選んではいけません)" : "正解"}
+                ${(currentQuestion.mode === 'dobon' || currentQuestion.mode === 'multi' || currentQuestion.multi || roomConfig.mode === 'dobon') ? "ダウト（選んではいけない答え）" : "正解"}
             </div>
             <div style="font-size:${isMultiResult ? '1.0em' : '1.8em'}; line-height:1.4;">${correctText}</div>
         </div>
         <div style="background:rgba(0,0,0,0.05); color:var(--color-text); padding:12px; border-radius:12px; font-weight:bold; text-align:center; margin-top:12px;">
-            <div style="font-size:0.7em; color:var(--color-text-sub); margin-bottom:4px; letter-spacing:1px;">YOUR ANSWER</div>
+            <div style="font-size:0.7em; color:var(--color-text-sub); margin-bottom:4px; letter-spacing:1px;">あなたの答え</div>
             <div style="font-size:1.2em; ${p.lastResult === 'lose' ? 'text-decoration:line-through; color:#ff6b6b;' : 'color:var(--color-text);'}">${myAnsText}</div>
         </div>
         </div>
@@ -1955,7 +2031,7 @@ function renderPlayerQuestion(q, roomId, playerId) {
             // --- Click Order Mode (<= 5 items) ---
             const helpText = document.createElement('div');
             helpText.className = 'player-sort-help';
-            helpText.innerHTML = '👆 正しい順序で項目をタップしてください';
+            helpText.innerHTML = '正しい順に項目をタップしてください';
             inputCont.appendChild(helpText);
 
             // Container for sequence display
@@ -2094,7 +2170,7 @@ function renderPlayerQuestion(q, roomId, playerId) {
             // --- Drag & Drop Mode (>= 6 items) ---
             const helpText = document.createElement('div');
             helpText.className = 'player-sort-help';
-            helpText.innerHTML = '👆 項目をドラッグして正しい順序に入れ替えてください';
+            helpText.innerHTML = '項目をドラッグして正しい順に入れ替えてください';
             inputCont.appendChild(helpText);
 
             const sortList = document.createElement('div');
@@ -2163,7 +2239,7 @@ function renderPlayerQuestion(q, roomId, playerId) {
         } else {
             // multi_oral
             const helpText = document.createElement('div');
-            helpText.className = 'player-sort-help';
+            helpText.className = 'player-sort-help oral-help';
             helpText.innerHTML = '口頭で解答してください。<br>判定は司会者が行います。';
             inputCont.appendChild(helpText);
         }
@@ -2192,7 +2268,7 @@ function renderPlayerQuestion(q, roomId, playerId) {
     }
     else if (q.type === 'free_oral') {
         const helpText = document.createElement('div');
-        helpText.className = 'player-sort-help';
+        helpText.className = 'player-sort-help oral-help';
         helpText.innerHTML = '口頭で解答してください。<br>判定は司会者が行います。';
         inputCont.appendChild(helpText);
     }
@@ -2279,7 +2355,7 @@ function createHandwritingCanvas() {
 
     const clearBtn = document.createElement('button');
     clearBtn.type = 'button';
-    clearBtn.textContent = '🗑 クリア';
+    clearBtn.textContent = 'クリア';
     clearBtn.style.cssText = 'margin-top:6px; padding:6px 14px; background:rgba(0,0,0,0.05); border:1px solid rgba(0,0,0,0.15); border-radius:8px; color:var(--color-text-sub); font-size:0.85em; cursor:pointer;';
     wrap.appendChild(clearBtn);
 
