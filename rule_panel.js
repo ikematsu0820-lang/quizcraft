@@ -145,7 +145,7 @@ App.RulePanel = {
         // パネル（パネル指名・パネルクイズ）は口頭で「◯番、答え」と言う形式 — 答え方は選ばない
         const answerHtml = ctx.isPanel
             ? `${this.head('答え方')}<p class="rule-basic-note">パネルは、答える人が口で「◯番、答え」と言い、司会者が〇×を付けます。</p>`
-            : `${this.head('答え方')}${this.tiles('answerBy', answerTiles, by)}`;
+            : this.answerByHtml(answerTiles, by, ctx);
         box.innerHTML = `
             ${answerHtml}
             ${this.head('解答権（だれが答えるか）')}
@@ -197,6 +197,17 @@ App.RulePanel = {
         box.querySelectorAll('[data-rp="specific"]').forEach(b => {
             b.onclick = () => { if (b.dataset.val !== conf.mode) setMode(b.dataset.val); };
         });
+    },
+
+    // 答え方 — 形式で決まる物は出さない。選べるのが1つだけなら、タイルではなく1行で伝える
+    answerByHtml: function (tiles, by, ctx) {
+        const open = tiles.filter(t => !t.disabled || t.value === by);
+        if (open.length > 1) return `${this.head('答え方')}${this.tiles('answerBy', open, by)}`;
+        const cur = tiles.find(t => t.value === by) || open[0];
+        const why = by === 'button'
+            ? 'この形式は、手元のボタンで答えて自動で判定します。'
+            : by === 'oral' ? 'この形式は、口で答えて出題者が判定します。' : 'この形式は、手書きで答えて出題者が判定します。';
+        return `${this.head('答え方')}<p class="rp-fixed"><b>${cur ? cur.label : ''}</b><span>${why}</span></p>`;
     },
 
     // ---------------------------------------------------------
