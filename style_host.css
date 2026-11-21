@@ -5389,3 +5389,4 @@ body:has(> #unified-toggle-container:not([style*="none"])) #viewer-content {
 .ds-qbg-pick.has { border: 1px solid #00e5ff; }
 .ds-qbg-clear { flex: 0 0 28px; height: 32px; padding: 0; margin: 0; border: 1px dashed #ff8888; border-radius: 6px; background: none; color: #ff8888; cursor: pointer; }
 #cm-sheet-body .ds-qbg-pick, #cm-sheet-body .ds-qbg-clear { height: 42px; }
+.ds-flag { display: flex; align-items: center; gap: 6px; margin-top: 8px; color: #cbd5e1; font-size: 0.7rem; cursor: pointer; }

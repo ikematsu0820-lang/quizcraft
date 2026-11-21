@@ -1655,11 +1655,14 @@ function showPlayerQImage(q, roomId) {
         img.alt = '';
         disp.parentNode.insertBefore(img, disp);
     }
-    const v = q && q.image;
+    // 見た目で「回答者のスマホにも画像を出す」を外した時は読み込まない
+    const v = q && q.image && !playerImagesOff(q) ? q.image : null;
     const set = (src) => { if (src) { img.src = src; img.classList.remove('hidden'); } else { img.removeAttribute('src'); img.classList.add('hidden'); } };
     set('');
     resolvePlayerImage(v, roomId, (data) => { if (q.image === v) set(data); }); // 待っている間に次の問題に変わっていたら出さない
 }
+
+function playerImagesOff(q) { return !!(q && q.design && q.design.playerImages === 'off'); }
 
 // 画像の参照 '@img:N' をルームの images から取って渡す（data URL ならそのまま）
 function resolvePlayerImage(v, roomId, cb) {
@@ -1789,7 +1792,7 @@ function renderPlayerQuestion(q, roomId, playerId) {
             btn.innerHTML = `<span class="choice-prefix" style="font-weight:900;margin-right:10px;font-family:monospace;font-size:0.95em;">${App.ChoiceLabel(i, (q.design || {}).cPrefixType)}</span>${item.text}`;
             btn.dataset.ans = item.originalIndex;
             // 選択肢の画像（作成画面で行に入れたもの）
-            const cImgRef = !isOx && Array.isArray(q.cImg) ? q.cImg[item.originalIndex] : null;
+            const cImgRef = !isOx && !playerImagesOff(q) && Array.isArray(q.cImg) ? q.cImg[item.originalIndex] : null;
             if (cImgRef) {
                 btn.classList.add('has-c-img');
                 const im = document.createElement('img');

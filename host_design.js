@@ -453,7 +453,9 @@ App.Design = {
                             ${miniSelect('画像の見せ方', 'cImgMode', [{ v: '', t: '画像と文字' }, { v: 'only', t: '画像だけ' }])}
                             ${miniSelect('画像の大きさ', 'cImgSize', [{ v: 'small', t: '小' }, { v: '', t: '中' }, { v: 'large', t: '大' }])}
                         </div>
-                        <p style="color:#555; font-size:0.62rem; margin:4px 0 0;">※画像は問題を書く画面で、${choicesLabel}の行の画像ボタンから入れます（文字は正解発表で使うので必要です）</p>` : ''}
+                        <p style="color:#555; font-size:0.62rem; margin:4px 0 0;">※画像は問題を書く画面で、${choicesLabel}の行の画像ボタンから入れます（文字は正解発表で使うので必要です）</p>
+                        <label class="ds-flag"><input type="checkbox" data-design-flag="playerImages" ${design.playerImages === 'off' ? '' : 'checked'}><span>回答者のスマホにも画像を出す</span></label>
+                        <p style="color:#555; font-size:0.62rem; margin:2px 0 0;">※外すと回答者のスマホは画像を読み込まず、文字だけになります（画像が多い時に軽くなります。モニターには出ます）</p>` : ''}
                     `;
                 }
 
@@ -537,7 +539,8 @@ App.Design = {
                         ${miniSelect('画像の置き方', 'qImgLayout', [{ v: '', t: '文字の上' }, { v: 'side', t: '文字の横' }, { v: 'big', t: '大きく' }])}
                         ${miniSelect('画像の大きさ', 'qImgSize', [{ v: 'small', t: '小' }, { v: '', t: '中' }, { v: 'large', t: '大' }])}
                     </div>
-                    <p style="color:#555; font-size:0.62rem; margin:4px 0 0;">※画像そのものは、問題を書く画面で問題文の欄に入れます（問題ごと）</p>` : ''}
+                    <p style="color:#555; font-size:0.62rem; margin:4px 0 0;">※画像そのものは、問題を書く画面で問題文の欄に入れます（問題ごと）</p>
+                        <label class="ds-flag"><input type="checkbox" data-design-flag="playerImages" ${design.playerImages === 'off' ? '' : 'checked'}><span>回答者のスマホにも画像を出す</span></label>` : ''}
                 `;
             },
             sound: () => {
@@ -954,6 +957,10 @@ App.Design = {
                     }
                 };
             }
+            // オン／オフの設定（オフの時だけ 'off' を持つ）— 回答者のスマホにも画像を出す など
+            body.querySelectorAll('input[data-design-flag]').forEach(chk => {
+                chk.onchange = () => { design[chk.dataset.designFlag] = chk.checked ? '' : 'off'; if (onChange) onChange(); renderBody(); };
+            });
             // この問題だけの背景
             body.querySelector('button[data-qbg-pick]')?.addEventListener('click', () => {
                 const QI = window.App.QuestionImage;
