@@ -537,7 +537,7 @@ App.RulePanel = {
             ].concat(oneByOne ? [{ v: 'bomb', t: '番の人が脱落（爆弾）' }] : []);
             const cur = opts.some(o => o.v === conf.timerOnExpire) ? conf.timerOnExpire : 'close';
             expire += this.row('問題の時計が0', this.select('rp-t-expire', opts, cur));
-            if (cur === 'bomb') expire += this.note('時限爆弾: 時計は問題の間ずっと進み、次の人へ回っても止まりません。0になった時に答える番だった人が脱落します。');
+            if (cur === 'bomb') expire += this.note(`時限爆弾: 時計は問題の間ずっと進み、次の人へ回っても、誰かが押しても止まりません。0になった時に答える番だった人が${conf.gameType === 'survival' ? 'ミス1回（サバイバルのライフが1つ減る）' : '脱落'}です。`);
             else if (cur === 'skip') expire += this.note('正解を出さずに次の問題へ進みます。');
             else if (conf.mode === 'buzz') expire += this.note('早押しでは「押せる時間」です。誰も押さずに0になったら、上の動きになります。');
         } else if (on && kind === 'pool') {
@@ -545,7 +545,9 @@ App.RulePanel = {
         } else if (on && kind === 'personal') {
             expire += this.note('自分の持ち時間が0になった人は脱落です。持ち時間は答える番の間だけ減り、セットの間ずっと持ち越します。');
         }
-        if (canSec && ansSec > 0) {
+        if (canSec && ansSec > 0 && ctx.isPanel) {
+            expire += this.note('パネルは、答える人の時計が0になったら誤答です（パネルの決まり）。');
+        } else if (canSec && ansSec > 0) {
             const ae = conf.answerSecOnExpire === 'pass' ? 'pass' : 'wrong';
             expire += this.row('答える人の時計が0', this.select('rp-t-ans-expire', [
                 { v: 'wrong', t: '誤答にする' },

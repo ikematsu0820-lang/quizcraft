@@ -2736,6 +2736,12 @@ App.Studio = {
                 if (!cur || cur.lastResult) return;
                 const sent = cur.lastAnswer !== null && cur.lastAnswer !== undefined && cur.lastAnswer !== '';
                 if (sent) return; // 届いた答えは司会者が判定する
+                if (conf.answerSecOnExpire === 'pass') {
+                    // 誤答にせず、押す前に戻す（もう一度押せる）
+                    window.db.ref(`rooms/${App.State.currentRoomId}/players/${pid}`).update({ buzzTime: null, wbDeadline: null });
+                    App.Ui.showToast(`${cur.name || '---'} さんは時間切れ（もう一度押せます）`);
+                    return;
+                }
                 App.Ui.showToast(`${cur.name || '---'} さんは時間切れ（誤答）`);
                 this.judgeWrittenQueue(pid, false);
             }, sec * 1000 + 300);
@@ -4193,7 +4199,8 @@ App.Studio = {
             kind: c.timerKind === 'pool' ? 'pool' : (c.timerKind === 'personal' && ['buzz', 'turn', 'nominate'].includes(c.mode)) ? 'personal' : 'per_q',
             totalMs: (parseFloat(c.timeLimitSeconds) || 30) * 1000,
             onExpire: ['skip', 'bomb'].includes(c.timerOnExpire) ? c.timerOnExpire : 'close',
-            pauseOnBuzz: c.timerPauseOnBuzz !== false,
+            // 時限爆弾は「次の人へ回っても止まらない」時計なので、押しても止めない
+            pauseOnBuzz: c.timerPauseOnBuzz !== false && c.timerOnExpire !== 'bomb',
             bonusMs: (parseFloat(c.timerBonusCorrect) || 0) * 1000,
             penaltyMs: (parseFloat(c.timerPenaltyWrong) || 0) * 1000,
         };
@@ -4342,8 +4349,10 @@ App.Studio = {
             this.clearAnswerTimer();
             if (holder) {
                 const hp = (App.Data.players || {})[holder] || {};
-                window.db.ref(`rooms/${roomId}/players/${holder}`).update({ isAlive: false, lastResult: 'lose' });
-                App.Ui.showToast(`時間切れ！ ${hp.name || '---'} さんが脱落`);
+                // サバイバルはミス1回として数える（ライフが残っていれば続けられる）。それ以外は脱落
+                const surv = (App.Data.currentConfig || {}).gameType === 'survival';
+                window.db.ref(`rooms/${roomId}/players/${holder}`).update(surv ? { lastResult: 'lose' } : { isAlive: false, lastResult: 'lose' });
+                App.Ui.showToast(surv ? `時間切れ！ ${hp.name || '---'} さんはミス1回` : `時間切れ！ ${hp.name || '---'} さんが脱落`);
             } else {
                 App.Ui.showToast('時間切れ！');
             }

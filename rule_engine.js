@@ -41,6 +41,7 @@ App.RuleEngine = {
             writtenBuzz,
             wbContinue: writtenBuzz && conf.wbAfterCorrect === 'continue',
             wbQueue: writtenBuzz && conf.wbJudge === 'queue',
+            wbPushFirst: writtenBuzz && conf.wbTiming === 'push_first',
             mode: (conf && conf.mode) || 'normal',
             gameType: (conf && conf.gameType) || 'score',
             firstType, qType, isDobon, isBlackjack, isOral, isMulti, isAssoc, autoJudge, answerBy, isPanel,
@@ -153,8 +154,8 @@ App.RuleEngine = {
         },
         // 解答者の持ち時間（押してから／順番が来てから◯秒）
         answerSec: {
-            ok: (ctx) => ['buzz', 'turn', 'nominate'].includes(ctx.mode) && !ctx.isBlackjack,
-            why: '1人ずつ答える解答権（早押し・特定の人）の時に設定できます',
+            ok: (ctx) => ['buzz', 'turn', 'nominate'].includes(ctx.mode) && !ctx.isBlackjack && !(ctx.wbQueue && !ctx.wbPushFirst),
+            why: '1人ずつ答える解答権（早押し・特定の人）の時に設定できます（早押し×手書きの「書いてから押す・押した順に並べる」は、押した時に答えが届くので使いません）',
         },
     },
 
@@ -190,6 +191,20 @@ App.RuleEngine = {
         }
         if (['panel', 'variable'].includes(conf.gameType)) conf.gameType = 'score';
         if (Number(conf.answerSec) > 0 && !this.can('answerSec', ctx).ok) conf.answerSec = 0;
+        // 1人ずつ答える解答権でない時は、1人ずつの持ち時間・時限爆弾は成り立たない
+        const oneByOne = ['buzz', 'turn', 'nominate'].includes(ctx.mode) && !ctx.isBlackjack;
+        if (conf.timerKind === 'personal' && !oneByOne) {
+            conf.timerKind = 'per_q';
+            if (conf.timeLimitEnabled === 'on') changed.push('今の解答権では「1人ずつの持ち時間」が使えないので、時計を「1問ごと」にしました');
+        }
+        if (conf.timerOnExpire === 'bomb' && (!oneByOne || conf.timerKind === 'pool' || conf.timerKind === 'personal')) conf.timerOnExpire = 'close';
+        // パネルは時間切れ＝誤答（パネルの決まり）なので「誤答にせず次へ」は使わない
+        if (conf.answerSecOnExpire === 'pass' && ctx.isPanel) conf.answerSecOnExpire = 'wrong';
+        // 正解した人は抜けて続けるのに、誤答で問題を終えると食い違う — 誤答は「他の人が押せる」に
+        if (ctx.wbContinue && conf.buzzWrongAction === 'end') {
+            conf.buzzWrongAction = 'next';
+            changed.push('「正解した人は抜けて続ける」なので、誤答しても問題は続ける（他の人が押せる）にしました');
+        }
         if (conf.turnWrongAction && !this.can('turnWrong', ctx).ok) delete conf.turnWrongAction;
         if (conf.tieBreak === 'time' && !this.can('tieBreakTime', ctx).ok) {
             conf.tieBreak = 'none';
