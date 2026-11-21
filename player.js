@@ -1350,10 +1350,11 @@ function renderPlayerNumGame(st, p) {
         <div class="ng-head"><div class="ng-theme">${esc(ng.theme || '')}</div><div class="ng-score">${score}</div></div>
         ${status}
         ${isBJ && canPick ? '<button type="button" class="ng-stand-btn">ここでストップ</button>' : ''}
-        <div class="ng-grid">${items.map((name, i) => {
+        <div class="ng-grid${items.length > 30 ? ' ng-dense' : ''}">${items.map((name, i) => {
             const u = used.has(i);
+            const no = items.length > 30 ? `<i>No.${String(i + 1).padStart(items.length >= 100 ? 3 : 2, '0')}</i>` : '';
             return `<button type="button" class="ng-item ${u ? 'used' : ''}" data-i="${i}" ${u || !canPick ? 'disabled' : ''}>
-                <span>${esc(name)}</span>${u ? `<b>${values[i] ?? ''}${unit}</b>` : ''}</button>`;
+                ${no}<span>${esc(name)}</span>${u ? `<b>${values[i] ?? ''}${unit}</b>` : ''}</button>`;
         }).join('')}</div>`;
     box.querySelectorAll('.ng-item:not(.used)').forEach(b => {
         b.onclick = () => {
@@ -2247,6 +2248,9 @@ function renderPlayerQuestion(q, roomId, playerId) {
         // Then Render Grid (Below Input)
         const grid = document.createElement('div');
         grid.className = 'player-multi-grid';
+        // 項目が多い時（11個以上）は、番号付きの2列の詰めた一覧（スマホ1画面に30個ほど）
+        const denseList = q.c.length > 10 && !isAssocType;
+        grid.classList.toggle('pm-dense', denseList);
         q.c.forEach((choice, i) => {
             const item = document.createElement('div');
             item.className = 'player-multi-item';
@@ -2254,7 +2258,7 @@ function renderPlayerQuestion(q, roomId, playerId) {
 
             const idx = document.createElement('div');
             idx.className = 'multi-index';
-            idx.textContent = isRankingType ? `${i + 1}位` : (isAssocType ? String.fromCharCode(65 + i) : (i + 1));
+            idx.textContent = isRankingType ? `${i + 1}位` : (isAssocType ? String.fromCharCode(65 + i) : denseList ? `No.${String(i + 1).padStart(q.c.length >= 100 ? 3 : 2, '0')}` : (i + 1));
 
             const text = document.createElement('div');
             text.className = 'multi-text-hidden';

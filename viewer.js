@@ -1525,7 +1525,15 @@ window.App.Viewer = {
                 // 多答・ランキング: 残りの高さいっぱいにパネルを並べ、文字はパネルの
                 // 高さの約8割の極太ゴシックで中央揃え（テロップ風）
                 const isMultiQ = !!(q.type && (q.type.startsWith('multi') || q.type.startsWith('ranking')));
-                const multiAreaStyle = isMultiQ
+                // 項目が多い時（配置が自動で11個以上）は、番号付きの詰めた一覧にして1画面に全部並べる
+                //   1列15行を目安に列を増やす（60個までは15行、それ以上は20行 — 100個なら5列×20行）
+                const denseN = q.c.length;
+                const isDense = isMultiQ && !gridStyle && !isRow && denseN > 10;
+                const denseRows = isDense ? (denseN <= 60 ? Math.min(15, Math.ceil(denseN / Math.ceil(denseN / 15))) : 20) : 0;
+                const denseCols = isDense ? Math.ceil(denseN / denseRows) : 0;
+                const multiAreaStyle = isDense
+                    ? `display:grid; grid-template-columns:repeat(${denseCols}, minmax(0, 1fr)); grid-template-rows:repeat(${denseRows}, minmax(0, 1fr)); grid-auto-flow:column; gap:0.7vh 1.4vw; flex:1; min-height:0; margin-bottom:2vh; width:96%;`
+                    : isMultiQ
                     ? `${gridStyle || 'display:flex; flex-direction:column;'} gap:1.5vh; flex:1; min-height:0; margin-bottom:2vh; ${cAreaStyle}${gridStyle ? ' grid-auto-rows:1fr;' : ''}`
                     : '';
 
@@ -1562,6 +1570,18 @@ window.App.Viewer = {
 
                     const prefixLabel = q.type.startsWith('ranking') ? `${i + 1}位` : (q.type === 'choice' ? App.ChoiceLabel(i, d.cPrefixType) : String.fromCharCode(65 + i));
 
+                    if (isDense) {
+                        // 番号付きの詰めた一覧の1行: 「No.01 答え」（ランキングは「1位」）
+                        const isRank = q.type.startsWith('ranking');
+                        const no = isRank ? `${i + 1}位` : `No.${String(i + 1).padStart(denseN >= 100 ? 3 : 2, '0')}`;
+                        const len = Math.max(String(c).length, 1);
+                        const rowBg = isRevealed ? 'background:#15803d;' : isMissed ? 'background:#b91c1c;' : 'background:rgba(255,255,255,0.06);';
+                        html += `<div class="choice-item mq-dense" style="${rowBg} ${isRevealed || isMissed ? 'color:#fff;' : `color:${d.cTextColor || '#ddd'};`} position:relative; min-height:0; min-width:0; container-type:size; display:flex; align-items:center; justify-content:flex-start; gap:2.5cqw; padding:0 2cqw; border-radius:0.8vh; overflow:hidden; transition:background 0.3s;">
+                            <span style="flex:none; padding:0 0.45em; border-radius:0.25em; background:${isRevealed ? '#fff' : '#dc2626'}; color:${isRevealed ? '#15803d' : '#fff'}; font-weight:900; font-size:min(48cqh, 9cqw); line-height:1.5;">${no}</span>
+                            <span style="flex:1; min-width:0; text-align:left; font-weight:900; font-size:min(62cqh, ${Math.max(4, Math.floor(70 / len))}cqw); line-height:1.1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; ${isHidden ? 'visibility:hidden;' : ''}">${c}</span>
+                        </div>`;
+                        return;
+                    }
                     if (isMultiQ) {
                         // パネル自身を大きさの基準（container-type:size）にして、文字を
                         // 高さの8割まで — 長い答えは横幅に収まるよう小さくする
