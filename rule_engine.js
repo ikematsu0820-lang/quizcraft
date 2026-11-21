@@ -265,6 +265,12 @@ App.RuleEngine = {
     // ---------------------------------------------------------
     // 遊び方の説明（ルールの画面の一番上と、矛盾がないかの確認用）
     // ---------------------------------------------------------
+    // 一問一答の「読み上げ」— 問題文をモニター・回答者の端末に出さない（先読みの駆け引き用）
+    readAloud: function (conf, ctx) {
+        // セットは1つの形式なので、最初の問題の形式で見る（無ければ渡された形式）
+        return !!(conf && conf.readAloud) && /^free/.test((ctx && (ctx.firstType || ctx.qType)) || '');
+    },
+
     describe: function (conf, questions) {
         const c = conf || {};
         const ctx = this.context(c, questions);
@@ -272,6 +278,7 @@ App.RuleEngine = {
         const by = { oral: '口頭で答え、出題者が〇×を判定', written: '手書きで答え、出題者が〇×を判定', button: 'ボタンで答え、自動で判定' }[ctx.answerBy];
         const who = { normal: '全員が手元で同時に', buzz: '早押しで押した人が', turn: '順番に1人ずつ', nominate: '出題者に指名された人が', solo: '1人で' }[ctx.mode] || '';
         parts.push(`${who}${by}。`);
+        if (this.readAloud(c, ctx)) parts.push('問題文は画面に出さず司会者が読み上げ、モニターには得点だけ。');
         // 正解
         const st = c.scoreType || 'uniform';
         let gain;

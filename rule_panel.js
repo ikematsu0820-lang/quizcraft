@@ -123,7 +123,11 @@ App.RulePanel = {
             ${this.tiles('group', groupTiles, group)}
             ${group === 'specific' && specificTiles.length > 1 ? this.tiles('specific', specificTiles, conf.mode) : ''}
             <p class="rule-basic-note">${modeNote}</p>
-            <div id="rp-mode-detail"></div>`;
+            <div id="rp-mode-detail"></div>
+            ${/^free/.test((window.App.Creator && window.App.Creator.currentType) || ctx.firstType || '') ? `
+            ${this.head('問題文の出し方')}
+            <label class="rp-check"><input type="checkbox" id="rp-read-aloud" ${conf.readAloud ? 'checked' : ''}><span>問題文を画面に出さない（司会者が読み上げる）</span></label>
+            ${this.note('モニターには得点だけが出て、回答者の端末にも問題文は送りません。読み上げの途中で押す、先読みの駆け引きを楽しむ時に。正解はいつもどおり発表します。')}` : ''}`;
 
         // 解答権ごとの詳細（全員：解答回数・1タップ確定／順番：回し方）
         const detail = box.querySelector('#rp-mode-detail');
@@ -132,6 +136,8 @@ App.RulePanel = {
             this.Cfg()._wireModeDetailFields(detail, conf.mode, conf, () => this.changed());
         }
 
+        const ra = box.querySelector('#rp-read-aloud');
+        if (ra) ra.onchange = () => { conf.readAloud = ra.checked || null; this.changed(); };
         box.querySelectorAll('[data-rp="answerBy"]').forEach(b => {
             b.onclick = () => {
                 const v = b.dataset.val;

@@ -265,12 +265,14 @@ window.App.Viewer = {
             this.updateAnswerWall(snap.val());
             this._players = snap.val() || {};
             this.updateLiveAnswers();
+            if (this._scoreBoardSt) this.updateScoreBoard();
             if (window.App.VarietyFrame && this._st) window.App.VarietyFrame.updateLive(this._st, this._players, this.questions[this._st.qIndex]);
             if (window.App.ChoiceSkin && this._st) window.App.ChoiceSkin.updateLive(this._st, this._players, this.questions[this._st.qIndex]);
         });
     },
 
     render: function (st) {
+        this._scoreBoardSt = null; // 得点の一覧を出す段階なら renderScoreBoard がまた入れる
         const mainText = document.getElementById('viewer-main-text');
         const statusDiv = document.getElementById('viewer-status');
         // 背景色・背景画像は画面全体ではなく16:9のステージにだけ塗る
@@ -386,6 +388,8 @@ window.App.Viewer = {
             this.applyDefaultDesign(viewContainer, q.design);
             if (q.type === 'blackjack' && st.bjCards) {
                 this.renderBlackjackQuestion(mainText, q, st);
+            } else if (this.readAloud(q)) {
+                this.renderScoreBoard(mainText, st);
             } else if (q.isHidden) {
                 mainText.innerHTML = '';
             } else {
@@ -397,7 +401,9 @@ window.App.Viewer = {
             statusDiv.textContent = "THINKING";
             const q = this.questions[st.qIndex] || {};
             this.applyDefaultDesign(viewContainer, q.design);
-            if (q.isHidden) {
+            if (this.readAloud(q)) {
+                this.renderScoreBoard(mainText, st);
+            } else if (q.isHidden) {
                 mainText.innerHTML = '';
             } else {
                 this.renderQuestionLayout(viewContainer, mainText, q, st, st.revealedMulti);
@@ -408,7 +414,8 @@ window.App.Viewer = {
         else if (st.step === 'closed') {
             statusDiv.textContent = "LOCKED";
             const q = this.questions[st.qIndex] || {};
-            this.renderQuestionLayout(viewContainer, mainText, q, st, st.revealedMulti);
+            if (this.readAloud(q)) this.renderScoreBoard(mainText, st);
+            else this.renderQuestionLayout(viewContainer, mainText, q, st, st.revealedMulti);
             const msg = document.createElement('div');
             msg.style = "position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:12vh; font-weight:900; color:#ff3d00; text-shadow:0 0 40px rgba(0,0,0,0.9); animation:popInCenter 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index:500;";
             msg.textContent = "TIME UP!";
@@ -493,7 +500,9 @@ window.App.Viewer = {
                 return;
             }
 
-            this.renderQuestionLayout(viewContainer, mainText, q, st, st.revealedMulti);
+            // 読み上げ: 問題文の代わりに得点の一覧を出したまま、正解を重ねて発表
+            if (this.readAloud(q)) this.renderScoreBoard(mainText, st);
+            else this.renderQuestionLayout(viewContainer, mainText, q, st, st.revealedMulti);
             if (window.App.VarietyFrame && window.App.VarietyFrame.applies(q)) return; // 枠の中で発表済み
 
             // Suppress popup for ANY multi type that has a grid layout (q.c)
@@ -1244,6 +1253,42 @@ window.App.Viewer = {
             }, 100);
         });
         container.appendChild(distContainer);
+    },
+
+    // 一問一答の「読み上げ」（ルールの答え方）— 問題文の代わりに出す得点の一覧
+    readAloud: function (q) {
+        const RE = window.App.RuleEngine;
+        return !!(RE && RE.readAloud && q && RE.readAloud(this.config || {}, { qType: q.type }));
+    },
+    renderScoreBoard: function (mainText, st) {
+        this._scoreBoardSt = st;
+        mainText.style.flexDirection = 'column';
+        mainText.style.justifyContent = 'center';
+        mainText.style.alignItems = 'stretch';
+        mainText.innerHTML = '<div class="sb-wrap"><div class="sb-head">SCORE</div><div class="sb-grid"></div></div>';
+        this._sbPrev = this._sbPrev || {};
+        this.updateScoreBoard();
+    },
+    updateScoreBoard: function () {
+        const st = this._scoreBoardSt;
+        const grid = document.querySelector('#viewer-main-text .sb-grid');
+        if (!st || !grid) return;
+        const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        // 並びは参加した順のまま（点が動いても場所が変わらないように）
+        const list = Object.entries(this._players || {}).filter(([, p]) => p && p.name);
+        const n = list.length;
+        const cols = n <= 4 ? Math.max(n, 1) : n <= 8 ? 4 : n <= 12 ? 4 : n <= 20 ? 5 : 6;
+        grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+        grid.style.fontSize = `${Math.max(3, Math.min(10, 40 / Math.ceil(Math.max(n, 1) / cols)))}cqh`;
+        const answering = st.currentAnswerer || null;
+        grid.innerHTML = list.map(([id, p]) => {
+            const score = p.periodScore || 0;
+            const changed = this._sbPrev[id] !== undefined && this._sbPrev[id] !== score;
+            const up = changed && score > this._sbPrev[id];
+            this._sbPrev[id] = score;
+            const cls = [id === answering ? 'sb-now' : '', p.isAlive === false ? 'sb-out' : '', changed ? (up ? 'sb-up' : 'sb-down') : ''].join(' ');
+            return `<div class="sb-card ${cls}"><div class="sb-name">${esc(p.name)}</div><div class="sb-score">${score}</div></div>`;
+        }).join('') || '<div class="sb-empty">参加者を待っています</div>';
     },
 
     renderRanking: function (container, isFinal) {

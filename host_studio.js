@@ -711,8 +711,17 @@ App.Studio = {
     // 書き、問題側は参照だけにする（App.SetImages）— 画像を問題数分
     // 複製して送ると数MBになり、モニターの表示が止まったように遅れる。
     // viewer は images を先に受け取れるよう、questions より先に書く。
+    // 一問一答の「読み上げ」— ルームには問題文を送らない（モニター・回答者の端末から先読みできないように）。
+    // 司会者の画面は App.Data.studioQuestions（問題文あり）を使う
+    readAloudOn: function (q) {
+        const RE = window.App.RuleEngine;
+        return !!(RE && RE.readAloud && q && RE.readAloud(App.Data.currentConfig, { qType: q.type }));
+    },
+    roomQText: function (q) { return this.readAloudOn(q) ? null : q.q; },
+
     syncRoomQuestions: function (roomId) {
         const packed = App.SetImages.pack(App.Data.studioQuestions);
+        packed.questions = packed.questions.map(q => this.readAloudOn(q) ? { ...q, q: '' } : q);
         window.db.ref(`rooms/${roomId}/images`).set(packed.images.length ? packed.images : null);
         // セットが変わると images の中身も入れ替わる — プレイヤー側の効果音
         // キャッシュ（player.js resolvePlayerSounds）を区別するための版番号
@@ -1099,7 +1108,7 @@ App.Studio = {
                     window.db.ref(`rooms/${roomId}/status`).update({
                         step: 'answering',
                         qIndex: App.State.currentQIndex,
-                        qText: currentQ.q,
+                        qText: this.roomQText(currentQ),
                         isBuzzActive: true // Active immediately
                     });
 
@@ -1154,7 +1163,7 @@ App.Studio = {
                     window.db.ref(`rooms/${roomId}/status`).update({
                         step: 'reveal_q',
                         qIndex: App.State.currentQIndex,
-                        qText: currentQ.q,
+                        qText: this.roomQText(currentQ),
                         currentAnswerer: turnPlayerId,
                         currentAnswererName: turnPlayerName,
                         turnIndex: this.turnIndex, // Sync turn status
@@ -1189,7 +1198,7 @@ App.Studio = {
                     window.db.ref(`rooms/${roomId}/status`).update({
                         step: 'reveal_q',
                         qIndex: App.State.currentQIndex,
-                        qText: currentQ.q,
+                        qText: this.roomQText(currentQ),
                         // 解答の受付開始（サーバー時刻）— 解答時間＝押した時刻との差
                         answerOpenAt: firebase.database.ServerValue.TIMESTAMP,
                         isNominateMode: isNominate,

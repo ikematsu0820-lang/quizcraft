@@ -1541,7 +1541,7 @@ function renderResultScreen(p) {
         </div>
         </div>
     `;
-    document.getElementById('question-text-disp').textContent = currentQuestion.q;
+    document.getElementById('question-text-disp').textContent = playerQText(currentQuestion);
     document.getElementById('player-quiz-area').classList.remove('hidden');
 }
 
@@ -1635,6 +1635,13 @@ function openConfirmModal() {
     };
 }
 
+// 一問一答の「読み上げ」— 問題文は届かない（司会者が読み上げる）ので、その旨を出す
+function playerQText(q) {
+    const RE = window.App && window.App.RuleEngine;
+    const readAloud = RE && RE.readAloud ? RE.readAloud(roomConfig, { qType: q && q.type }) : false;
+    return readAloud && !(q && q.q) ? '問題は司会者が読み上げます' : ((q && q.q) || '');
+}
+
 function renderPlayerQuestion(q, roomId, playerId) {
     const inputCont = document.getElementById('player-input-container');
     const qText = document.getElementById('question-text-disp');
@@ -1654,7 +1661,7 @@ function renderPlayerQuestion(q, roomId, playerId) {
     // 手書きの一問一答: 横向きでは問題文を上（約1/5）、手書き欄を下（約4/5）に
     document.body.classList.toggle('written-q', q.type === 'free_written');
 
-    qText.textContent = q.q;
+    qText.textContent = playerQText(q);
     qText.classList.add('new-q');
     setTimeout(() => qText.classList.remove('new-q'), 600);
 

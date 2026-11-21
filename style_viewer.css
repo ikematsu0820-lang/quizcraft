@@ -480,3 +480,23 @@ body {
 .solo-clear .solo-big { color: #ffd700; text-shadow: 0 0 6cqh #ffd700; }
 .solo-over .solo-big { color: #ff3b30; text-shadow: 0 0 6cqh #ff3b30; }
 .solo-sub { margin-top: 2cqh; font-size: 5cqh; color: #fff; font-weight: bold; }
+
+/* 一問一答の「読み上げ」— 問題文の代わりの得点の一覧（viewer.js renderScoreBoard） */
+.sb-wrap { width: 100%; height: 100%; padding: 4cqh 4cqw; box-sizing: border-box; display: flex; flex-direction: column; gap: 3cqh; }
+.sb-head { text-align: center; color: var(--color-primary, #00e5ff); font-weight: 900; font-size: 4cqh; letter-spacing: 0.4em; }
+.sb-grid { flex: 1; min-height: 0; display: grid; gap: 2cqh; align-content: center; }
+.sb-card {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15em; padding: 0.6em 0.4em;
+    background: rgba(255, 255, 255, 0.06); border: 0.3cqh solid rgba(255, 255, 255, 0.12); border-radius: 1.6cqh; min-width: 0;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.sb-name { color: #e2e8f0; font-weight: bold; font-size: 0.6em; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-score { color: #fff; font-weight: 900; font-size: 1.4em; line-height: 1; font-family: 'Arial Black', 'M PLUS 1p', sans-serif; }
+.sb-card.sb-now { border-color: #fbbf24; box-shadow: 0 0 0 0.4cqh #fbbf24, 0 0 4cqh rgba(251, 191, 36, 0.6); }
+.sb-card.sb-now .sb-name { color: #fbbf24; }
+.sb-card.sb-out { opacity: 0.4; }
+.sb-card.sb-up .sb-score { animation: sbUp 0.9s ease-out; color: #4ade80; }
+.sb-card.sb-down .sb-score { animation: sbDown 0.9s ease-out; color: #f87171; }
+@keyframes sbUp { 0% { transform: scale(1.5); } 100% { transform: scale(1); } }
+@keyframes sbDown { 0%, 40% { transform: translateX(-0.1em); } 20%, 60% { transform: translateX(0.1em); } 100% { transform: none; } }
+.sb-empty { grid-column: 1 / -1; text-align: center; color: #94a3b8; font-size: 0.6em; }
