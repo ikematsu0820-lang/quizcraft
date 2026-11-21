@@ -374,7 +374,7 @@ App.RulePanel = {
         const adv = box.querySelector('details.rule-adv');
         if (adv) box.appendChild(adv);
         // 早押しの欄の中の古い「減点」は、共通の減点にまとめたので出さない
-        box.querySelectorAll('#config-buzz-deduct-on').forEach(el => { const r = el.closest('div[style*="display:flex"]'); if (r) r.remove(); });
+        box.querySelectorAll('#config-buzz-deduct-row').forEach(r => r.remove());
         const tw = box.querySelector('#rp-turn-wrong');
         if (tw) tw.onchange = () => { conf.turnWrongAction = tw.value; this.soft(); };
         const dd = box.querySelector('#rp-deduct');

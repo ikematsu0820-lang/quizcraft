@@ -145,11 +145,10 @@ App.Config = {
     // 早押しの誤答者へのペナルティ — 「問題に対する処理」で選べるものが変わる
     BUZZ_PENALTIES: {
         next: [
-            { v: 'none', t: 'もう一度押せる' },
+            { v: 'none', t: 'ペナルティなし（また押せる）' },
             { v: 'otetski', t: 'この問題はもう押せない' },
             { v: 'time_ban', t: '◯秒間押せない' },
             { v: 'rest', t: '◯問休み' },
-            { v: 'reset_all', t: '全員もう一度押し直し' },
         ],
         end: [
             { v: 'none', t: '特になし' },
@@ -191,6 +190,8 @@ App.Config = {
         } else if (mode === 'buzz') {
             const buzzAction = conf.buzzWrongAction || 'next';
             const allowed = this.BUZZ_PENALTIES[buzzAction] || this.BUZZ_PENALTIES.next;
+            // 以前の「全員もう一度押し直し」は「ペナルティなし＋ほかの人の押した順: 全員押し直し」に分けた
+            if (conf.buzzPenalty === 'reset_all') { conf.buzzPenalty = 'none'; conf.buzzRequeue = 'reset'; }
             let buzzPenalty = conf.buzzPenalty || 'none';
             if (!allowed.some(o => o.v === buzzPenalty)) { buzzPenalty = 'none'; conf.buzzPenalty = 'none'; }
             const deductNum = Number(conf.buzzDeduct) || 0;
@@ -210,7 +211,14 @@ App.Config = {
                         ${col(`<input type="number" id="config-buzz-rest-count" value="${restN}" min="1" step="1" inputmode="numeric" style="width:100%; margin:0; padding:4px 6px; text-align:center; background:#1e293b; border:1px solid #475569; border-radius:8px; color:#fff;">`, '休む問題数')}
                     </div>
                 </div>
-                <div style="display:flex; gap:8px; align-items:center;">
+                ${buzzAction === 'next' ? `<div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+                    ${rowHead('ほかの人の押した順')}
+                    ${col(`<select id="config-buzz-requeue" class="btn-block config-select" style="margin:0; padding:4px;">
+                        <option value="keep" ${conf.buzzRequeue !== 'reset' ? 'selected' : ''}>引き継ぐ（次に押していた人へ）</option>
+                        <option value="reset" ${conf.buzzRequeue === 'reset' ? 'selected' : ''}>消して全員押し直し</option>
+                    </select>`, '誤答の後')}
+                </div>` : ''}
+                <div id="config-buzz-deduct-row" style="display:flex; gap:8px; align-items:center;">
                     ${rowHead('減点')}
                     ${col(`<select id="config-buzz-deduct-on" class="btn-block config-select" style="margin:0; padding:4px;">
                         <option value="none" ${!deductOn ? 'selected' : ''}>しない</option>
@@ -309,6 +317,8 @@ App.Config = {
                 if (conf.buzzPenalty === 'rest' && !conf.buzzRestCount) conf.buzzRestCount = 1;
             };
         }
+        const requeueSel = area.querySelector('#config-buzz-requeue');
+        if (requeueSel) requeueSel.onchange = () => { conf.buzzRequeue = requeueSel.value; if (rerender) rerender(); };
         const banSel = area.querySelector('#config-buzz-ban-sec');
         if (banSel) banSel.onchange = () => { conf.buzzPenaltyTime = Math.max(0.5, parseFloat(banSel.value) || 3); };
         const restSel = area.querySelector('#config-buzz-rest-count');

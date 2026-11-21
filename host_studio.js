@@ -2544,6 +2544,20 @@ App.Studio = {
     //   rest      … ◯問休み（この問題＋次の◯問）
     //   reset_all … 全員の押した記録を消して、もう一度押し直し
     // 「誤答したら問題は：終わる」の時は rest だけが意味を持つ。
+    // ほかの人の押した順（ルール「ほかの人の押した順」buzzRequeue）
+    //   keep  … 引き継ぐ（次に早く押していた人へ、すぐ解答権が移る）
+    //   reset … 消して全員押し直し（以前の「全員もう一度押し直し」もこちら）
+    _requeueReset: function () {
+        const c = App.Data.currentConfig || {};
+        return c.buzzRequeue === 'reset' || c.buzzPenalty === 'reset_all';
+    },
+    // 誤答の後、全員の押した記録を消す（誤答した人のペナルティはそのまま）
+    requeueAfterWrong: function () {
+        const roomId = App.State.currentRoomId;
+        window.db.ref(`rooms/${roomId}/players`).once('value', all => {
+            all.forEach(child => { child.ref.update({ buzzTime: null, buzzPressAt: null }); });
+        });
+    },
     applyBuzzPenalty: function (playerId, action) {
         if (!playerId) return;
         const conf = App.Data.currentConfig || {};
@@ -2568,12 +2582,10 @@ App.Studio = {
             ref.update({ buzzBannedUntil: Date.now() + sec * 1000 });
             restoreLater();
         } else if (penalty === 'reset_all') {
-            window.db.ref(`rooms/${roomId}/players`).once('value', all => {
-                all.forEach(child => { child.ref.update({ buzzTime: null }); });
-            });
-            restoreLater();
+            restoreLater(); // 以前の「全員もう一度押し直し」— ペナルティは無し（押し直しは下で）
         }
         // otetski は lastResult: 'lose' のまま（この問題では押せない）
+        if (this._requeueReset()) this.requeueAfterWrong();
     },
 
     judgeBuzz: function (isCorrect) {
@@ -3819,8 +3831,8 @@ App.Studio = {
                     // 問題継続
                     this.buzzWinner = null;
 
-                    if (buzzPenalty === 'reset_all') {
-                        // 全員解答受付前に戻す
+                    if (buzzPenalty === 'reset_all' || (buzzPenalty === 'none' && this._requeueReset())) {
+                        // 全員解答受付前に戻す（ペナルティなし＋全員押し直し）
                         window.db.ref(`rooms/${roomId}/status`).update({
                             currentAnswerer: null,
                             currentAnswererName: null,
@@ -3844,12 +3856,9 @@ App.Studio = {
                             currentAnswererName: null,
                             isBuzzActive: true
                         });
-                        // Clear buzzTime for others
-                        window.db.ref(`rooms/${roomId}/players`).once('value', allSnap => {
-                            allSnap.forEach(child => {
-                                child.ref.update({ buzzTime: null });
-                            });
-                        });
+                        // ほかの人の押した順: 引き継ぐ／全員押し直し（ルール）
+                        if (this._requeueReset()) this.requeueAfterWrong();
+                        else snap.ref.update({ buzzTime: null });
                         App.Ui.showToast(`不正解。${banTime}秒間解答無効！早押し再開`);
                         this.resumeTimer();
 
@@ -3861,11 +3870,11 @@ App.Studio = {
                             currentAnswererName: null,
                             isBuzzActive: true
                         });
-                        window.db.ref(`rooms/${roomId}/players`).once('value', allSnap => {
-                            allSnap.forEach(child => {
-                                if (child.key !== playerId) child.ref.update({ buzzTime: null });
+                        if (this._requeueReset()) {
+                            window.db.ref(`rooms/${roomId}/players`).once('value', allSnap => {
+                                allSnap.forEach(child => { if (child.key !== playerId) child.ref.update({ buzzTime: null }); });
                             });
-                        });
+                        }
                         App.Ui.showToast(`不正解。おてつき！（次の問題まで解答権なし）`);
                         this.resumeTimer();
 
@@ -3876,11 +3885,9 @@ App.Studio = {
                             currentAnswererName: null,
                             isBuzzActive: true
                         });
-                        window.db.ref(`rooms/${roomId}/players`).once('value', allSnap => {
-                            allSnap.forEach(child => {
-                                child.ref.update({ buzzTime: null });
-                            });
-                        });
+                        // 誤答した人はもう一度押せる。ほかの人の押した順はルールどおり
+                        if (this._requeueReset()) this.requeueAfterWrong();
+                        else snap.ref.update({ buzzTime: null });
                         App.Ui.showToast("不正解。早押し再開！");
                     }
                 }

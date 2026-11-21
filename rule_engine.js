@@ -178,6 +178,7 @@ App.RuleEngine = {
             conf.scoreType = 'uniform';
         }
         if (conf.scoreType === 'first_come') conf.scoreType = 'uniform'; // 廃止済み
+        if (conf.buzzPenalty === 'reset_all') { conf.buzzPenalty = 'none'; conf.buzzRequeue = 'reset'; } // 2つの設定に分けた
         if (conf.gameType === 'timerace') {
             if (!this.can('timeRace', ctx).ok) {
                 conf.gameType = 'score';
@@ -346,7 +347,8 @@ App.RuleEngine = {
                 parts.push(`正解した人は抜けて問題は続き、${n ? `${n}人正解したら` : '全員が答え終わるまで'}終わらない。`);
             }
         }
-        if (ctx.mode === 'buzz') wrong.push(c.buzzWrongAction === 'end' ? '誤答したら問題は終わり' : '誤答したら他の人が押せる');
+        if (ctx.mode === 'buzz') wrong.push(c.buzzWrongAction === 'end' ? '誤答したら問題は終わり'
+            : (c.buzzRequeue === 'reset' || c.buzzPenalty === 'reset_all') ? '誤答したら全員が押し直す' : '誤答したら次に押していた人へ');
         if (ctx.mode === 'turn' && this.can('turnWrong', ctx).ok) wrong.push(c.turnWrongAction === 'next' ? '誤答したら次の人に解答権が移る' : '誤答したらその問題は終わり');
         const loss = this.wrongLoss(c, {});
         if (loss > 0) wrong.push(`${loss}点減点`);
