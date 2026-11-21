@@ -1542,6 +1542,7 @@ function renderResultScreen(p) {
         </div>
     `;
     document.getElementById('question-text-disp').textContent = playerQText(currentQuestion);
+    showPlayerQImage(currentQuestion, myRoomId);
     document.getElementById('player-quiz-area').classList.remove('hidden');
 }
 
@@ -1642,6 +1643,33 @@ function playerQText(q) {
     return readAloud && !(q && q.q) ? '問題は司会者が読み上げます' : ((q && q.q) || '');
 }
 
+// 問題文の画像（作成画面で問題文の欄に入れたもの）を問題文の上に。'@img:N' はルームの images から取る
+function showPlayerQImage(q, roomId) {
+    const disp = document.getElementById('question-text-disp');
+    if (!disp) return;
+    let img = document.getElementById('player-q-photo');
+    if (!img) {
+        img = document.createElement('img');
+        img.id = 'player-q-photo';
+        img.className = 'player-q-photo';
+        img.alt = '';
+        disp.parentNode.insertBefore(img, disp);
+    }
+    const v = q && q.image;
+    const set = (src) => { if (src) { img.src = src; img.classList.remove('hidden'); } else { img.removeAttribute('src'); img.classList.add('hidden'); } };
+    if (typeof v !== 'string' || !v) { set(''); return; }
+    if (!v.startsWith('@img:')) { set(v); return; }
+    const idx = v.slice(5);
+    const cacheKey = `${roomId}/${roomConfig.mediaVer || 0}/${idx}`;
+    if (_playerSoundCache[cacheKey]) { set(_playerSoundCache[cacheKey]); return; }
+    set('');
+    window.db.ref(`rooms/${roomId}/images/${idx}`).once('value').then(snap => {
+        const data = snap.val() || '';
+        _playerSoundCache[cacheKey] = data;
+        if (q.image === v) set(data); // 待っている間に次の問題に変わっていたら出さない
+    });
+}
+
 function renderPlayerQuestion(q, roomId, playerId) {
     const inputCont = document.getElementById('player-input-container');
     const qText = document.getElementById('question-text-disp');
@@ -1662,6 +1690,7 @@ function renderPlayerQuestion(q, roomId, playerId) {
     document.body.classList.toggle('written-q', q.type === 'free_written');
 
     qText.textContent = playerQText(q);
+    showPlayerQImage(q, roomId);
     qText.classList.add('new-q');
     setTimeout(() => qText.classList.remove('new-q'), 600);
 

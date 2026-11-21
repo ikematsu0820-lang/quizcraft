@@ -1141,3 +1141,17 @@ button.btn-player-hero:hover {
 .tv-answer-chip.tv-answer-warn { border-color: #ff3b30; animation: tvAnsBlink 0.5s ease-in-out infinite alternate; }
 .tv-answer-chip.tv-answer-warn b { color: #ff3b30; }
 @keyframes tvAnsBlink { from { transform: scale(1); } to { transform: scale(1.08); } }
+
+/* 問題文の画像の置き方・大きさ（見た目の「問題文」qImgLayout / qImgSize — variety_frame.js App.QuestionImage.applyLayout）
+   モニター（.q-area）と作成画面のプレビュー（#creator-monitor-q-area）で同じ並び */
+.qimg-top .q-photo { max-height: 32cqh; }
+.qimg-top.qimg-small .q-photo { max-height: 22cqh; }
+.qimg-top.qimg-large .q-photo { max-height: 44cqh; }
+.qimg-side { display: flex !important; flex-direction: row !important; align-items: center !important; gap: 3cqw; text-align: left; }
+.qimg-side .q-photo { flex: 0 0 auto; max-width: 40%; max-height: 50cqh; margin: 0 !important; }
+.qimg-side.qimg-small .q-photo { max-width: 28%; max-height: 36cqh; }
+.qimg-side.qimg-large .q-photo { max-width: 55%; max-height: 62cqh; }
+.qimg-big { display: flex !important; flex-direction: column !important; align-items: stretch !important; min-height: 50cqh; }
+.qimg-big .q-photo { flex: 1 1 auto; min-height: 0; max-height: none; width: 100%; object-fit: contain; margin: 0 0 1.5cqh !important; }
+.qimg-big.qimg-small { min-height: 40cqh; }
+.qimg-big.qimg-large { min-height: 60cqh; }

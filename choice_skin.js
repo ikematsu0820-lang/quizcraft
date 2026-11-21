@@ -302,22 +302,9 @@ App.ChoiceSkin = {
     },
 
     // 作成画面: 写真＋字幕の時は、問題の枠の中に写真の場所を出す（押すと写真を選べる）
-    renderCreatorPhoto: function (d) {
-        const qa = document.getElementById('creator-monitor-q-area');
-        if (!qa) return;
-        let box = document.getElementById('cs-photo');
-        const C = window.App.Creator;
-        const on = d.qSkin === 'caption' && !(C && C._previewRevealOn);
-        if (!on) { box?.remove(); return; }
-        if (!box) {
-            box = document.createElement('div');
-            box.id = 'cs-photo';
-            box.onclick = () => document.querySelector('#creator-outside-opts .qimg-input')?.click();
-            const qt = document.getElementById('question-text');
-            qa.insertBefore(box, qt || qa.firstChild);
-        }
-        const img = window.App.QuestionImage && window.App.QuestionImage.current;
-        box.innerHTML = img ? `<img src="${img}" alt="">` : '<span>写真を付ける</span>';
+    // 作成画面の写真は問題文の枠の中の画像（App.QuestionImage の #qimg-inline）に一本化した
+    renderCreatorPhoto: function () {
+        document.getElementById('cs-photo')?.remove();
     },
 
     // デザインのパネル（テーマのタブ）に出す設定

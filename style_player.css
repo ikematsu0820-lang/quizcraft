@@ -1755,3 +1755,7 @@ body.buzz-flash::after {
 .overlay-dead.overlay-cleared .dead-title { color: #fff; text-shadow: 0 4px 0 rgba(0, 0, 0, 0.25); }
 #player-game-view { position: relative; }
 #player-game-view > .tv-answer-chip { position: fixed; bottom: auto; top: 64px; right: 14px; font-size: 18px; padding: 4px 14px; border-width: 3px; }
+
+/* 問題文の画像（問題文の上） */
+.player-q-photo { display: block; max-width: 100%; max-height: 30vh; margin: 0 auto 8px; border-radius: 10px; object-fit: contain; }
+.player-q-photo.hidden { display: none; }

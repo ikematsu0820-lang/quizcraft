@@ -5314,3 +5314,34 @@ body:has(> #unified-toggle-container:not([style*="none"])) #viewer-content {
 #creator-view.cm-on.cm-edit #cm-edit-bulk:not(.hidden) { display: block; margin: 12px 0 0; }
 #cm-edit-bulk .cm-ghost-btn { width: 100%; min-height: 44px; }
 .rp-check { display: flex; align-items: center; gap: 8px; margin: 4px 0; color: #e2e8f0; font-size: 0.85rem; cursor: pointer; }
+
+/* ---------- 問題文の欄の中の画像（作成画面 — variety_frame.js App.QuestionImage） ---------- */
+#creator-view:not(.cm-on) #creator-monitor-flexwrap { container-type: size; }
+#qimg-inline { position: relative; display: flex; justify-content: center; }
+#qimg-inline.no-img { justify-content: flex-start; margin-top: 4px; }
+#qimg-inline .qimg-img { display: block; max-width: 100%; border-radius: 6px; object-fit: contain; }
+#creator-monitor-q-area.qimg-side #qimg-inline { flex: 0 0 auto; max-width: 40%; }
+#creator-monitor-q-area.qimg-side.qimg-small #qimg-inline { max-width: 28%; }
+#creator-monitor-q-area.qimg-side.qimg-large #qimg-inline { max-width: 55%; }
+#creator-monitor-q-area.qimg-side #qimg-inline .q-photo { max-width: 100%; }
+#creator-monitor-q-area.qimg-big #qimg-inline { flex: 1 1 auto; min-height: 0; }
+#creator-monitor-q-area.qimg-big #qimg-inline .q-photo { max-height: 100%; height: 100%; }
+#creator-monitor-q-area.qimg-side #question-text { flex: 1 1 auto; min-width: 0; }
+/* 変える・外す は画像の上の隅に小さく（モニターには出ない） */
+#qimg-inline .qimg-tools { position: absolute; right: 4px; bottom: 4px; display: flex; gap: 4px; opacity: 0.9; }
+#qimg-inline .qimg-tools button, #qimg-inline .qimg-add {
+    display: inline-flex; align-items: center; gap: 4px; margin: 0; padding: 3px 8px; border-radius: 6px; cursor: pointer;
+    background: rgba(15, 23, 42, 0.85); border: 1px solid #475569; color: #e2e8f0; font-size: 0.7rem; font-weight: bold; line-height: 1.2; min-height: 0;
+}
+#qimg-inline .qimg-add { background: rgba(0, 229, 255, 0.08); border: 1px dashed rgba(0, 229, 255, 0.45); color: #00e5ff; }
+/* 写真＋字幕のテーマ: 画像が枠の主役、文字は下の白い帯 */
+#creator-monitor-preview.qskin-caption #qimg-inline.has-img { flex: 1 1 auto; min-height: 0; align-items: center; }
+#creator-monitor-preview.qskin-caption #qimg-inline .qimg-img { max-height: 100%; max-width: 80%; }
+#creator-monitor-preview.qskin-caption #qimg-inline.no-img { position: absolute; top: 8px; right: 8px; margin: 0; }
+/* スマホの入力画面: 見やすさ優先 — 画像は欄の中で縦長すぎない大きさに、ボタンは画像の下に */
+#creator-view.cm-on.cm-edit #creator-monitor-q-area { flex-direction: column !important; }
+#creator-view.cm-on.cm-edit #qimg-inline.has-img { flex-direction: column; align-items: stretch; gap: 6px; margin-bottom: 6px; max-width: none !important; }
+#creator-view.cm-on.cm-edit #qimg-inline .qimg-img { max-height: 180px; margin: 0 auto !important; }
+#creator-view.cm-on.cm-edit #qimg-inline .qimg-tools { position: static; justify-content: flex-end; }
+#creator-view.cm-on.cm-edit #qimg-inline button { font-size: 0.85rem !important; padding: 8px 12px !important; min-height: 38px; }
+#creator-view.cm-on.cm-edit #creator-monitor-q-area.qimg-big { min-height: 0 !important; }

@@ -136,6 +136,8 @@ App.VarietyFrame = {
         img.src = q.image;
         img.alt = '';
         area.insertBefore(img, area.firstChild);
+        // 見た目の「画像の置き方・大きさ」
+        if (App.QuestionImage) App.QuestionImage.applyLayout(area, true, q.design);
     },
 };
 
@@ -179,26 +181,34 @@ App.QuestionImage = {
 
     supports: function () {
         const t = (window.App.Creator && window.App.Creator.currentType) || '';
+        // パネル指名・パネルクイズは問題文の画像を出す所が無い（パネルの画像は別に用意する）
+        const PB = window.App.PanelBoard;
+        if (PB && PB.active) return false;
         return !!t && t !== 'numgame' && t !== 'blackjack';
     },
 
+    // 問題文の欄の中に画像を入れる（行内）— 画像があれば文字の上に、無ければ文字の下に小さな「画像を入れる」。
+    // 置き方・大きさは見た目の「問題文」（qImgLayout / qImgSize）。PCのプレビューはモニターと同じ並びで見せる
     renderControl: function () {
-        const box = document.getElementById('creator-outside-opts');
-        if (!box) return;
-        box.querySelector('.qimg-ctl')?.remove();
-        if (!this.supports()) return;
-        const wrap = document.createElement('div');
-        wrap.className = 'qimg-ctl';
+        document.querySelector('#creator-outside-opts .qimg-ctl')?.remove(); // 以前のプレビュー下のボタン
+        const qa = document.getElementById('creator-monitor-q-area');
+        const qt = document.getElementById('question-text');
+        let box = document.getElementById('qimg-inline');
+        if (!qa || !qt || !this.supports()) { box?.remove(); if (qa) this.applyLayout(qa, false); return; }
+        if (!box) { box = document.createElement('div'); box.id = 'qimg-inline'; }
         const has = !!this.current;
-        wrap.innerHTML = `
-            ${has ? `<img class="qimg-thumb" src="${this.current}" alt="">` : ''}
-            <button type="button" class="qimg-pick">${has ? '写真を変える' : '写真を付ける'}</button>
-            ${has ? '<button type="button" class="qimg-clear">外す</button>' : ''}
-            <input type="file" accept="image/*" class="qimg-input" style="display:none !important;">`;
-        box.appendChild(wrap);
-        box.classList.remove('hidden');
-        const input = wrap.querySelector('.qimg-input');
-        wrap.querySelector('.qimg-pick').onclick = () => input.click();
+        const icon = window.App.Icons ? window.App.Icons.svg('image', 16) : '';
+        box.className = has ? 'has-img' : 'no-img';
+        box.innerHTML = has
+            ? `<img class="q-photo qimg-img" src="${this.current}" alt="">
+               <div class="qimg-tools"><button type="button" class="qimg-pick">${icon}<span>画像を変える</span></button><button type="button" class="qimg-clear">外す</button></div>`
+            : `<button type="button" class="qimg-pick qimg-add">${icon}<span>画像を入れる</span></button>`;
+        box.insertAdjacentHTML('beforeend', '<input type="file" accept="image/*" class="qimg-input" style="display:none !important;">');
+        // 画像は文字の上、「画像を入れる」は文字の下
+        if (has) qa.insertBefore(box, qt); else qt.after(box);
+        this.applyLayout(qa, has);
+        const input = box.querySelector('.qimg-input');
+        box.querySelector('.qimg-pick').onclick = (e) => { e.stopPropagation(); input.click(); };
         input.onchange = (ev) => {
             const f = ev.target.files[0];
             if (!f) return;
@@ -206,8 +216,17 @@ App.QuestionImage = {
             if (window.App.Themes && window.App.Themes.compressImage) window.App.Themes.compressImage(f, 1000, 1000, 0.8).then(done);
             else { const r = new FileReader(); r.onload = (x) => done(x.target.result); r.readAsDataURL(f); }
         };
-        const clr = wrap.querySelector('.qimg-clear');
-        if (clr) clr.onclick = () => { this.current = null; this.renderControl(); };
+        const clr = box.querySelector('.qimg-clear');
+        if (clr) clr.onclick = (e) => { e.stopPropagation(); this.current = null; this.renderControl(); };
+    },
+
+    // 見た目の「画像の置き方・大きさ」を問題文の枠に（モニター .q-area・作成画面のプレビュー共通）
+    applyLayout: function (el, has, design) {
+        const d = design || window.App.Data.currentDesign || {};
+        ['qimg-top', 'qimg-side', 'qimg-big', 'qimg-small', 'qimg-large'].forEach(c => el.classList.remove(c));
+        if (!has) return;
+        el.classList.add('qimg-' + (d.qImgLayout === 'side' ? 'side' : d.qImgLayout === 'big' ? 'big' : 'top'));
+        if (d.qImgSize === 'small' || d.qImgSize === 'large') el.classList.add('qimg-' + d.qImgSize);
     },
 };
 
@@ -240,4 +259,6 @@ App.QuestionImage = {
     after('resetForm', function () { QI.current = null; QI.renderControl(); });
     after('init', function () { QI.current = null; });
     after('renderForm', function () { QI.renderControl(); });
+    // 見た目を変えた時・描き直した時も、問題文の枠の画像の置き方を合わせる
+    after('applyDesignToPreview', function () { QI.renderControl(); });
 })();

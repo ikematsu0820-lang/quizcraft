@@ -597,7 +597,16 @@ App.CreatorMobile = {
         const st = { step: step === 'answer' ? 'answer' : 'reveal_q', qIndex: 0, revealedMulti: {} };
         try {
             if (!V) throw new Error('viewer not loaded');
-            if (window.App.PanelBoard && window.App.PanelBoard.is(q) && V.renderPanelBoard) {
+            const RE = window.App.RuleEngine;
+            if (RE && RE.readAloud && RE.readAloud(window.App.Data.currentConfig || {}, { qType: q.type }) && V.renderScoreBoard) {
+                // 一問一答の読み上げ: 本番と同じく問題文の代わりに得点の一覧（見本の参加者で）
+                const sample = { s1: { name: '参加者A', periodScore: 3 }, s2: { name: '参加者B', periodScore: 1 }, s3: { name: '参加者C', periodScore: 2 }, s4: { name: '参加者D', periodScore: 0 } };
+                V.renderScoreBoard(main, { qIndex: 0 }, sample, q.image || null);
+                if (st.step === 'answer') {
+                    const ans = (V.getAnswerString && V.getAnswerString(q)) || '';
+                    main.insertAdjacentHTML('beforeend', `<div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); z-index:300; background:rgba(0,0,0,0.95); border:6px solid ${(q.design || {}).qBorderColor || '#00bfff'}; border-radius:20px; padding:4vh 6vw; color:#fff; text-align:center; min-width:60vw;"><div style="font-size:3vh; font-weight:800; margin-bottom:1.5vh;">正解</div><div style="font-size:8vh; font-weight:900;">${String(ans).replace(/</g, '&lt;')}</div></div>`);
+                }
+            } else if (window.App.PanelBoard && window.App.PanelBoard.is(q) && V.renderPanelBoard) {
                 // パネル指名: 問題では表、正解では全部のパネルの裏（答え）を見せる
                 const open = st.step === 'answer';
                 // 問題付きは、問題を書いた最初のパネルを選んだ時の見え方
@@ -737,7 +746,6 @@ App.CreatorInput = {
             preview.removeAttribute('data-frame-title');
         }
         document.querySelector('#creator-monitor-q-area > .qs-num')?.remove();
-        document.getElementById('cs-photo')?.remove(); // 写真は下の「写真を付ける」から
         set(document.getElementById('creator-monitor-flexwrap'), { 'flex-direction': 'column', 'justify-content': 'flex-start' });
         set(document.getElementById('creator-monitor-q-area'), {
             width: '100%', 'align-self': 'stretch', display: 'flex', 'flex-direction': 'column', 'align-items': 'stretch',
@@ -1047,7 +1055,7 @@ App.CreatorDraft = {
         // 復元しただけでは「保存済み」ではない — 離れる時の確認は出す
         C._savedSnapshot = null;
         this._last = null;
-        window.App.Ui.showToast(d.noMedia ? '下書きを復元しました（背景画像・音は容量の都合で保存されていません）' : '下書きを復元しました');
+        window.App.Ui.showToast(d.noMedia ? '下書きを復元しました（背景画像・問題の画像・音は容量の都合で保存されていません）' : '下書きを復元しました');
         if (App.CreatorMobile.isMobile()) App.CreatorMobile.showList();
     },
 };

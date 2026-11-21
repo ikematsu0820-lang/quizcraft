@@ -1260,22 +1260,25 @@ window.App.Viewer = {
         const RE = window.App.RuleEngine;
         return !!(RE && RE.readAloud && q && RE.readAloud(this.config || {}, { qType: q.type }));
     },
-    renderScoreBoard: function (mainText, st) {
-        this._scoreBoardSt = st;
+    // players を渡すと（作成画面のプレビュー）その人たちで描く。写真がある問題は得点の上に写真
+    renderScoreBoard: function (mainText, st, players, image) {
+        this._scoreBoardSt = players ? null : st;
         mainText.style.flexDirection = 'column';
         mainText.style.justifyContent = 'center';
         mainText.style.alignItems = 'stretch';
-        mainText.innerHTML = '<div class="sb-wrap"><div class="sb-head">SCORE</div><div class="sb-grid"></div></div>';
+        const q = this.questions && this.questions[st.qIndex];
+        const img = image !== undefined ? image : (q && q.image);
+        mainText.innerHTML = `<div class="sb-wrap">${img ? `<img class="sb-photo" src="${img}" alt="">` : ''}<div class="sb-head">SCORE</div><div class="sb-grid"></div></div>`;
         this._sbPrev = this._sbPrev || {};
-        this.updateScoreBoard();
+        this.updateScoreBoard(mainText.querySelector('.sb-grid'), st, players);
     },
-    updateScoreBoard: function () {
-        const st = this._scoreBoardSt;
-        const grid = document.querySelector('#viewer-main-text .sb-grid');
+    updateScoreBoard: function (gridEl, stArg, playersArg) {
+        const st = stArg || this._scoreBoardSt;
+        const grid = gridEl || document.querySelector('#viewer-main-text .sb-grid');
         if (!st || !grid) return;
         const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         // 並びは参加した順のまま（点が動いても場所が変わらないように）
-        const list = Object.entries(this._players || {}).filter(([, p]) => p && p.name);
+        const list = Object.entries(playersArg || this._players || {}).filter(([, p]) => p && p.name);
         const n = list.length;
         const cols = n <= 4 ? Math.max(n, 1) : n <= 8 ? 4 : n <= 12 ? 4 : n <= 20 ? 5 : 6;
         grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
@@ -1743,6 +1746,7 @@ window.App.Viewer = {
         contentBox.innerHTML = `
             <style>@keyframes slideInLeft { from { opacity:0; transform:translateX(-40px); } to { opacity:1; transform:translateX(0); } }</style>
             <div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;padding:2vh 3vw;box-sizing:border-box;overflow:hidden;">
+                ${q.image ? `<img class="q-photo" src="${q.image}" alt="" style="max-height:16vh; margin:0 auto 1vh;">` : ''}
                 <div style="font-size:3vh;font-weight:700;color:${textColor};text-align:center;padding:1.2vh 2.5vw;background:${qBgColor};border-radius:10px;border-left:5px solid ${borderColor};width:90%;max-width:90vw;margin-bottom:1.5vh;line-height:1.4;white-space:pre-wrap;">${q.q}</div>
                 <div style="font-size:2.2vh;color:#ffd700;font-weight:900;letter-spacing:0.25em;margin-bottom:1.2vh;text-shadow:0 0 15px #ffd70066;">正　解</div>
                 <div style="width:90%;max-width:90vw;flex:1;display:flex;flex-direction:column;gap:0.7vh;background:${revealBg};border:3px solid ${revealBorder};border-radius:14px;padding:1.2vh 1.2vw;box-shadow:0 0 30px ${revealBorder}44;overflow:hidden;">

@@ -505,6 +505,12 @@ App.Design = {
                         ${miniSelect('問題文の位置', 'layout', [{ v: 'top', t: '上側' }, { v: 'left', t: '左側' }, { v: 'right', t: '右側' }, { v: 'bottom', t: '下側' }]
                             .concat(((window.App.Creator && window.App.Creator.currentType) || '').startsWith('free') ? [{ v: 'center', t: '中央' }] : []))}
                     </div>
+                    ${window.App.QuestionImage && window.App.QuestionImage.supports() ? `
+                    <div style="display:flex; gap:6px; margin-top:8px;">
+                        ${miniSelect('画像の置き方', 'qImgLayout', [{ v: '', t: '文字の上' }, { v: 'side', t: '文字の横' }, { v: 'big', t: '大きく' }])}
+                        ${miniSelect('画像の大きさ', 'qImgSize', [{ v: 'small', t: '小' }, { v: '', t: '中' }, { v: 'large', t: '大' }])}
+                    </div>
+                    <p style="color:#555; font-size:0.62rem; margin:4px 0 0;">※画像そのものは、問題を書く画面で問題文の欄に入れます（問題ごと）</p>` : ''}
                 `;
             },
             sound: () => {
@@ -841,7 +847,7 @@ App.Design = {
                 sel.onchange = () => {
                     design[sel.dataset.key] = sel.value;
                     if (onChange) onChange();
-                    if (sel.dataset.key === 'layout' && window.App.Creator) window.App.Creator.applyDesignToPreview();
+                    if ((sel.dataset.key === 'layout' || /^qImg/.test(sel.dataset.key)) && window.App.Creator) window.App.Creator.applyDesignToPreview();
                 };
             });
 

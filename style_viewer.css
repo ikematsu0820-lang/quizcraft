@@ -500,3 +500,4 @@ body {
 @keyframes sbUp { 0% { transform: scale(1.5); } 100% { transform: scale(1); } }
 @keyframes sbDown { 0%, 40% { transform: translateX(-0.1em); } 20%, 60% { transform: translateX(0.1em); } 100% { transform: none; } }
 .sb-empty { grid-column: 1 / -1; text-align: center; color: #94a3b8; font-size: 0.6em; }
+.sb-photo { display: block; max-width: 70%; max-height: 38cqh; margin: 0 auto; border-radius: 1.4cqh; object-fit: contain; }
