@@ -336,6 +336,7 @@ App.RuleEngine = {
         const loss = this.wrongLoss(c, {});
         if (loss > 0) wrong.push(`${loss}点減点`);
         if (wrong.length) parts.push(wrong.join('・') + '。');
+
         // 勝ち方
         const gt = c.gameType || 'score';
         if (gt === 'survival') {
@@ -352,10 +353,16 @@ App.RuleEngine = {
             parts.push(`得点が高い人が勝ち${c.tieBreak === 'time' ? '（同点は解答時間が短い人が上）' : ''}。`);
         }
         // 時間
-        const t = [];
-        if (c.timeLimitEnabled === 'on') t.push(c.timerKind === 'pool' ? `持ち時間はセット全体で${c.timeLimitSeconds || 60}秒` : `1問${c.timeLimitSeconds || 30}秒`);
-        if (Number(c.answerSec) > 0 && this.can('answerSec', ctx).ok) t.push(`解答者は${Number(c.answerSec)}秒以内に答える（過ぎたら誤答）`);
-        if (t.length) parts.push(t.join('・') + '。');
+        const tparts = [];
+        if (c.timeLimitEnabled === 'on') {
+            const sec = parseFloat(c.timeLimitSeconds) || 0;
+            const kind = c.timerKind === 'pool' ? 'pool' : (c.timerKind === 'personal' && ['buzz', 'turn', 'nominate'].includes(ctx.mode)) ? 'personal' : 'per_q';
+            if (kind === 'pool') tparts.push(`セット全体で${sec}秒（0になったら終了）`);
+            else if (kind === 'personal') tparts.push(`持ち時間は1人${sec}秒（0になったら脱落）`);
+            else tparts.push(c.timerOnExpire === 'bomb' ? `1問${sec}秒の時限爆弾（0の時に答える番の人が脱落）` : `1問${sec}秒`);
+        }
+        if (Number(c.answerSec) > 0 && this.can('answerSec', ctx).ok) tparts.push(`答える人は${c.answerSec}秒以内${c.answerSecOnExpire === 'pass' ? '（過ぎたら誤答にせず次へ）' : '（過ぎたら誤答）'}`);
+        if (tparts.length) parts.push(tparts.join('・') + '。');
         return parts.join('');
     },
 

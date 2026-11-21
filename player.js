@@ -615,7 +615,7 @@ function updateUI() {
     // 自分が答える番の持ち時間
     if (window.App && window.App.TimerView) {
         const at = st.answerTimer && st.answerTimer.pid === myPlayerId && ['question', 'answering', 'reveal_q'].includes(st.step) ? st.answerTimer : null;
-        window.App.TimerView.answerChip(document.getElementById('player-game-view'), at, 'あと', () => Date.now() + _serverTimeOffset);
+        window.App.TimerView.answerChip(document.getElementById('player-game-view'), at, at && at.personal ? '持ち時間' : 'あと', () => Date.now() + _serverTimeOffset);
     }
 
     if (p.periodScore !== undefined) {

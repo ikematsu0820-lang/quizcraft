@@ -38,6 +38,20 @@ App.RulePanel = {
         return `<select id="${id}" style="${this.SEL}">${opts.map(o => `<option value="${o.v}" ${String(val) === String(o.v) ? 'selected' : ''}>${o.t}</option>`).join('')}</select>`;
     },
     head: function (t) { return `<div class="rp-head">${t}</div>`; },
+    // 数字は選ばせずに自由に入れる — unit は単位、zero は「0 の時の意味」（例: なし）
+    num: function (id, val, unit, opt) {
+        const o = opt || {};
+        const v = (val === undefined || val === null || val === '') ? '' : val;
+        return `<span class="rp-num"><input type="number" id="${id}" value="${v}" ${o.min !== undefined ? `min="${o.min}"` : 'min="0"'} ${o.max !== undefined ? `max="${o.max}"` : ''} step="${o.step || 1}" inputmode="${o.step && o.step < 1 ? 'decimal' : 'numeric'}" placeholder="${o.placeholder || ''}"><span class="rp-num-unit">${unit || ''}</span>${o.zero ? `<span class="rp-num-hint">0＝${o.zero}</span>` : ''}</span>`;
+    },
+    // 入れた数字を読む（空や変な値は既定に）
+    readNum: function (el, def, min, max) {
+        let n = parseFloat(el.value);
+        if (isNaN(n)) n = def;
+        if (min !== undefined) n = Math.max(min, n);
+        if (max !== undefined) n = Math.min(max, n);
+        return n;
+    },
     // 選べない解答権は出さない。ただ「答え方を変えれば選べる」時だけ、その道を1行で
     retryHint: function (ctx, groupTiles) {
         const all = groupTiles.find(t => t.value === 'all');
@@ -245,10 +259,7 @@ App.RulePanel = {
                 { v: 'end', t: '問題を終える' },
                 { v: 'continue', t: '抜けて続ける' },
             ], cont ? 'continue' : 'end'))}
-            ${cont ? this.row('問題を終えるのは', this.select('rp-wb-count', [
-                { v: 0, t: '全員が答え終わるまで' },
-                ...[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(k => ({ v: k, t: `${k}人正解したら` })),
-            ], n)) : ''}
+            ${cont ? this.row('問題を終えるのは', this.num('rp-wb-count', n, '人正解したら', { zero: '全員が答え終わるまで' })) : ''}
             ${this.note(cont ? '' : '正解が出たら、その問題は終わって正解発表に進みます。')}
             ${cont ? this.note('正解した人はその問題から抜けて、残りの人で続けます。正解した順に点を傾けるには、「正解」のタブで「速さで傾斜」を選びます（1番目・2番目…の点を決められます）。司会者はいつでも問題を打ち切れます。') : ''}`;
     },
@@ -258,7 +269,7 @@ App.RulePanel = {
         on('rp-wb-timing', v => { conf.wbTiming = v; this.changed(); });
         on('rp-wb-judge', v => { conf.wbJudge = v; this.changed(); });
         on('rp-wb-after', v => { conf.wbAfterCorrect = v; this.changed(); });
-        on('rp-wb-count', v => { conf.wbWinCount = parseInt(v) || 0; this.changed(); });
+        on('rp-wb-count', v => { conf.wbWinCount = Math.max(0, parseInt(v) || 0); this.changed(); });
     },
 
     // ---------------------------------------------------------
@@ -288,7 +299,7 @@ App.RulePanel = {
         } else if (st === 'first') {
             const n = parseInt(conf.firstN) || 1;
             const pts = conf.firstPts !== undefined && conf.firstPts !== '' ? conf.firstPts : 1;
-            basic = this.row('先着', `<div style="display:flex; gap:6px;">${numSel('rp-first-n', [1, 2, 3, 5, 10], n, '人まで')}<input type="number" id="rp-first-pts" value="${pts}" min="0" style="${this.SEL} width:80px; text-align:center;"><span style="color:#94a3b8; font-size:0.8rem; align-self:center;">点</span></div>`)
+            basic = this.row('先着', `<div style="display:flex; gap:10px; flex-wrap:wrap;">${this.num('rp-first-n', n, '人まで', { min: 1 })}${this.num('rp-first-pts', pts, '点')}</div>`)
                 + this.note(ctx.mode === 'normal' ? '全員同時の時は、ボタンを押した速さで先着を決めます（出題者が判定する形式では、〇を付けた順）。' : '1人ずつ答える解答権では、その問題で〇になった順で数えます。');
         } else if (st === 'ranked') {
             basic = this.note('今は、速い順に傾斜した点にしています。点の決め方は「時間」のタブの「速さで競う」で変えられます（上のどれかを選ぶと傾斜をやめます）。');
@@ -298,7 +309,7 @@ App.RulePanel = {
 
         const streak = Number(conf.streakBonus) || 0;
         const adv = `
-            ${this.row('連続正解ボーナス', numSel('rp-streak', [0, 1, 2, 3, 5], streak, '点').replace('>0点<', '>なし<'))}
+            ${this.row('連続正解ボーナス', this.num('rp-streak', streak, '点', { zero: 'なし' }))}
             ${this.note('2問以上続けて正解した人に、毎問この点を足します（間違えると0から数え直し）。')}`;
 
         box.innerHTML = `
@@ -319,11 +330,11 @@ App.RulePanel = {
         const u = box.querySelector('#rp-uniform');
         if (u) u.oninput = () => { conf.uniformPts = u.value === '' ? '' : Math.max(0, parseInt(u.value) || 0); this.soft(); };
         const fn = box.querySelector('#rp-first-n');
-        if (fn) fn.onchange = () => { conf.firstN = parseInt(fn.value) || 1; this.soft(); };
+        if (fn) fn.onchange = () => { conf.firstN = Math.max(1, parseInt(fn.value) || 1); this.soft(); };
         const fp = box.querySelector('#rp-first-pts');
         if (fp) fp.oninput = () => { conf.firstPts = Math.max(0, parseInt(fp.value) || 0); this.soft(); };
         const sk = box.querySelector('#rp-streak');
-        if (sk) sk.onchange = () => { conf.streakBonus = parseInt(sk.value) || 0; this.soft(); };
+        if (sk) sk.onchange = () => { conf.streakBonus = parseFloat(sk.value) || 0; this.soft(); };
     },
 
     // ---------------------------------------------------------
@@ -349,7 +360,7 @@ App.RulePanel = {
         // 減点（どの解答権でも共通）
         const loss = conf.wrongDeduct !== undefined && conf.wrongDeduct !== '' ? Number(conf.wrongDeduct)
             : (conf.mode === 'buzz' && Number(conf.buzzDeduct) > 0 ? Number(conf.buzzDeduct) : 0);
-        const deduct = this.row('減点', this.select('rp-deduct', [0, 1, 2, 3, 5, 10].map(n => ({ v: n, t: n ? `−${n}点` : 'しない' })), loss));
+        const deduct = this.row('減点', this.num('rp-deduct', loss, '点ひく', { zero: 'しない' }));
         const survival = conf.gameType === 'survival'
             ? this.note(`勝ち方がサバイバルなので、誤答${conf.mode === 'normal' ? '・無回答' : ''}は「ミス1回」として数えます（${conf.survivalLives || 1}回で脱落）。`) : '';
 
@@ -367,7 +378,7 @@ App.RulePanel = {
         const tw = box.querySelector('#rp-turn-wrong');
         if (tw) tw.onchange = () => { conf.turnWrongAction = tw.value; this.soft(); };
         const dd = box.querySelector('#rp-deduct');
-        if (dd) dd.onchange = () => { conf.wrongDeduct = parseInt(dd.value) || 0; conf.buzzDeduct = conf.wrongDeduct; this.soft(); };
+        if (dd) dd.onchange = () => { conf.wrongDeduct = Math.abs(parseFloat(dd.value) || 0); conf.buzzDeduct = conf.wrongDeduct; this.soft(); };
     },
 
     // ---------------------------------------------------------
@@ -391,18 +402,18 @@ App.RulePanel = {
         if (gt === 'score') {
             basic = this.note('得点の入れ方は「正解」、減点は「誤答」のタブで決めます。' + (conf.tieBreak === 'time' && RE.can('tieBreakTime', ctx).ok ? '同点の時は解答時間の合計で決めます（「時間」のタブ）。' : ''));
         } else if (gt === 'survival') {
-            basic = this.row('脱落するミス', numSel('rp-lives', [1, 2, 3, 4, 5], conf.survivalLives || 1, n => `${n}回で脱落`))
+            basic = this.row('脱落するミス', this.num('rp-lives', conf.survivalLives || 1, '回で脱落', { min: 1 }))
                 + this.note('誤答・無回答がミスになります（1問につき1回まで）。脱落した人は以降の問題に答えられません。');
             const endN = Number(conf.survivalEndCount) || 0;
-            adv = this.row('終了', numSel('rp-surv-end', [0, 1, 2, 3, 5], endN, n => n ? `残り${n}人になったら終了` : '最後の問題まで続ける'));
+            adv = this.row('終了', this.num('rp-surv-end', endN, '人残ったら終了', { zero: '最後の問題まで続ける' }));
         } else if (gt === 'winthrough') {
             const by = conf.winBy === 'correct' ? 'correct' : 'score';
             basic = this.row('勝ち抜け', `<div style="display:flex; gap:6px;">
-                    ${numSel('rp-win-target', [1, 2, 3, 5, 7, 10, 15, 20], Number(conf.winTarget) || 5, n => `${n}`)}
+                    ${this.num('rp-win-target', Number(conf.winTarget) || 5, '', { min: 1 })}
                     ${this.select('rp-win-by', [{ v: 'score', t: '点で勝ち抜け' }, { v: 'correct', t: '問正解で勝ち抜け' }], by)}
                 </div>`)
                 + this.note('勝ち抜けた人は、それ以降の問題には答えません（勝ち抜けた順が順位になります）。');
-            adv = this.row('終了', numSel('rp-win-quota', [0, 1, 2, 3, 5, 10], Number(conf.winQuota) || 0, n => n ? `${n}人勝ち抜けたら終了` : '最後の問題まで続ける'));
+            adv = this.row('終了', this.num('rp-win-quota', Number(conf.winQuota) || 0, '人勝ち抜けたら終了', { zero: '最後の問題まで続ける' }));
         } else if (gt === 'timerace') {
             basic = this.note('今はタイムレース（正解数が多い人が勝ち、同じ数なら解答時間の合計が短い人が上）です。「時間」のタブの「速さで競う」で変えられます（上のどれかを選ぶとタイムレースをやめます）。');
         }
@@ -426,12 +437,12 @@ App.RulePanel = {
             b.onclick = () => { if (conf.gameType !== b.dataset.val) { conf.gameType = b.dataset.val; this.changed(); } };
         });
         const bind = (id, fn) => { const el = box.querySelector('#' + id); if (el) el.onchange = () => { fn(el.value); this.soft(); }; };
-        bind('rp-lives', v => { conf.survivalLives = parseInt(v) || 1; });
+        bind('rp-lives', v => { conf.survivalLives = Math.max(1, parseInt(v) || 1); });
         bind('rp-score-view', v => { conf.playerScoreView = v; });
-        bind('rp-surv-end', v => { conf.survivalEndCount = parseInt(v) || 0; });
-        bind('rp-win-target', v => { conf.winTarget = parseInt(v) || 5; });
+        bind('rp-surv-end', v => { conf.survivalEndCount = Math.max(0, parseInt(v) || 0); });
+        bind('rp-win-target', v => { conf.winTarget = Math.max(1, parseFloat(v) || 5); });
         bind('rp-win-by', v => { conf.winBy = v; });
-        bind('rp-win-quota', v => { conf.winQuota = parseInt(v) || 0; });
+        bind('rp-win-quota', v => { conf.winQuota = Math.max(0, parseInt(v) || 0); });
     },
 
     // ---------------------------------------------------------
@@ -467,7 +478,7 @@ App.RulePanel = {
             }
             if (can.tie && (conf.gameType || 'score') === 'score') html += toggle('rp-sp-tie', '同点は解答時間の合計で決める', conf.tieBreak === 'time', '同じ点の人は、解答時間の合計が短い人が上');
             if (can.slow && conf.gameType === 'survival') {
-                html += this.row('遅い人も脱落', this.select('rp-sp-slow', [0, 1, 2, 3].map(n => ({ v: n, t: n ? `毎問、正解者のうち遅い${n}人` : 'しない' })), parseInt(conf.survivalSlowDrop) || 0));
+                html += this.row('遅い人も脱落', this.num('rp-sp-slow', parseInt(conf.survivalSlowDrop) || 0, '人（毎問、正解者のうち遅い順）', { zero: 'しない' }));
             }
         } else {
             html += this.note('タイムレースの間は、正解は1問1点として数えます。');
@@ -489,27 +500,96 @@ App.RulePanel = {
         on('rp-sp-race', v => { conf.gameType = v ? 'timerace' : 'score'; this.changed(); });
         on('rp-sp-ranked', v => { conf.scoreType = v ? 'ranked' : 'uniform'; this.changed(); });
         on('rp-sp-tie', v => { conf.tieBreak = v ? 'time' : 'none'; this.soft(); });
-        on('rp-sp-slow', v => { conf.survivalSlowDrop = parseInt(v) || 0; this.soft(); });
+        on('rp-sp-slow', v => { conf.survivalSlowDrop = Math.max(0, parseInt(v) || 0); this.soft(); });
     },
 
     // ---------------------------------------------------------
-    // 時間（制限時間は従来の部品＋解答者の持ち時間）
+    // 時間 — 3つの質問: ① 問題の時計 ② 答える人の時計 ③ 時間が来たら（＋詳細・速さで競う）
     // ---------------------------------------------------------
     renderTime: function (box) {
         if (!box) return;
         const conf = this._conf, RE = this.RE(), ctx = this.ctx();
-        this.Cfg().renderInlineTimeLimitChooser(box, conf, () => this.changed());
+        const oneByOne = ['buzz', 'turn', 'nominate'].includes(conf.mode) && !ctx.isBlackjack;
+        const on = conf.timeLimitEnabled === 'on';
+        let kind = conf.timerKind === 'pool' ? 'pool' : conf.timerKind === 'personal' ? 'personal' : 'per_q';
+        if (kind === 'personal' && !oneByOne) kind = 'per_q';
+        const clock = on ? kind : 'off';
+        const tiles = [
+            { value: 'off', label: 'なし', sub: '時間で区切らない' },
+            { value: 'per_q', label: '1問ごと', sub: conf.mode === 'buzz' ? '押せる時間・毎問満タン' : '毎問、満タンから' },
+            { value: 'pool', label: 'セット全体', sub: '全員の残り時間が減る' },
+        ].concat(oneByOne ? [{ value: 'personal', label: '1人ずつ', sub: '自分の番だけ減る' }] : []);
+        const secs = parseFloat(conf.timeLimitSeconds) || (kind === 'per_q' ? 10 : 60);
+        const canSec = RE.can('answerSec', ctx).ok;
+        const ansSec = Number(conf.answerSec) || 0;
+        const whoLabel = conf.mode === 'buzz' ? '押してから' : conf.mode === 'nominate' ? '指名されてから' : '番が来てから';
+
+        // ③ 時間が来たら — 今の時計に合う物だけ
+        let expire = '';
+        if (on && kind === 'per_q') {
+            const opts = [
+                { v: 'close', t: '締め切って正解発表' },
+                { v: 'skip', t: 'スルーして次へ' },
+            ].concat(oneByOne ? [{ v: 'bomb', t: '番の人が脱落（爆弾）' }] : []);
+            const cur = opts.some(o => o.v === conf.timerOnExpire) ? conf.timerOnExpire : 'close';
+            expire += this.row('問題の時計が0', this.select('rp-t-expire', opts, cur));
+            if (cur === 'bomb') expire += this.note('時限爆弾: 時計は問題の間ずっと進み、次の人へ回っても止まりません。0になった時に答える番だった人が脱落します。');
+            else if (cur === 'skip') expire += this.note('正解を出さずに次の問題へ進みます。');
+            else if (conf.mode === 'buzz') expire += this.note('早押しでは「押せる時間」です。誰も押さずに0になったら、上の動きになります。');
+        } else if (on && kind === 'pool') {
+            expire += this.note('セット全体の時計が0になったら、残りの問題は出さずにセット終了です。');
+        } else if (on && kind === 'personal') {
+            expire += this.note('自分の持ち時間が0になった人は脱落です。持ち時間は答える番の間だけ減り、セットの間ずっと持ち越します。');
+        }
+        if (canSec && ansSec > 0) {
+            const ae = conf.answerSecOnExpire === 'pass' ? 'pass' : 'wrong';
+            expire += this.row('答える人の時計が0', this.select('rp-t-ans-expire', [
+                { v: 'wrong', t: '誤答にする' },
+                { v: 'pass', t: conf.mode === 'buzz' ? '誤答にせず再開' : conf.mode === 'nominate' ? '誤答にせず指名し直す' : '誤答にせず次の人へ' },
+            ], ae));
+            if (ae === 'pass') expire += this.note(conf.mode === 'buzz' ? '時間切れの人は解答権を手放し、ほかの人がまた押せます（もう一度押すこともできます）。' : conf.mode === 'nominate' ? '時間切れでも減点せず、司会者が次の人を指名します。' : '時間切れでも減点せず、次の人へ順番を回します。');
+        }
+
+        // 詳細: 止める・増減
+        let adv = '';
+        if (on && (kind === 'per_q' || kind === 'pool') && conf.mode === 'buzz' && conf.timerOnExpire !== 'bomb') {
+            adv += `<label class="rp-check"><input type="checkbox" id="rp-t-pause" ${conf.timerPauseOnBuzz !== false ? 'checked' : ''}><span>誰かが押したら問題の時計を止める（誤答なら残りから再開）</span></label>`;
+        }
+        if (on && (kind === 'pool' || kind === 'personal')) {
+            adv += this.row('正解したら', this.num('rp-t-bonus', parseFloat(conf.timerBonusCorrect) || 0, '秒ふやす', { step: 0.5, zero: '増減なし' }));
+            adv += this.row('誤答なら', this.num('rp-t-penalty', parseFloat(conf.timerPenaltyWrong) || 0, '秒へらす', { step: 0.5, zero: '増減なし' }));
+        }
+
+        box.innerHTML = `
+            ${this.head('① 問題の時計')}
+            ${this.tiles('tclock', tiles, clock)}
+            ${on ? this.row(kind === 'personal' ? '1人の持ち時間' : kind === 'pool' ? 'セット全体で' : '1問', this.num('rp-t-secs', secs, '秒', { min: 1 })) : ''}
+            ${canSec ? `${this.head('② 答える人の時計')}${this.row(whoLabel, this.num('rp-answer-sec', ansSec, '秒以内に答える', { zero: 'なし' }))}` : ''}
+            ${expire ? `${this.head('③ 時間が来たら')}${expire}` : ''}
+            ${adv ? this.Cfg().advancedBlock('time', adv) : ''}`;
+        this.Cfg().wireAdvancedBlocks(box);
+        box.querySelectorAll('[data-rp="tclock"]').forEach(b => {
+            b.onclick = () => {
+                const v = b.dataset.val;
+                if (v === 'off') conf.timeLimitEnabled = 'off';
+                else {
+                    const was = conf.timeLimitEnabled === 'on' ? (conf.timerKind || 'per_q') : 'off';
+                    conf.timeLimitEnabled = 'on';
+                    conf.timerKind = v;
+                    if (was !== v) conf.timeLimitSeconds = v === 'per_q' ? 10 : 60;
+                }
+                this.changed();
+            };
+        });
+        const q = (id) => box.querySelector('#' + id);
+        if (q('rp-t-secs')) q('rp-t-secs').onchange = (e) => { conf.timeLimitSeconds = this.readNum(e.target, 10, 1, 3600); this.soft(); };
+        if (q('rp-answer-sec')) q('rp-answer-sec').onchange = (e) => { conf.answerSec = this.readNum(e.target, 0, 0, 600); this.changed(); };
+        if (q('rp-t-expire')) q('rp-t-expire').onchange = (e) => { conf.timerOnExpire = e.target.value; this.changed(); };
+        if (q('rp-t-ans-expire')) q('rp-t-ans-expire').onchange = (e) => { conf.answerSecOnExpire = e.target.value; this.changed(); };
+        if (q('rp-t-pause')) q('rp-t-pause').onchange = (e) => { conf.timerPauseOnBuzz = e.target.checked; this.soft(); };
+        if (q('rp-t-bonus')) q('rp-t-bonus').onchange = (e) => { conf.timerBonusCorrect = this.readNum(e.target, 0, 0, 600); this.soft(); };
+        if (q('rp-t-penalty')) q('rp-t-penalty').onchange = (e) => { conf.timerPenaltyWrong = this.readNum(e.target, 0, 0, 600); this.soft(); };
         this.renderSpeed(box);
-        const can = RE.can('answerSec', ctx);
-        if (!can.ok) { if (Number(conf.answerSec)) conf.answerSec = 0; return; }
-        const sec = Number(conf.answerSec) || 0;
-        const wrap = document.createElement('div');
-        wrap.innerHTML = `
-            ${this.head('解答者の持ち時間')}
-            ${this.row(conf.mode === 'buzz' ? '押してから' : '順番が来てから', this.select('rp-answer-sec', [0, 3, 5, 10, 15, 20, 30].map(n => ({ v: n, t: n ? `${n}秒以内に答える` : '制限なし' })), sec))}
-            ${this.note('時間内に答えなかったら誤答として扱います（誤答のタブの設定どおりに進みます）。')}`;
-        box.appendChild(wrap);
-        const s = wrap.querySelector('#rp-answer-sec');
-        s.onchange = () => { conf.answerSec = parseInt(s.value) || 0; this.soft(); };
     },
+
 };

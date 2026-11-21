@@ -204,14 +204,10 @@ App.Config = {
                         ${allowed.map(o => `<option value="${o.v}" ${buzzPenalty === o.v ? 'selected' : ''}>${o.t}</option>`).join('')}
                     </select>`, '解答権')}
                     <div id="config-buzz-ban-wrap" style="flex:0 0 84px; display:${buzzPenalty === 'time_ban' ? 'flex' : 'none'};">
-                        ${col(`<select id="config-buzz-ban-sec" class="btn-block config-select" style="margin:0; padding:4px;">
-                            ${[1, 2, 3, 5, 10].map(n => `<option value="${n}" ${banSec === n ? 'selected' : ''}>${n}秒</option>`).join('')}
-                        </select>`, '押せない時間')}
+                        ${col(`<input type="number" id="config-buzz-ban-sec" value="${banSec}" min="0.5" step="0.5" inputmode="decimal" style="width:100%; margin:0; padding:4px 6px; text-align:center; background:#1e293b; border:1px solid #475569; border-radius:8px; color:#fff;">`, '押せない秒数')}
                     </div>
                     <div id="config-buzz-rest-wrap" style="flex:0 0 84px; display:${buzzPenalty === 'rest' ? 'flex' : 'none'};">
-                        ${col(`<select id="config-buzz-rest-count" class="btn-block config-select" style="margin:0; padding:4px;">
-                            ${[1, 2, 3].map(n => `<option value="${n}" ${restN === n ? 'selected' : ''}>${n}問</option>`).join('')}
-                        </select>`, '休み')}
+                        ${col(`<input type="number" id="config-buzz-rest-count" value="${restN}" min="1" step="1" inputmode="numeric" style="width:100%; margin:0; padding:4px 6px; text-align:center; background:#1e293b; border:1px solid #475569; border-radius:8px; color:#fff;">`, '休む問題数')}
                     </div>
                 </div>
                 <div style="display:flex; gap:8px; align-items:center;">
@@ -314,9 +310,9 @@ App.Config = {
             };
         }
         const banSel = area.querySelector('#config-buzz-ban-sec');
-        if (banSel) banSel.onchange = () => { conf.buzzPenaltyTime = parseInt(banSel.value) || 3; };
+        if (banSel) banSel.onchange = () => { conf.buzzPenaltyTime = Math.max(0.5, parseFloat(banSel.value) || 3); };
         const restSel = area.querySelector('#config-buzz-rest-count');
-        if (restSel) restSel.onchange = () => { conf.buzzRestCount = parseInt(restSel.value) || 1; };
+        if (restSel) restSel.onchange = () => { conf.buzzRestCount = Math.max(1, parseInt(restSel.value) || 1); };
         const buzzDeductSel = area.querySelector('#config-buzz-deduct');
         const buzzDeductOn = area.querySelector('#config-buzz-deduct-on');
         const buzzDeductWrap = area.querySelector('#config-buzz-deduct-wrap');
@@ -410,8 +406,8 @@ App.Config = {
         const clear = Number(conf.soloClearCount) || 0;
         const row = (label, inner) => `<div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;"><span style="flex:0 0 96px; color:#94a3b8; font-size:0.72rem; font-weight:bold;">${label}</span><div style="flex:1; min-width:0;">${inner}</div></div>`;
         const inner = `
-            ${row('ライフ', `<select id="conf-solo-life" style="${selStyle}">${[1, 2, 3, 5, 0].map(n => `<option value="${n}" ${life === n ? 'selected' : ''}>${n ? `${n}回まで間違えられる` : '無制限（最後まで続ける）'}</option>`).join('')}</select>`)}
-            ${row('クリア条件', `<select id="conf-solo-clear" style="${selStyle}">${[0, 3, 5, 7, 10, 12].map(n => `<option value="${n}" ${clear === n ? 'selected' : ''}>${n ? `${n}問正解でクリア` : 'なし（全問やる）'}</option>`).join('')}</select>`)}
+            ${row('ライフ', `<span class="rp-num"><input type="number" id="conf-solo-life" value="${life}" min="0" step="1" inputmode="numeric"><span class="rp-num-unit">回まで間違えられる</span><span class="rp-num-hint">0＝無制限</span></span>`)}
+            ${row('クリア条件', `<span class="rp-num"><input type="number" id="conf-solo-clear" value="${clear}" min="0" step="1" inputmode="numeric"><span class="rp-num-unit">問正解でクリア</span><span class="rp-num-hint">0＝なし（全問やる）</span></span>`)}
             <p class="rule-adv-note" style="margin:0;">司会者が出題の読み込み時に「ソロモード」を選んだ時だけ使います。タイムショック風にするなら、制限時間を「セット全体」にしてください。</p>`;
         box.innerHTML = this.advancedBlock('solo', inner, null, '1人で挑戦するとき（ソロモード）');
         this.wireAdvancedBlocks(box);

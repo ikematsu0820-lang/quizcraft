@@ -47,3 +47,13 @@
 /* 答え方が形式で決まっている時（rule_panel.js answerByHtml）— タイルの代わりに1行 */
 .rp-fixed { display: flex; align-items: baseline; gap: 10px; margin: 2px 0 6px; font-size: 0.85rem; color: #94a3b8; }
 .rp-fixed b { flex: none; padding: 2px 10px; border-radius: 6px; border: 1px solid rgba(0, 229, 255, 0.45); color: #67e8f9; font-weight: 700; }
+
+/* 数字の自由入力（rule_panel.js num）— 選ばせずに好きな数を入れる */
+.rp-num { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; }
+.rp-num input {
+    width: 84px; padding: 6px 8px; text-align: center; font-size: 0.95rem; font-weight: 700;
+    background: #1e293b; border: 1px solid #475569; border-radius: 8px; color: #fff;
+}
+.rp-num input:focus { outline: none; border-color: #00e5ff; }
+.rp-num-unit { color: #cbd5e1; font-size: 0.82rem; }
+.rp-num-hint { color: #64748b; font-size: 0.72rem; }

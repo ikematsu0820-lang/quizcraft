@@ -1943,33 +1943,116 @@ App.Studio = {
     // 解答者の持ち時間（ルール「時間」— 押してから／順番が来てから◯秒）
     // 時間内に答えなければ誤答として判定する。
     // ---------------------------------------------------------
+    // 答える人の時計 — ルール「時間」
+    //   答える人の時計（answerSec）: 押してから／番が来てから／指名されてから◯秒
+    //     時間切れは answerSecOnExpire: 'wrong'（誤答）／'pass'（誤答にせず次へ）
+    //   1人ずつの持ち時間（timerKind: 'personal'）: その人が答えている間だけ、その人の時計が減る。0で脱落
+    //   両方ある時は、先に切れる方で区切る
     startAnswerTimer: function (playerId) {
         this.clearAnswerTimer();
         const conf = App.Data.currentConfig || {};
-        const sec = Number(conf.answerSec) || 0;
         const RE = window.App.RuleEngine;
-        if (!sec || !playerId) return;
-        if (RE && !RE.can('answerSec', RE.context(conf, App.Data.studioQuestions)).ok) return;
+        const canSec = !RE || RE.can('answerSec', RE.context(conf, App.Data.studioQuestions)).ok;
+        const sec = canSec ? (Number(conf.answerSec) || 0) : 0;
+        const tc = this._timerConf();
+        const personal = tc.on && tc.kind === 'personal' && !!playerId;
+        if ((!sec && !personal) || !playerId) return;
         const roomId = App.State.currentRoomId;
         const qAt = App.State.currentQIndex;
         this._answerTimerFor = playerId;
-        window.db.ref(`rooms/${roomId}/status`).update({ answerTimer: { pid: playerId, ms: sec * 1000, startAt: firebase.database.ServerValue.TIMESTAMP } });
+        let ms = sec ? sec * 1000 : Infinity;
+        let byPersonal = false;
+        if (personal) {
+            this._pclock = this._pclock || {};
+            if (this._pclock[playerId] === undefined) this._pclock[playerId] = tc.totalMs;
+            const left = Math.max(0, this._pclock[playerId]);
+            if (left <= ms) { ms = left; byPersonal = true; }
+            this._pclockRun = { pid: playerId, startLocal: Date.now() };
+        }
+        window.db.ref(`rooms/${roomId}/status`).update({ answerTimer: { pid: playerId, ms, startAt: firebase.database.ServerValue.TIMESTAMP, personal: byPersonal || null } });
         this._answerTimerId = setTimeout(() => {
             this._answerTimerId = null;
             if (App.State.currentQIndex !== qAt || this._answerTimerFor !== playerId) return;
             if (![2, 3].includes(this.currentStepId)) return;
+            this._pclockStop();
+            if (byPersonal) { this.personalClockOut(playerId); return; }
             if (this._pb) { this.pbJudge(false, true); return; } // パネル指名は時間切れ＝誤答
             const p = (App.Data.players || {})[playerId];
             if (p && p.lastResult) return; // もう判定済み
+            if (conf.answerSecOnExpire === 'pass') { this.passOnTimeout(playerId); return; }
             App.Ui.showToast(`${(p && p.name) || '---'} さんは時間切れ（誤答）`);
             const mode = conf.mode;
             if (mode === 'buzz' && this.buzzWinner === playerId) this.judgeBuzz(false);
             else if (mode === 'turn' || mode === 'nominate') this.updatePlayerScore(playerId, false);
-        }, sec * 1000);
+        }, ms);
+    },
+
+    // 1人ずつの持ち時間: 答えている間に使った分を引く（判定・時間切れ・次の人へ、のどれでも）
+    _pclockStop: function () {
+        const r = this._pclockRun;
+        if (!r) return;
+        this._pclockRun = null;
+        this._pclock = this._pclock || {};
+        const used = Date.now() - r.startLocal;
+        this._pclock[r.pid] = Math.max(0, (this._pclock[r.pid] || 0) - used);
+        this._pclockLast = r.pid;
+        const roomId = App.State.currentRoomId;
+        if (roomId) window.db.ref(`rooms/${roomId}/players/${r.pid}`).update({ clockMs: Math.round(this._pclock[r.pid]) });
+    },
+
+    // 持ち時間が0になった人は脱落（その問題は誤答として進める）
+    personalClockOut: function (playerId) {
+        const roomId = App.State.currentRoomId;
+        const p = (App.Data.players || {})[playerId] || {};
+        App.Ui.showToast(`${p.name || '---'} さんは持ち時間がなくなりました（脱落）`);
+        window.db.ref(`rooms/${roomId}/players/${playerId}`).update({ isAlive: false, clockMs: 0 });
+        const mode = (App.Data.currentConfig || {}).mode;
+        if (this._pb) { this.pbJudge(false, true); return; }
+        if (mode === 'buzz' && this.buzzWinner === playerId) this.judgeBuzz(false);
+        else if (mode === 'turn' || mode === 'nominate') this.updatePlayerScore(playerId, false);
+    },
+
+    // 答える人の時間切れを、誤答にせず次へ（ルール「時間が来たら：誤答にせず次へ」）
+    passOnTimeout: function (playerId) {
+        const roomId = App.State.currentRoomId;
+        const conf = App.Data.currentConfig || {};
+        const p = (App.Data.players || {})[playerId] || {};
+        const name = p.name || '---';
+        if (conf.mode === 'buzz' && this.buzzWinner === playerId) {
+            // 解答権を手放すだけ（もう一度押せる）
+            this.buzzWinner = null;
+            window.db.ref(`rooms/${roomId}/players/${playerId}`).update({ buzzTime: null });
+            window.db.ref(`rooms/${roomId}/status`).update({ currentAnswerer: null, currentAnswererName: null, isBuzzActive: true });
+            document.getElementById('studio-sub-info')?.classList.add('hidden');
+            this.resumeTimer();
+            App.Ui.showToast(`${name} さんは時間切れ。ほかの人が押せます`);
+            return;
+        }
+        if (conf.mode === 'nominate') {
+            this._nominatedId = null;
+            window.db.ref(`rooms/${roomId}/status`).update({ currentAnswerer: null, currentAnswererName: null });
+            App.Ui.showToast(`${name} さんは時間切れ。次の人を指名してください`);
+            return;
+        }
+        if (conf.mode === 'turn' && this.turnOrder && this.turnOrder.length) {
+            const nextIdx = this._nextEligibleTurnIndex(this.turnIndex, false);
+            const nextId = nextIdx === null ? null : this.turnOrder[nextIdx];
+            if (nextId && nextId !== playerId) {
+                this.turnIndex = nextIdx;
+                const nextName = (App.Data.players && App.Data.players[nextId] && App.Data.players[nextId].name) || '---';
+                window.db.ref(`rooms/${roomId}/status`).update({ currentAnswerer: nextId, currentAnswererName: nextName, turnIndex: this.turnIndex });
+                App.Ui.showToast(`${name} さんは時間切れ。次は ${nextName} さん`);
+                this.startAnswerTimer(nextId);
+            } else {
+                App.Ui.showToast('時間切れ（正解発表へ）');
+                setTimeout(() => { if (this.currentStepId === 2 || this.currentStepId === 3) this.setStep(5); }, 1200);
+            }
+        }
     },
 
     clearAnswerTimer: function () {
         if (this._answerTimerId) { clearTimeout(this._answerTimerId); this._answerTimerId = null; }
+        this._pclockStop();
         if (this._answerTimerFor) {
             this._answerTimerFor = null;
             const roomId = App.State.currentRoomId;
@@ -2250,6 +2333,7 @@ App.Studio = {
                     info.innerHTML = `<span style="color:#9b59b6; font-weight:bold;">順番: ${nextPlayerName}（${this.turnIndex + 1}/${this.turnOrder.length}）</span>`;
                 }
                 App.Ui.showToast(`正解！次は ${nextPlayerName} さんの番です`);
+                this.startAnswerTimer(nextPlayerId); // 次の人の時計（答える人の時計・持ち時間）
             }
         }
 
@@ -3911,6 +3995,7 @@ App.Studio = {
 
                     const msg = isCorrect ? "正解！" : "不正解...";
                     App.Ui.showToast(`${msg} 次は ${nextPlayerName} さんの番です`);
+                    this.startAnswerTimer(nextPlayerId); // 次の人の時計（答える人の時計・持ち時間）
 
                     // Update sub-info UI
                     const info = document.getElementById('studio-sub-info');
@@ -4176,9 +4261,10 @@ App.Studio = {
         const c = App.Data.currentConfig || {};
         return {
             on: c.timeLimitEnabled === 'on',
-            kind: c.timerKind === 'pool' ? 'pool' : 'per_q',
-            totalMs: (parseInt(c.timeLimitSeconds) || 30) * 1000,
-            onExpire: c.timerOnExpire === 'skip' ? 'skip' : 'close',
+            // 1人ずつの持ち時間は、1人ずつ答える解答権（早押し・順番・指名）の時だけ
+            kind: c.timerKind === 'pool' ? 'pool' : (c.timerKind === 'personal' && ['buzz', 'turn', 'nominate'].includes(c.mode)) ? 'personal' : 'per_q',
+            totalMs: (parseFloat(c.timeLimitSeconds) || 30) * 1000,
+            onExpire: ['skip', 'bomb'].includes(c.timerOnExpire) ? c.timerOnExpire : 'close',
             pauseOnBuzz: c.timerPauseOnBuzz !== false,
             bonusMs: (parseFloat(c.timerBonusCorrect) || 0) * 1000,
             penaltyMs: (parseFloat(c.timerPenaltyWrong) || 0) * 1000,
@@ -4221,6 +4307,7 @@ App.Studio = {
         this.clearTimeLimit(); // Clear any existing timer
         const tc = this._timerConf();
         if (!tc.on || tc.totalMs <= 0) return;
+        if (tc.kind === 'personal') return; // 1人ずつの持ち時間は、答える人の時計（startAnswerTimer）で数える
         let remain = tc.totalMs;
         if (tc.kind === 'pool') {
             if (this._poolRemaining === null || this._poolRemaining === undefined) this._poolRemaining = tc.totalMs;
@@ -4254,9 +4341,20 @@ App.Studio = {
     // 正誤に応じて持ち時間を増減（セット全体の持ち時間の時だけ）
     adjustTimer: function (isCorrect) {
         const tc = this._timerConf();
-        if (!tc.on || tc.kind !== 'pool') return;
+        if (!tc.on || (tc.kind !== 'pool' && tc.kind !== 'personal')) return;
         const delta = isCorrect ? tc.bonusMs : -tc.penaltyMs;
         if (!delta) return;
+        if (tc.kind === 'personal') {
+            // 答えた人の持ち時間を増減
+            this._pclockStop();
+            const pid = this._pclockLast;
+            if (!pid) return;
+            this._pclock = this._pclock || {};
+            this._pclock[pid] = Math.max(0, (this._pclock[pid] === undefined ? tc.totalMs : this._pclock[pid]) + delta);
+            window.db.ref(`rooms/${App.State.currentRoomId}/players/${pid}`).update({ clockMs: Math.round(this._pclock[pid]) });
+            App.Ui.showToast(delta > 0 ? `持ち時間 +${delta / 1000}秒` : `持ち時間 ${delta / 1000}秒`);
+            return;
+        }
         const t = this._timer;
         if (t) {
             t.remainMs = Math.max(0, this._timerRemaining() + delta);
@@ -4272,6 +4370,8 @@ App.Studio = {
     // セットの始まり — 持ち時間を満タンに戻す
     resetTimerPool: function () {
         this._poolRemaining = null;
+        this._pclock = {};
+        this._pclockRun = null;
     },
 
     _onTimerExpire: function () {
@@ -4292,6 +4392,22 @@ App.Studio = {
                 this._timer = null;
                 this.handleSetCompletion();
             }, 2500);
+            return;
+        }
+        // 時限爆弾: 時間が来た時に答える番だった人が脱落
+        if (tc.onExpire === 'bomb') {
+            const mode = (App.Data.currentConfig || {}).mode;
+            const holder = mode === 'buzz' ? this.buzzWinner : mode === 'nominate' ? this._nominatedId
+                : (this.turnOrder && this.turnOrder.length ? this.turnOrder[this.turnIndex] : null);
+            this.clearAnswerTimer();
+            if (holder) {
+                const hp = (App.Data.players || {})[holder] || {};
+                window.db.ref(`rooms/${roomId}/players/${holder}`).update({ isAlive: false, lastResult: 'lose' });
+                App.Ui.showToast(`時間切れ！ ${hp.name || '---'} さんが脱落`);
+            } else {
+                App.Ui.showToast('時間切れ！');
+            }
+            setTimeout(() => { if (this.currentStepId === stepAtExpire && stepAtExpire === 2) this.setStep(5); }, 2000);
             return;
         }
         App.Ui.showToast(`制限時間（${tc.totalMs / 1000}秒）終了！`);
