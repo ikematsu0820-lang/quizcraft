@@ -375,6 +375,12 @@ window.App.bindEvents = function () {
                 return;
             }
             const type = card.getAttribute('data-type');
+            // パネルクイズは多答の形で作り、盤面（パネル指名・問題付き）で始める
+            if (type === 'panel_quiz' && window.App.Creator && window.App.PanelBoard) {
+                window.App.Creator.initWithType('multi_group');
+                window.App.PanelBoard.startBoardSet(window.App.Creator);
+                return;
+            }
             if (window.App.Creator && window.App.Creator.initWithType) {
                 window.App.Creator.initWithType(type);
             } else if (window.App.Creator && window.App.Creator.init) {

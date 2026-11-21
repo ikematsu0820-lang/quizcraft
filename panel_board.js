@@ -20,6 +20,7 @@ window.App = window.App || {};
 App.PanelBoard = {
     active: false, // 作成画面で編集中の問題がパネル指名モードか
     panelQ: false, // パネルごとに問題を出す（表＝ジャンル、選ぶと問題、正解で答えに裏返る）
+    board: false,  // パネルクイズ（ジャンル×点数の盤面。形式選択の「パネルクイズ」— 1セット1盤面）
 
     esc: function (v) {
         return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -46,6 +47,36 @@ App.PanelBoard = {
         return (r > 0 && c > 0) ? c : 0;
     },
 
+    // パネルクイズの盤面: ジャンル（パネルの label）ごとに列、列の中は点の小さい順。
+    // cells[行][列] = パネルの番号（無い所は null）。モニター・出題者画面・回答者画面・プレビューで共通
+    boardLayout: function (panels) {
+        const cats = [];
+        const byCat = {};
+        (panels || []).forEach((p, i) => {
+            const c = String((p && p.label) || '');
+            if (!(c in byCat)) { byCat[c] = []; cats.push(c); }
+            byCat[c].push(i);
+        });
+        const num = (i) => { const v = Number(panels[i].pts); return isNaN(v) || panels[i].pts === '' || panels[i].pts === null ? Infinity : v; };
+        cats.forEach(c => byCat[c].sort((a, b) => num(a) - num(b) || a - b));
+        const rows = Math.max(1, ...cats.map(c => byCat[c].length));
+        const cells = Array.from({ length: rows }, (_, r) => cats.map(c => byCat[c][r] ?? null));
+        return { cats, cols: Math.max(cats.length, 1), rows, cells };
+    },
+    // ジャンルの帯の色（左から順に）
+    CAT_COLORS: ['#e5484d', '#f76b15', '#30a46c', '#8e4ec6', '#0090ff', '#d6409f', '#12a594', '#ffb224'],
+    isBoard: function (q) { return !!(q && q.panelStyle === 'board'); },
+
+    // 形式選択の「パネルクイズ」から始めた時
+    startBoardSet: function (C) {
+        this.active = true;
+        this.panelQ = true;
+        this.board = true;
+        // 最初は 4ジャンル × 10〜40点
+        const boardGenres = Array.from({ length: 4 }, () => ({ name: '', items: [10, 20, 30, 40].map(pts => ({ pts, pq: '', answer: '' })) }));
+        C.renderForm('multi_oral', { type: 'multi_oral', panel: true, panelQ: true, panelStyle: 'board', panels: [], boardGenres });
+    },
+
     // モニター・回答者画面のパネルの列の数
     cols: function (n) {
         if (n <= 3) return n;
@@ -69,6 +100,14 @@ App.PanelBoard = {
         if (isRanking) this.active = false;
         else if (data && typeof data.panel === 'boolean') this.active = data.panel;
         else if (data && data.panel) this.active = true;
+        if (data && data.panelStyle === 'board') { this.board = true; this.active = true; this.panelQ = true; }
+        // パネルクイズは形式そのものなので、多答の「通常／ランキング／パネル指名」は出さない
+        if (this.board) {
+            rk.closest('label')?.classList.add('ctl-hidden');
+            document.getElementById('multi-add-btn')?.remove();
+            this.renderBoardEditor(C, data);
+            return;
+        }
         this.renderModeSwitch(C, rk, isRanking);
         if (!this.active) return;
         // 正解の追加は使わない（パネルの追加に置き換え）
@@ -169,6 +208,151 @@ App.PanelBoard = {
         add.onclick = () => this.addRow(list, { label: '', answer: '', pts: '' });
     },
 
+    // ---------------------------------------------------------
+    // パネルクイズの作成画面 — ジャンルごとに 点・問題・答え を並べて書く
+    // ---------------------------------------------------------
+    renderBoardEditor: function (C, data) {
+        const container = document.getElementById('creator-form-container');
+        if (!container) return;
+        const genres = (data && Array.isArray(data.boardGenres)) ? data.boardGenres : this.genresFrom((data && data.panels) || []);
+        container.innerHTML = '';
+        container.style.overflowY = 'auto';
+        const board = document.createElement('div');
+        board.id = 'pbq-board';
+        container.appendChild(board);
+        genres.forEach(g => this.addGenre(board, g));
+        board.addEventListener('click', () => { if (window.App.Design) window.App.Design.selectObject('choices'); });
+
+        const outside = document.getElementById('creator-outside-opts');
+        const mk = (html) => { const d = document.createElement('span'); d.innerHTML = html; return d.firstElementChild; };
+        const hint = mk(`<span class="pb-hint" style="color:#64748b; font-size:0.75rem; white-space:nowrap;">※ジャンルが列、点の小さい順に並びます。パネルを選ぶと問題が出て、正解すると答えに裏返り、そのパネルの点が入ります</span>`);
+        const wrongSel = mk(`<label class="pb-wrong-wrap" style="display:flex; align-items:center; gap:4px; color:#fff; font-size:0.8rem; white-space:nowrap;">誤答したパネル
+            <select id="pb-wrong" style="height:26px; min-height:0; margin:0; padding:0 6px; width:auto;">
+                <option value="keep">そのまま残す（他の人が答えられる）</option>
+                <option value="close">閉じて答えを見せる</option>
+            </select></label>`);
+        wrongSel.querySelector('select').value = (data && data.panelWrong === 'close') ? 'close' : 'keep';
+        const btn = (id, text) => mk(`<button type="button" id="${id}" style="margin-left:4px; background:rgba(0,229,255,0.08); border:1px dashed rgba(0,229,255,0.4); border-radius:8px; color:#00e5ff; padding:5px 12px; cursor:pointer; font-size:0.8rem;">${text}</button>`);
+        const addG = btn('pbq-add-genre', '＋ ジャンルを追加');
+        const paste = btn('pb-paste-btn', 'まとめて貼り付け');
+        if (outside) { [hint, wrongSel, addG, paste].forEach(el => outside.appendChild(el)); outside.classList.remove('hidden'); }
+        addG.onclick = () => this.addGenre(board, { name: '', items: [10, 20, 30, 40].map(pts => ({ pts, pq: '', answer: '' })) });
+        paste.onclick = () => this.openBoardPaste(board);
+    },
+
+    // 保存済みのパネルを、ジャンルごとのまとまりに戻す（並びは書いた順）
+    genresFrom: function (panels) {
+        const out = [];
+        const at = {};
+        panels.forEach(p => {
+            const name = String(p.label || '');
+            if (!(name in at)) { at[name] = out.length; out.push({ name, items: [] }); }
+            out[at[name]].items.push({ pts: p.pts, pq: p.pq || '', answer: p.answer || '' });
+        });
+        // 何も無ければ 4ジャンル × 10〜40点 から
+        return out.length ? out : Array.from({ length: 4 }, () => ({ name: '', items: [10, 20, 30, 40].map(pts => ({ pts, pq: '', answer: '' })) }));
+    },
+
+    addGenre: function (board, g) {
+        const e = (v) => this.esc(v);
+        const sec = document.createElement('div');
+        sec.className = 'pbq-genre';
+        sec.innerHTML = `
+            <div class="pbq-ghead">
+                <span class="pbq-chip"></span>
+                <input type="text" class="pbq-gname" value="${e(g.name)}">
+                <button type="button" class="pbq-gdel" title="このジャンルを消す">×</button>
+            </div>
+            <div class="pbq-items"></div>
+            <button type="button" class="pbq-add">＋ 問題を追加</button>`;
+        const items = sec.querySelector('.pbq-items');
+        (g.items || []).forEach(it => this.addBoardItem(items, it));
+        sec.querySelector('.pbq-add').onclick = () => {
+            const last = [...items.querySelectorAll('.pbq-pts')].map(x => Number(x.value)).filter(n => !isNaN(n) && n > 0).pop();
+            this.addBoardItem(items, { pts: last ? last + 10 : 10, pq: '', answer: '' });
+        };
+        sec.querySelector('.pbq-gdel').onclick = () => {
+            if (board.querySelectorAll('.pbq-genre').length <= 1) { window.App.Ui.showToast('ジャンルは1つ以上必要です'); return; }
+            const filled = [...sec.querySelectorAll('input')].some(x => x.value.trim() && !x.classList.contains('pbq-pts'));
+            if (filled && !confirm('このジャンルと、その問題を消しますか？')) return;
+            sec.remove();
+            this.renumberGenres(board);
+        };
+        board.appendChild(sec);
+        this.renumberGenres(board);
+        return sec;
+    },
+    renumberGenres: function (board) {
+        board.querySelectorAll('.pbq-genre').forEach((sec, i) => {
+            sec.querySelector('.pbq-chip').style.background = this.CAT_COLORS[i % this.CAT_COLORS.length];
+            sec.querySelector('.pbq-gname').placeholder = `ジャンル${i + 1}（例: ${['文学', '社会', '科学', '芸能', 'ノンジャンル'][i % 5]}）`;
+        });
+    },
+    addBoardItem: function (items, it) {
+        const e = (v) => this.esc(v);
+        const row = document.createElement('div');
+        row.className = 'pbq-item';
+        row.innerHTML = `
+            <input type="number" class="pbq-pts" placeholder="点" value="${e(it.pts)}">
+            <input type="text" class="pbq-q" placeholder="問題文" value="${e(it.pq)}">
+            <input type="text" class="pbq-a" placeholder="答え" value="${e(it.answer)}">
+            <button type="button" class="pbq-del" title="削除">×</button>`;
+        row.querySelector('.pbq-del').onclick = () => row.remove();
+        items.appendChild(row);
+        return row;
+    },
+    // 盤面の入力 → パネルの並び（label = ジャンル名）。keepEmpty はプレビュー用に空欄も残す
+    readBoard: function (keepEmpty) {
+        const out = [];
+        document.querySelectorAll('#pbq-board .pbq-genre').forEach((sec, gi) => {
+            const name = (sec.querySelector('.pbq-gname')?.value || '').trim() || `ジャンル${gi + 1}`;
+            sec.querySelectorAll('.pbq-item').forEach(row => {
+                const raw = (row.querySelector('.pbq-pts')?.value || '').trim();
+                const pq = (row.querySelector('.pbq-q')?.value || '').trim();
+                const answer = (row.querySelector('.pbq-a')?.value || '').trim();
+                if (!pq && !answer && !keepEmpty) return;
+                out.push({ label: name, pts: raw === '' ? '' : Number(raw), pq, answer });
+            });
+        });
+        return out;
+    },
+    // 表計算ソフトから（1行1問: ジャンル[タブ]点[タブ]問題文[タブ]答え）
+    openBoardPaste: function (board) {
+        document.getElementById('pb-paste-modal')?.remove();
+        const overlay = document.createElement('div');
+        overlay.id = 'pb-paste-modal';
+        overlay.className = 'design-modal-overlay';
+        overlay.innerHTML = `
+            <div class="design-modal-content" style="max-width:460px; padding:20px !important;">
+                <h3 class="modal-title" style="font-size:1rem; margin-bottom:8px;">盤面をまとめて貼り付け</h3>
+                <p style="color:#94a3b8; font-size:0.75rem; margin:0 0 8px;">1行に1問。ジャンル[タブ]点[タブ]問題文[タブ]答え。カンマ区切りでもOK。同じジャンルは同じ列にまとまります</p>
+                <textarea id="pb-paste-text" placeholder="文学	10	『こころ』の作者は？	夏目漱石\n科学	10	水の化学式は？	H2O" style="width:100%; height:180px !important; min-height:180px !important; padding:8px; box-sizing:border-box; font-family:monospace; font-size:0.8rem; background:#0d1b2a; color:#fff; border:1px solid #475569; border-radius:8px; resize:vertical;"></textarea>
+                <label style="display:flex; align-items:center; gap:6px; color:#cbd5e1; font-size:0.78rem; margin:8px 0;"><input type="checkbox" id="pb-paste-replace" checked> 今の盤面を置き換える（外すと足す）</label>
+                <div style="display:flex; gap:8px;">
+                    <button type="button" id="pb-paste-cancel" style="flex:1; padding:9px; border-radius:8px; background:#333; border:none; color:#ccc; cursor:pointer;">閉じる</button>
+                    <button type="button" id="pb-paste-ok" style="flex:2; padding:9px; border-radius:8px; background:linear-gradient(135deg,#00c6ff,#0072ff); border:none; color:#fff; font-weight:bold; cursor:pointer;">追加する</button>
+                </div>
+            </div>`;
+        document.body.appendChild(overlay);
+        const close = () => overlay.remove();
+        overlay.querySelector('#pb-paste-cancel').onclick = close;
+        overlay.querySelector('#pb-paste-ok').onclick = () => {
+            const rows = overlay.querySelector('#pb-paste-text').value.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => {
+                const [name, pts, pq, answer] = l.split(/\t|,|，/).map(x => x.trim());
+                return { name: name || '', pts: pts !== undefined && pts !== '' && !isNaN(Number(pts)) ? Number(pts) : '', pq: pq || '', answer: answer || '' };
+            }).filter(r => r.pq || r.answer);
+            if (!rows.length) { alert('「ジャンル[タブ]点[タブ]問題文[タブ]答え」の行が見つかりませんでした'); return; }
+            if (overlay.querySelector('#pb-paste-replace').checked) board.innerHTML = '';
+            const secOf = (name) => [...board.querySelectorAll('.pbq-genre')].find(sec => sec.querySelector('.pbq-gname').value.trim() === name);
+            rows.forEach(r => {
+                const sec = secOf(r.name) || this.addGenre(board, { name: r.name, items: [] });
+                this.addBoardItem(sec.querySelector('.pbq-items'), r);
+            });
+            window.App.Ui.showToast(`${rows.length}問を盤面に入れました`);
+            close();
+        };
+    },
+
     addRow: function (list, p) {
         const e = (v) => this.esc(v);
         const row = document.createElement('div');
@@ -202,6 +386,7 @@ App.PanelBoard = {
     },
     // 入力済みのパネル（文字も答えも空の行は飛ばす）。keepEmpty はプレビュー用に空欄も残す
     readPanels: function (keepEmpty) {
+        if (this.board) return this.readBoard(keepEmpty);
         const out = [];
         document.querySelectorAll('#pb-list .pb-row').forEach(row => {
             const label = (row.querySelector('.pb-label')?.value || '').trim();
@@ -259,11 +444,14 @@ App.PanelBoard = {
     // 保存する問題データに入れる
     fillData: function (q, keepEmpty) {
         if (!q || !/^multi/.test(q.type || '')) return q;
-        if (!this.active || !document.getElementById('pb-list')) { if (q.panel) { q.panel = null; q.panels = null; } return q; }
+        if (!this.active || !(document.getElementById('pb-list') || document.getElementById('pbq-board'))) { if (q.panel) { q.panel = null; q.panels = null; } return q; }
         const panels = this.readPanels(keepEmpty);
         q.panel = true;
         q.panels = panels;
         q.panelQ = this.panelQ || null;
+        q.panelStyle = this.board ? 'board' : null;
+        // 盤面の上に出す題（問題文の欄）。空ならパネルクイズ
+        if (this.board && !String(q.q || '').trim()) q.q = 'パネルクイズ';
         q.panelWrong = document.getElementById('pb-wrong')?.value === 'close' ? 'close' : 'keep';
         // 多答として読む所（一覧・未完成の判定など）のために答えも c/correct に
         q.c = panels.map(p => p.answer);
@@ -290,6 +478,7 @@ App.PanelBoard = {
             this._pb = {
                 panels: (q.panels || []).map(p => ({ label: String(p.label || ''), answer: String(p.answer || ''), pts: p.pts, pq: String(p.pq || '') })),
                 panelQ: !!q.panelQ,
+                board: q.panelStyle === 'board',
                 status: {},
                 sel: null,
                 seq: 0,
@@ -327,11 +516,12 @@ App.PanelBoard = {
                 isNominateMode: mode === 'nominate' ? true : null,
                 pb: {
                     theme: pb.theme,
+                    board: pb.board || null,
                     // 答えは開いたパネルの分だけ送る（回答者の端末から見えないように）
                     panels: pb.panels.map((p, i) => {
                         const s = pb.status[i] || {};
                         const open = s.r === 'ok' || s.r === 'closed' || pb.revealAll;
-                        return { label: p.label, r: s.r || null, by: s.by || null, answer: open ? p.answer : null };
+                        return { label: p.label, pts: p.pts ?? null, r: s.r || null, by: s.by || null, answer: open ? p.answer : null };
                     }),
                     sel: pb.sel,
                     // 問題付き: 選んだパネルの問題だけ送る（答えは送らない）
@@ -510,21 +700,34 @@ App.PanelBoard = {
             const who = pb.finished ? 'ボード終了' : ansName ? `解答者：<b style="color:#fbbf24;">${esc(ansName)}</b>`
                 : mode === 'buzz' ? '早押し受付中（押した人が答えます）' : mode === 'nominate' ? '参加者リストから解答者を指名してください' : '解答者待ち';
             // モニターと同じ並びにする（配置が未設定なら自動）
-            const cols = App.PanelBoard.gridCols(pb.design) || Math.min(5, App.PanelBoard.cols(pb.panels.length));
-            const grid = pb.panels.map((p, i) => {
+            let cols = App.PanelBoard.gridCols(pb.design) || Math.min(5, App.PanelBoard.cols(pb.panels.length));
+            const btn = (p, i) => {
                 const s = pb.status[i] || {};
                 const done = s.r === 'ok' || s.r === 'closed';
                 const sel = pb.sel === i;
                 const bg = s.r === 'ok' ? 'rgba(34,197,94,0.25)' : s.r === 'closed' ? '#111' : sel ? 'rgba(251,191,36,0.25)' : '#1f2937';
                 const bd = s.r === 'ok' ? '#22c55e' : sel ? '#fbbf24' : '#475569';
+                // パネルクイズは表に点を大きく（ジャンルは上の帯）
+                const face = pb.board
+                    ? `<div style="font-size:18px; color:#fbbf24; font-weight:900;">${esc(p.pts ?? '')}</div>`
+                    : `<div style="font-size:11px; color:#fbbf24; font-weight:900;">${i + 1}</div>
+                    <div style="font-size:13px; font-weight:bold; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(p.label) || '&nbsp;'}</div>`;
                 return `<button type="button" data-pb-idx="${i}" ${done || pb.finished ? 'disabled' : ''} style="padding:6px 4px; border-radius:8px; text-align:center; cursor:${done || pb.finished ? 'default' : 'pointer'};
                     background:${bg}; border:2px solid ${bd}; color:#e2e8f0; min-width:0;">
-                    <div style="font-size:11px; color:#fbbf24; font-weight:900;">${i + 1}</div>
-                    <div style="font-size:13px; font-weight:bold; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(p.label) || '&nbsp;'}</div>
+                    ${face}
                     <div style="font-size:11px; color:${s.r === 'ok' ? '#86efac' : '#64748b'}; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(p.answer)}</div>
                     ${s.by ? `<div style="font-size:10px; color:#94a3b8;">${s.r === 'ok' ? '〇' : '✕'} ${esc(s.by)}</div>` : ''}
                 </button>`;
-            }).join('');
+            };
+            let grid;
+            if (pb.board) {
+                const L = App.PanelBoard.boardLayout(pb.panels);
+                cols = L.cols;
+                grid = L.cats.map((c, ci) => `<div style="text-align:center; font-size:12px; font-weight:900; color:#fff; padding:5px 2px; border-radius:6px; background:${App.PanelBoard.CAT_COLORS[ci % App.PanelBoard.CAT_COLORS.length]}; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(c)}</div>`).join('')
+                    + L.cells.map(row => row.map(i => i === null ? '<div></div>' : btn(pb.panels[i], i)).join('')).join('');
+            } else {
+                grid = pb.panels.map((p, i) => btn(p, i)).join('');
+            }
             const selPanel = pb.sel !== null ? pb.panels[pb.sel] : null;
             const canJudge = !pb.finished && pid && selPanel;
             box.innerHTML = `
@@ -535,7 +738,7 @@ App.PanelBoard = {
                 <div style="display:grid; grid-template-columns:repeat(${cols}, 1fr); gap:5px; margin-bottom:8px;">${grid}</div>
                 <div style="display:flex; gap:8px; align-items:center;">
                     <div style="flex:1; min-width:0; color:#e2e8f0; font-size:14px; padding:8px 10px; background:#1a1a1a; border-radius:8px;">
-                        ${selPanel ? `<b style="color:#fbbf24;">${pb.sel + 1}番</b> ${esc(selPanel.label)}${pb.panelQ && selPanel.pq ? `<div style="font-size:16px; font-weight:bold; margin:4px 0;">${esc(selPanel.pq)}</div>` : ' → '}答え <b style="color:#86efac;">${esc(selPanel.answer)}</b>` : '<span style="color:#64748b;">パネル未選択</span>'}
+                        ${selPanel ? `<b style="color:#fbbf24;">${pb.board ? `${esc(selPanel.label)} ${esc(selPanel.pts ?? '')}点` : `${pb.sel + 1}番`}</b> ${pb.board ? '' : esc(selPanel.label)}${pb.panelQ && selPanel.pq ? `<div style="font-size:16px; font-weight:bold; margin:4px 0;">${esc(selPanel.pq)}</div>` : ' → '}答え <b style="color:#86efac;">${esc(selPanel.answer)}</b>` : '<span style="color:#64748b;">パネル未選択</span>'}
                     </div>
                     <button type="button" id="pb-ok" ${canJudge ? '' : 'disabled'} style="flex:0 0 64px; height:48px; border-radius:10px; font-size:24px; font-weight:900; border:none; cursor:pointer; background:${canJudge ? '#16a34a' : '#333'}; color:#fff;">〇</button>
                     <button type="button" id="pb-ng" ${canJudge ? '' : 'disabled'} style="flex:0 0 64px; height:48px; border-radius:10px; font-size:24px; font-weight:900; border:none; cursor:pointer; background:${canJudge ? '#dc2626' : '#333'}; color:#fff;">✕</button>
@@ -574,6 +777,10 @@ App.PanelBoard = {
             mainText.style.flexDirection = 'column';
             mainText.style.justifyContent = 'flex-start';
             mainText.style.alignItems = 'stretch';
+            if (pb.board || App.PanelBoard.isBoard(q)) {
+                this.renderPanelQuizBoard(mainText, pb, st, q, { accent, fresh, last, sizeRate, esc });
+                return;
+            }
             mainText.innerHTML = `
                 <div class="pbv" style="--pb-accent:${accent}; --pb-text:${d.cTextColor || '#fff'};">
                     <div class="pbv-theme">${esc(pb.theme || q.q || '')}</div>
@@ -594,6 +801,45 @@ App.PanelBoard = {
                     ${pb.selQ && pb.sel !== null && pb.sel !== undefined && panels[pb.sel] ? `
                     <div class="pbv-qcard">
                         <div class="pbv-qhead"><span class="pbv-qno">${pb.sel + 1}</span>${esc(panels[pb.sel].label || '')}</div>
+                        <div class="pbv-qtext">${esc(pb.selQ)}</div>
+                    </div>` : ''}
+                    <div class="pbv-foot">${pb.finished ? (pb.revealAll ? '答え' : 'ボード終了') : st.currentAnswererName ? `解答者 <b>${esc(st.currentAnswererName)}</b>` : st.isBuzzActive ? '早押し受付中' : ''}</div>
+                </div>`;
+        },
+
+        // パネルクイズ: 上にジャンルの色の帯、パネルの表は点。開いたパネルは暗くして答えを薄く
+        renderPanelQuizBoard: function (mainText, pb, st, q, o) {
+            const PB = App.PanelBoard;
+            const panels = pb.panels || [];
+            const L = PB.boardLayout(panels);
+            const esc = o.esc;
+            const fontPx = Math.max(2.4, Math.min(7, 44 / (L.rows + 0.6))) * o.sizeRate;
+            const cell = (i) => {
+                if (i === null) return '<div></div>';
+                const p = panels[i];
+                const opened = p.answer !== null && p.answer !== undefined;
+                const isSel = pb.sel === i && !p.r;
+                const flip = o.fresh && o.last.idx === i ? (o.last.ok ? ' pbv-flip bq-just' : ' pbv-shake') : '';
+                const x = o.fresh && o.last.idx === i && !o.last.ok ? '<span class="pbv-x">✕</span>' : '';
+                if (opened) {
+                    // 長い答えは小さく（パネルの横幅に収まるように）
+                    const len = String(p.answer).length;
+                    const ansSize = len <= 3 ? 0.8 : len <= 5 ? 0.6 : len <= 8 ? 0.45 : 0.36;
+                    return `<div class="pbv-panel bq-done${p.r === 'ok' ? ' bq-ok' : ''}${flip}"><span class="bq-ans" style="font-size:${ansSize}em;">${esc(p.answer)}</span>${p.by && p.r === 'ok' ? `<span class="bq-by">${esc(p.by)}</span>` : ''}${x}</div>`;
+                }
+                return `<div class="pbv-panel bq-face${isSel ? ' sel' : ''}${flip}"><span class="bq-pts">${esc(p.pts ?? '')}</span>${x}</div>`;
+            };
+            const sel = pb.selQ && pb.sel !== null && pb.sel !== undefined ? panels[pb.sel] : null;
+            mainText.innerHTML = `
+                <div class="pbv" style="--pb-accent:${o.accent}; --pb-text:${(q.design || {}).cTextColor || '#ffd23f'};">
+                    <div class="pbv-theme">${esc(pb.theme || q.q || '')}</div>
+                    <div class="pbv-grid bq-grid" style="grid-template-columns:repeat(${L.cols}, 1fr); grid-template-rows:auto repeat(${L.rows}, 1fr); font-size:${fontPx}cqh;">
+                        ${L.cats.map((c, ci) => `<div class="bq-cat" style="background:${PB.CAT_COLORS[ci % PB.CAT_COLORS.length]};">${esc(c)}</div>`).join('')}
+                        ${L.cells.map(row => row.map(cell).join('')).join('')}
+                    </div>
+                    ${sel ? `
+                    <div class="pbv-qcard">
+                        <div class="pbv-qhead">${esc(sel.label || '')}<span class="pbv-qno">${esc(sel.pts ?? '')}</span></div>
                         <div class="pbv-qtext">${esc(pb.selQ)}</div>
                     </div>` : ''}
                     <div class="pbv-foot">${pb.finished ? (pb.revealAll ? '答え' : 'ボード終了') : st.currentAnswererName ? `解答者 <b>${esc(st.currentAnswererName)}</b>` : st.isBuzzActive ? '早押し受付中' : ''}</div>
@@ -623,7 +869,7 @@ if (window.App.Viewer) Object.assign(window.App.Viewer, App.PanelBoard.viewer);
     wrap('renderForm', function (_, args) { PB.afterRenderForm(this, args[0], args[1]); });
     wrap('getData', function (q) { return PB.fillData(q, false); });
     wrap('_readFormDataForPreview', function (q) { return PB.fillData(q, true); });
-    wrap('init', function () { PB.active = false; });
+    wrap('init', function () { PB.active = false; PB.board = false; });
     // 前に選択式で作ったパネル指名の問題は、開く前に多答へ置き換える
     const origEdit = C.edit;
     if (typeof origEdit === 'function') {
@@ -632,7 +878,29 @@ if (window.App.Viewer) Object.assign(window.App.Viewer, App.PanelBoard.viewer);
             return origEdit.apply(this, arguments);
         };
     }
-    wrap('initWithType', function () { PB.active = false; });
+    wrap('initWithType', function () { PB.active = false; PB.board = false; });
+    // パネルクイズは1セット1盤面 — 盤面がもう有る時に「追加」はしない（直す時は一覧から開く）
+    // 盤面のタイトル（問題文の欄）は空でもよい — 空なら「パネルクイズ」を入れてから保存する
+    const fillTitle = () => {
+        const t = document.getElementById('question-text');
+        if (PB.board && t && !t.value.trim()) t.value = 'パネルクイズ';
+    };
+    const origAdd = C.add;
+    if (typeof origAdd === 'function') {
+        C.add = function () {
+            const qs = window.App.Data.createdQuestions || [];
+            if (PB.board && this.editingIndex === null && qs.some(q => PB.isBoard(q))) {
+                window.App.Ui.showToast('パネルクイズは1セットに1つの盤面です。盤面を直す時は一覧から開いてください');
+                return;
+            }
+            fillTitle();
+            return origAdd.apply(this, arguments);
+        };
+    }
+    const origUpdate = C.update;
+    if (typeof origUpdate === 'function') {
+        C.update = function () { fillTitle(); return origUpdate.apply(this, arguments); };
+    }
 })();
 
 // ---------------------------------------------------------
@@ -659,18 +927,28 @@ function renderPlayerPanelBoard(st, p) {
     else if (st.isBuzzActive && !out) status = '<div class="pbp-status"><button type="button" class="pbp-buzz">PUSH!</button></div>';
     else status = `<div class="pbp-status">${st.currentAnswererName ? `${esc(st.currentAnswererName)} さんが解答中` : '解答者を待っています'}</div>`;
     const selP = pb.selQ && pb.sel !== null && pb.sel !== undefined ? panels[pb.sel] : null;
+    const btn = (pp, i) => {
+        const done = pp.r === 'ok' || pp.r === 'closed';
+        const sel = pb.sel === i && !done;
+        const face = pp.answer !== null && pp.answer !== undefined ? esc(pp.answer) : pb.board ? esc(pp.pts ?? '') : (pp.label ? esc(pp.label) : '？');
+        return `<button type="button" class="pbp-panel ${pp.r || ''} ${sel ? 'sel' : ''}" data-i="${i}" ${!mine || done ? 'disabled' : ''}>
+            ${pb.board ? '' : `<span class="pbp-no">${i + 1}</span>`}
+            <span class="pbp-label">${face}</span>
+        </button>`;
+    };
+    let gridHtml;
+    if (pb.board) {
+        // パネルクイズ: ジャンルの帯の下に、点の小さい順
+        const L = App.PanelBoard.boardLayout(panels);
+        gridHtml = `<div class="pbp-grid" style="grid-template-columns:repeat(${L.cols}, 1fr);">${L.cats.map((c, ci) => `<div class="pbp-cat" style="background:${App.PanelBoard.CAT_COLORS[ci % App.PanelBoard.CAT_COLORS.length]};">${esc(c)}</div>`).join('')}${L.cells.map(row => row.map(i => i === null ? '<div></div>' : btn(panels[i], i)).join('')).join('')}</div>`;
+    } else {
+        gridHtml = `<div class="pbp-grid" style="grid-template-columns:repeat(${Math.min(6, App.PanelBoard.cols(panels.length))}, 1fr);">${panels.map((pp, i) => btn(pp, i)).join('')}</div>`;
+    }
     box.innerHTML = `
         <div class="pbp-theme">${esc(pb.theme || '')}</div>
         ${status}
         ${selP ? `<div class="pbp-q"><b>${pb.sel + 1}. ${esc(selP.label || '')}</b>${esc(pb.selQ)}</div>` : ''}
-        <div class="pbp-grid" style="grid-template-columns:repeat(${Math.min(6, App.PanelBoard.cols(panels.length))}, 1fr);">${panels.map((pp, i) => {
-            const done = pp.r === 'ok' || pp.r === 'closed';
-            const sel = pb.sel === i && !done;
-            return `<button type="button" class="pbp-panel ${pp.r || ''} ${sel ? 'sel' : ''}" data-i="${i}" ${!mine || done ? 'disabled' : ''}>
-                <span class="pbp-no">${i + 1}</span>
-                <span class="pbp-label">${pp.answer !== null && pp.answer !== undefined ? esc(pp.answer) : (pp.label ? esc(pp.label) : '？')}</span>
-            </button>`;
-        }).join('')}</div>`;
+        ${gridHtml}`;
     box.querySelectorAll('.pbp-panel:not([disabled])').forEach(b => {
         b.onclick = () => {
             window.db.ref(`rooms/${myRoomId}/players/${myPlayerId}/pbPick`).set({ idx: parseInt(b.dataset.i), t: firebase.database.ServerValue.TIMESTAMP });

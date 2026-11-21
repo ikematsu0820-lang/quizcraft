@@ -176,6 +176,13 @@ App.CreatorMobile = {
         }
     },
 
+    // パネルクイズのセット（1セット1盤面）か
+    isBoardSet: function () {
+        const PB = window.App.PanelBoard;
+        if (!PB) return false;
+        return PB.board || (window.App.Data.createdQuestions || []).some(q => PB.isBoard(q));
+    },
+
     // 作成画面を開いた時（新規・保存済みセットの読み込み）
     onOpen: function (opts = {}) {
         this.ensureDom();
@@ -199,6 +206,8 @@ App.CreatorMobile = {
         if (index === null || index === undefined) {
             if (C.previewSlide !== 'question') C.setPreviewSlide('question');
             C.resetForm();
+            // パネルクイズの盤面がまだ無いセットは、盤面の入力から
+            if (this.isBoardSet() && window.App.PanelBoard) window.App.PanelBoard.startBoardSet(C);
         } else {
             C.edit(index);
         }
@@ -220,7 +229,13 @@ App.CreatorMobile = {
         // 左上のボタン — 押すと戻る先をそのまま書く（「戻る」は来た画面に戻る時だけ）
         const back = document.getElementById('cm-back-btn');
         if (back) back.textContent = !this._fromSelect ? '一覧に戻る' : qs.length ? '問題一覧へ' : '形式選択に戻る';
-        document.getElementById('cm-edit-bulk')?.classList.toggle('hidden', C.editingIndex !== null);
+        const board = !!(window.App.PanelBoard && window.App.PanelBoard.board);
+        document.getElementById('cm-edit-bulk')?.classList.toggle('hidden', C.editingIndex !== null || board);
+        if (board) {
+            if (el) el.textContent = 'パネルクイズの盤面';
+            if (nextBtn) nextBtn.textContent = '盤面を保存';
+            return;
+        }
         if (C.editingIndex === null) {
             if (el) el.textContent = `新しい問題（Q${qs.length + 1}）`;
             if (nextBtn) nextBtn.textContent = '追加して次の問題へ';
@@ -234,6 +249,14 @@ App.CreatorMobile = {
     next: function () {
         const C = this.C();
         const qs = window.App.Data.createdQuestions;
+        // パネルクイズは盤面を保存して一覧へ（次の問題は無い）
+        if (window.App.PanelBoard && window.App.PanelBoard.board) {
+            const before = qs.length;
+            if (C.editingIndex === null) { C.add(); if (qs.length === before) return; }
+            else { C.update(); if (C.editingIndex !== null) return; }
+            this.showList();
+            return;
+        }
         if (C.editingIndex === null) {
             const before = qs.length;
             C.add();
@@ -278,7 +301,14 @@ App.CreatorMobile = {
         const qs = window.App.Data.createdQuestions || [];
         const sel = document.getElementById('creator-q-type');
         const chip = document.getElementById('cm-type-chip');
-        if (chip) chip.textContent = this.TYPE_LABELS[sel && sel.value] || '問題';
+        const boardSet = this.isBoardSet();
+        if (chip) chip.textContent = boardSet ? 'パネルクイズ' : (this.TYPE_LABELS[sel && sel.value] || '問題');
+        // パネルクイズは1セット1盤面 — 盤面ができたら「追加」「まとめて入力」は出さない
+        const hasBoard = boardSet && qs.length > 0;
+        document.getElementById('cm-add-btn')?.classList.toggle('hidden', hasBoard);
+        document.getElementById('cm-bulk-btn')?.classList.toggle('hidden', boardSet);
+        const addBtn = document.getElementById('cm-add-btn');
+        if (addBtn) addBtn.textContent = boardSet ? '＋ 盤面を作る' : '＋ 問題を追加';
         const count = document.getElementById('cm-count');
         if (count) count.textContent = `${qs.length}問`;
 
@@ -571,11 +601,13 @@ App.CreatorMobile = {
                 // パネル指名: 問題では表、正解では全部のパネルの裏（答え）を見せる
                 const open = st.step === 'answer';
                 // 問題付きは、問題を書いた最初のパネルを選んだ時の見え方
-                const first = q.panelQ && !open ? q.panels.findIndex(p => p.pq) : -1;
+                const isBoard = window.App.PanelBoard.isBoard(q);
+                const first = q.panelQ && !open && !isBoard ? q.panels.findIndex(p => p.pq) : -1;
                 const pb = {
                     theme: q.q || '', seq: 0, sel: first >= 0 ? first : null, finished: open, revealAll: open,
                     selQ: first >= 0 ? q.panels[first].pq : null,
-                    panels: q.panels.map(p => ({ label: p.label, r: null, answer: open ? p.answer : null })),
+                    board: isBoard || null,
+                    panels: q.panels.map(p => ({ label: p.label, pts: p.pts ?? null, r: null, answer: open ? p.answer : null })),
                 };
                 V.renderPanelBoard(stage, main, { step: 'panelboard', pb }, q);
             } else if (q.type === 'numgame' && V.renderNumGame) {
@@ -848,7 +880,8 @@ App.CreatorInput = {
         const C = window.App.Creator;
         const t = (C && C.currentType) || '';
         const PB = window.App.PanelBoard;
-        const formText = (PB && PB.active && document.getElementById('pb-list')) ? 'パネル'
+        const formText = (PB && PB.board && document.getElementById('pbq-board')) ? 'ジャンルと問題（ジャンルが列、点の小さい順に並びます）'
+            : (PB && PB.active && document.getElementById('pb-list')) ? 'パネル'
             : t === 'numgame' ? '項目と数'
             : t.startsWith('ranking') ? '順位と答え'
             : t.startsWith('multi') ? '正解（すべて）'
@@ -856,7 +889,7 @@ App.CreatorInput = {
             : t === 'sort' ? '並べる項目（正しい順に右の四角をタップ）'
             : t.startsWith('choice') ? ((C && C.oxMode) ? '〇か×（正解をタップ）' : '選択肢')
             : '';
-        label('cm-sec-q', qArea, '問題文');
+        label('cm-sec-q', qArea, (PB && PB.board) ? '盤面のタイトル（空欄なら「パネルクイズ」）' : '問題文');
         label('cm-sec-form', form, form.children.length ? formText : '');
     },
 
@@ -1045,7 +1078,15 @@ App.CreatorDraft = {
     after('applyDesignToPreview', function () { App.CreatorMobile.renderSheetStage(); App.CreatorInput.enforceMobileSize(); });
     after('updateRowSizes', function () { App.CreatorInput.enforceMobileSize(); });
     // パネル指名などは描き直しの後にボタンを足すので、並べ替えも一拍おいてから
-    after('renderForm', function () { setTimeout(() => { App.CreatorInput.enforceMobileSize(); App.CreatorInput.arrangeListControls(true); }, 0); });
+    after('renderForm', function () {
+        setTimeout(() => {
+            App.CreatorInput.enforceMobileSize();
+            App.CreatorInput.arrangeListControls(true);
+            // パネルクイズの盤面に切り替わった時など、見出しとボタンの文言を合わせ直す
+            const M = App.CreatorMobile;
+            if (M.isMobile() && M.screen === 'edit') M.renderEditHead();
+        }, 0);
+    });
     after('renderRulesSection', function () { App.CreatorDraft.saveSoon(); });
     // まとめて入力で追加できたら、パネルを閉じて一覧で見せる（増えていなければ直す所があるので開いたまま）
     after('runBulkAdd', function () {

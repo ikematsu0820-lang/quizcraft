@@ -324,7 +324,7 @@ App.Design = {
         // どのタイプにも共通で効く（#creator-choices-list を使う全タイプ、
         // applyDesignToPreview 側）。
         const isAssoc = ((window.App.Creator && window.App.Creator.currentType) || '').startsWith('assoc');
-        const isPanel = !!(window.App.PanelBoard && window.App.PanelBoard.active && document.getElementById('pb-list'));
+        const isPanel = !!(window.App.PanelBoard && window.App.PanelBoard.active && (document.getElementById('pb-list') || document.getElementById('pbq-board')));
         const choicesLabel = isPanel ? 'パネル' : isAssoc ? 'ヒント' : '選択肢';
 
         // プレビューでタップした対象に応じて、テキスト/オブジェクトタブの
