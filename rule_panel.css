@@ -33,3 +33,6 @@
 .rp-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .rp-row-label { flex: 0 0 96px; color: #94a3b8; font-size: 0.72rem; font-weight: bold; line-height: 1.3; }
 .rp-row-body { flex: 1; min-width: 0; }
+
+/* 灰色のタイルの「選べない理由」（rule_panel.js whyNote） */
+.rp-why { margin: 6px 2px 0; font-size: 0.76rem; line-height: 1.5; color: #94a3b8; }

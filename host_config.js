@@ -61,9 +61,8 @@ App.Config = {
         const firstType = ((questions || [])[0] || {}).type || '';
         // 選択式に「特定の人や順番で解答」は無い／指名は対応する形式だけ
         const isPanelSet = (questions || []).some(q => q && q.panel && (q.type === 'choice' || String(q.type || '').startsWith('multi')));
-        if (mode === 'turn' && firstType === 'choice' && !isDobon && !isPanelSet) mode = 'normal';
         if (isPanelSet && mode === 'normal') mode = 'turn'; // パネル指名は1人ずつ答える
-        if (mode === 'nominate' && !isPanelSet && (isBlackjack || isDobon || !(firstType.startsWith('free') || firstType.startsWith('assoc') || firstType === 'choice' || firstType === 'sort' || firstType === 'letter_select'))) mode = 'buzz';
+        if (mode === 'nominate' && (isBlackjack || isDobon)) mode = 'turn';
         if (isOral && mode === 'normal') {
             // 口頭で答える — 手元で一斉に解答はできないので早押しにする
             mode = 'buzz';

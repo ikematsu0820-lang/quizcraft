@@ -2248,6 +2248,26 @@ App.Studio = {
             }
         }
 
+        // 指名（多答/ランキング）: 指名した人が言った答えを開けたら、その人の正解にして指名を外す
+        //   （解答ボードの〇で先に判定していたら、点は重ねて入れない）
+        if (nowRevealed && isMultiType && config.mode === 'nominate' && this._nominatedId) {
+            const pid = this._nominatedId;
+            const cur = (App.Data.players || {})[pid];
+            if (cur && !cur.lastResult) {
+                window.db.ref(`rooms/${roomId}/players/${pid}`).once('value', snap => {
+                    const p = snap.val();
+                    if (!p || p.lastResult) return;
+                    const gain = this._correctPts(p, q);
+                    snap.ref.update({ periodScore: (p.periodScore || 0) + gain, totalScore: (p.totalScore || 0) + gain, lastResult: 'win', ...this._resultFields(p, true) });
+                    this.recordWinner(pid, p.name);
+                    App.Ui.showToast(`${p.name || '---'} さん正解（+${gain}点）。次の人を指名してください`);
+                });
+            }
+            this.clearAnswerTimer();
+            this._nominatedId = null;
+            window.db.ref(`rooms/${roomId}/status`).update({ currentAnswerer: null, currentAnswererName: null });
+        }
+
         // Re-render simplified host view (if any)
         this.renderQuestionMonitor(q);
         // Re-render controls

@@ -38,6 +38,15 @@ App.RulePanel = {
         return `<select id="${id}" style="${this.SEL}">${opts.map(o => `<option value="${o.v}" ${String(val) === String(o.v) ? 'selected' : ''}>${o.t}</option>`).join('')}</select>`;
     },
     head: function (t) { return `<div class="rp-head">${t}</div>`; },
+    // 灰色のタイルの「選べない理由」— スマホでは title が見えないので、タイルの下に1行で出す
+    whyNote: function (items) {
+        const off = (items || []).filter(it => it.disabled && it.why);
+        if (!off.length) return '';
+        const uniq = [...new Set(off.map(it => it.why))];
+        return `<p class="rp-why">${uniq.length === 1 && off.length > 1
+            ? `${off.map(it => it.label).join('・')}：${uniq[0]}`
+            : off.map(it => `${it.label}：${it.why}`).join('<br>')}</p>`;
+    },
     note: function (t) { return t ? `<p class="rule-adv-note">${t}</p>` : ''; },
 
     // ---------------------------------------------------------
@@ -99,15 +108,17 @@ App.RulePanel = {
         const modes = RE.modes(ctx);
         const allowed = (m) => { const x = modes.find(y => y.value === m); return !!(x && !x.disabled && !x.hidden); };
         const group = RE.groupOfMode(conf.mode);
+        const whyOf = (m) => { const x = modes.find(y => y.value === m); return (x && x.reason) || 'この形式では使えません'; };
         const groupTiles = RE.MODE_GROUPS.map(g => ({
             value: g.value, label: g.label, sub: g.sub,
             disabled: !g.modes.some(allowed),
-            why: g.value === 'all' ? (ctx.isOral ? '口頭で答える時は使えません' : 'この形式では使えません') : 'この形式では使えません',
+            why: whyOf(g.modes[0]),
         }));
+        // 順番・指名は、選べない時も消さずに灰色で出す（理由は下に1行）
         const specificTiles = [
-            { value: 'turn', label: '順番', sub: '決めた順に1人ずつ', disabled: !allowed('turn') },
-            { value: 'nominate', label: '指名', sub: '出題者が選んだ人', disabled: !allowed('nominate') },
-        ].filter(t => !t.disabled || t.value === conf.mode);
+            { value: 'turn', label: '順番', sub: '決めた順に1人ずつ', disabled: !allowed('turn'), why: whyOf('turn') },
+            { value: 'nominate', label: '指名', sub: '出題者が選んだ人', disabled: !allowed('nominate'), why: whyOf('nominate') },
+        ];
 
         const modeNote = {
             normal: '全員が手元の端末で同時に答えます。',
@@ -121,7 +132,8 @@ App.RulePanel = {
             ${this.tiles('answerBy', answerTiles, by)}
             ${this.head('解答権（だれが答えるか）')}
             ${this.tiles('group', groupTiles, group)}
-            ${group === 'specific' && specificTiles.length > 1 ? this.tiles('specific', specificTiles, conf.mode) : ''}
+            ${this.whyNote(groupTiles)}
+            ${group === 'specific' ? this.tiles('specific', specificTiles, conf.mode) + this.whyNote(specificTiles) : ''}
             <p class="rule-basic-note">${modeNote}</p>
             <div id="rp-mode-detail"></div>
             ${ctx.writtenBuzz ? this.writtenBuzzHtml(conf) : ''}

@@ -56,17 +56,19 @@ App.RuleEngine = {
     //   hidden  : 出さない（その形式ではそもそも意味がない）
     // ---------------------------------------------------------
     modes: function (ctx) {
-        const canNominate = !ctx.isBlackjack && !ctx.isDobon && (ctx.isPanel ||
-            ctx.firstType.startsWith('free') || ctx.firstType.startsWith('assoc') || ['choice', 'sort', 'letter_select'].includes(ctx.firstType));
+        // 順番に回して遊ぶ形式（ダウト・数字予想）
+        const turnOnly = ctx.isBlackjack || ctx.isDobon;
+        const turnOnlyWhy = ctx.isDobon ? 'ダウトは順番に回して遊ぶ形式です' : '数字予想は順番に回して遊ぶ形式です';
+        let normalWhy = '';
+        if (turnOnly) normalWhy = turnOnlyWhy;
+        else if (ctx.isPanel) normalWhy = 'パネルは1人ずつ選んで答える形式です';
+        else if (ctx.isMulti) normalWhy = '多答・ランキングは1人ずつ答えて、答えを開けていく形式です';
+        else if (ctx.isOral) normalWhy = '口頭で答える時は、全員が同時には答えられません（手書きにすると選べます）';
         return [
-            { value: 'normal', label: '全員が同時に手元で解答',
-              disabled: ctx.isBlackjack || ctx.isOral || ctx.isDobon || ctx.isMulti || ctx.isPanel,
-              reason: ctx.isOral ? '口頭で答える形式では使えません' : 'この形式では使えません' },
-            { value: 'buzz', label: '早く押した人から解答',
-              disabled: ctx.isBlackjack || ctx.isDobon, reason: 'この形式では使えません' },
-            { value: 'nominate', label: '指名された人のみ解答', disabled: false, hidden: !canNominate },
-            // 選択式は「特定の人や順番で解答」を使わない（ダウトは順番で使う）
-            { value: 'turn', label: '特定の人や順番で解答', disabled: false, hidden: ctx.isPlainChoice && !ctx.isPanel },
+            { value: 'normal', label: '全員が同時に手元で解答', disabled: !!normalWhy, reason: normalWhy },
+            { value: 'buzz', label: '早く押した人から解答', disabled: turnOnly, reason: turnOnly ? turnOnlyWhy : '' },
+            { value: 'nominate', label: '指名された人のみ解答', disabled: turnOnly, reason: turnOnly ? turnOnlyWhy : '' },
+            { value: 'turn', label: '特定の人や順番で解答', disabled: false, reason: '' },
         ];
     },
 
