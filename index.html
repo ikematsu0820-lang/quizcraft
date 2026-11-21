@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@800;900&display=swap">
     <link rel="stylesheet" href="style_common.css?v=108">
-    <link rel="stylesheet" href="style_host.css?v=134">
+    <link rel="stylesheet" href="style_host.css?v=136">
     <link rel="stylesheet" href="style_player.css?v=111">
     <link rel="stylesheet" href="style_viewer.css?v=106">
     <link rel="stylesheet" href="choice_skin.css?v=2">
@@ -119,7 +119,9 @@
 
         <div class="landing-content" style="max-width:100%; margin:0 auto; width:100%; padding:10px; box-sizing:border-box;">
             <h3 style="text-align:center; font-size:1.3rem; margin-bottom:25px; color:#fff;">作りたい問題形式を選んでください</h3>
-            
+
+            <!-- 問題の形式 — 選んだ次に遊び方を選ぶ（play_style.js）／ゲーム — 遊び方が決まっている -->
+            <div class="type-group-head">問題の形式</div>
             <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:16px;">
                 <!-- 一問一答 -->
                 <button class="type-select-card" data-type="free" style="display:flex; align-items:center; justify-content:center; padding:20px 24px; background:linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border:1px solid rgba(255,255,255,0.15); border-radius:14px; color:#fff; cursor:pointer; text-align:center; transition:all 0.2s;">
@@ -146,6 +148,9 @@
                     <div style="font-size:1.25rem; font-weight:bold; color:#fff;">多答クイズ</div>
                 </button>
 
+            </div>
+            <div class="type-group-head">ゲーム<span>進め方が決まっている形式</span></div>
+            <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:16px;">
 <!-- パネルクイズ（ジャンル×点数の盤面。中身は多答のパネル指名の仕組み — panel_board.js） -->
                 <button class="type-select-card" data-type="panel_quiz" style="display:flex; align-items:center; justify-content:center; padding:20px 24px; background:linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border:1px solid rgba(255,255,255,0.15); border-radius:14px; color:#fff; cursor:pointer; text-align:center; transition:all 0.2s;">
                     <div style="font-size:1.25rem; font-weight:bold; color:#fff;">パネルクイズ</div>
@@ -171,6 +176,8 @@
                 <h2 id="creator-set-title" title="タップしてセット名を変更" style="margin:0; font-size:1.3rem; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;">問題作成</h2>
                 <!-- 番組IDの表示は不要（要素はスクリプトが値を入れるので残して非表示） -->
                 <div style="display:none;">ID: <span id="creator-show-id">---</span></div>
+                <!-- 今の遊び方（play_style.js）— 押すとルールを開く -->
+                <button type="button" id="creator-playstyle-chip" class="hidden"></button>
             </div>
             <button id="creator-back-btn" class="header-back-btn back-to-select-type" style="background:rgba(255,255,255,0.1); border:1px solid #555; color:#fff; padding:8px 16px; border-radius:8px; cursor:pointer;">形式選択に戻る</button>
         </div>
@@ -282,7 +289,7 @@
                     <div id="creator-edit-subtabs" class="hidden" style="display:flex; gap:0; margin:-4px -4px 10px; border-radius:8px; overflow:hidden; border:1px solid #333;">
                         <button type="button" id="creator-edit-subtab-home-btn" class="creator-edit-subtab-btn" style="
                             flex:1; padding:8px 2px; font-size:0.8rem; font-weight:bold; border:none; cursor:pointer; color:#fff;
-                        ">ホーム</button>
+                        ">問題ごとの設定</button>
                         <button type="button" id="creator-edit-subtab-bulk-btn" class="creator-edit-subtab-btn" style="
                             flex:1; padding:8px 2px; font-size:0.8rem; font-weight:bold; border:none; cursor:pointer; color:#fff;
                         ">一括追加</button>
@@ -792,14 +799,14 @@
     <script src="firebase.js"></script>
     <script src="text_config.js?v=235"></script>
     <script src="icons.js?v=1"></script>
-    <script src="host_core.js?v=255"></script>
+    <script src="host_core.js?v=256"></script>
     <script src="rule_engine.js?v=10"></script>
     <script src="host_sound_library.js?v=7"></script>
     <script src="theme_presets.js?v=6"></script>
     <script src="timer_view.js?v=3"></script>
     <script src="bridge_view.js?v=1"></script>
     <script src="host_design.js?v=293"></script>
-    <script src="host_creator.js?v=311"></script>
+    <script src="host_creator.js?v=312"></script>
     <script src="host_config.js?v=262"></script>
     <script src="host_prog_config.js?v=235"></script>
     <script src="host_studio.js?v=265"></script>
@@ -809,7 +816,8 @@
     <script src="variety_frame.js?v=7"></script>
     <script src="layout_editor.js?v=3"></script>
     <script src="choice_skin.js?v=3"></script>
-    <script src="rule_panel.js?v=7"></script>
+    <script src="rule_panel.js?v=8"></script>
+    <script src="play_style.js?v=1"></script>
     <script src="item_image.js?v=2"></script>
     <script src="panel_board.js?v=13"></script>
     <script src="creator_desktop.js?v=2"></script>

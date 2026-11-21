@@ -381,6 +381,11 @@ window.App.bindEvents = function () {
                 window.App.PanelBoard.startBoardSet(window.App.Creator);
                 return;
             }
+            // 問題の形式は、次に遊び方を選んでから入力画面へ（play_style.js）
+            if (window.App.PlayStyle && window.App.PlayStyle.PRESETS[type] && window.App.Creator) {
+                window.App.PlayStyle.open(type, (preset) => window.App.PlayStyle.start(type, preset));
+                return;
+            }
             if (window.App.Creator && window.App.Creator.initWithType) {
                 window.App.Creator.initWithType(type);
             } else if (window.App.Creator && window.App.Creator.init) {

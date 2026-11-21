@@ -995,7 +995,10 @@ window.App.Creator = {
         // 切り替えても「全員が同時に手元で解答」が選べてしまっていた）
         const mode = this.currentType === 'choice_multi' ? 'multi' : undefined;
         const type = (this.currentType === 'choice_single' || this.currentType === 'choice_multi') ? 'choice' : this.currentType;
-        return [{ type, mode }, ...real];
+        // 多答をパネル指名・パネルクイズにしている時は、パネルとして判定する
+        const PB = window.App.PanelBoard;
+        const panel = !!(PB && PB.active && /^multi/.test(type || '')) || undefined;
+        return [{ type, mode, panel }, ...real];
     },
 
     renderRulesSection: function () {

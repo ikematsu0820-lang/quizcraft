@@ -5390,3 +5390,54 @@ body:has(> #unified-toggle-container:not([style*="none"])) #viewer-content {
 .ds-qbg-clear { flex: 0 0 28px; height: 32px; padding: 0; margin: 0; border: 1px dashed #ff8888; border-radius: 6px; background: none; color: #ff8888; cursor: pointer; }
 #cm-sheet-body .ds-qbg-pick, #cm-sheet-body .ds-qbg-clear { height: 42px; }
 .ds-flag { display: flex; align-items: center; gap: 6px; margin-top: 8px; color: #cbd5e1; font-size: 0.7rem; cursor: pointer; }
+
+/* ---------- 形式選択: 問題の形式／ゲーム の見出し ---------- */
+.type-group-head { margin: 6px 2px 10px; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; color: #94a3b8; }
+.type-group-head span { margin-left: 8px; font-weight: 400; letter-spacing: 0; color: #64748b; }
+.type-group-head ~ .type-group-head { margin-top: 26px; }
+
+/* ---------- 遊び方を選ぶ（play_style.js） ---------- */
+#ps-overlay {
+    position: fixed; inset: 0; z-index: 3000; display: flex; align-items: flex-start; justify-content: center;
+    padding: max(16px, env(safe-area-inset-top)) 16px 24px; overflow-y: auto;
+    background: rgba(5, 8, 15, 0.94); animation: psFade 0.18s ease-out;
+}
+@keyframes psFade { from { opacity: 0; } to { opacity: 1; } }
+.ps-panel { width: 100%; max-width: 560px; display: flex; flex-direction: column; gap: 14px; }
+.ps-head { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
+.ps-back {
+    background: rgba(255, 255, 255, 0.08); border: 1px solid #475569; color: #e2e8f0;
+    padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; cursor: pointer;
+}
+.ps-title { font-size: 1.15rem; font-weight: 700; color: #fff; }
+.ps-format { display: block; margin-bottom: 2px; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; color: #00e5ff; }
+.ps-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.ps-card {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 6px; text-align: left;
+    padding: 16px; min-height: 96px; border-radius: 14px; cursor: pointer; color: #fff;
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid rgba(255, 255, 255, 0.15);
+    transition: border-color 0.15s, transform 0.15s;
+}
+.ps-card:hover, .ps-card:focus-visible { border-color: #00e5ff; outline: none; }
+.ps-card:active { transform: scale(0.98); }
+.ps-label { font-size: 1.05rem; font-weight: 700; }
+.ps-sub { font-size: 0.78rem; line-height: 1.5; color: #94a3b8; }
+.ps-note { margin: 0; font-size: 0.78rem; color: #64748b; text-align: center; }
+@media (max-width: 420px) { .ps-cards { grid-template-columns: minmax(0, 1fr); } .ps-card { min-height: 0; } }
+
+/* 入力画面の上の「遊び方：◯◯」 */
+#creator-playstyle-chip {
+    display: inline-flex; align-items: center; gap: 8px; max-width: 100%; margin-top: 6px;
+    padding: 4px 10px; border-radius: 99px; cursor: pointer; font-size: 0.78rem; color: #e2e8f0;
+    background: rgba(0, 229, 255, 0.08); border: 1px solid rgba(0, 229, 255, 0.35);
+}
+#creator-playstyle-chip.hidden { display: none; }
+.ps-chip-k { color: #00e5ff; font-weight: 700; }
+.ps-chip-v { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.ps-chip-go { color: #94a3b8; font-size: 0.72rem; white-space: nowrap; }
+
+/* 「問題ごとの設定」（旧ホーム）— 何も無い形式では空白にせず、そう伝える */
+#creator-options-extra:empty::before {
+    content: 'この形式には、問題ごとの設定はありません（選択式・並べ替えでは、選択肢のシャッフルなどをここで決めます）。';
+    display: block; padding: 8px 2px; font-size: 0.8rem; line-height: 1.6; color: #64748b;
+}

@@ -127,9 +127,27 @@ App.RulePanel = {
             nominate: '司会者が参加者リストから指名した人が答えます。',
         }[conf.mode] || '';
 
+        // ゲーム（ダウト・数字予想）は進め方が決まっている — 選ぶものは出さず、進め方だけ
+        if (ctx.isDobon || ctx.isBlackjack) {
+            box.innerHTML = `
+                ${this.head(ctx.isDobon ? 'ダウトの進め方' : '数字予想の進め方')}
+                <p class="rule-basic-note">${ctx.isDobon
+                    ? '決めた順番に1人ずつ、選択肢から1つ選びます。ダウト（外れ）を選んだら、その問題は終わりです。選んだ答えは自動で判定します。'
+                    : '決めた順番に1人ずつカードを選び、合計を目標の数に近づけます。'}</p>
+                <div id="rp-mode-detail"></div>`;
+            const detail = box.querySelector('#rp-mode-detail');
+            if (ctx.isDobon && conf.mode === 'turn') {
+                detail.innerHTML = this.Cfg()._modeDetailFieldsHtml('turn', conf, ctx.qType, true).replace(/<p class="rule-basic-note">[^<]*<\/p>/, '');
+                this.Cfg()._wireModeDetailFields(detail, 'turn', conf, () => this.changed());
+            }
+            return;
+        }
+        // パネル（パネル指名・パネルクイズ）は口頭で「◯番、答え」と言う形式 — 答え方は選ばない
+        const answerHtml = ctx.isPanel
+            ? `${this.head('答え方')}<p class="rule-basic-note">パネルは、答える人が口で「◯番、答え」と言い、司会者が〇×を付けます。</p>`
+            : `${this.head('答え方')}${this.tiles('answerBy', answerTiles, by)}`;
         box.innerHTML = `
-            ${this.head('答え方')}
-            ${this.tiles('answerBy', answerTiles, by)}
+            ${answerHtml}
             ${this.head('解答権（だれが答えるか）')}
             ${this.tiles('group', groupTiles, group)}
             ${this.whyNote(groupTiles)}
@@ -400,6 +418,8 @@ App.RulePanel = {
             tie: RE.can('tieBreakTime', ctx).ok,
             slow: RE.can('survivalSlowDrop', ctx).ok,
         };
+        // ゲームでは速さの部品は使わないので、まとまりごと出さない
+        if (ctx.isDobon || ctx.isBlackjack || ctx.isPanel) return;
         const wrap = document.createElement('div');
         wrap.className = 'rp-speed';
         const head = this.head('速さで競う');
