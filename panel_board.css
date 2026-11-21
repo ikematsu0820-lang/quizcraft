@@ -153,7 +153,7 @@
 }
 #creator-view.cm-on.cm-edit .multi-row .btn-remove-multi,
 #creator-view.cm-on.cm-edit .pb-row .pb-del { font-size: 1.1rem !important; color: rgba(255, 255, 255, 0.35) !important; margin: 0 !important; padding: 0 !important; text-align: center; }
-#creator-view.cm-on.cm-edit .pb-row { grid-template-columns: 2.4em 1.6em minmax(0, 1fr) 64px 28px !important; }
+#creator-view.cm-on.cm-edit .pb-row { grid-template-columns: 2em 1.6em minmax(0, 1fr) 56px 40px !important; }
 
 /* ---------- パネルクイズ（ジャンル×点数の盤面） ---------- */
 .bq-grid { gap: 1.4cqh; }

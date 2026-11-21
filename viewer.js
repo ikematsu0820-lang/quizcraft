@@ -1396,6 +1396,7 @@ window.App.Viewer = {
         if (window.App.VarietyFrame) window.App.VarietyFrame.injectImage(contentBox, q);
         if (window.App.LayoutEditor) window.App.LayoutEditor.applyToViewer(contentBox, q); // 問題と回答の枠の割合
         if (window.App.ChoiceSkin) window.App.ChoiceSkin.applyToViewer(container, contentBox, q, st); // ボタンの形・テロップ・外枠
+        if (window.App.ItemImage) window.App.ItemImage.injectViewer(contentBox, q); // 選択肢などの小枠の画像
     },
 
     _renderQuestionLayoutInner: function (container, contentBox, q, st = {}, revealedMulti = {}) {
@@ -1733,11 +1734,12 @@ window.App.Viewer = {
         const rows = correctOrder.map((origIdx, rank) => {
             const label = String.fromCharCode(65 + origIdx);
             const text = (q.c && q.c[origIdx] !== undefined) ? q.c[origIdx] : label;
+            const itemImg = Array.isArray(q.cImg) && q.cImg[origIdx] ? `<img src="${q.cImg[origIdx]}" alt="" style="height:6vh; max-width:12vw; object-fit:contain; border-radius:6px; flex:0 0 auto;">` : '';
             const color = badgeColors[origIdx % badgeColors.length];
             const delay = rank * 0.07;
             return `<div style="display:flex;align-items:center;gap:1.5vw;padding:1vh 1.5vw;animation:slideInLeft ${0.2 + delay}s ease-out both;">
                 <div style="width:5vh;height:5vh;min-width:5vh;border-radius:50%;background:${color};border:3px solid rgba(255,255,255,0.85);display:flex;align-items:center;justify-content:center;font-size:2.4vh;font-weight:900;color:#fff;flex-shrink:0;box-shadow:0 2px 10px ${color}88;">${label}</div>
-                <div style="font-size:2.8vh;font-weight:700;color:${revealText};line-height:1.3;">${text}</div>
+                ${itemImg}<div style="font-size:2.8vh;font-weight:700;color:${revealText};line-height:1.3;">${text}</div>
             </div>`;
         }).join('');
 

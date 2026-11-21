@@ -5345,3 +5345,28 @@ body:has(> #unified-toggle-container:not([style*="none"])) #viewer-content {
 #creator-view.cm-on.cm-edit #qimg-inline .qimg-tools { position: static; justify-content: flex-end; }
 #creator-view.cm-on.cm-edit #qimg-inline button { font-size: 0.85rem !important; padding: 8px 12px !important; min-height: 38px; }
 #creator-view.cm-on.cm-edit #creator-monitor-q-area.qimg-big { min-height: 0 !important; }
+
+/* ---------- 選択肢などの行の画像ボタン（item_image.js） ---------- */
+.cimg-btn {
+    position: relative; flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; min-height: 0 !important; margin: 0 0 0 6px; padding: 0 !important; border-radius: 6px; cursor: pointer;
+    background: transparent; border: 1px dashed rgba(255, 255, 255, 0.3); color: rgba(255, 255, 255, 0.55);
+}
+.cimg-btn.has { border: 1px solid #475569; }
+.cimg-btn img { width: 100%; height: 100%; object-fit: cover; border-radius: 5px; }
+.cimg-x {
+    position: absolute; top: -6px; right: -6px; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    background: #1f2937; border: 1px solid #64748b; color: #e2e8f0; font-size: 11px; line-height: 1;
+}
+#creator-view.cm-on.cm-edit .cimg-btn { width: 40px; height: 40px; }
+#creator-view.cm-on.cm-edit .cimg-x { width: 20px; height: 20px; font-size: 13px; }
+/* スマホのカード型の行（多答・パネル）では、画像ボタンも列に入れる */
+#creator-view.cm-on.cm-edit .multi-row { grid-template-columns: 2.4em minmax(0, 1fr) 40px 28px !important; }
+#creator-view.cm-on.cm-edit .pb-row { grid-template-areas: "no front label label del" ". back answer pts img" !important; }
+#creator-view.cm-on.cm-edit #pb-list.pb-qmode .pb-row { grid-template-areas: "no front label label del" ". qt pq pq ." ". at answer pts img" !important; }
+#creator-view.cm-on.cm-edit .pb-row .cimg-btn { grid-area: img; }
+#creator-view.cm-on .pbq-item .cimg-btn { grid-area: img; }
+#creator-view.cm-on .pbq-item { grid-template-areas: "pts q del" "img a ." !important; }
+#creator-view.cm-on .pbq-item .cimg-btn { justify-self: end; margin: 0; }
+#creator-view.cm-on.cm-edit .pb-row { grid-template-columns: 2em 1.6em minmax(0, 1fr) 56px 40px !important; padding-right: 10px !important; }
+#creator-view.cm-on.cm-edit .pb-row .cimg-btn { margin: 0; }

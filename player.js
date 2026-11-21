@@ -1657,16 +1657,21 @@ function showPlayerQImage(q, roomId) {
     }
     const v = q && q.image;
     const set = (src) => { if (src) { img.src = src; img.classList.remove('hidden'); } else { img.removeAttribute('src'); img.classList.add('hidden'); } };
-    if (typeof v !== 'string' || !v) { set(''); return; }
-    if (!v.startsWith('@img:')) { set(v); return; }
+    set('');
+    resolvePlayerImage(v, roomId, (data) => { if (q.image === v) set(data); }); // 待っている間に次の問題に変わっていたら出さない
+}
+
+// 画像の参照 '@img:N' をルームの images から取って渡す（data URL ならそのまま）
+function resolvePlayerImage(v, roomId, cb) {
+    if (typeof v !== 'string' || !v) { cb(''); return; }
+    if (!v.startsWith('@img:')) { cb(v); return; }
     const idx = v.slice(5);
     const cacheKey = `${roomId}/${roomConfig.mediaVer || 0}/${idx}`;
-    if (_playerSoundCache[cacheKey]) { set(_playerSoundCache[cacheKey]); return; }
-    set('');
+    if (_playerSoundCache[cacheKey]) { cb(_playerSoundCache[cacheKey]); return; }
     window.db.ref(`rooms/${roomId}/images/${idx}`).once('value').then(snap => {
         const data = snap.val() || '';
         _playerSoundCache[cacheKey] = data;
-        if (q.image === v) set(data); // 待っている間に次の問題に変わっていたら出さない
+        cb(data);
     });
 }
 
@@ -1783,6 +1788,16 @@ function renderPlayerQuestion(q, roomId, playerId) {
             // Alphabet label based on display order (i), not originalIndex
             btn.innerHTML = `<span class="choice-prefix" style="font-weight:900;margin-right:10px;font-family:monospace;font-size:0.95em;">${App.ChoiceLabel(i, (q.design || {}).cPrefixType)}</span>${item.text}`;
             btn.dataset.ans = item.originalIndex;
+            // 選択肢の画像（作成画面で行に入れたもの）
+            const cImgRef = !isOx && Array.isArray(q.cImg) ? q.cImg[item.originalIndex] : null;
+            if (cImgRef) {
+                btn.classList.add('has-c-img');
+                const im = document.createElement('img');
+                im.className = 'answer-btn-img';
+                im.alt = '';
+                btn.insertBefore(im, btn.firstChild);
+                resolvePlayerImage(cImgRef, roomId, (data) => { if (data) im.src = data; else im.remove(); });
+            }
             if (isOx) {
                 btn.innerHTML = item.text;
                 btn.style.cssText += `min-height:38vh; margin:0; font-size:22vh; font-weight:900; line-height:1; text-align:center; color:${item.text === '○' ? '#ff4d4d' : '#3b82f6'} !important;`;

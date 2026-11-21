@@ -440,6 +440,12 @@ App.Design = {
                                 <span id="design-grid-summary" style="color:#00e5ff; font-weight:bold;">${gridSummary()}</span>
                             </button>
                         </div>
+                        ${window.App.ItemImage && window.App.ItemImage.supports() ? `
+                        <div style="display:flex; gap:6px; margin-top:8px;">
+                            ${miniSelect('画像の見せ方', 'cImgMode', [{ v: '', t: '画像と文字' }, { v: 'only', t: '画像だけ' }])}
+                            ${miniSelect('画像の大きさ', 'cImgSize', [{ v: 'small', t: '小' }, { v: '', t: '中' }, { v: 'large', t: '大' }])}
+                        </div>
+                        <p style="color:#555; font-size:0.62rem; margin:4px 0 0;">※画像は問題を書く画面で、${choicesLabel}の行の画像ボタンから入れます（文字は正解発表で使うので必要です）</p>` : ''}
                     `;
                 }
 
@@ -847,7 +853,7 @@ App.Design = {
                 sel.onchange = () => {
                     design[sel.dataset.key] = sel.value;
                     if (onChange) onChange();
-                    if ((sel.dataset.key === 'layout' || /^qImg/.test(sel.dataset.key)) && window.App.Creator) window.App.Creator.applyDesignToPreview();
+                    if ((sel.dataset.key === 'layout' || /^(qImg|cImg)/.test(sel.dataset.key)) && window.App.Creator) window.App.Creator.applyDesignToPreview();
                 };
             });
 

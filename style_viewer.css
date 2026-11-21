@@ -501,3 +501,19 @@ body {
 @keyframes sbDown { 0%, 40% { transform: translateX(-0.1em); } 20%, 60% { transform: translateX(0.1em); } 100% { transform: none; } }
 .sb-empty { grid-column: 1 / -1; text-align: center; color: #94a3b8; font-size: 0.6em; }
 .sb-photo { display: block; max-width: 70%; max-height: 38cqh; margin: 0 auto; border-radius: 1.4cqh; object-fit: contain; }
+
+/* 選択肢などの小枠の画像（item_image.js）— 見た目の「画像の見せ方・大きさ」 */
+.c-has-img .choice-item.has-c-img { position: relative; flex-direction: column; justify-content: center; align-items: center; gap: 1cqh; text-align: center; min-height: 0; }
+.c-has-img .choice-item.has-c-img > .choice-prefix { position: absolute; top: 0.8cqh; left: 1cqh; margin: 0; }
+.c-img { display: block; flex: 1 1 auto; min-height: 0; max-height: 22cqh; max-width: 100%; object-fit: contain; border-radius: 1cqh; }
+.c-img-small .c-img { max-height: 14cqh; }
+.c-img-large .c-img { max-height: 32cqh; }
+.c-img-only .choice-item.has-c-img > :not(.choice-prefix):not(.c-img) { display: none !important; }
+.c-img-only .c-img { max-height: none; }
+/* 多答は横長の帯 — 画像は文字の左に、帯の高さに合わせる */
+.c-img-row .choice-item.has-c-img { flex-direction: row; gap: 2cqw; }
+.c-img-row .c-img { flex: 0 0 auto; height: 80cqh; max-height: none; }
+/* パネルの画像 */
+.pbv-img { display: block; max-width: 90%; max-height: 45%; object-fit: contain; border-radius: 0.8cqh; }
+.pbv-qimg { display: block; max-width: 80%; max-height: 30cqh; margin: 0 auto; object-fit: contain; border-radius: 1cqh; }
+.c-has-img .choice-item.has-c-img { justify-content: center !important; }

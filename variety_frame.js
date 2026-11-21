@@ -151,14 +151,23 @@ App.VarietyFrame = {
     SI._qImagePatched = true;
     const origPack = SI.pack.bind(SI);
     const origUnpack = SI.unpack.bind(SI);
+    // 問題文の画像（q.image）・選択肢などの画像（q.cImg[]）・パネルの画像（q.panels[].img）
     SI.pack = function (questions) {
         const r = origPack(questions);
         const indexOf = {};
         r.images.forEach((v, i) => { indexOf[v] = i; });
+        const ref = (v) => {
+            if (typeof v !== 'string' || !v.startsWith('data:')) return v;
+            if (indexOf[v] === undefined) { indexOf[v] = r.images.length; r.images.push(v); }
+            return SI.PREFIX + indexOf[v];
+        };
         r.questions = r.questions.map(q => {
-            if (!q || typeof q.image !== 'string' || !q.image.startsWith('data:')) return q;
-            if (indexOf[q.image] === undefined) { indexOf[q.image] = r.images.length; r.images.push(q.image); }
-            return { ...q, image: SI.PREFIX + indexOf[q.image] };
+            if (!q) return q;
+            const out = { ...q, image: ref(q.image) };
+            if (q.image === undefined) delete out.image;
+            if (Array.isArray(q.cImg)) out.cImg = q.cImg.map(ref);
+            if (Array.isArray(q.panels) && q.panels.some(p => p && p.img)) out.panels = q.panels.map(p => (p && p.img ? { ...p, img: ref(p.img) } : p));
+            return out;
         });
         return r;
     };
@@ -166,9 +175,14 @@ App.VarietyFrame = {
         const list = origUnpack(questions, images);
         if (!images) return list;
         const imgs = Array.isArray(images) ? images : Object.values(images);
+        const val = (v) => { const idx = SI.refIndex(v); return idx >= 0 ? (imgs[idx] || '') : v; };
         return list.map(q => {
-            const idx = q ? SI.refIndex(q.image) : -1;
-            return idx >= 0 ? { ...q, image: imgs[idx] || '' } : q;
+            if (!q) return q;
+            const out = { ...q };
+            if (SI.refIndex(q.image) >= 0) out.image = val(q.image);
+            if (Array.isArray(q.cImg)) out.cImg = q.cImg.map(val);
+            if (Array.isArray(q.panels)) out.panels = q.panels.map(p => (p && p.img ? { ...p, img: val(p.img) } : p));
+            return out;
         });
     };
 })();

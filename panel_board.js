@@ -247,7 +247,7 @@ App.PanelBoard = {
         panels.forEach(p => {
             const name = String(p.label || '');
             if (!(name in at)) { at[name] = out.length; out.push({ name, items: [] }); }
-            out[at[name]].items.push({ pts: p.pts, pq: p.pq || '', answer: p.answer || '' });
+            out[at[name]].items.push({ pts: p.pts, pq: p.pq || '', answer: p.answer || '', img: p.img || null });
         });
         // 何も無ければ 4ジャンル × 10〜40点 から
         return out.length ? out : Array.from({ length: 4 }, () => ({ name: '', items: [10, 20, 30, 40].map(pts => ({ pts, pq: '', answer: '' })) }));
@@ -298,6 +298,8 @@ App.PanelBoard = {
             <input type="text" class="pbq-a" placeholder="答え" value="${e(it.answer)}">
             <button type="button" class="pbq-del" title="削除">×</button>`;
         row.querySelector('.pbq-del').onclick = () => row.remove();
+        row._img = it.img || null;
+        if (window.App.ItemImage) window.App.ItemImage.decorateRow(row, row.querySelector('.pbq-del'));
         items.appendChild(row);
         return row;
     },
@@ -311,7 +313,9 @@ App.PanelBoard = {
                 const pq = (row.querySelector('.pbq-q')?.value || '').trim();
                 const answer = (row.querySelector('.pbq-a')?.value || '').trim();
                 if (!pq && !answer && !keepEmpty) return;
-                out.push({ label: name, pts: raw === '' ? '' : Number(raw), pq, answer });
+                const item = { label: name, pts: raw === '' ? '' : Number(raw), pq, answer };
+                if (row._img) item.img = row._img;
+                out.push(item);
             });
         });
         return out;
@@ -376,6 +380,9 @@ App.PanelBoard = {
             <button type="button" class="pb-del" title="削除" style="flex:0 0 auto; background:none; border:none; color:rgba(255,255,255,0.35); cursor:pointer; padding:0 4px;">×</button>`;
         // 問題付きをオフにしても、書いた問題は行に持っておく（オンに戻した時に消えないように）
         row.dataset.pq = p.pq || '';
+        // パネルの画像（問題付きなら問題と一緒に、そうでなければ開いた時に出す）— item_image.js
+        row._img = p.img || null;
+        if (window.App.ItemImage) window.App.ItemImage.decorateRow(row, row.querySelector('.pb-del'));
         row.querySelector('.pb-del').onclick = () => { row.remove(); this.renumber(list); };
         list.appendChild(row);
         this.renumber(list);
@@ -397,6 +404,7 @@ App.PanelBoard = {
             if (!label && !answer && !(this.panelQ && pq) && !keepEmpty) return;
             const p = { label, answer, pts: raw === '' ? '' : Number(raw) };
             if (pq) p.pq = pq;
+            if (row._img) p.img = row._img;
             out.push(p);
         });
         return out;
@@ -792,7 +800,7 @@ App.PanelBoard = {
                             return `<div class="pbv-panel ${cls}${isSel ? ' sel' : ''}${anim}">
                                 ${p.label || (p.answer !== null && p.answer !== undefined) ? `<span class="pbv-no">${i + 1}</span>` : ''}
                                 ${p.answer !== null && p.answer !== undefined
-                                    ? `<span class="pbv-ans">${esc(p.answer)}</span><span class="pbv-sub">${[p.label, p.by && p.r === 'ok' ? p.by : ''].filter(Boolean).map(esc).join('・')}</span>`
+                                    ? `${(q.panels && q.panels[i] && q.panels[i].img) ? `<img class="pbv-img" src="${q.panels[i].img}" alt="">` : ''}<span class="pbv-ans">${esc(p.answer)}</span><span class="pbv-sub">${[p.label, p.by && p.r === 'ok' ? p.by : ''].filter(Boolean).map(esc).join('・')}</span>`
                                     : (p.label ? `<span class="pbv-label">${esc(p.label)}</span>` : `<span class="pbv-big">${i + 1}</span>`)}
                                 ${fresh && last.idx === i && !last.ok ? '<span class="pbv-x">✕</span>' : ''}
                             </div>`;
@@ -801,6 +809,7 @@ App.PanelBoard = {
                     ${pb.selQ && pb.sel !== null && pb.sel !== undefined && panels[pb.sel] ? `
                     <div class="pbv-qcard">
                         <div class="pbv-qhead"><span class="pbv-qno">${pb.sel + 1}</span>${esc(panels[pb.sel].label || '')}</div>
+                        ${q.panels && q.panels[pb.sel] && q.panels[pb.sel].img ? `<img class="pbv-qimg" src="${q.panels[pb.sel].img}" alt="">` : ''}
                         <div class="pbv-qtext">${esc(pb.selQ)}</div>
                     </div>` : ''}
                     <div class="pbv-foot">${pb.finished ? (pb.revealAll ? '答え' : 'ボード終了') : st.currentAnswererName ? `解答者 <b>${esc(st.currentAnswererName)}</b>` : st.isBuzzActive ? '早押し受付中' : ''}</div>
@@ -840,6 +849,7 @@ App.PanelBoard = {
                     ${sel ? `
                     <div class="pbv-qcard">
                         <div class="pbv-qhead">${esc(sel.label || '')}<span class="pbv-qno">${esc(sel.pts ?? '')}</span></div>
+                        ${q.panels && q.panels[pb.sel] && q.panels[pb.sel].img ? `<img class="pbv-qimg" src="${q.panels[pb.sel].img}" alt="">` : ''}
                         <div class="pbv-qtext">${esc(pb.selQ)}</div>
                     </div>` : ''}
                     <div class="pbv-foot">${pb.finished ? (pb.revealAll ? '答え' : 'ボード終了') : st.currentAnswererName ? `解答者 <b>${esc(st.currentAnswererName)}</b>` : st.isBuzzActive ? '早押し受付中' : ''}</div>
