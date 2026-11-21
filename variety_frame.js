@@ -167,14 +167,14 @@ App.VarietyFrame = {
             if (q.image === undefined) delete out.image;
             if (Array.isArray(q.cImg)) out.cImg = q.cImg.map(ref);
             if (Array.isArray(q.panels) && q.panels.some(p => p && p.img)) out.panels = q.panels.map(p => (p && p.img ? { ...p, img: ref(p.img) } : p));
+            if (q.bgImage) out.bgImage = ref(q.bgImage);
             return out;
         });
         return r;
     };
     SI.unpack = function (questions, images) {
         const list = origUnpack(questions, images);
-        if (!images) return list;
-        const imgs = Array.isArray(images) ? images : Object.values(images);
+        const imgs = !images ? [] : Array.isArray(images) ? images : Object.values(images);
         const val = (v) => { const idx = SI.refIndex(v); return idx >= 0 ? (imgs[idx] || '') : v; };
         return list.map(q => {
             if (!q) return q;
@@ -182,6 +182,8 @@ App.VarietyFrame = {
             if (SI.refIndex(q.image) >= 0) out.image = val(q.image);
             if (Array.isArray(q.cImg)) out.cImg = q.cImg.map(val);
             if (Array.isArray(q.panels)) out.panels = q.panels.map(p => (p && p.img ? { ...p, img: val(p.img) } : p));
+            // この問題だけの背景は、その問題の見た目の背景として使う（モニター・出題者画面はそのまま design.bgImage を見る）
+            if (q.bgImage) { out.bgImage = val(q.bgImage); out.design = { ...(out.design || {}), bgImage: out.bgImage }; }
             return out;
         });
     };
@@ -192,6 +194,22 @@ App.VarietyFrame = {
  * ------------------------------------------------------- */
 App.QuestionImage = {
     current: null, // 編集中の問題の写真（data URL）
+    bg: null,      // 編集中の問題だけの背景（data URL）— 見た目の「全体背景」で選ぶ。無ければセット全体の背景
+
+    // この問題だけの背景を変えた時: PCのプレビューと見た目のパネルの小さなプレビューに反映
+    bgChanged: function () {
+        if (window.App.Creator) window.App.Creator.applyDesignToPreview();
+        if (window.App.CreatorDraft) window.App.CreatorDraft.saveSoon();
+    },
+    // 作成画面のプレビュー（PC）の背景を、この問題だけの背景に
+    applyBgToPreview: function () {
+        const pv = document.getElementById('creator-monitor-preview');
+        const M = window.App.CreatorMobile;
+        if (!pv || !this.bg || (M && M.isMobile())) return;
+        pv.style.backgroundImage = `url(${this.bg})`;
+        pv.style.backgroundSize = 'cover';
+        pv.style.backgroundPosition = 'center';
+    },
 
     supports: function () {
         const t = (window.App.Creator && window.App.Creator.currentType) || '';
@@ -258,21 +276,22 @@ App.QuestionImage = {
     };
     const QI = App.QuestionImage;
     after('getData', function (q) {
-        if (q) q.image = QI.current || null; // null で、外した写真も消える
+        if (q) { q.image = QI.current || null; q.bgImage = QI.bg || null; } // null で、外した写真・背景も消える
         return q;
     });
     after('_readFormDataForPreview', function (q) {
-        if (q) q.image = QI.current || null;
+        if (q) { q.image = QI.current || null; q.bgImage = QI.bg || null; }
         return q;
     });
     after('edit', function (_, args) {
         const q = (window.App.Data.createdQuestions || [])[args[0]];
         QI.current = (q && q.image) || null;
+        QI.bg = (q && q.bgImage) || null;
         QI.renderControl();
     });
-    after('resetForm', function () { QI.current = null; QI.renderControl(); });
-    after('init', function () { QI.current = null; });
+    after('resetForm', function () { QI.current = null; QI.bg = null; QI.renderControl(); });
+    after('init', function () { QI.current = null; QI.bg = null; });
     after('renderForm', function () { QI.renderControl(); });
     // 見た目を変えた時・描き直した時も、問題文の枠の画像の置き方を合わせる
-    after('applyDesignToPreview', function () { QI.renderControl(); });
+    after('applyDesignToPreview', function () { QI.renderControl(); QI.applyBgToPreview(); });
 })();

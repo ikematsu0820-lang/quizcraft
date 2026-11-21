@@ -113,7 +113,8 @@ App.Design = {
             // only the panel content re-render is gated to デザイン, since
             // that's the only thing this selection actually filters.
             window.App.Creator.highlightSelectedObject();
-            if (window.App.Creator.activeInlinePanel === 'design') {
+            const M = window.App.CreatorMobile;
+            if (window.App.Creator.activeInlinePanel === 'design' || (M && M._sheet === 'design')) {
                 window.App.Creator.renderActivePanelContent('design');
             }
         }
@@ -339,9 +340,16 @@ App.Design = {
                 border-radius:6px; color:#ffd700; font-size:0.7rem; cursor:pointer;">タイトルの文字・枠・背景を変える</button>`;
         };
         const OBJECT_TITLES = { question: '問題文', qtitle: 'タイトル', choices: choicesLabel, background: '全体背景', reveal: '正解表示' };
-        const selectionHeader = (sel) => `
-            <div class="ds-target"><span class="ds-target-tag">編集中</span><span>${OBJECT_TITLES[sel]}</span></div>
-        `;
+        // 何を編集するかの切り替え（プレビューを押して選ぶのと同じ。スマホの下から出るパネルでも選べるように）
+        const selectionHeader = (sel) => {
+            const c = window.App.Creator;
+            const objs = [['question', OBJECT_TITLES.question]];
+            if (c && c.titleEnabled && (c.currentType || '').startsWith('free')) objs.push(['qtitle', OBJECT_TITLES.qtitle]);
+            if (this._hasChoicesObject()) objs.push(['choices', OBJECT_TITLES.choices]);
+            objs.push(['background', OBJECT_TITLES.background]);
+            if (sel === 'reveal') objs.push(['reveal', OBJECT_TITLES.reveal]);
+            return `<div class="ds-target" role="radiogroup">${objs.map(([k, t]) => `<button type="button" role="radio" aria-checked="${k === sel}" class="ds-obj${k === sel ? ' on' : ''}" data-select-object="${k}">${t}</button>`).join('')}</div>`;
+        };
 
         const bodyHtml = {
             text: () => {
@@ -476,6 +484,19 @@ App.Design = {
                                 <input type="file" accept="image/*" data-bgimg-input style="display:none;">
                             </div>
                         </div>
+                        ${(() => {
+                            // この問題だけの背景（問題ごと — セット全体の背景より優先。ブリッジ・正解の画面も同じ）
+                            const QI = window.App.QuestionImage;
+                            if (!QI) return '';
+                            const qb = QI.bg || '';
+                            return `
+                        <div class="ds-qbg">
+                            <span class="ds-qbg-label">この問題だけの背景</span>
+                            <button type="button" data-qbg-pick class="ds-qbg-pick${qb ? ' has' : ''}" style="${qb ? `background:center/cover no-repeat url(${qb});` : ''}">${qb ? '' : `${window.App.Icons.svg('image', 14)}<span>画像を選ぶ</span>`}</button>
+                            ${qb ? '<button type="button" data-qbg-clear class="ds-qbg-clear" title="外す">×</button>' : ''}
+                        </div>
+                        <p style="color:#555; font-size:0.62rem; margin:4px 0 0;">※選ぶと、今書いている問題だけ背景が変わります（ほかの問題はセット全体の背景のまま）</p>`;
+                        })()}
                     `;
                 }
 
@@ -933,6 +954,17 @@ App.Design = {
                     }
                 };
             }
+            // この問題だけの背景
+            body.querySelector('button[data-qbg-pick]')?.addEventListener('click', () => {
+                const QI = window.App.QuestionImage;
+                if (!QI || !window.App.ItemImage) return;
+                window.App.ItemImage.pick((url) => { QI.bg = url; QI.bgChanged(); renderBody(); }, 1600, 900);
+            });
+            body.querySelector('button[data-qbg-clear]')?.addEventListener('click', () => {
+                const QI = window.App.QuestionImage;
+                if (!QI) return;
+                QI.bg = null; QI.bgChanged(); renderBody();
+            });
             body.querySelector('button[data-bgimg-clear]')?.addEventListener('click', () => {
                 design.bgImage = '';
                 if (onChange) onChange();

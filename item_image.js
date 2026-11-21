@@ -48,7 +48,8 @@ App.ItemImage = {
 
     // 共通のファイル選択（行ごとに作らない）
     _input: null,
-    pick: function (onDone) {
+    // maxW/maxH … 縮める大きさ（既定は小枠向けの 600。背景などは大きく渡す）
+    pick: function (onDone, maxW, maxH) {
         if (!this._input) {
             this._input = document.createElement('input');
             this._input.type = 'file';
@@ -62,7 +63,7 @@ App.ItemImage = {
             const f = ev.target.files[0];
             if (!f) return;
             // 小枠に出すだけなので、問題文の画像より小さく縮めて軽くする
-            if (window.App.Themes && window.App.Themes.compressImage) window.App.Themes.compressImage(f, 600, 600, 0.8).then(onDone);
+            if (window.App.Themes && window.App.Themes.compressImage) window.App.Themes.compressImage(f, maxW || 600, maxH || 600, 0.8).then(onDone);
             else { const r = new FileReader(); r.onload = (x) => onDone(x.target.result); r.readAsDataURL(f); }
         };
         input.click();

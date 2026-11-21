@@ -573,6 +573,7 @@ App.CreatorMobile = {
         }
         const cd = window.App.Data.currentDesign || {};
         const { layout, align, cAlign, ...design } = cd;
+        if (q.bgImage) design.bgImage = q.bgImage; // この問題だけの背景
         return { ...q, layout: layout || 'standard', align: align || 'center', cAlign: cAlign || 'left', design };
     },
 
