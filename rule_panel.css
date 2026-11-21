@@ -10,6 +10,13 @@
     color: #dbeafe;
     font-size: 0.74rem;
     line-height: 1.6;
+    /* 設定を変えるたびに文の長さが変わっても、下のタブや設定が上下しないよう高さを固定（4行分）。
+       はみ出す分はこの中だけでスクロール */
+    box-sizing: border-box;
+    height: calc(0.74rem * 1.6 * 4 + 20px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
 }
 #creator-rules-summary:empty { display: none; }
 .rp-sum-label {
