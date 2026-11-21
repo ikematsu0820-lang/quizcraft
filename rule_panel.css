@@ -36,3 +36,10 @@
 
 /* 灰色のタイルの「選べない理由」（rule_panel.js whyNote） */
 .rp-why { margin: 6px 2px 0; font-size: 0.76rem; line-height: 1.5; color: #94a3b8; }
+
+/* 速さで競う（rule_panel.js renderSpeed）— 時間のタブの中の1まとまり */
+.rp-speed { margin-top: 14px; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.18); }
+.rp-speed .rp-check { align-items: flex-start; margin: 8px 0; }
+.rp-speed .rp-check input { margin-top: 3px; }
+.rp-check-sub { display: block; margin-top: 2px; font-size: 0.74rem; color: #94a3b8; font-weight: 400; }
+.rp-speed-detail { margin: 4px 0 8px 26px; }

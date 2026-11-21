@@ -236,9 +236,10 @@ App.RulePanel = {
         const canRanked = RE.can('scoreRanked', ctx), canHint = RE.can('scoreHint', ctx);
         const types = [{ value: 'uniform', label: '一律', sub: '正解者全員に同じ点' }]
             .concat([{ value: 'first', label: '先着', sub: '早く正解した◯人だけ' }])
-            .concat(canRanked.ok ? [{ value: 'ranked', label: '速さで傾斜', sub: '速い順に高い点' }] : [])
             .concat(canHint.ok ? [{ value: 'hint', label: 'ヒント数で傾斜', sub: '少ないヒントほど高い点' }] : []);
-        const st = types.some(t => t.value === conf.scoreType) ? conf.scoreType : 'uniform';
+        // 速い順の傾斜は「時間」タブの「速さで競う」で決める（ここではそのまま残す）
+        const isRanked = conf.scoreType === 'ranked' && canRanked.ok;
+        const st = isRanked ? 'ranked' : (types.some(t => t.value === conf.scoreType) ? conf.scoreType : 'uniform');
         conf.scoreType = st;
         const numSel = (id, list, val, unit) => this.select(id, list.map(n => ({ v: n, t: `${n}${unit}` })), val);
 
@@ -251,6 +252,8 @@ App.RulePanel = {
             const pts = conf.firstPts !== undefined && conf.firstPts !== '' ? conf.firstPts : 1;
             basic = this.row('先着', `<div style="display:flex; gap:6px;">${numSel('rp-first-n', [1, 2, 3, 5, 10], n, '人まで')}<input type="number" id="rp-first-pts" value="${pts}" min="0" style="${this.SEL} width:80px; text-align:center;"><span style="color:#94a3b8; font-size:0.8rem; align-self:center;">点</span></div>`)
                 + this.note(ctx.mode === 'normal' ? '全員同時の時は、ボタンを押した速さで先着を決めます（出題者が判定する形式では、〇を付けた順）。' : '1人ずつ答える解答権では、その問題で〇になった順で数えます。');
+        } else if (st === 'ranked') {
+            basic = this.note('今は、速い順に傾斜した点にしています。点の決め方は「時間」のタブの「速さで競う」で変えられます（上のどれかを選ぶと傾斜をやめます）。');
         } else {
             basic = '<div id="score-type-sheet-detail"></div>';
         }
@@ -264,9 +267,9 @@ App.RulePanel = {
             ${this.head('正解した人への得点')}
             ${this.tiles('scoreType', types, st)}
             ${basic}
-            ${this.Cfg().advancedBlock('correct', adv, [!canRanked.ok ? canRanked.why : '', !canHint.ok ? canHint.why : ''])}`;
+            ${this.Cfg().advancedBlock('correct', adv, [!canHint.ok ? canHint.why : ''])}`;
         this.Cfg().wireAdvancedBlocks(box);
-        if (st === 'ranked' || st === 'hint') {
+        if (st === 'hint') {
             this.Cfg().renderScoreDetailInSheet(st, conf);
             box.querySelectorAll('#score-type-sheet-detail input').forEach(inp => {
                 inp.addEventListener('input', () => { this.Cfg()._collectScoreDetailFromSheet(conf); this.soft(); });
@@ -340,31 +343,20 @@ App.RulePanel = {
             { value: 'score', label: '得点制', sub: '得点が高い人が勝ち' },
             { value: 'survival', label: 'サバイバル', sub: 'ミスで脱落・残った人' },
             { value: 'winthrough', label: '勝ち抜け', sub: '規定に達したら抜ける' },
-            { value: 'timerace', label: 'タイムレース', sub: '正解数→合計時間', disabled: !canRace.ok, why: canRace.why },
         ];
-        const gt = types.some(t => t.value === conf.gameType && !t.disabled) ? conf.gameType : 'score';
+        // タイムレースは「時間」タブの「速さで競う」で決める
+        const gt = (conf.gameType === 'timerace' && canRace.ok) ? 'timerace' : (types.some(t => t.value === conf.gameType) ? conf.gameType : 'score');
         conf.gameType = gt;
         const numSel = (id, list, val, fmt) => this.select(id, list.map(n => ({ v: n, t: fmt(n) })), val);
         let basic = '', adv = '', notes = [];
 
         if (gt === 'score') {
-            const canTie = RE.can('tieBreakTime', ctx);
-            if (canTie.ok) {
-                adv = this.row('同点のとき', this.select('rp-tie', [
-                    { v: 'none', t: '同じ順位にする' },
-                    { v: 'time', t: '解答時間の合計が短い人が上' },
-                ], conf.tieBreak || 'none'));
-            } else notes.push(canTie.why);
-            basic = this.note('得点の入れ方は「正解」、減点は「誤答」のタブで決めます。');
+            basic = this.note('得点の入れ方は「正解」、減点は「誤答」のタブで決めます。' + (conf.tieBreak === 'time' && RE.can('tieBreakTime', ctx).ok ? '同点の時は解答時間の合計で決めます（「時間」のタブ）。' : ''));
         } else if (gt === 'survival') {
             basic = this.row('脱落するミス', numSel('rp-lives', [1, 2, 3, 4, 5], conf.survivalLives || 1, n => `${n}回で脱落`))
                 + this.note('誤答・無回答がミスになります（1問につき1回まで）。脱落した人は以降の問題に答えられません。');
             const endN = Number(conf.survivalEndCount) || 0;
             adv = this.row('終了', numSel('rp-surv-end', [0, 1, 2, 3, 5], endN, n => n ? `残り${n}人になったら終了` : '最後の問題まで続ける'));
-            const canSlow = RE.can('survivalSlowDrop', ctx);
-            if (canSlow.ok) {
-                adv += this.row('遅い人も脱落', numSel('rp-slow', [0, 1, 2, 3], parseInt(conf.survivalSlowDrop) || 0, n => n ? `毎問、正解者のうち遅い${n}人` : 'しない'));
-            } else notes.push(canSlow.why);
         } else if (gt === 'winthrough') {
             const by = conf.winBy === 'correct' ? 'correct' : 'score';
             basic = this.row('勝ち抜け', `<div style="display:flex; gap:6px;">
@@ -374,7 +366,7 @@ App.RulePanel = {
                 + this.note('勝ち抜けた人は、それ以降の問題には答えません（勝ち抜けた順が順位になります）。');
             adv = this.row('終了', numSel('rp-win-quota', [0, 1, 2, 3, 5, 10], Number(conf.winQuota) || 0, n => n ? `${n}人勝ち抜けたら終了` : '最後の問題まで続ける'));
         } else if (gt === 'timerace') {
-            basic = this.note('正解数が多い人が勝ち。同じ数なら、正解した問題の解答時間の合計が短い人が上になります。');
+            basic = this.note('今はタイムレース（正解数が多い人が勝ち、同じ数なら解答時間の合計が短い人が上）です。「時間」のタブの「速さで競う」で変えられます（上のどれかを選ぶとタイムレースをやめます）。');
         }
 
         box.innerHTML = `
@@ -389,13 +381,67 @@ App.RulePanel = {
             b.onclick = () => { if (conf.gameType !== b.dataset.val) { conf.gameType = b.dataset.val; this.changed(); } };
         });
         const bind = (id, fn) => { const el = box.querySelector('#' + id); if (el) el.onchange = () => { fn(el.value); this.soft(); }; };
-        bind('rp-tie', v => { conf.tieBreak = v; });
         bind('rp-lives', v => { conf.survivalLives = parseInt(v) || 1; });
         bind('rp-surv-end', v => { conf.survivalEndCount = parseInt(v) || 0; });
-        bind('rp-slow', v => { conf.survivalSlowDrop = parseInt(v) || 0; });
         bind('rp-win-target', v => { conf.winTarget = parseInt(v) || 5; });
         bind('rp-win-by', v => { conf.winBy = v; });
         bind('rp-win-quota', v => { conf.winQuota = parseInt(v) || 0; });
+    },
+
+    // ---------------------------------------------------------
+    // 速さで競う — 速い順に傾斜・タイムレース・同点は時間・遅い人も脱落 を1か所に
+    //   使えない部品は出さず、まとめて理由を1行で出す
+    // ---------------------------------------------------------
+    renderSpeed: function (box) {
+        const conf = this._conf, RE = this.RE(), ctx = this.ctx();
+        const can = {
+            ranked: RE.can('scoreRanked', ctx).ok,
+            race: RE.can('timeRace', ctx).ok,
+            tie: RE.can('tieBreakTime', ctx).ok,
+            slow: RE.can('survivalSlowDrop', ctx).ok,
+        };
+        const wrap = document.createElement('div');
+        wrap.className = 'rp-speed';
+        const head = this.head('速さで競う');
+        if (!can.ranked && !can.race && !can.tie && !can.slow) {
+            wrap.innerHTML = head + this.note('速い順に点を傾ける・タイムレース・同点は解答時間で決める・遅い人も脱落 は、全員が同時にボタンで答える形式（選択式・並べ替え・文字パネル）と、早押し×手書きで「正解した人は抜けて続ける」時に使えます。');
+            box.appendChild(wrap);
+            return;
+        }
+        const race = conf.gameType === 'timerace' && can.race;
+        const toggle = (id, label, on, sub) => `<label class="rp-check"><input type="checkbox" id="${id}" ${on ? 'checked' : ''}><span>${label}${sub ? `<small class="rp-check-sub">${sub}</small>` : ''}</span></label>`;
+        let html = head;
+        if (can.race) html += toggle('rp-sp-race', '勝ち方をタイムレースにする', race, '正解数が多い人が勝ち、同じ数なら解答時間の合計が短い人が上');
+        if (!race) {
+            if (can.ranked) {
+                html += toggle('rp-sp-ranked', '正解の点を速い順に傾ける', conf.scoreType === 'ranked', ctx.wbContinue ? '正解した順に、1番目・2番目…の点を決めます' : '正解した人のうち、早く答えた人ほど高い点');
+                if (conf.scoreType === 'ranked') html += '<div id="score-type-sheet-detail" class="rp-speed-detail"></div>';
+            }
+            if (can.tie && (conf.gameType || 'score') === 'score') html += toggle('rp-sp-tie', '同点は解答時間の合計で決める', conf.tieBreak === 'time', '同じ点の人は、解答時間の合計が短い人が上');
+            if (can.slow && conf.gameType === 'survival') {
+                html += this.row('遅い人も脱落', this.select('rp-sp-slow', [0, 1, 2, 3].map(n => ({ v: n, t: n ? `毎問、正解者のうち遅い${n}人` : 'しない' })), parseInt(conf.survivalSlowDrop) || 0));
+            }
+        } else {
+            html += this.note('タイムレースの間は、正解は1問1点として数えます。');
+        }
+        const off = [];
+        if (!can.race) off.push('タイムレース');
+        if (!can.tie) off.push('同点は解答時間で決める');
+        if (!can.slow) off.push('遅い人も脱落');
+        if (off.length && ctx.wbContinue) html += `<p class="rp-why">${off.join('・')}：全員が同時にボタンで答える形式で使えます</p>`;
+        wrap.innerHTML = html;
+        box.appendChild(wrap);
+        if (conf.scoreType === 'ranked' && !race) {
+            this.Cfg().renderScoreDetailInSheet('ranked', conf);
+            wrap.querySelectorAll('#score-type-sheet-detail input').forEach(inp => {
+                inp.addEventListener('input', () => { this.Cfg()._collectScoreDetailFromSheet(conf); this.soft(); });
+            });
+        }
+        const on = (id, fn) => { const el = wrap.querySelector('#' + id); if (el) el.onchange = () => fn(el.type === 'checkbox' ? el.checked : el.value); };
+        on('rp-sp-race', v => { conf.gameType = v ? 'timerace' : 'score'; this.changed(); });
+        on('rp-sp-ranked', v => { conf.scoreType = v ? 'ranked' : 'uniform'; this.changed(); });
+        on('rp-sp-tie', v => { conf.tieBreak = v ? 'time' : 'none'; this.soft(); });
+        on('rp-sp-slow', v => { conf.survivalSlowDrop = parseInt(v) || 0; this.soft(); });
     },
 
     // ---------------------------------------------------------
@@ -405,6 +451,7 @@ App.RulePanel = {
         if (!box) return;
         const conf = this._conf, RE = this.RE(), ctx = this.ctx();
         this.Cfg().renderInlineTimeLimitChooser(box, conf, () => this.changed());
+        this.renderSpeed(box);
         const can = RE.can('answerSec', ctx);
         if (!can.ok) { if (Number(conf.answerSec)) conf.answerSec = 0; return; }
         const sec = Number(conf.answerSec) || 0;
