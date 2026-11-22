@@ -4039,13 +4039,11 @@ App.Studio = {
         // Determine smart default mode based on question types
         let smartMode = 'normal';
         if (!setData.config || !setData.config.mode) {
-            // No explicit config — default to buzz for free/multi types
-            const hasFreeOrMulti = questions.some(q =>
-                q.type === 'free_oral' || q.type === 'free_written' ||
-                q.type === 'multi_oral' || q.type === 'multi_written' ||
-                q.type === 'ranking_oral' || q.type === 'ranking_written'
-            );
-            if (hasFreeOrMulti) smartMode = 'buzz';
+            // 設定が無い時: 一問一答は早押し、多答・ランキングは順番に（多答と早押しは組み合わせない）
+            const hasFree = questions.some(q => q.type === 'free_oral' || q.type === 'free_written');
+            const hasMulti = questions.some(q => /^(multi|ranking)_/.test(q.type || ''));
+            if (hasFree) smartMode = 'buzz';
+            else if (hasMulti) smartMode = 'turn';
         }
 
         // Merge saved config with defaults

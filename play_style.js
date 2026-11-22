@@ -19,7 +19,7 @@ App.PlayStyle = {
         assoc_group: { name: '連想クイズ', who: ['buzz', 'all', 'turn', 'nominate'], how: true, base: 'assoc' },
         choice: { name: '選択式', who: ['all', 'nominate', 'buzz', 'turn'], score: true, q: { type: 'choice' } },
         sort: { name: '並べ替え', who: ['all', 'nominate', 'buzz', 'turn'], score: true, q: { type: 'sort' } },
-        multi_group: { name: '多答クイズ', who: ['turn', 'buzz', 'nominate'], how: true, base: 'multi' },
+        multi_group: { name: '多答クイズ', who: ['turn'], how: true, base: 'multi' },
     },
     // 呼び名は rule_engine.js（WHO・HOW）と同じ — ルール画面・セット設定の一覧とそろえる
     get WHO() {
@@ -105,20 +105,24 @@ App.PlayStyle = {
             const showScore = f.score && sel.who === 'all';
             const ws = this.whoState(cardType, sel);
             const built = this.build(cardType, sel);
+            const whoOk = ws.filter(w => w.ok);
+            // 選べるのが1つだけの段は出さない（下の「この遊び方」に出る）— 段の番号は出した順に振る
+            let no = 0;
+            const step = (title) => `<div class="ps-step-k"><b>${++no}</b>${title}</div>`;
             ov.innerHTML = `
                 <div class="ps-panel" role="dialog" aria-label="遊び方を選ぶ">
                     <div class="ps-head">
                         <button type="button" class="ps-back">形式選択に戻る</button>
                         <div class="ps-title"><span class="ps-format">${f.name}</span>遊び方を選んでください</div>
                     </div>
-                    <div class="ps-step"><div class="ps-step-k"><b>1</b>だれが答える</div>
-                        ${opts('who', ws.filter(w => w.ok).map(w => [w.k, this.WHO[w.k]]), sel.who)}</div>
-                    ${f.how && !howLocked ? `<div class="ps-step"><div class="ps-step-k"><b>2</b>どう答える</div>
+                    ${whoOk.length > 1 ? `<div class="ps-step">${step('だれが答える')}
+                        ${opts('who', whoOk.map(w => [w.k, this.WHO[w.k]]), sel.who)}</div>` : ''}
+                    ${f.how && !howLocked ? `<div class="ps-step">${step('どう答える')}
                         ${opts('how', Object.entries(this.HOW), sel.how)}</div>` : ''}
                     ${f.fixedHow ? `<p class="ps-step-note">${f.howNote}</p>` : ''}
-                    ${showAfter ? `<div class="ps-step"><div class="ps-step-k"><b>3</b>正解が出たら</div>
+                    ${showAfter ? `<div class="ps-step">${step('正解が出たら')}
                         ${opts('after', Object.entries(this.AFTER), sel.after)}</div>` : ''}
-                    ${showScore ? `<div class="ps-step"><div class="ps-step-k"><b>2</b>点の付け方</div>
+                    ${showScore ? `<div class="ps-step">${step('点の付け方')}
                         ${opts('score', Object.entries(this.SCORE), sel.score)}</div>` : ''}
                     <div class="ps-foot">
                         <div class="ps-sum"><span>この遊び方</span><b>${built.label}</b></div>

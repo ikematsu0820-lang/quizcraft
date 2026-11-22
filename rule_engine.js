@@ -70,15 +70,19 @@ App.RuleEngine = {
         //   順番  : 前の人の答え（モニター）で、後の番の人ほど有利になる
         const isSort = ctx.firstType === 'sort';
         const allOnly = (ctx.isPlainChoice || isSort) && !ctx.isPanel;
+        //   多答（パネルを除く）は順番だけ — 早押しだと先に押した人が簡単な答えを取っていき、答えを開けていく遊びにならない
+        const multiTurnOnly = ctx.isMulti && !ctx.isPanel;
+        const multiWhy = '多答は順番に1人ずつ答えて、答えを開けていく形式です';
         const buzzWhy = turnOnly ? turnOnlyWhy
+            : multiTurnOnly ? multiWhy
             : allOnly ? (isSort ? '並べ替えは並べる速さで競う形式なので、全員で並べて早い人ほど高い点にします' : '選択式は選択肢が見えているので、全員で答えて早い人ほど高い点にします') : '';
         const turnWhy = allOnly ? '1人ずつ答えると、前の人の答えで後の番の人ほど有利になります' : '';
         return [
             { value: 'normal', label: '全員が同時に手元で解答', disabled: !!normalWhy, reason: normalWhy },
             { value: 'buzz', label: '早く押した人から解答', disabled: !!buzzWhy, reason: buzzWhy },
-            // 多答（パネルを除く）は早押しか順番で、答えを1つずつ開けていく形式 — 指名は使わない（9月に決めた組み合わせ）
-            { value: 'nominate', label: '指名された人のみ解答', disabled: turnOnly || (ctx.isMulti && !ctx.isPanel),
-              reason: turnOnly ? turnOnlyWhy : (ctx.isMulti && !ctx.isPanel) ? '多答は早押しか順番で、答えを1つずつ開けていく形式です' : '' },
+            // 多答（パネルを除く）は順番で答えを1つずつ開けていく形式 — 指名・早押しは使わない
+            { value: 'nominate', label: '指名された人のみ解答', disabled: turnOnly || multiTurnOnly,
+              reason: turnOnly ? turnOnlyWhy : multiTurnOnly ? multiWhy : '' },
             { value: 'turn', label: '特定の人や順番で解答', disabled: !!turnWhy, reason: turnWhy },
         ];
     },
