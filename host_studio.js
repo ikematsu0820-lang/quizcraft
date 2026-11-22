@@ -1137,10 +1137,10 @@ App.Studio = {
 
                     if (isSolo) {
                         syncBadge.textContent = `チャレンジャー: ${turnPlayerName}`;
-                        syncBadge.style.background = "#9b59b6"; // Solid purple
+                        syncBadge.style.background = "#f59e0b"; // Solid purple
                     } else {
                         syncBadge.textContent = `解答者: ${turnPlayerName}`;
-                        syncBadge.style.background = "rgba(155, 89, 182, 0.3)";
+                        syncBadge.style.background = "rgba(245,158,11, 0.3)";
                     }
 
                     // Show turn info on sub-info area
@@ -1148,9 +1148,9 @@ App.Studio = {
                     if (info) {
                         info.classList.remove('hidden');
                         if (isSolo) {
-                            info.innerHTML = `<span style="color:#9b59b6; font-weight:bold;"><i class="fas fa-crown"></i> ソロチャレンジ中: ${turnPlayerName}</span>`;
+                            info.innerHTML = `<span style="color:#f59e0b; font-weight:bold;"><i class="fas fa-crown"></i> ソロチャレンジ中: ${turnPlayerName}</span>`;
                         } else {
-                            info.innerHTML = `<span style="color:#9b59b6; font-weight:bold;">順番: ${turnPlayerName}（${this.turnIndex + 1}/${this.turnOrder.length}）</span>`;
+                            info.innerHTML = `<span style="color:#f59e0b; font-weight:bold;">順番: ${turnPlayerName}（${this.turnIndex + 1}/${this.turnOrder.length}）</span>`;
                         }
                     }
 
@@ -1247,7 +1247,7 @@ App.Studio = {
                 }
 
                 syncBadge.textContent = "REVEAL";
-                syncBadge.style.background = "#9b59b6"; // Purple
+                syncBadge.style.background = "#f59e0b"; // Purple
 
                 if (App.Data.currentConfig.mode === 'normal') {
                     window.db.ref(`rooms/${roomId}/status`).update({
@@ -2337,7 +2337,7 @@ App.Studio = {
                 });
                 const info = document.getElementById('studio-sub-info');
                 if (info) {
-                    info.innerHTML = `<span style="color:#9b59b6; font-weight:bold;">順番: ${nextPlayerName}（${this.turnIndex + 1}/${this.turnOrder.length}）</span>`;
+                    info.innerHTML = `<span style="color:#f59e0b; font-weight:bold;">順番: ${nextPlayerName}（${this.turnIndex + 1}/${this.turnOrder.length}）</span>`;
                 }
                 App.Ui.showToast(`正解！次は ${nextPlayerName} さんの番です`);
                 this.startAnswerTimer(nextPlayerId); // 次の人の時計（答える人の時計・持ち時間）
@@ -3941,7 +3941,7 @@ App.Studio = {
                     // Update sub-info UI
                     const info = document.getElementById('studio-sub-info');
                     if (info) {
-                        info.innerHTML = `<span style="color:#9b59b6; font-weight:bold;">順番: ${nextPlayerName}（${this.turnIndex + 1}/${this.turnOrder.length}）</span>`;
+                        info.innerHTML = `<span style="color:#f59e0b; font-weight:bold;">順番: ${nextPlayerName}（${this.turnIndex + 1}/${this.turnOrder.length}）</span>`;
                     }
 
                     // Reset current player's lastResult/lastAnswer so the UI/Console card clears for the next turn
@@ -3962,7 +3962,7 @@ App.Studio = {
                         const nextName = (App.Data.players && App.Data.players[nextId] && App.Data.players[nextId].name) || '---';
                         window.db.ref(`rooms/${roomId}/status`).update({ currentAnswerer: nextId, currentAnswererName: nextName, turnIndex: this.turnIndex });
                         const info = document.getElementById('studio-sub-info');
-                        if (info) info.innerHTML = `<span style="color:#9b59b6; font-weight:bold;">順番: ${nextName}（誤答のため解答権が移りました）</span>`;
+                        if (info) info.innerHTML = `<span style="color:#f59e0b; font-weight:bold;">順番: ${nextName}（誤答のため解答権が移りました）</span>`;
                         App.Ui.showToast(`不正解… 次は ${nextName} さんが答えます`);
                         this.startAnswerTimer(nextId);
                     } else {
@@ -4565,12 +4565,12 @@ App.Studio = {
         // Create container
         const container = document.createElement('div');
         container.id = 'turn-order-setup';
-        container.style.cssText = 'width:100%; max-width:500px; margin:20px auto; background:rgba(155,89,182,0.1); border:1px solid rgba(155,89,182,0.3); border-radius:12px; padding:15px; box-sizing:border-box;';
+        container.style.cssText = 'width:100%; max-width:600px; margin:0 auto 12px; background:#16161a; border:none; box-shadow:inset 0 1px 0 rgba(255,255,255,0.04); border-radius:12px; padding:15px; box-sizing:border-box;';
 
         // Title
         const title = document.createElement('div');
-        title.style.cssText = 'color:#9b59b6; font-weight:bold; font-size:1.1em; margin-bottom:12px; text-align:center; letter-spacing:1px;';
-        title.innerHTML = isSolo ? '<i class="fas fa-user-check"></i> チャレンジャーを設定' : '<i class="fas fa-sort-numeric-down"></i> 解答順番を設定';
+        title.style.cssText = 'color:#e5e5e8; font-weight:800; font-size:1em; margin-bottom:12px; text-align:left;';
+        title.textContent = isSolo ? '挑戦する人を決める' : '答える順番を決める';
         container.appendChild(title);
 
         // State check: Confirmed?
@@ -4609,7 +4609,7 @@ App.Studio = {
         if (playerIds.length === 0) {
             const emptyMsg = document.createElement('div');
             emptyMsg.style.cssText = 'color:#aaa; text-align:center; padding:20px; font-size:0.9em; background:rgba(0,0,0,0.3); border-radius:8px;';
-            emptyMsg.innerHTML = '現在、参加者がいません。<br>参加者が入室するとリストが表示されます。';
+            emptyMsg.innerHTML = 'まだ誰も入っていません。<br>参加者が入ると、ここで順番を決められます。';
             container.appendChild(emptyMsg);
 
             // Insert before participant section
@@ -4656,8 +4656,8 @@ App.Studio = {
                 // Styling
                 if (isSolo) {
                     const isSelected = (this.turnOrder[0] === pid);
-                    const bg = isSelected ? 'rgba(155,89,182,0.3)' : 'rgba(255,255,255,0.05)';
-                    const border = isSelected ? '1px solid #9b59b6' : '1px solid rgba(255,255,255,0.1)';
+                    const bg = isSelected ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.05)';
+                    const border = isSelected ? '1px solid #f59e0b' : '1px solid rgba(255,255,255,0.1)';
                     row.style.cssText = `display:flex; align-items:center; gap:10px; background:${bg}; border:${border}; border-radius:8px; padding:10px 12px; transition:all 0.2s; cursor:pointer;`;
 
                     // In solo mode, clicking a player makes them the challenger and enables the Start button
@@ -4710,10 +4710,10 @@ App.Studio = {
                 const numBadge = document.createElement('div');
                 if (isSolo) {
                     const isSelected = (this.turnOrder[0] === pid);
-                    numBadge.style.cssText = `width:24px; height:24px; border-radius:50%; border:2px solid ${isSelected ? '#9b59b6' : '#666'}; background:${isSelected ? '#9b59b6' : 'transparent'}; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all 0.2s;`;
+                    numBadge.style.cssText = `width:24px; height:24px; border-radius:50%; border:2px solid ${isSelected ? '#f59e0b' : '#666'}; background:${isSelected ? '#f59e0b' : 'transparent'}; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all 0.2s;`;
                     if (isSelected) numBadge.innerHTML = '<i class="fas fa-check" style="font-size:0.7em; color:#fff;"></i>';
                 } else {
-                    numBadge.style.cssText = 'width:28px; height:28px; border-radius:50%; background:#9b59b6; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:0.9em; flex-shrink:0; box-shadow:0 2px 4px rgba(0,0,0,0.3);';
+                    numBadge.style.cssText = 'width:28px; height:28px; border-radius:50%; background:#f59e0b; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:0.9em; flex-shrink:0; box-shadow:0 2px 4px rgba(0,0,0,0.3);';
                     numBadge.textContent = idx + 1;
                 }
 
@@ -4734,7 +4734,7 @@ App.Studio = {
                     // Up button
                     const btnUp = document.createElement('button');
                     btnUp.style.cssText = 'width:32px; height:32px; border:none; border-radius:6px; background:rgba(255,255,255,0.1); color:#fff; cursor:pointer; font-size:0.8em; display:flex; align-items:center; justify-content:center; transition:background 0.2s;';
-                    btnUp.textContent = '上へ';
+                    btnUp.textContent = '▲';
                     btnUp.disabled = (idx === 0) || isConfirmed;
                     if (btnUp.disabled) {
                         btnUp.style.opacity = '0.2';
@@ -4752,7 +4752,7 @@ App.Studio = {
                     // Down button
                     const btnDown = document.createElement('button');
                     btnDown.style.cssText = 'width:32px; height:32px; border:none; border-radius:6px; background:rgba(255,255,255,0.1); color:#fff; cursor:pointer; font-size:0.8em; display:flex; align-items:center; justify-content:center; transition:background 0.2s;';
-                    btnDown.textContent = '下へ';
+                    btnDown.textContent = '▼';
                     btnDown.disabled = (idx === this.turnOrder.length - 1) || isConfirmed;
                     if (btnDown.disabled) {
                         btnDown.style.opacity = '0.2';
@@ -4786,15 +4786,15 @@ App.Studio = {
 
             // Shuffle button
             const shuffleBtn = document.createElement('button');
-            shuffleBtn.style.cssText = 'flex:1; padding:10px; border:1px solid rgba(155,89,182,0.4); border-radius:8px; background:rgba(155,89,182,0.15); color:#9b59b6; cursor:pointer; font-size:0.9em; font-weight:bold; transition:all 0.2s;';
+            shuffleBtn.style.cssText = 'flex:1; padding:10px; border:1px solid rgba(245,158,11,0.4); border-radius:8px; background:rgba(245,158,11,0.15); color:#f59e0b; cursor:pointer; font-size:0.9em; font-weight:bold; transition:all 0.2s;';
             shuffleBtn.innerHTML = '<i class="fas fa-random"></i> ランダム';
             shuffleBtn.disabled = isConfirmed;
             if (isConfirmed) {
                 shuffleBtn.style.opacity = '0.3';
                 shuffleBtn.style.cursor = 'default';
             } else {
-                shuffleBtn.onmouseover = () => shuffleBtn.style.background = 'rgba(155,89,182,0.25)';
-                shuffleBtn.onmouseout = () => shuffleBtn.style.background = 'rgba(155,89,182,0.15)';
+                shuffleBtn.onmouseover = () => shuffleBtn.style.background = 'rgba(245,158,11,0.25)';
+                shuffleBtn.onmouseout = () => shuffleBtn.style.background = 'rgba(245,158,11,0.15)';
             }
             shuffleBtn.onclick = () => {
                 if (isConfirmed) return;
@@ -4809,7 +4809,7 @@ App.Studio = {
 
             // Confirm Button
             const confirmBtn = document.createElement('button');
-            confirmBtn.style.cssText = 'flex:2; padding:12px; border:none; border-radius:8px; background:linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); color:#fff; cursor:pointer; font-size:1.0em; font-weight:bold; box-shadow:0 4px 12px rgba(155,89,182,0.4); transition:all 0.2s;';
+            confirmBtn.style.cssText = 'flex:2; padding:12px; border:none; border-radius:8px; background:linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color:#1b1300; cursor:pointer; font-size:1.0em; font-weight:bold; box-shadow:0 4px 12px rgba(245,158,11,0.4); transition:all 0.2s;';
 
             if (isConfirmed) {
                 confirmBtn.disabled = true;

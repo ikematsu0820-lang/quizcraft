@@ -5729,3 +5729,33 @@ body:not(:has(#player-game-view:not(.hidden))) #toast-container { --color-primar
 }
 #creator-view.cm-on.cm-edit #cm-above-list > label.cm-ox-row input[type="checkbox"]:checked { background: #d97706 !important; }
 #creator-view.cm-on.cm-edit #cm-above-list > label.cm-ox-row input[type="checkbox"]:checked::before { transform: translateX(18px); }
+
+/* =========================================================
+ * 司会者の待合室（host_lobby.js）— 第1問を始める前は、人を集めることだけ
+ * ======================================================= */
+#host-control-view.hl-before .simple-studio-header,
+#host-control-view.hl-before .simple-studio-controls,
+#host-control-view.hl-before .simple-player-section,
+#host-control-view.hl-before #console-participants-page,
+#host-control-view.hl-before .console-card-wrapper,
+#host-control-view.hl-before #studio-title-banner { display: none !important; }
+#host-lobby { width: 100%; max-width: 600px; margin: 0 auto 14px; color: #e5e5e8; box-sizing: border-box; }
+#host-lobby .hl-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+#host-lobby .hl-back { flex: 0 0 auto; min-height: 40px; padding: 0 14px; border-radius: 10px; border: none; background: #26262d; color: #e5e5e8; font-weight: 700; font-size: 0.9rem; cursor: pointer; }
+#host-lobby .hl-title { flex: 1; min-width: 0; font-weight: 800; font-size: 1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#host-lobby .hl-tag { display: inline-block; margin-right: 8px; padding: 2px 8px; border-radius: 6px; background: #f59e0b; color: #1b1300; font-size: 0.75rem; vertical-align: 2px; }
+#host-lobby .hl-join { display: flex; gap: 14px; align-items: stretch; padding: 16px; border-radius: 14px; background: #09090b; box-shadow: inset 0 1px 6px rgba(0,0,0,0.9); }
+#host-lobby .hl-code-wrap { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 8px; }
+#host-lobby .hl-k { color: #8b8b95; font-size: 0.75rem; font-weight: 700; }
+#host-lobby .hl-k b { color: #e5e5e8; font-size: 1rem; }
+#host-lobby .hl-code { all: unset; cursor: pointer; color: #f59e0b; font-family: ui-monospace, Menlo, monospace; font-weight: 800; font-size: clamp(1.8rem, 9vw, 2.6rem); letter-spacing: 0.08em; line-height: 1.1; word-break: break-all; }
+#host-lobby .hl-share { align-self: flex-start; min-height: 40px; padding: 0 14px; border: none; border-radius: 10px; background: #26262d; color: #e5e5e8; font-weight: 700; font-size: 0.85rem; cursor: pointer; }
+#host-lobby .hl-qr { flex: 0 0 auto; width: 112px; height: 112px; background: #fff; border-radius: 8px; padding: 4px; box-sizing: border-box; }
+#host-lobby .hl-qr svg { width: 100%; height: 100%; display: block; }
+#host-lobby .hl-sec { margin-top: 16px; }
+#host-lobby .hl-players { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+#host-lobby .hl-p { padding: 6px 12px; border-radius: 99px; background: #1b1b20; font-size: 0.9rem; font-weight: 700; }
+#host-lobby .hl-empty { color: #6b6b74; font-size: 0.85rem; line-height: 1.5; }
+#host-lobby .hl-guide { margin: 6px 0 0; color: #c9c9cf; font-size: 0.88rem; line-height: 1.6; }
+#host-lobby .hl-hint { margin: 16px 0 0; padding-top: 12px; border-top: 1px solid #26262d; color: #8b8b95; font-size: 0.85rem; }
+#host-control-view.hl-before #hc-back { visibility: hidden; }

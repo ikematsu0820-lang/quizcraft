@@ -572,6 +572,14 @@ window.App._showTestNavBar = function (testId, playerCount) {
     };
     select.onchange = () => switchTo(select.value);
     switchTo('host');
+    // テストの回答者は最初から全員入っておく（切り替えるまで誰もいないと、順番も決められず始められない）
+    setTimeout(() => {
+        playerIframes.forEach((f, idx) => {
+            if (playerLoaded[idx]) return;
+            f.src = `${baseUrl}?room=${testId}&autoName=${encodeURIComponent('テスト' + (idx + 1))}`;
+            playerLoaded[idx] = true;
+        });
+    }, 300);
 };
 
 window.App.Dashboard = {
