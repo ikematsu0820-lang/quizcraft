@@ -103,7 +103,7 @@ App.Themes = {
             },
         },
         {
-            id: 'classic', name: 'スタジオ', desc: 'いつもの黒×シアン',
+            id: 'classic', name: 'スタジオ', desc: '黒地にシアンの線とテロップ文字',
             fx: 'telop', font: '', accent: '#00e5ff', timer: 'bar_top', bridge: { style: 'band', bg: '#0a0a0a', text: '#ffffff' },
             skin: { c: 'panel', pal: '', q: 'telop', fx: 'studio' },
             colors: {

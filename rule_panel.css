@@ -133,8 +133,9 @@
     box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 2px 5px rgba(0, 0, 0, 0.45);
     padding: 11px 6px 9px !important;
 }
+/* 右下の透かし番号（01〜）は、段の番号①②とまぎらわしいので出さない */
 #creator-inline-rules .rp-tile::after {
-    content: counter(swtile, decimal-leading-zero); position: absolute; right: 6px; bottom: -6px;
+    content: none; display: none; position: absolute; right: 6px; bottom: -6px;
     font: 800 1.9rem/1 var(--sw-mono); color: #fff; opacity: 0.045; pointer-events: none; letter-spacing: -0.04em;
 }
 #creator-inline-rules .rp-tile.on { background: var(--sw-raise-on) !important; color: #fff !important; }

@@ -428,11 +428,8 @@ App.RulePanel = {
         const wrap = document.createElement('div');
         wrap.className = 'rp-speed';
         const head = this.head('速さで競う');
-        if (!can.ranked && !can.race && !can.tie && !can.slow) {
-            wrap.innerHTML = head + this.note('速い順に点を傾ける・タイムレース・同点は解答時間で決める・遅い人も脱落 は、全員が同時にボタンで答える形式（選択式・並べ替え・文字パネル）と、早押し×手書きで「正解した人は抜けて続ける」時に使えます。');
-            box.appendChild(wrap);
-            return;
-        }
+        // 使えない時は、まとまりごと出さない（説明も出さない — 選べない物は抜く）
+        if (!can.ranked && !can.race && !can.tie && !can.slow) return;
         const race = conf.gameType === 'timerace' && can.race;
         const toggle = (id, label, on, sub) => `<label class="rp-check"><input type="checkbox" id="${id}" ${on ? 'checked' : ''}><span>${label}${sub ? `<small class="rp-check-sub">${sub}</small>` : ''}</span></label>`;
         let html = head;
@@ -481,10 +478,10 @@ App.RulePanel = {
         if (kind === 'personal' && !oneByOne) kind = 'per_q';
         const clock = on ? kind : 'off';
         const tiles = [
-            { value: 'off', label: 'なし', sub: '時間で区切らない' },
-            { value: 'per_q', label: '1問ごと', sub: conf.mode === 'buzz' ? '押せる時間・毎問満タン' : '毎問、満タンから' },
-            { value: 'pool', label: 'セット全体', sub: '全員の残り時間が減る' },
-        ].concat(oneByOne ? [{ value: 'personal', label: '1人ずつ', sub: '自分の番だけ減る' }] : []);
+            { value: 'off', label: 'なし', sub: '時間を区切らない' },
+            { value: 'per_q', label: '1問ごと', sub: conf.mode === 'buzz' ? '1問ごとに押せる時間を決める' : '1問ごとに答える時間を決める' },
+            { value: 'pool', label: 'セット全体', sub: '全部の問題で同じ時間を使い切る' },
+        ].concat(oneByOne ? [{ value: 'personal', label: '1人ずつ', sub: '1人ずつ持ち時間があり、答える間だけ減る' }] : []);
         const secs = parseFloat(conf.timeLimitSeconds) || (kind === 'per_q' ? 10 : 60);
         const canSec = RE.can('answerSec', ctx).ok;
         const ansSec = Number(conf.answerSec) || 0;

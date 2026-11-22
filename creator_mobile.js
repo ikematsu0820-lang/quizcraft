@@ -405,9 +405,11 @@ App.CreatorMobile = {
         };
         rows.push({ key: 'win', label: '勝ち方', value: WIN[conf.gameType] || WIN.score });
         const sec = parseInt(conf.timeLimitSeconds) || 30;
-        let time = conf.timeLimitEnabled !== 'on' ? 'なし'
-            : (conf.timerKind === 'pool' ? `セット全体で${sec}秒` : `1問${sec}秒`);
-        if (Number(conf.answerSec) > 0) time += `・解答${Number(conf.answerSec)}秒`;
+        // 問題の時計と、答える人の時計（押してから◯秒）の両方を出す
+        let time = conf.timeLimitEnabled !== 'on' ? '問題の時間なし'
+            : conf.timerKind === 'pool' ? `セット全体で${sec}秒`
+            : conf.timerKind === 'personal' ? `1人${sec}秒の持ち時間` : `1問${sec}秒`;
+        if (Number(conf.answerSec) > 0) time += `・答えは${Number(conf.answerSec)}秒以内`;
         rows.push({ key: 'time', label: '時間', value: time });
         const theme = window.App.Themes && window.App.Themes.get(d.themeId);
         // テーマを選んでいない時は、既定の見た目（スタジオ）
