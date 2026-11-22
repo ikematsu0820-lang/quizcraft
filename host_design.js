@@ -740,35 +740,83 @@ App.Design = {
                     </button>
                 `;
             };
-            const fontOpts = Object.entries(Themes.FONTS).map(([v, f]) => ({ v, t: f.name }));
+            // 段の見出し
+            const head = (t) => `<div style="margin:14px 0 6px; color:#8b8b95; font-size:0.7rem; font-weight:bold;">${t}</div>`;
+            const chipBase = 'min-width:0; padding:8px 4px; border-radius:6px; cursor:pointer; text-align:center; box-sizing:border-box;';
+            const chip = (on) => `${chipBase} background:${on ? '#26262d' : '#1b1b20'}; border:1px solid ${on ? '#f59e0b' : '#2c2c33'}; color:#e5e5e8;`;
+            // 書体 — 名前をその書体で見せる
+            const curFont = design.fontFamily || '';
+            const fontChips = Object.entries(Themes.FONTS).map(([k, f]) => {
+                Themes.previewFont(k);
+                return `<button type="button" data-font-key="${k}" style="${chip(curFont === k)} font-family:${Themes.fontCss(k) || 'inherit'}; font-size:0.95rem; line-height:1.2;">${f.name}</button>`;
+            }).join('');
+            // 文字の飾り — 「第1問」を飾った見本で
+            const curFx = design.textFx || 'none';
+            const sampleBg = design.mainBgColor && design.mainBgColor !== 'transparent' ? design.mainBgColor : '#0a0a0a';
+            const fxChips = Object.entries(Themes.TEXT_FX).map(([k, f]) => {
+                const fx = Object.assign({}, f, { shadowColor: f.shadowColor || design.accentColor || '#00e5ff' });
+                return `<button type="button" data-tfx="${k}" style="${chip(curFx === k)} padding:6px 4px;">
+                    <span style="display:block; padding:6px 0; border-radius:4px; background:${sampleBg}; color:${design.qTextColor || '#ffffff'}; font-family:${Themes.fontCss(curFont) || 'inherit'}; font-weight:900; font-size:1.15rem; ${Themes.fxInline(fx)}">第1問</span>
+                    <span style="display:block; margin-top:4px; font-size:0.62rem; color:${curFx === k ? '#f59e0b' : '#8b8b95'};">${f.name}</span>
+                </button>`;
+            }).join('');
+            const flag = (k, label) => `<label style="display:flex; align-items:center; gap:6px; color:#e5e5e8; font-size:0.72rem; cursor:pointer;">
+                <input type="checkbox" data-design-flag="${k}" ${design[k] !== 'off' ? 'checked' : ''} style="width:auto; margin:0; accent-color:#f59e0b;">${label}</label>`;
+            const FX_STROKE = [{ v: '', t: '型のまま' }, { v: 'none', t: 'なし' }, { v: 'thin', t: '細い' }, { v: 'thick', t: '太い' }];
+            const FX_SHADOW = [{ v: '', t: '型のまま' }, { v: 'none', t: 'なし' }, { v: 'drop', t: 'ふんわり' }, { v: 'offset', t: 'ずらし' }, { v: 'glow', t: '光る' }, { v: 'solid', t: '立体' }];
+            const detailsOpen = this._lookDetailsOpen ? 'open' : '';
+            // 細部の色は、空（型のまま）でも今の型の色を見本に出す
+            const eff = Themes.textFx(design);
+            const fxSwatch = (label, key, v) => colorSwatch(label, key).replace('background:transparent;', `background:${v || 'transparent'};`);
             return `
-                <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(96px, 1fr)); gap:6px; margin-bottom:10px;">
+                <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(96px, 1fr)); gap:6px;">
                     ${Themes.list.map(card).join('')}
                 </div>
+                ${head('書体')}
+                <div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:6px;">${fontChips}</div>
+                ${head('文字の飾り')}
+                <div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:6px;">${fxChips}</div>
+                ${head('色')}
                 <div style="display:flex; gap:6px; align-items:center;">
-                    ${rowLabel('文字')}
-                    ${miniSelect('フォント', 'fontFamily', fontOpts)}
-                </div>
-                <div style="display:flex; gap:6px; align-items:center; margin-top:8px;">
-                    ${rowLabel('色')}
                     ${colorSwatch('アクセント', 'accentColor')}${colorSwatch('全体の背景', 'mainBgColor')}
                 </div>
-                ${window.App.ChoiceSkin ? window.App.ChoiceSkin.panelHtml(design) : ''}
-                ${(() => {
-                    // 問題の枠と回答の枠の割合（プレビューの境目をドラッグしても変えられる）
-                    const r = Number(design.splitRatio) || 0;
-                    return `
-                        <div style="margin:14px 0 6px; color:#8b8b95; font-size:0.7rem; font-weight:bold; display:flex; justify-content:space-between;">
-                            <span>問題の枠と回答の枠の大きさ</span>
-                            <span id="split-ratio-val" style="color:#e5e5e8;">${r ? `問題 ${r}％` : '自動'}</span>
-                        </div>
-                        <div style="display:flex; gap:8px; align-items:center;">
-                            <input type="range" id="split-ratio-range" min="15" max="80" step="1" value="${r || 40}" style="flex:1; height:auto !important; min-height:0 !important; margin:0; accent-color:#f59e0b;">
-                            <button type="button" id="split-ratio-auto" style="flex:0 0 auto; padding:5px 10px; border-radius:6px; background:${r ? '#1b1b20' : 'rgba(245, 158, 11,0.12)'}; border:1px solid ${r ? '#3a3a42' : '#f59e0b'}; color:${r ? '#e5e5e8' : '#f59e0b'}; font-size:0.7rem; cursor:pointer;">自動</button>
-                        </div>
-                        <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">※プレビューの境目（点線のつまみ）をドラッグしても変えられます</p>`;
-                })()}
-                <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">※テーマは出発点です。選んだ後に、ここの形・色や、テキスト／オブジェクト／演出のタブで全部の部分を変えられます（このセットの全問題に効きます）</p>
+                <details id="design-look-details" ${detailsOpen} style="margin-top:16px; border-top:1px solid #26262d; padding-top:10px;">
+                    <summary style="cursor:pointer; color:#e5e5e8; font-size:0.8rem; font-weight:bold; padding:6px 0;">細かく変える</summary>
+                    ${head('文字の飾りの細部')}
+                    <div style="display:flex; gap:6px; align-items:flex-start;">
+                        ${miniSelect('縁の太さ', 'tfx_stroke', FX_STROKE)}${fxSwatch('縁の色', 'tfx_strokeColor', eff.strokeColor)}
+                    </div>
+                    <div style="display:flex; gap:6px; align-items:flex-start; margin-top:8px;">
+                        ${miniSelect('影', 'tfx_shadow', FX_SHADOW)}${fxSwatch('影の色', 'tfx_shadowColor', eff.shadowColor)}${fxSwatch('文字の色', 'tfx_fill', eff.fill)}
+                    </div>
+                    <div style="display:flex; gap:14px; flex-wrap:wrap; margin-top:10px;">
+                        ${flag('tfxQ', '問題文')}${flag('tfxC', '選択肢・パネル')}${flag('tfxB', '第◯問')}
+                    </div>
+                    <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">※飾りを付ける場所を選べます。色を空にすると、型の色になります</p>
+                    ${isPanel ? `${head('パネルの色')}
+                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                        ${colorSwatch('パネル', 'pbBg')}${colorSwatch('数字', 'pbText')}${colorSwatch('枠', 'pbBorder')}
+                    </div>
+                    <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">
+                        ${colorSwatch('正解した時', 'pbOk')}${colorSwatch('その文字', 'pbOkText')}${colorSwatch('取られた後', 'pbDone')}
+                    </div>` : ''}
+                    ${window.App.ChoiceSkin ? window.App.ChoiceSkin.panelHtml(design) : ''}
+                    ${(() => {
+                        // 問題の枠と回答の枠の割合（プレビューの境目をドラッグしても変えられる）
+                        const r = Number(design.splitRatio) || 0;
+                        return `
+                            <div style="margin:14px 0 6px; color:#8b8b95; font-size:0.7rem; font-weight:bold; display:flex; justify-content:space-between;">
+                                <span>問題の枠と回答の枠の大きさ</span>
+                                <span id="split-ratio-val" style="color:#e5e5e8;">${r ? `問題 ${r}％` : '自動'}</span>
+                            </div>
+                            <div style="display:flex; gap:8px; align-items:center;">
+                                <input type="range" id="split-ratio-range" min="15" max="80" step="1" value="${r || 40}" style="flex:1; height:auto !important; min-height:0 !important; margin:0; accent-color:#f59e0b;">
+                                <button type="button" id="split-ratio-auto" style="flex:0 0 auto; padding:5px 10px; border-radius:6px; background:${r ? '#1b1b20' : 'rgba(245, 158, 11,0.12)'}; border:1px solid ${r ? '#3a3a42' : '#f59e0b'}; color:${r ? '#e5e5e8' : '#f59e0b'}; font-size:0.7rem; cursor:pointer;">自動</button>
+                            </div>
+                            <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">※プレビューの境目（点線のつまみ）をドラッグしても変えられます</p>`;
+                    })()}
+                    <p style="color:#555; font-size:0.62rem; margin:10px 0 0;">※部品ごとの文字・色・形は「文字の細部」「部品の細部」のタブで変えられます（このセットの全問題に効きます）</p>
+                </details>
             `;
         };
         activeBody.theme = themeBody;
@@ -850,13 +898,16 @@ App.Design = {
         };
         if (!activeBody.timer) activeBody.timer = timerBody;
 
-        const tabs = [
-            { key: 'theme', label: 'テーマ' },
-            { key: 'text', label: 'テキスト' },
-            { key: 'object', label: 'オブジェクト' },
-            { key: 'sound', label: 'サウンド' },
-            { key: 'timer', label: '演出' },
+        // スマホのセット設定では「見た目」と「音・演出」を別の行から開く（_tabsMode）
+        const allTabs = [
+            { key: 'theme', label: 'テーマ', g: 'look' },
+            { key: 'text', label: '文字の細部', g: 'look' },
+            { key: 'object', label: '部品の細部', g: 'look' },
+            { key: 'sound', label: 'サウンド', g: 'fx' },
+            { key: 'timer', label: '演出', g: 'fx' },
         ];
+        const tabs = allTabs.filter(t => !this._tabsMode || t.g === this._tabsMode);
+        if (!tabs.some(t => t.key === this._activeDesignTab)) this._activeDesignTab = tabs[0].key;
         if (!activeBody[this._activeDesignTab]) this._activeDesignTab = 'text';
 
         const wireBody = (body) => {
@@ -923,6 +974,26 @@ App.Design = {
 
             // 選択肢ボタンの形・問題文の見せ方（choice_skin.js）
             if (window.App.ChoiceSkin) window.App.ChoiceSkin.wirePanel(body, design, onChange, renderBody);
+
+            // 書体・文字の飾り（テーマの下の段）
+            body.querySelectorAll('button[data-font-key]').forEach(btn => {
+                btn.onclick = () => {
+                    design.fontFamily = btn.dataset.fontKey;
+                    window.App.Themes.ensureFont(design.fontFamily);
+                    if (onChange) onChange();
+                    renderBody();
+                };
+            });
+            body.querySelectorAll('button[data-tfx]').forEach(btn => {
+                btn.onclick = () => {
+                    design.textFx = btn.dataset.tfx;
+                    Object.keys(design).forEach(k => { if (k.indexOf('tfx_') === 0) delete design[k]; }); // 型を変えたら細部の上書きは消す
+                    if (onChange) onChange();
+                    renderBody();
+                };
+            });
+            const lookDetails = body.querySelector('#design-look-details');
+            if (lookDetails) lookDetails.ontoggle = () => { this._lookDetailsOpen = lookDetails.open; };
 
             // テーマカード
             body.querySelectorAll('button[data-theme-id]').forEach(btn => {

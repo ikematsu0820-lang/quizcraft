@@ -18,6 +18,21 @@
 window.App = window.App || {};
 
 App.PanelBoard = {
+    // パネルの色（テーマ・見た目の設定）→ CSS変数。設定もテーマも無ければ CSS の既定（紺×金）
+    vars: function (d) {
+        const T = window.App.Themes;
+        if (!T || !T.panelColor) return '';
+        const c = (k) => T.panelColor(d, k);
+        const out = [];
+        const put = (name, v) => { if (v) out.push(`${name}:${v}`); };
+        put('--pb-bg', c('pbBg')); put('--pb-text', c('pbText')); put('--pb-border', c('pbBorder'));
+        put('--pb-ok', c('pbOk')); put('--pb-ok-text', c('pbOkText'));
+        put('--pb-done', c('pbDone')); put('--pb-done-text', c('pbDoneText'));
+        if (c('pbGloss') === 'none') out.push('--pb-gloss-img:none');
+        // 上のお題の帯は、問題文の枠と同じ色に
+        if (c('pbBg')) { put('--pb-head-bg', d.qBgColor); put('--pb-head-text', d.qTextColor); }
+        return out.join('; ') + (out.length ? ';' : '');
+    },
     active: false, // 作成画面で編集中の問題がパネル指名モードか
     panelQ: false, // パネルごとに問題を出す（表＝ジャンル、選ぶと問題、正解で答えに裏返る）
     board: false,  // パネルクイズ（ジャンル×点数の盤面。形式選択の「パネルクイズ」— 1セット1盤面）
@@ -790,7 +805,7 @@ App.PanelBoard = {
                 return;
             }
             mainText.innerHTML = `
-                <div class="pbv" style="--pb-accent:${accent}; --pb-text:${d.cTextColor || '#fff'};">
+                <div class="pbv" style="--pb-accent:${accent}; --pb-text:${d.cTextColor || '#fff'}; ${App.PanelBoard.vars(d)}">
                     <div class="pbv-theme">${esc(pb.theme || q.q || '')}</div>
                     <div class="pbv-grid" style="grid-template-columns:repeat(${cols}, 1fr); grid-template-rows:repeat(${rows}, 1fr); font-size:${fontPx}cqh;">
                         ${panels.map((p, i) => {
@@ -840,7 +855,7 @@ App.PanelBoard = {
             };
             const sel = pb.selQ && pb.sel !== null && pb.sel !== undefined ? panels[pb.sel] : null;
             mainText.innerHTML = `
-                <div class="pbv" style="--pb-accent:${o.accent}; --pb-text:${(q.design || {}).cTextColor || '#ffd23f'};">
+                <div class="pbv" style="--pb-accent:${o.accent}; --pb-text:${(q.design || {}).cTextColor || '#ffd23f'}; ${App.PanelBoard.vars(q.design || {})}">
                     <div class="pbv-theme">${esc(pb.theme || q.q || '')}</div>
                     <div class="pbv-grid bq-grid" style="grid-template-columns:repeat(${L.cols}, 1fr); grid-template-rows:auto repeat(${L.rows}, 1fr); font-size:${fontPx}cqh;">
                         ${L.cats.map((c, ci) => `<div class="bq-cat" style="background:${PB.CAT_COLORS[ci % PB.CAT_COLORS.length]};">${esc(c)}</div>`).join('')}

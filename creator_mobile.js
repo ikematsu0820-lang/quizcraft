@@ -413,6 +413,9 @@ App.CreatorMobile = {
         // テーマを選んでいない時は、既定の見た目（スタジオ）
         const look = theme ? `${theme.name}${window.App.Themes.isModified(d) ? '（カスタム）' : ''}` : (d.themeId ? 'カスタム' : 'スタジオ（標準）');
         rows.push({ key: 'design', label: '見た目', value: look });
+        // 音・演出（見た目とは別）— 効果音が入っているか・第◯問の出し方
+        const sounds = Object.keys(d).filter(k => /^(bgm|se)[A-Z]/.test(k) && d[k]).length;
+        rows.push({ key: 'fx', label: '音・演出', value: sounds ? `効果音 ${sounds}つ` : '標準' });
         return rows;
     },
 
@@ -426,7 +429,8 @@ App.CreatorMobile = {
         box.querySelectorAll('.cm-set-row').forEach(b => {
             b.onclick = () => {
                 const k = b.dataset.setKey;
-                if (k === 'design') this.openSheet('design');
+                if (k === 'design') this.openSheet('design', 'look');
+                else if (k === 'fx') this.openSheet('design', 'fx');
                 else this.openSheet('rules', k);
             };
         });
@@ -453,7 +457,7 @@ App.CreatorMobile = {
             return;
         }
         const ids = { design: 'creator-inline-design', rules: 'creator-inline-rules', bulk: 'creator-bulk-panel' };
-        const titles = { design: '見た目（セット全体）', rules: 'ルール（セット全体）', bulk: 'メモのようにまとめて入力' };
+        const titles = { design: sub === 'fx' ? '音・演出（セット全体）' : '見た目（セット全体）', rules: 'ルール（セット全体）', bulk: 'メモのようにまとめて入力' };
         // タブを切り替えても題名がずれないよう、ルールは「ルール」のまま（どの設定かはタブで分かる）
         const node = document.getElementById(ids[kind]);
         if (!node) return;
@@ -468,7 +472,10 @@ App.CreatorMobile = {
         if (kind === 'design') {
             if (C.previewSlide !== 'question') C.setPreviewSlide('question');
             // スマホではまずテーマを選ぶところから（細かい色はその後で）
-            if (window.App.Design) window.App.Design._activeDesignTab = 'theme';
+            if (window.App.Design) {
+                window.App.Design._tabsMode = sub === 'fx' ? 'fx' : 'look';
+                window.App.Design._activeDesignTab = sub === 'fx' ? 'sound' : 'theme';
+            }
             C.renderActivePanelContent('design');
         } else if (kind === 'rules') {
             if (sub) C.rulesSubTab = sub; // 要約でタップした設定のタブを開く
@@ -494,6 +501,7 @@ App.CreatorMobile = {
             if (m.wasHidden) m.node.classList.add('hidden');
         }
         this._moved = null;
+        if (window.App.Design) window.App.Design._tabsMode = null; // PCの見た目の画面では全部のタブ
         const kind = this._sheet;
         this._sheet = null;
         document.getElementById('cm-sheet')?.classList.add('hidden');
