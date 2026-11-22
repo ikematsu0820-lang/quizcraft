@@ -104,7 +104,6 @@ App.PlayStyle = {
             const showAfter = f.base === 'free' && sel.who === 'buzz' && sel.how === 'written';
             const showScore = f.score && sel.who === 'all';
             const ws = this.whoState(cardType, sel);
-            const off = ws.filter(w => !w.ok);
             const built = this.build(cardType, sel);
             ov.innerHTML = `
                 <div class="ps-panel" role="dialog" aria-label="遊び方を選ぶ">
@@ -113,11 +112,9 @@ App.PlayStyle = {
                         <div class="ps-title"><span class="ps-format">${f.name}</span>遊び方を選んでください</div>
                     </div>
                     <div class="ps-step"><div class="ps-step-k"><b>1</b>だれが答える</div>
-                        ${opts('who', ws.map(w => [w.k, this.WHO[w.k]]), sel.who, (v) => !(ws.find(w => w.k === v) || {}).ok)}
-                        ${off.length ? `<p class="ps-step-note">${[...new Set(off.map(w => w.why))].filter(Boolean).map(why => `${off.filter(w => w.why === why).map(w => this.WHO[w.k].label).join('・')}：${why}`).join('<br>')}</p>` : ''}</div>
-                    ${f.how ? `<div class="ps-step"><div class="ps-step-k"><b>2</b>どう答える</div>
-                        ${opts('how', Object.entries(this.HOW), sel.how, (v) => howLocked && v === 'oral')}
-                        ${howLocked ? '<p class="ps-step-note">全員が同時に口頭で答えると聞き取れないので、手書きで答えます</p>' : ''}</div>` : ''}
+                        ${opts('who', ws.filter(w => w.ok).map(w => [w.k, this.WHO[w.k]]), sel.who)}</div>
+                    ${f.how && !howLocked ? `<div class="ps-step"><div class="ps-step-k"><b>2</b>どう答える</div>
+                        ${opts('how', Object.entries(this.HOW), sel.how)}</div>` : ''}
                     ${f.fixedHow ? `<p class="ps-step-note">${f.howNote}</p>` : ''}
                     ${showAfter ? `<div class="ps-step"><div class="ps-step-k"><b>3</b>正解が出たら</div>
                         ${opts('after', Object.entries(this.AFTER), sel.after)}</div>` : ''}

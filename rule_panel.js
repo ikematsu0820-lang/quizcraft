@@ -52,34 +52,6 @@ App.RulePanel = {
         if (max !== undefined) n = Math.min(max, n);
         return n;
     },
-    // 選べない解答権は出さない。ただ「答え方を変えれば選べる」時だけ、その道を1行で
-    retryHint: function (ctx, groupTiles) {
-        const all = groupTiles.find(t => t.value === 'all');
-        if (all && all.disabled && ctx.isOral && !ctx.isMulti && !ctx.isPanel && !ctx.isDobon && !ctx.isBlackjack) {
-            return '<p class="rp-why">答え方を「手書き」にすると、「全員（手元で同時に）」も選べます。</p>';
-        }
-        // 形式と合わないので出していない解答権（選択式・並べ替えの早押し・順番など）は、理由を1行で
-        const RE = this.RE();
-        const hidden = RE.modes(ctx).filter(m => ['buzz', 'turn', 'nominate'].includes(m.value) && m.disabled && m.reason && !ctx.isDobon && !ctx.isBlackjack);
-        if (hidden.length) {
-            const name = { buzz: RE.WHO.buzz.label, turn: RE.WHO.turn.label, nominate: RE.WHO.nominate.label };
-            const reasons = [...new Set(hidden.map(m => m.reason))];
-            return `<p class="rp-why">${reasons.map(r => `${hidden.filter(m => m.reason === r).map(m => name[m.value]).join('・')}：${r}`).join('<br>')}</p>`;
-        }
-        return '';
-    },
-
-    // 灰色のタイルの「選べない理由」— スマホでは title が見えないので、タイルの下に1行で出す
-    whyNote: function (items) {
-        const off = (items || []).filter(it => it.disabled && it.why);
-        if (!off.length) return '';
-        const uniq = [...new Set(off.map(it => it.why))];
-        return `<p class="rp-why">${uniq.length === 1 && off.length > 1
-            ? `${off.map(it => it.label).join('・')}：${uniq[0]}`
-            : off.map(it => `${it.label}：${it.why}`).join('<br>')}</p>`;
-    },
-    note: function (t) { return t ? `<p class="rule-adv-note">${t}</p>` : ''; },
-
     // ---------------------------------------------------------
     // 全体
     // ---------------------------------------------------------
@@ -140,7 +112,6 @@ App.RulePanel = {
         const allowed = (m) => { const x = modes.find(y => y.value === m); return !!(x && !x.disabled && !x.hidden); };
         const whyOf = (m) => { const x = modes.find(y => y.value === m); return (x && x.reason) || 'この形式では使えません'; };
         const modeTiles = RE.WHO_ORDER.map(m => ({ value: m, label: RE.WHO[m].label, sub: RE.WHO[m].sub, disabled: !allowed(m), why: whyOf(m) }));
-        const groupTiles = modeTiles.map(t => Object.assign({}, t, { value: t.value === 'normal' ? 'all' : t.value }));
 
         const modeNote = {
             normal: '全員が手元の端末で同時に答えます。',
@@ -171,7 +142,6 @@ App.RulePanel = {
         box.innerHTML = `
             ${this.head('だれが答える')}
             ${this.tiles('mode', modeTiles.filter(t => !t.disabled || t.value === conf.mode), conf.mode)}
-            ${this.retryHint(ctx, groupTiles)}
             <p class="rule-basic-note">${modeNote}</p>
             ${answerHtml}
             <div id="rp-mode-detail"></div>
