@@ -102,15 +102,16 @@
     display: grid !important; grid-template-columns: 1.4em 1.6em minmax(0, 1fr) 64px 28px;
     grid-template-areas: "no front label label del" ". back answer pts .";
     gap: 6px 6px !important; align-items: center;
-    padding: 8px; border: 1px solid #1f2733; border-radius: 10px; background: rgba(255,255,255,0.03);
+    /* カードの枠は付けず、行の間に細い線だけ（縦に伸びすぎないように） */
+    padding: 6px 0 8px; border: none; border-bottom: 1px solid #26262d; border-radius: 0; background: transparent;
 }
 #creator-view.cm-on .pb-row .pb-no { grid-area: no; font-size: 0.9rem !important; text-align: center !important; }
 #creator-view.cm-on .pb-row .pb-tag {
     display: flex; align-items: center; justify-content: center; height: 26px; border-radius: 6px;
     font-size: 0.75rem; font-weight: bold;
 }
-#creator-view.cm-on .pb-row .pb-tag-front { grid-area: front; background: #1e3a8a; color: #bfdbfe; }
-#creator-view.cm-on .pb-row .pb-tag-back { grid-area: back; background: #14532d; color: #bbf7d0; }
+#creator-view.cm-on .pb-row .pb-tag-front { grid-area: front; background: #1b1b20; color: #8b8b95; }
+#creator-view.cm-on .pb-row .pb-tag-back { grid-area: back; background: #1b1b20; color: #8b8b95; }
 #creator-view.cm-on .pb-row .pb-label { grid-area: label; }
 #creator-view.cm-on .pb-row .pb-answer { grid-area: answer; }
 #creator-view.cm-on .pb-row .pb-pts { grid-area: pts; width: auto !important; }
@@ -124,8 +125,8 @@
 #creator-view.cm-on #pb-list.pb-qmode .pb-row {
     grid-template-areas: "no front label label del" ". qt pq pq ." ". at answer pts .";
 }
-#creator-view.cm-on .pb-row .pb-tag-q { grid-area: qt; background: #3b2f0b; color: #fde68a; }
-#creator-view.cm-on .pb-row .pb-tag-ans { grid-area: at; background: #14532d; color: #bbf7d0; }
+#creator-view.cm-on .pb-row .pb-tag-q { grid-area: qt; background: #1b1b20; color: #8b8b95; }
+#creator-view.cm-on .pb-row .pb-tag-ans { grid-area: at; background: #1b1b20; color: #8b8b95; }
 #creator-view.cm-on .pb-row .pb-pq { grid-area: pq; }
 #creator-view.cm-on #creator-outside-opts .pb-qmode-wrap { flex-basis: 100%; }
 
@@ -195,3 +196,14 @@
 #creator-view.cm-on #pbq-board input { height: 42px !important; font-size: 16px !important; }
 #creator-view.cm-on .pbq-add { align-self: stretch; min-height: 40px; font-size: 0.9rem; }
 .pbp-cat { color: #fff; font-weight: 900; font-size: 0.75em; text-align: center; padding: 5px 2px; border-radius: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* スマホ: パネルの「追加」「まとめて貼り付け」は、ほかの入力画面の追加ボタンと同じ控えめな形に */
+#creator-view.cm-on.cm-edit :is(#pb-add-btn, #pb-paste-btn) {
+    background: #1b1b20 !important; border: none !important; border-radius: 8px !important;
+    color: #e5e5e8 !important; font-weight: bold; min-height: 44px;
+}
+#creator-view.cm-on.cm-edit #pb-list { gap: 0 !important; }
+#creator-view.cm-on.cm-edit .pb-row input {
+    background: #09090b !important; border: none !important; border-radius: 6px !important;
+    box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.85) !important;
+}
