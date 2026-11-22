@@ -93,13 +93,13 @@ const APP_TEXT = {
 
         HeadingSavedProg: "保存済みプログラムリスト", BtnLoadProg: "読込", BtnDelProg: "削除", MsgConfirmLoadProg: "このプログラムを読み込みますか？\n（現在の編集内容は破棄されます）", MsgConfirmDelProg: "本当にこのプログラムを削除しますか？", AlertNoSet: "セットを選んでください", AlertEmptyList: "構成リストが空です", AlertNoTitle: "プログラム名を入力してください", MsgSaved: "プログラムを保存しました！",
         MsgLockedMode: "※スペシャルモードのため設定は固定されます",
-        MsgRulesSaved: "✅ ルール設定を保存しました！"
+        MsgRulesSaved: "ルール設定を保存しました"
     },
 
     Studio: {
         OnAir: "ON AIR", LabelPlayer: "参加", LabelAlive: "生存", LabelKanpe: "司会者用カンペ", StatusReady: "準備中...", HeadingList: "番組構成リスト", HeadingLoad: "プログラム読込", SelectProgDefault: "保存済みプログラムを選択...",
         BtnLoad: "番組構成を確定", BtnMasterPlay: "再生", BtnStart: "問題 START！", BtnAnswer: "正解発表", BtnNextQ: "次の問題へ", BtnNextPeriod: "次のセットへ進む", BtnInterRanking: "中間発表へ", BtnFinalRanking: "最終結果発表へ", BtnEnd: "全工程終了", BtnRanking: "中間順位", BtnClose: "スタジオを閉じる", BtnBackRanking: "スタジオに戻る",
-        BtnCorrect: "⭕️ 正解", BtnWrong: "❌ 不正解", BtnPass: "パス (Skip)", MsgConfirmLoad: "この番組構成をスタジオに反映しますか？", MsgLoaded: "読み込みました。下のSTARTボタンで番組を開始してください。", MsgThinking: "Thinking Time...", MsgAnswerCheck: "正解発表", MsgAllEnd: "全セットが終了しました！お疲れ様でした！", MsgConfirmBack: "ダッシュボードに戻りますか？",
+        BtnCorrect: "〇 正解", BtnWrong: "✕ 不正解", BtnPass: "パス", MsgConfirmLoad: "この番組構成をスタジオに反映しますか？", MsgLoaded: "読み込みました。下のSTARTボタンで番組を開始してください。", MsgThinking: "Thinking Time...", MsgAnswerCheck: "正解発表", MsgAllEnd: "全セットが終了しました！お疲れ様でした！", MsgConfirmBack: "ダッシュボードに戻りますか？",
 
         BtnStartSolo: "挑戦開始 (Start Challenge)", MsgSoloReady: "Solo Challenge Ready...", // ★変更
 

@@ -168,7 +168,7 @@ window.App.Viewer = {
         if (document.getElementById('viewer-sound-unlock')) return;
         const btn = document.createElement('button');
         btn.id = 'viewer-sound-unlock';
-        btn.textContent = '🔊 クリックして音声を有効にする';
+        btn.textContent = 'クリックして音を出せるようにする';
         btn.style.cssText = 'position:fixed; right:16px; bottom:16px; z-index:99999; padding:12px 18px; font-size:16px; font-weight:bold; color:#fff; background:#e53935; border:none; border-radius:10px; cursor:pointer; box-shadow:0 4px 16px rgba(0,0,0,0.5);';
         btn.onclick = () => {
             btn.remove();
@@ -661,7 +661,7 @@ window.App.Viewer = {
                             <div style="font-size:5vh;font-weight:900;color:#ffd700;">${st.bjTarget || 21}</div>
                         </div>
                     </div>
-                    ${isPerfect ? '<div style="font-size:2.5vh;color:#ffd700;font-weight:900;margin-top:2vh;letter-spacing:0.15em;text-shadow:0 0 20px #ffd700aa;">🎯 PERFECT SCORE!</div>' : ''}
+                    ${isPerfect ? '<div style="font-size:2.5vh;color:#ffd700;font-weight:900;margin-top:2vh;letter-spacing:0.15em;text-shadow:0 0 20px #ffd700aa;">PERFECT</div>' : ''}
                 </div>
             `;
         }
@@ -697,7 +697,7 @@ window.App.Viewer = {
             mainText.innerHTML = `
                 <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; width:100%; gap:3vh;">
                     <div style="font-size:2.5vw; color:#ffaa00; font-weight:900; text-shadow:0 0 20px rgba(255,170,0,0.4); margin-bottom:1vh;">
-                        📦 ${cTitle}
+                        ${cTitle}
                     </div>
                     <div style="font-size:1.8vw; color:#aaa; margin-bottom:2vh; animation:pulse 2s infinite;">
                         司会者がコースを選択しています...
@@ -1021,7 +1021,7 @@ window.App.Viewer = {
                     <div style="text-align:center;">
                         <div style="font-size:1.5vh;color:#555;letter-spacing:0.12em;margin-bottom:0.5vh;">NEW TOTAL</div>
                         <div style="font-size:8vh;font-weight:900;color:${totalColor};text-shadow:${totalGlow};line-height:1;">${newTotal}</div>
-                        ${isBusted ? '<div style="font-size:2vh;color:#e74c3c;font-weight:900;letter-spacing:0.15em;margin-top:0.5vh;">💥 BUST</div>' : isPerfect ? '<div style="font-size:2vh;color:#ffd700;font-weight:900;letter-spacing:0.15em;margin-top:0.5vh;">🎯 PERFECT!</div>' : ''}
+                        ${isBusted ? '<div style="font-size:2vh;color:#e74c3c;font-weight:900;letter-spacing:0.15em;margin-top:0.5vh;">BUST</div>' : isPerfect ? '<div style="font-size:2vh;color:#ffd700;font-weight:900;letter-spacing:0.15em;margin-top:0.5vh;">PERFECT!</div>' : ''}
                     </div>
                     <div style="color:#444;font-size:4vh;">/</div>
                     <div style="text-align:center;">
@@ -1337,9 +1337,9 @@ window.App.Viewer = {
                 let size = "3vh";
                 let medal = "";
 
-                if (i === 0) { rankColor = "#ffd700"; size = "5vh"; medal = "👑"; }
-                else if (i === 1) { rankColor = "#c0c0c0"; size = "4vh"; medal = "🥈"; }
-                else if (i === 2) { rankColor = "#cd7f32"; size = "4vh"; medal = "🥉"; }
+                if (i === 0) { rankColor = "#ffd700"; size = "5vh"; medal = ""; }
+                else if (i === 1) { rankColor = "#c0c0c0"; size = "4vh"; medal = ""; }
+                else if (i === 2) { rankColor = "#cd7f32"; size = "4vh"; medal = ""; }
 
                 html += `
                     <div style="display:flex; justify-content:space-between; align-items:center; padding:15px; border-bottom:1px solid #444; font-size:${size}; color:${rankColor}; animation:slideIn ${0.5 + i * 0.15}s ease-out; opacity:0; animation-fill-mode:forwards;">
@@ -1636,8 +1636,8 @@ window.App.Viewer = {
         if (ng.finished && ng.showResult) {
             const r = ng.result || {};
             const big = isBJ
-                ? ((r.winners || []).length ? `🏆 ${(r.winners || []).map(esc).join('・')}` : '勝者なし')
-                : (r.loser ? `💥 ${esc(r.loser)}` : '引き分け');
+                ? ((r.winners || []).length ? `勝者 ${(r.winners || []).map(esc).join('・')}` : '勝者なし')
+                : (r.loser ? `ドボン ${esc(r.loser)}` : '引き分け');
             mainText.innerHTML = `
                 <div style="height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; font-family:'M PLUS 1p',sans-serif; padding:0 4vw;">
                     <div style="font-size:4vh; color:#ccc; font-weight:900; letter-spacing:0.2em; margin-bottom:2vh;">${isBJ ? '勝者' : '負け'}</div>

@@ -10,12 +10,12 @@
 window.App.SoundLibrary = {
     _keys: ['bgmThinking', 'seQNum', 'seResult', 'seButton', 'seCorrect', 'seWrong'],
     _labels: {
-        bgmThinking: '🎵 出題中BGM',
-        seQNum: '🔢 問題番号音',
-        seResult: '🏆 結果発表音',
-        seButton: '🔘 ボタンSE',
-        seCorrect: '⭕ 正解音',
-        seWrong: '❌ 不正解音',
+        bgmThinking: '出題中BGM',
+        seQNum: '問題番号音',
+        seResult: '結果発表音',
+        seButton: 'ボタンSE',
+        seCorrect: '正解音',
+        seWrong: '不正解音',
     },
     _cache: { bgmThinking: [], seQNum: [], seResult: [], seButton: [], seCorrect: [], seWrong: [] },
 
@@ -58,7 +58,7 @@ window.App.SoundLibrary = {
         this._previewBtnEl = null;
     },
     _setBtnPlaying: function (btnEl, playing) {
-        if (btnEl && btnEl.isConnected) btnEl.textContent = playing ? '⏸' : '▶';
+        if (btnEl && btnEl.isConnected) btnEl.textContent = playing ? '■' : '▶';
     },
 
     // ライブラリを常時リアルタイム購読 — サウンド編集画面を開いていれば
@@ -141,7 +141,7 @@ window.App.SoundLibrary = {
                     inp.value = '';
                 };
                 reader.onerror = () => {
-                    if (window.App.Ui) window.App.Ui.showToast('⚠️ ファイルを読み込めませんでした');
+                    if (window.App.Ui) window.App.Ui.showToast('ファイルを読み込めませんでした');
                     inp.value = '';
                 };
                 reader.readAsDataURL(file);
@@ -169,15 +169,15 @@ window.App.SoundLibrary = {
         const ref = window.db.ref(`sound_library/${key}`).push();
         // 通信が止まって返ってこない時も分かるように
         const slow = setTimeout(() => {
-            if (window.App.Ui) window.App.Ui.showToast('⏳ 保存に時間がかかっています（通信状況を確認してください）');
+            if (window.App.Ui) window.App.Ui.showToast('保存に時間がかかっています（通信状況を確認してください）');
         }, 15000);
         ref.set({ name, data }).then(() => {
             clearTimeout(slow);
-            if (window.App.Ui) window.App.Ui.showToast('✅ 追加しました');
+            if (window.App.Ui) window.App.Ui.showToast('追加しました');
         }).catch((err) => {
             clearTimeout(slow);
             console.error('sound upload failed', err);
-            if (window.App.Ui) window.App.Ui.showToast(`⚠️ 追加に失敗しました（${(err && (err.code || err.message)) || '原因不明'}）`);
+            if (window.App.Ui) window.App.Ui.showToast(`追加に失敗しました（${(err && (err.code || err.message)) || '原因不明'}）`);
         });
     },
 };

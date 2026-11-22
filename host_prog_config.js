@@ -284,7 +284,7 @@ window.App.ProgConfig = {
         if (playlist.length === 0) {
             preview.innerHTML = `
                 <div style="text-align:center; padding:80px 20px; color:#666; cursor:pointer;" onclick="window.App.ProgConfig.openAddMenu()">
-                    <div style="font-size:40px; margin-bottom:15px; opacity:0.3;">📋</div>
+                    
                     <p>リストが空です。<br>タップして追加してください。</p>
                 </div>`;
             return;
@@ -332,7 +332,7 @@ window.App.ProgConfig = {
                     const hasConfigDiff = latestConfStr !== itemConfStr;
 
                     if (hasCountDiff || hasConfigDiff) {
-                        updateBadge = `<button class="btn-mini btn-warning anim-pulse" onclick="event.stopPropagation(); window.App.ProgConfig.syncWithSource(${i})" style="margin-left:10px; font-size:0.65em; padding:3px 8px; border:1px solid #ffaa00; background:rgba(255,170,0,0.1); border-radius:12px; cursor:pointer;">⚠️ Update Info</button>`;
+                        updateBadge = `<button class="btn-mini btn-warning anim-pulse" onclick="event.stopPropagation(); window.App.ProgConfig.syncWithSource(${i})" style="margin-left:10px; font-size:0.65em; padding:3px 8px; border:1px solid #ffaa00; background:rgba(255,170,0,0.1); border-radius:12px; cursor:pointer;"> Update Info</button>`;
                     }
                 }
 

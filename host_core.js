@@ -505,10 +505,10 @@ window.App._showTestNavBar = function (testId, playerCount) {
     select.id = 'test-view-select';
     select.title = 'テストプレイの画面を切り替え';
     select.innerHTML = `
-        <option value="host">🎤 出題者</option>
-        <option value="viewer">📺 モニター</option>
-        ${Array.from({ length: playerCount }, (_, i) => `<option value="player-${i + 1}">👤 テスト${i + 1}</option>`).join('')}
-        <option value="dashboard">ダッシュボードに戻る</option>`;
+        <option value="host">司会者の画面</option>
+        <option value="viewer">モニター</option>
+        ${Array.from({ length: playerCount }, (_, i) => `<option value="player-${i + 1}">回答者：テスト${i + 1}</option>`).join('')}
+        <option value="dashboard">テストを終える</option>`;
     select.style.cssText = 'flex:0 0 150px; width:150px !important; max-width:150px; height:auto; min-height:36px; padding:0 10px; border-radius:12px; font-size:14px; font-weight:bold; cursor:pointer; background:#1a0800 !important; color:#ffb27a !important; border:2px solid #ff6600 !important; margin:0;';
 
     // 出題者画面では進行ボタンの右横、それ以外は右下に浮かせる

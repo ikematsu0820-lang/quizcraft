@@ -31,7 +31,7 @@ App.Studio = {
         // This is a fallback/dispatcher. Typically btnMain.onclick is overwritten by setStep.
         // If it's called here, it usually means the button was clicked before a program was loaded.
         if (App.Data.studioQuestions.length === 0) {
-            window.App.Dialog.alert("⚠️ 最初にプログラム（セット）をロードしてください。");
+            window.App.Dialog.alert('最初にセットか番組を読み込んでください。');
         }
     },
 
@@ -190,7 +190,7 @@ App.Studio = {
             monitorWin.blur();
             window.focus();
         }
-        App.Ui.showToast('🖥️ モニター画面を新しいタブで開きました');
+        App.Ui.showToast('モニター画面を新しいタブで開きました');
     },
 
     enterHostMode: function (isQuick) {
@@ -218,10 +218,10 @@ App.Studio = {
                             text: shareText,
                             url: shareUrl
                         }).catch(() => {
-                            navigator.clipboard.writeText(code).then(() => App.Ui.showToast("📋 ID Copied!"));
+                            navigator.clipboard.writeText(code).then(() => App.Ui.showToast('部屋コードをコピーしました'));
                         });
                     } else {
-                        navigator.clipboard.writeText(code).then(() => App.Ui.showToast("📋 ID Copied!"));
+                        navigator.clipboard.writeText(code).then(() => App.Ui.showToast('部屋コードをコピーしました'));
                     }
                 };
             }
@@ -523,7 +523,7 @@ App.Studio = {
                     const opt = document.createElement('option');
                     opt.value = `set:${set.key}`;
                     const badN = App.QuizCheck ? App.QuizCheck.incompleteIn(set.questions || []).length : 0;
-                    opt.textContent = `${badN ? '⚠️未完成 ' : ''}${set.title} (${set.questions?.length || 0}Q)`;
+                    opt.textContent = `${badN ? '［未完成］' : ''}${set.title} (${set.questions?.length || 0}Q)`;
                     setGroup.appendChild(opt);
                 });
             }
@@ -699,7 +699,7 @@ App.Studio = {
                 if (this.localProgramsCache) this.localProgramsCache[key] = freshProg;
                 App.Data.periodPlaylist = freshProg.playlist || [];
                 if (App.Data.periodPlaylist.length === 0) {
-                    window.App.Dialog.alert("⚠️ このプログラムにはセットが登録されていません。");
+                    window.App.Dialog.alert('この番組にはセットが入っていません。');
                     return;
                 }
                 if (!this.checkPlayable(App.Data.periodPlaylist)) return;
@@ -760,7 +760,7 @@ App.Studio = {
             btn.className = `btn-block ${isActive ? 'btn-info' : 'btn-dark'}`;
             if (item.type === 'container') {
                 const optCount = (item.options || item.items || []).length;
-                btn.textContent = `${i + 1}: 📦 ${item.title} (${optCount}択)`;
+                btn.textContent = `${i + 1}: ${item.title} (${optCount}択)`;
             } else {
                 btn.textContent = `${i + 1}セット目: ${item.title} [${this.translateMode(item.config?.mode || 'normal')}]`;
             }
@@ -1642,7 +1642,7 @@ App.Studio = {
 
         let html = `
             <div style="text-align:center; padding:20px 0 10px;">
-                <div style="font-size:1.3em; font-weight:900; color:#ffaa00; margin-bottom:6px;">📦 ${container.title || '選択コンテナ'}</div>
+                <div style="font-size:1.3em; font-weight:900; color:#ffaa00; margin-bottom:6px;">${container.title || '選択コンテナ'}</div>
                 <div style="font-size:0.85em; color:#aaa; margin-bottom:16px;">選択肢を選んでセットを開始してください</div>
             </div>
             <div style="display:flex; flex-direction:column; gap:10px; padding:0 10px;">
@@ -1920,7 +1920,7 @@ App.Studio = {
             this._clearedCount += 1;
             p.cleared = true; // 同じ通知の中で二重に数えない
             window.db.ref(`rooms/${roomId}/players/${pid}`).update({ cleared: true, clearedRank: this._clearedCount });
-            App.Ui.showToast(`🎉 ${p.name || '---'} さんが${this._clearedCount}番目に勝ち抜け！`);
+            App.Ui.showToast(`${p.name || '---'} さんが${this._clearedCount}番目に勝ち抜け！`);
             const quota = Number(conf.winQuota) || 0;
             if (quota && this._clearedCount >= quota) App.Ui.showToast(`${quota}人が勝ち抜けました。この問題でセット終了です`);
         });
@@ -3105,13 +3105,13 @@ App.Studio = {
                 }
             }
 
-            const checkHtml = isAnswered ? '<span class="answered-badge">✅</span>' : '<span class="waiting-dot">●</span>';
+            const checkHtml = isAnswered ? '<span class="answered-badge">済</span>' : '<span class="waiting-dot">●</span>';
 
             // Pending result indicator (single-attempt mode)
             let pendingBadge = '';
             let showJudgeBtns = isAnswered;
             if (p.buzzRest && p.buzzRest > 0) {
-                pendingBadge = `<span style="color:#ff9800; font-weight:bold; font-size:0.8em; margin-left:5px;">🚫 ${p.buzzRest}問休み</span>`;
+                pendingBadge = `<span style="color:#ff9800; font-weight:bold; font-size:0.8em; margin-left:5px;">${p.buzzRest}問休み</span>`;
                 showJudgeBtns = false;
             } else if (p.pendingResult === 'win') {
                 pendingBadge = '<span style="color:#2ecc71; font-weight:bold; font-size:0.8em; margin-left:5px;">〇 済</span>';

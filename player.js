@@ -1469,7 +1469,7 @@ function renderBlackjackCards(st, p) {
         container.innerHTML = `
             <div style="padding:20px 16px;font-family:sans-serif;display:flex;flex-direction:column;gap:14px;">
                 <div style="background:${isStandAnswer ? 'rgba(124,58,237,0.08)' : 'rgba(22,163,74,0.08)'};border:1.5px solid ${isStandAnswer ? 'rgba(124,58,237,0.3)' : 'rgba(22,163,74,0.3)'};border-radius:16px;padding:16px;text-align:center;">
-                    <div style="font-size:0.8em;font-weight:700;letter-spacing:0.1em;color:${isStandAnswer ? '#7c3aed' : '#16a34a'};margin-bottom:8px;">${isStandAnswer ? '✋ スタンドしました' : '✓ パネルを選択しました'}</div>
+                    <div style="font-size:0.8em;font-weight:700;letter-spacing:0.1em;color:${isStandAnswer ? '#7c3aed' : '#16a34a'};margin-bottom:8px;">${isStandAnswer ? 'スタンドしました' : '✓ パネルを選択しました'}</div>
                     ${pickedName ? `<div style="font-size:2em;font-weight:900;color:#d97706;">${pickedName}</div>` : ''}
                 </div>
                 <div style="text-align:center;color:#9ca3af;font-size:0.85em;">発表を待っています...</div>
@@ -1535,7 +1535,7 @@ function renderBlackjackCards(st, p) {
             ` : `
             <!-- Not my turn -->
             <div style="text-align:center;padding:24px;color:#94a3b8;font-size:0.9em;background:#f8fafc;border-radius:14px;border:1.5px solid #e2e8f0;">
-                <div style="font-size:1.6em;margin-bottom:8px;">⏳</div>
+                
                 ${st.currentAnswererName ? `<strong style="color:#64748b;">${st.currentAnswererName}</strong> さんのターンです` : '他のプレイヤーのターンです'}
             </div>`}
         </div>`;
