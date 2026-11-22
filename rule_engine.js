@@ -359,6 +359,7 @@ App.RuleEngine = {
         let gain;
         if (ctx.isPanel) gain = '解答者は「◯番、答え」とパネルを指名し、正解したらそのパネルの点';
         else if (c.gameType === 'timerace') gain = '正解した数を数える';
+        else if (c.gameType === 'territory') gain = '正解するとパネルを1枚取れる（パネルの枚数が得点）';
         else if (st === 'ranked') gain = '正解すると速い順に傾斜した点';
         else if (st === 'hint') gain = '正解すると少ないヒントほど高い点';
         else if (st === 'first') gain = `先着${parseInt(c.firstN) || 1}人だけ得点`;
@@ -391,6 +392,8 @@ App.RuleEngine = {
             const target = Number(c.winTarget) || 5;
             const quota = Number(c.winQuota) || 0;
             parts.push(`${target}${c.winBy === 'correct' ? '問正解' : '点'}で勝ち抜け${quota ? `、${quota}人勝ち抜けたら終了` : ''}。`);
+        } else if (gt === 'territory') {
+            parts.push('挟んだパネルはひっくり返り、パネルが多い人が勝ち。');
         } else if (gt === 'timerace') {
             parts.push('正解数が多い人が勝ち、同じなら解答時間の合計が短い人が上。');
         } else {

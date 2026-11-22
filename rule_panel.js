@@ -355,6 +355,20 @@ App.RulePanel = {
             { value: 'survival', label: 'サバイバル', sub: 'ミスで脱落・残った人' },
             { value: 'winthrough', label: '勝ち抜け', sub: '規定に達したら抜ける' },
         ];
+        // 陣取りパネルは、パネルの多い人が勝ち（勝ち方は変えない）— 盤面の大きさだけ
+        if (conf.gameType === 'territory') {
+            const T = window.App.Territory;
+            const sz = T ? T.size(conf) : { rows: 5, cols: 5 };
+            box.innerHTML = `
+                ${this.head('勝ち方')}
+                <p class="rp-fixed">陣取り：パネルが多い人が勝ち</p>
+                ${this.row('盤面の縦', this.num('rp-tp-rows', sz.rows, '行', { min: 2, max: 8 }))}
+                ${this.row('盤面の横', this.num('rp-tp-cols', sz.cols, '列', { min: 2, max: 8 }))}
+                ${this.note('正解した人が空いているパネルを1枚取ります。縦・横・ななめで自分の色に挟んだパネルは、自分の色にひっくり返ります。パネルの枚数がそのまま得点です。')}`;
+            const bindN = (id, key) => { const el = box.querySelector('#' + id); if (el) el.onchange = () => { conf[key] = Math.max(2, Math.min(8, parseInt(el.value) || 5)); this.soft(); }; };
+            bindN('rp-tp-rows', 'tpRows'); bindN('rp-tp-cols', 'tpCols');
+            return;
+        }
         // タイムレースは「時間」タブの「速さで競う」で決める
         const gt = (conf.gameType === 'timerace' && canRace.ok) ? 'timerace' : (types.some(t => t.value === conf.gameType) ? conf.gameType : 'score');
         conf.gameType = gt;

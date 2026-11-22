@@ -19,6 +19,7 @@ App.PlayStyle = {
         assoc_group: { name: '連想クイズ', who: ['buzz', 'all', 'turn', 'nominate'], how: true, base: 'assoc' },
         choice: { name: '選択式', who: ['all', 'turn', 'nominate', 'buzz'], score: true, q: { type: 'choice' } },
         sort: { name: '並べ替え', who: ['all', 'turn', 'nominate', 'buzz'], score: true, q: { type: 'sort' } },
+        territory: { name: '陣取りパネル', who: ['buzz', 'turn'], base: 'free', initType: 'free', game: 'territory', fixedHow: 'oral', howNote: '答えは口頭で言います。正解した人がパネルを1枚取ります' },
         multi_group: { name: '多答クイズ', who: ['turn', 'nominate'], how: true, base: 'multi' },
     },
     // 呼び名は rule_engine.js（WHO・HOW）と同じ — ルール画面・セット設定の一覧とそろえる
@@ -75,10 +76,13 @@ App.PlayStyle = {
             else Object.assign(conf, { wbTiming: 'write_first', wbJudge: 'one', wbAfterCorrect: 'end' });
         }
         if (f.score && sel.who === 'all' && sel.score === 'speed') Object.assign(conf, { scoreType: 'ranked', rankPts: [10, 5, 3], rankOtherPts: 1 });
+        // 陣取り: 正解したらパネルを取る（パネルの枚数が得点）
+        if (f.game === 'territory') Object.assign(conf, { gameType: 'territory', tpRows: 5, tpCols: 5 });
         const parts = [who.label];
         if (f.how || f.fixedHow) parts.push(how === 'written' ? '手書き' : '口頭');
         if (conf.wbAfterCorrect) parts.push(conf.wbAfterCorrect === 'continue' ? '正解した人は抜けて続ける' : '正解が出たら終わり');
         if (f.score && sel.who === 'all') parts.push(sel.score === 'speed' ? '早い人ほど高い点' : '同じ点');
+        if (f.game === 'territory') parts.push('陣取り');
         return { id: [sel.who, how, sel.after, sel.score].filter(Boolean).join('_'), type, conf, label: parts.join('・') };
     },
 
@@ -152,7 +156,7 @@ App.PlayStyle = {
     start: function (cardType, preset) {
         const C = window.App.Creator;
         if (!C) return;
-        C.initWithType(cardType);
+        C.initWithType((this.FORMATS[cardType] && this.FORMATS[cardType].initType) || cardType);
         if (!preset) return;
         // 答え方（口頭/手書き）— 入力画面の形式を切り替える（ルールのタイルと同じ道）
         if (preset.type) {
@@ -185,6 +189,7 @@ App.PlayStyle = {
         const who = ctx.mode === 'solo' ? '1人で' : ((RE.WHO[ctx.mode] || {}).label || '');
         const by = (RE.HOW[ctx.answerBy] || {}).label || '';
         let s = `${who}・${by}`;
+        if (conf.gameType === 'territory') s += '・陣取り';
         if (ctx.writtenBuzz && ctx.wbContinue) s = '早押し・手書き・抜けて続ける';
         if (ctx.isPanel) s = `パネル・${who}`;
         if (conf.scoreType === 'ranked' && RE.can('scoreRanked', ctx).ok) s += '・早い人ほど高い点';

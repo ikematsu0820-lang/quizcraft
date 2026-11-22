@@ -429,6 +429,10 @@ App.CreatorMobile = {
             winthrough: `勝ち抜け（${Number(conf.winTarget) || 5}${conf.winBy === 'correct' ? '問正解' : '点'}）`,
             timerace: 'タイムレース（正解数→合計時間）',
         };
+        if (conf.gameType === 'territory') {
+            const sz = window.App.Territory ? window.App.Territory.size(conf) : { rows: 5, cols: 5 };
+            WIN.territory = `陣取り（${sz.rows}×${sz.cols}・パネルが多い人）`;
+        }
         rows.push({ key: 'win', label: '勝ち方', value: WIN[conf.gameType] || WIN.score });
         const sec = parseInt(conf.timeLimitSeconds) || 30;
         // 問題の時計と、答える人の時計（押してから◯秒）の両方を出す
