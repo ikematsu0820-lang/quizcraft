@@ -391,3 +391,11 @@
 #creator-monitor-preview.cskin .choice-text-input { padding-right: 44px !important; }
 #creator-monitor-preview.cskin .choice-correct-chk { position: absolute !important; right: 22px; top: 50%; transform: translateY(-50%); margin: 0 !important; z-index: 3; }
 #creator-monitor-preview.cskin .choice-frame > button { position: absolute !important; right: 3px; top: 50%; transform: translateY(-50%); z-index: 3; }
+
+/* 選択肢を「目いっぱい」の高さにした時は、記号を左上に（真ん中だと文字と並んで見づらい） */
+.c-stretch .cs-item { position: relative; }
+:is(.cskin-button, .cskin-panel, .cskin-capsule) .c-stretch .cs-badge,
+.c-stretch .cs-item:not(.cskin-card *) .cs-badge {
+    position: absolute !important; top: 1.6cqh; left: 1.6cqh; margin: 0 !important; z-index: 2;
+}
+.cskin-card .c-stretch .cs-badge { position: static !important; }
