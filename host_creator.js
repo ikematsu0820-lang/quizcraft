@@ -2816,7 +2816,24 @@ ${spec.memo}" style="
         });
     },
 
+    // 保存 — 押したらすぐ「保存しています」を出し、失敗・通信の遅れ・途中のエラーは必ず画面に出す
+    //   （何も出ないと「押しても反応しない」ように見えるため）
     save: async function () {
+        if (this._saving) { window.App.Ui.showToast('保存しています…'); return; }
+        this._saving = true;
+        const slow = setTimeout(() => window.App.Ui.showToast('保存に時間がかかっています。通信状況を確かめてください'), 8000);
+        try {
+            await this._saveInner();
+        } catch (e) {
+            console.error('save failed', e);
+            window.App.Dialog.alert('保存できませんでした。\n原因: ' + ((e && (e.code || e.message)) || e));
+        } finally {
+            clearTimeout(slow);
+            this._saving = false;
+        }
+    },
+
+    _saveInner: async function () {
         if (this.editingIndex !== null) {
             const currentQ = this.getData();
             if (currentQ) {
@@ -2895,11 +2912,10 @@ ${spec.memo}" style="
             data.createdAt = firebase.database.ServerValue.TIMESTAMP;
         }
 
-        console.log("Saving to path:", ref.toString());
-
+        window.App.Ui.showToast('保存しています…');
         const op = setId ? ref.update(data) : ref.set(data);
 
-        op.then(() => {
+        return op.then(() => {
             console.log("Save successful");
             // Lightweight summary (no embedded questions/design/audio) so
             // the 過去に作成した問題 list can render without downloading
