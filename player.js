@@ -167,7 +167,28 @@ function enterGame(code, playerId, name) {
     document.body.classList.add('player-in-game');
     document.getElementById('player-name-disp').textContent = name;
     document.getElementById('player-resume-card')?.remove();
+    addLeaveButton();
     startPlayerListener(code, playerId);
+}
+
+// 退出 — 司会者がタブを閉じてしまった時なども、自分で部屋から抜けられるように
+function addLeaveButton() {
+    const bar = document.getElementById('player-status-bar');
+    if (!bar || document.getElementById('player-leave-btn')) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'player-leave-btn';
+    btn.textContent = '退出';
+    btn.onclick = async () => {
+        const ok = window.App && window.App.Dialog
+            ? await window.App.Dialog.confirm('この部屋から抜けますか？\n（抜けると、ここまでの得点は残りません）', { ok: '抜ける', danger: true })
+            : true;
+        if (!ok) return;
+        try { if (myRoomId && myPlayerId) await window.db.ref(`rooms/${myRoomId}/players/${myPlayerId}`).remove(); } catch (e) { /* noop */ }
+        PlayerSession.clear();
+        location.href = location.origin + location.pathname;
+    };
+    bar.appendChild(btn);
 }
 
 // 司会者がクイズを終えた時の画面

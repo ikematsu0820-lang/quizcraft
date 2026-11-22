@@ -1854,3 +1854,7 @@ body.buzz-flash::after {
 #player-ended b { font-size: 1.3em; font-weight: 900; }
 #player-ended span { color: #64748b; font-size: 0.9em; }
 #player-ended button { margin-top: 10px; width: 100%; min-height: 50px; border: none; border-radius: 12px; background: #6d28d9; color: #fff; font-size: 1em; font-weight: 800; cursor: pointer; }
+
+/* 上の帯の「退出」— 押し間違えないよう小さく右端に（押すと確認が出る） */
+#player-leave-btn { flex: 0 0 auto; margin-left: 10px; padding: 4px 10px; min-height: 0; border: none; border-radius: 99px; background: rgba(100, 116, 139, 0.15); color: #64748b; font-size: 0.72rem; font-weight: 700; cursor: pointer; }
+#player-status-bar #score-display-area { margin-left: auto; }
