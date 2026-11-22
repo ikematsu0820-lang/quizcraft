@@ -399,3 +399,12 @@
     position: absolute !important; top: 1.6cqh; left: 1.6cqh; margin: 0 !important; z-index: 2;
 }
 .cskin-card .c-stretch .cs-badge { position: static !important; }
+
+/* 目いっぱいの時: 記号は背景の役（大きく薄い文字を左上に敷く）、選択肢の文字はど真ん中 */
+:is(.cskin-button, .cskin-panel, .cskin-capsule) .c-stretch .cs-badge {
+    width: auto !important; height: auto !important; background: none !important; box-shadow: none !important; border-radius: 0 !important;
+    font-size: 2.6em !important; line-height: 1 !important; color: #fff !important; opacity: 0.28; z-index: 0 !important;
+    top: 1.2cqh !important; left: 2cqh !important; -webkit-text-stroke: 0 !important; text-shadow: none !important;
+}
+.cskin-capsule .c-stretch .cs-badge::after { content: '' !important; }
+.c-stretch .cs-item .cs-label { position: relative; z-index: 1; flex: 1 1 auto; text-align: center !important; justify-content: center !important; }
