@@ -17,7 +17,7 @@ App.Dialog = {
         this._css = true;
         const s = document.createElement('style');
         s.textContent = `
-.qd-ov { position:fixed; inset:0; z-index:2147483000; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; padding:16px; box-sizing:border-box; animation:qdFade .12s ease-out; }
+.qd-ov { position:fixed; inset:0; z-index:2147483647; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; padding:16px; box-sizing:border-box; animation:qdFade .12s ease-out; }
 .qd-box { width:100%; max-width:380px; background:#16161a; border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05); padding:20px 18px 16px; box-sizing:border-box; color:#e5e5e8; font-family:inherit; animation:qdUp .16s ease-out; }
 .qd-title { font-size:1rem; font-weight:800; margin:0 0 8px; color:#fff; }
 .qd-msg { font-size:0.9rem; line-height:1.6; color:#c9c9cf; white-space:pre-wrap; word-break:break-word; max-height:50vh; overflow:auto; }

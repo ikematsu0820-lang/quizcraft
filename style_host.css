@@ -5901,3 +5901,5 @@ body.mans-open #unified-toggle-container, body.mans-open #test-view-dock { displ
 #creator-monitor-preview.cp-plain :is(.row-label, .choice-label-text, .multi-label) { color: #8b8b95 !important; text-shadow: none !important; }
 /* PCの入力画面の下の「正解」欄も、ほかの入力欄と同じ暗いへこみに */
 #creator-view:not(.cm-on) #creator-outside-opts input[type="text"] { background: #09090b !important; color: #fff !important; border: none !important; box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.85) !important; }
+/* 確認・入力のダイアログや操作のシートを開いている間は、下の「司会者／モニター」とテストの切り替えを隠す（ボタンが隠れないように） */
+body:has(.qd-ov, .im-ov) :is(#unified-toggle-container, #test-view-dock) { display: none !important; }
