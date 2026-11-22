@@ -517,3 +517,8 @@ body {
 .pbv-img { display: block; max-width: 90%; max-height: 45%; object-fit: contain; border-radius: 0.8cqh; }
 .pbv-qimg { display: block; max-width: 80%; max-height: 30cqh; margin: 0 auto; object-fit: contain; border-radius: 1cqh; }
 .c-has-img .choice-item.has-c-img { justify-content: center !important; }
+
+/* 選択肢の高さ「目いっぱい」（見た目 › 部品の細部 › 選択肢）— 問題文の下から底まで選択肢で埋める */
+.c-area.c-stretch { flex: 1 1 auto !important; min-height: 0 !important; justify-content: stretch !important; align-content: stretch !important; margin-bottom: 2cqh; }
+.c-area.c-stretch:not([style*="grid"]) > .choice-item { flex: 1 1 0 !important; }
+.c-area.c-stretch > .choice-item { height: auto !important; max-height: none !important; min-height: 0 !important; align-self: stretch !important; }

@@ -448,6 +448,9 @@ App.Design = {
                                 <span id="design-grid-summary" style="color:#f59e0b; font-weight:bold;">${gridSummary()}</span>
                             </button>
                         </div>
+                        ${isPanel ? '' : `<div style="display:flex; gap:6px; margin-top:8px;">
+                            ${miniSelect(`${choicesLabel}の高さ`, 'cHeight', [{ v: '', t: '標準' }, { v: 'fill', t: '目いっぱい' }])}
+                        </div>`}
                         ${window.App.ItemImage && window.App.ItemImage.supports() ? `
                         <div style="display:flex; gap:6px; margin-top:8px;">
                             ${miniSelect('画像の見せ方', 'cImgMode', [{ v: '', t: '画像と文字' }, { v: 'only', t: '画像だけ' }])}
@@ -928,7 +931,7 @@ App.Design = {
                 sel.onchange = () => {
                     design[sel.dataset.key] = sel.value;
                     if (onChange) onChange();
-                    if ((sel.dataset.key === 'layout' || /^(qImg|cImg)/.test(sel.dataset.key)) && window.App.Creator) window.App.Creator.applyDesignToPreview();
+                    if ((sel.dataset.key === 'layout' || /^(qImg|cImg|cHeight)/.test(sel.dataset.key)) && window.App.Creator) window.App.Creator.applyDesignToPreview();
                 };
             });
 

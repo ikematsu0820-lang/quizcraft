@@ -1538,8 +1538,9 @@ window.App.Viewer = {
                     : '';
 
                 // 選択式など: 問題文（写真付きなど）の下に残った高さに収める — 足りない時だけ行が縮む
-                const fitStyle = `flex:1 1 auto; min-height:0;${gridStyle ? ' grid-auto-rows:minmax(0, max-content);' : ''}`;
-                html += `<div class="c-area${isOx || isMultiQ ? '' : ' c-fit'}" style="${isOx ? oxAreaStyle : isMultiQ ? multiAreaStyle : `${gridStyle} ${cAreaStyle} ${fitStyle}`}">`;
+                const fill = d.cHeight === 'fill' && !isOx && !isMultiQ;
+                const fitStyle = `flex:1 1 auto; min-height:0;${gridStyle ? (fill ? ' grid-auto-rows:minmax(0, 1fr);' : ' grid-auto-rows:minmax(0, max-content);') : ''}`;
+                html += `<div class="c-area${isOx || isMultiQ ? '' : ' c-fit'}${fill ? ' c-stretch' : ''}" style="${isOx ? oxAreaStyle : isMultiQ ? multiAreaStyle : `${gridStyle} ${cAreaStyle} ${fitStyle}`}">`;
                 q.c.forEach((c, i) => {
                     if (isOx) {
                         html += `<div class="choice-item" style="justify-content:center; align-items:center; font-size:30vh; font-weight:900; line-height:1; color:${i === 0 ? '#ff4d4d' : '#3b82f6'}; ${d.cBgColor ? `background:${d.cBgColor};` : ''} ${d.cBorderColor ? `border:1px solid ${d.cBorderColor};` : ''} transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
