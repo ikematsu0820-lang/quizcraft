@@ -5928,3 +5928,5 @@ body:has(.qd-ov, .im-ov) :is(#unified-toggle-container, #test-view-dock) { displ
 .hc-row { justify-content: flex-start; margin-bottom: 8px; }
 #hc-next.hc-next { flex: none; width: 100%; max-width: 400px; text-align: center; margin: 0 0 4px; color: #a1a1aa; font-size: 12px; line-height: 1.4; }
 #hc-next.hc-next:empty { display: none; }
+#menu-btn-host::before { content: none !important; display: none !important; }
+#menu-btn-host { background: #1b1b20 !important; }
