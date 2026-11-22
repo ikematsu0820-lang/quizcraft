@@ -386,7 +386,10 @@ App.CreatorMobile = {
         const d = window.App.Data.currentDesign || {};
         const MODE = { normal: '全員が同時に手元で答える', buzz: '早押しで答える', nominate: '指名された人が答える', turn: '順番に答える' };
         const SCORE = { uniform: '正解者全員に同じ点', ranked: '速い人ほど高得点', hint: 'ヒントが少ないほど高得点', first: `先着${parseInt(conf.firstN) || 1}人だけ得点` };
-        const rows = [{ key: 'format', label: '答え方', value: MODE[conf.mode] || MODE.normal }];
+        // 入力画面の上の「遊び方：◯◯」と同じ呼び名（rule_engine.js の WHO・HOW）
+        const PS = window.App.PlayStyle;
+        const playLabel = PS && PS.shortLabel ? PS.shortLabel() : '';
+        const rows = [{ key: 'format', label: '遊び方', value: playLabel || MODE[conf.mode] || MODE.normal }];
         rows.push({ key: 'correct', label: '正解したとき', value: conf.gameType === 'timerace' ? '1問1点（タイムレース）' : (SCORE[conf.scoreType] || SCORE.uniform) });
         const RE = window.App.RuleEngine;
         const loss = RE ? RE.wrongLoss(conf, {}) : 0;

@@ -30,10 +30,10 @@ App.RuleEngine = {
         const isOral = !!info.isOral;
         const isMulti = !!(qType && (qType.startsWith('multi') || qType.startsWith('ranking')));
         const isAssoc = !!(firstType.startsWith('assoc') || qType.startsWith('assoc'));
-        // パネル指名モード（panel_board.js）— 口頭で「◯番、答え」と言い、出題者が判定する
+        // パネル指名モード（panel_board.js）— 口頭で「◯番、答え」と言い、司会者が判定する
         const isPanel = qs.some(q => q && q.panel && (q.type === 'choice' || String(q.type || '').startsWith('multi')));
         const autoJudge = this.AUTO_JUDGE_TYPES.includes(firstType) && !isDobon && !isPanel;
-        // 答え方 — 口頭（出題者が判定）／手書き（出題者が判定）／ボタン（自動で判定）
+        // 答え方 — 口頭（司会者が判定）／手書き（司会者が判定）／ボタン（自動で判定）
         const answerBy = (isOral || isPanel) ? 'oral' : (autoJudge || isDobon || isBlackjack) ? 'button' : 'written';
         // 早押し × 手書き（一問一答）— 押す順番・判定の仕方・正解後に続けるかを選べる
         const writtenBuzz = ((conf && conf.mode) || 'normal') === 'buzz' && firstType === 'free_written';
@@ -83,12 +83,25 @@ App.RuleEngine = {
         ];
     },
 
+    // 呼び名は全部ここから（遊び方を選ぶ画面・ルール画面・セット設定の一覧・入力画面の札で同じ名前）
+    //   だれが答えるか（解答権）
+    WHO: {
+        buzz: { label: '早押し', sub: '分かった人が押して答える' },
+        normal: { label: '全員で', sub: '全員が同時に答える' },
+        turn: { label: '順番に', sub: '決めた順に1人ずつ' },
+        nominate: { label: '指名して', sub: '司会者が選んだ人が答える' },
+    },
+    WHO_ORDER: ['buzz', 'normal', 'turn', 'nominate'],
+    //   どう答えるか（答え方）
+    HOW: {
+        oral: { label: '口頭', sub: '司会者が聞いて判定' },
+        written: { label: '手書き', sub: '端末に書いて送る' },
+        button: { label: 'ボタン', sub: '手元で選んで自動で判定' },
+    },
     // 答え方の3つ — 問題形式で決まる（口頭と手書きは同じ系統の形式なら切り替えられる）
-    ANSWER_BY: [
-        { value: 'oral', label: '口頭', judge: '出題者が判定' },
-        { value: 'written', label: '手書き', judge: '出題者が判定' },
-        { value: 'button', label: 'ボタン', judge: '自動で判定' },
-    ],
+    get ANSWER_BY() {
+        return ['oral', 'written', 'button'].map(v => ({ value: v, label: this.HOW[v].label, judge: this.HOW[v].sub }));
+    },
 
     // 解答権の3つのまとまり（特定の人＝順番か指名）
     MODE_GROUPS: [
@@ -333,8 +346,8 @@ App.RuleEngine = {
         const c = conf || {};
         const ctx = this.context(c, questions);
         const parts = [];
-        const by = { oral: '口頭で答え、出題者が〇×を判定', written: '手書きで答え、出題者が〇×を判定', button: 'ボタンで答え、自動で判定' }[ctx.answerBy];
-        const who = { normal: '全員が手元で同時に', buzz: '早押しで押した人が', turn: '順番に1人ずつ', nominate: '出題者に指名された人が', solo: '1人で' }[ctx.mode] || '';
+        const by = { oral: '口頭で答え、司会者が〇×を判定', written: '手書きで答え、司会者が〇×を判定', button: 'ボタンで答え、自動で判定' }[ctx.answerBy];
+        const who = { normal: '全員が手元で同時に', buzz: '早押しで押した人が', turn: '順番に1人ずつ', nominate: '司会者に指名された人が', solo: '1人で' }[ctx.mode] || '';
         parts.push(`${who}${by}。`);
         if (this.readAloud(c, ctx)) parts.push('問題文は画面に出さず司会者が読み上げ、モニターには得点だけ。');
         // 正解

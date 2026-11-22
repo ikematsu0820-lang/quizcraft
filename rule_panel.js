@@ -62,7 +62,7 @@ App.RulePanel = {
         const RE = this.RE();
         const hidden = RE.modes(ctx).filter(m => ['buzz', 'turn', 'nominate'].includes(m.value) && m.disabled && m.reason && !ctx.isDobon && !ctx.isBlackjack);
         if (hidden.length) {
-            const name = { buzz: '早押し', turn: '順番', nominate: '指名' };
+            const name = { buzz: RE.WHO.buzz.label, turn: RE.WHO.turn.label, nominate: RE.WHO.nominate.label };
             const reasons = [...new Set(hidden.map(m => m.reason))];
             return `<p class="rp-why">${reasons.map(r => `${hidden.filter(m => m.reason === r).map(m => name[m.value]).join('・')}：${r}`).join('<br>')}</p>`;
         }
@@ -135,21 +135,12 @@ App.RulePanel = {
             return { value: a.value, label: a.label, sub: a.judge, disabled, why };
         });
 
-        // 解答権
+        // 解答権 — 遊び方を選ぶ画面と同じ4つ（早押し／全員で／順番に／指名して）を1段で
         const modes = RE.modes(ctx);
         const allowed = (m) => { const x = modes.find(y => y.value === m); return !!(x && !x.disabled && !x.hidden); };
-        const group = RE.groupOfMode(conf.mode);
         const whyOf = (m) => { const x = modes.find(y => y.value === m); return (x && x.reason) || 'この形式では使えません'; };
-        const groupTiles = RE.MODE_GROUPS.map(g => ({
-            value: g.value, label: g.label, sub: g.sub,
-            disabled: !g.modes.some(allowed),
-            why: whyOf(g.modes[0]),
-        }));
-        // 順番・指名は、選べない時も消さずに灰色で出す（理由は下に1行）
-        const specificTiles = [
-            { value: 'turn', label: '順番', sub: '決めた順に1人ずつ', disabled: !allowed('turn'), why: whyOf('turn') },
-            { value: 'nominate', label: '指名', sub: '出題者が選んだ人', disabled: !allowed('nominate'), why: whyOf('nominate') },
-        ];
+        const modeTiles = RE.WHO_ORDER.map(m => ({ value: m, label: RE.WHO[m].label, sub: RE.WHO[m].sub, disabled: !allowed(m), why: whyOf(m) }));
+        const groupTiles = modeTiles.map(t => Object.assign({}, t, { value: t.value === 'normal' ? 'all' : t.value }));
 
         const modeNote = {
             normal: '全員が手元の端末で同時に答えます。',
@@ -175,15 +166,14 @@ App.RulePanel = {
         }
         // パネル（パネル指名・パネルクイズ）は口頭で「◯番、答え」と言う形式 — 答え方は選ばない
         const answerHtml = ctx.isPanel
-            ? `${this.head('答え方')}<p class="rule-basic-note">パネルは、答える人が口で「◯番、答え」と言い、司会者が〇×を付けます。</p>`
+            ? `${this.head('どう答える')}<p class="rule-basic-note">パネルは、答える人が口で「◯番、答え」と言い、司会者が〇×を付けます。</p>`
             : this.answerByHtml(answerTiles, by, ctx);
         box.innerHTML = `
-            ${answerHtml}
-            ${this.head('解答権（だれが答えるか）')}
-            ${this.tiles('group', groupTiles.filter(t => !t.disabled || t.value === group), group)}
+            ${this.head('だれが答える')}
+            ${this.tiles('mode', modeTiles.filter(t => !t.disabled || t.value === conf.mode), conf.mode)}
             ${this.retryHint(ctx, groupTiles)}
-            ${group === 'specific' && specificTiles.filter(t => !t.disabled).length > 1 ? this.tiles('specific', specificTiles.filter(t => !t.disabled || t.value === conf.mode), conf.mode) : ''}
             <p class="rule-basic-note">${modeNote}</p>
+            ${answerHtml}
             <div id="rp-mode-detail"></div>
             ${ctx.writtenBuzz ? this.writtenBuzzHtml(conf) : ''}
             ${/^free/.test((window.App.Creator && window.App.Creator.currentType) || ctx.firstType || '') ? `
@@ -217,28 +207,20 @@ App.RulePanel = {
             if (ms) ms.value = m;
             this.changed();
         };
-        box.querySelectorAll('[data-rp="group"]').forEach(b => {
-            b.onclick = () => {
-                const g = RE.MODE_GROUPS.find(x => x.value === b.dataset.val);
-                if (!g || g.modes.includes(conf.mode)) return;
-                const m = g.modes.find(allowed);
-                if (m) setMode(m);
-            };
-        });
-        box.querySelectorAll('[data-rp="specific"]').forEach(b => {
-            b.onclick = () => { if (b.dataset.val !== conf.mode) setMode(b.dataset.val); };
+        box.querySelectorAll('[data-rp="mode"]').forEach(b => {
+            b.onclick = () => { if (b.dataset.val !== conf.mode && allowed(b.dataset.val)) setMode(b.dataset.val); };
         });
     },
 
     // 答え方 — 形式で決まる物は出さない。選べるのが1つだけなら、タイルではなく1行で伝える
     answerByHtml: function (tiles, by, ctx) {
         const open = tiles.filter(t => !t.disabled || t.value === by);
-        if (open.length > 1) return `${this.head('答え方')}${this.tiles('answerBy', open, by)}`;
+        if (open.length > 1) return `${this.head('どう答える')}${this.tiles('answerBy', open, by)}`;
         const cur = tiles.find(t => t.value === by) || open[0];
         const why = by === 'button'
-            ? 'この形式は、手元のボタンで答えて自動で判定します。'
-            : by === 'oral' ? 'この形式は、口で答えて出題者が判定します。' : 'この形式は、手書きで答えて出題者が判定します。';
-        return `${this.head('答え方')}<p class="rp-fixed"><b>${cur ? cur.label : ''}</b><span>${why}</span></p>`;
+            ? 'この形式は、手元で選んで自動で判定します。'
+            : by === 'oral' ? 'この形式は、口頭で答えて司会者が判定します。' : 'この形式は、手書きで答えて司会者が判定します。';
+        return `${this.head('どう答える')}<p class="rp-fixed"><b>${cur ? cur.label : ''}</b><span>${why}</span></p>`;
     },
 
     // ---------------------------------------------------------
@@ -308,7 +290,7 @@ App.RulePanel = {
             const n = parseInt(conf.firstN) || 1;
             const pts = conf.firstPts !== undefined && conf.firstPts !== '' ? conf.firstPts : 1;
             basic = this.row('先着', `<div style="display:flex; gap:10px; flex-wrap:wrap;">${this.num('rp-first-n', n, '人まで', { min: 1 })}${this.num('rp-first-pts', pts, '点')}</div>`)
-                + this.note(ctx.mode === 'normal' ? '全員同時の時は、ボタンを押した速さで先着を決めます（出題者が判定する形式では、〇を付けた順）。' : '1人ずつ答える解答権では、その問題で〇になった順で数えます。');
+                + this.note(ctx.mode === 'normal' ? '全員同時の時は、ボタンを押した速さで先着を決めます（司会者が判定する形式では、〇を付けた順）。' : '1人ずつ答える解答権では、その問題で〇になった順で数えます。');
         } else if (st === 'ranked') {
             basic = this.note('今は、速い順に傾斜した点にしています。点の決め方は「時間」のタブの「速さで競う」で変えられます（上のどれかを選ぶと傾斜をやめます）。');
         } else {

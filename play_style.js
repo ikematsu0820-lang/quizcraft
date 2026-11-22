@@ -21,15 +21,19 @@ App.PlayStyle = {
         sort: { name: '並べ替え', who: ['all', 'nominate', 'buzz', 'turn'], score: true, q: { type: 'sort' } },
         multi_group: { name: '多答クイズ', who: ['turn', 'buzz', 'nominate'], how: true, base: 'multi' },
     },
-    WHO: {
-        buzz: { label: '早押し', sub: '分かった人が押して答える', mode: 'buzz' },
-        all: { label: '全員で', sub: '全員が同時に答える', mode: 'normal' },
-        turn: { label: '順番に', sub: '決めた順に1人ずつ', mode: 'turn' },
-        nominate: { label: '指名して', sub: '司会者が選んだ人が答える', mode: 'nominate' },
+    // 呼び名は rule_engine.js（WHO・HOW）と同じ — ルール画面・セット設定の一覧とそろえる
+    get WHO() {
+        const R = window.App.RuleEngine.WHO;
+        return {
+            buzz: Object.assign({ mode: 'buzz' }, R.buzz),
+            all: Object.assign({ mode: 'normal' }, R.normal),
+            turn: Object.assign({ mode: 'turn' }, R.turn),
+            nominate: Object.assign({ mode: 'nominate' }, R.nominate),
+        };
     },
-    HOW: {
-        oral: { label: '口で', sub: '司会者が聞いて判定' },
-        written: { label: '手書きで', sub: '端末に書いて送る' },
+    get HOW() {
+        const R = window.App.RuleEngine.HOW;
+        return { oral: R.oral, written: R.written };
     },
     AFTER: {
         end: { label: '終わり', sub: '一番早い正解で次の問題へ' },
@@ -46,13 +50,16 @@ App.PlayStyle = {
     whoState: function (fmt, sel) {
         const f = this.FORMATS[fmt];
         const RE = window.App.RuleEngine;
-        return f.who.map(k => {
+        // 並びはルール画面と同じ（早押し・全員で・順番に・指名して）、選べない物は後ろ
+        const ORDER = ['buzz', 'all', 'turn', 'nominate'];
+        const list = f.who.map(k => {
             const how = f.fixedHow || (f.how && k === 'all' ? 'written' : sel.how) || 'oral';
             const q = f.q || { type: `${f.base}_${how}` };
             if (!RE) return { k, ok: true, why: '' };
             const m = RE.modes(RE.context({ mode: this.WHO[k].mode }, [q])).find(x => x.value === this.WHO[k].mode);
             return { k, ok: !!(m && !m.disabled && !m.hidden), why: (m && m.reason) || '' };
         });
+        return list.sort((a, b) => (b.ok - a.ok) || (ORDER.indexOf(a.k) - ORDER.indexOf(b.k)));
     },
 
     // 今の選び方から、ルールの値を作る
@@ -106,11 +113,11 @@ App.PlayStyle = {
                         <div class="ps-title"><span class="ps-format">${f.name}</span>遊び方を選んでください</div>
                     </div>
                     <div class="ps-step"><div class="ps-step-k"><b>1</b>だれが答える</div>
-                        ${opts('who', f.who.map(k => [k, this.WHO[k]]), sel.who, (v) => !(ws.find(w => w.k === v) || {}).ok)}
+                        ${opts('who', ws.map(w => [w.k, this.WHO[w.k]]), sel.who, (v) => !(ws.find(w => w.k === v) || {}).ok)}
                         ${off.length ? `<p class="ps-step-note">${[...new Set(off.map(w => w.why))].filter(Boolean).map(why => `${off.filter(w => w.why === why).map(w => this.WHO[w.k].label).join('・')}：${why}`).join('<br>')}</p>` : ''}</div>
                     ${f.how ? `<div class="ps-step"><div class="ps-step-k"><b>2</b>どう答える</div>
                         ${opts('how', Object.entries(this.HOW), sel.how, (v) => howLocked && v === 'oral')}
-                        ${howLocked ? '<p class="ps-step-note">全員が同時に口で答えると聞き取れないので、手書きで答えます</p>' : ''}</div>` : ''}
+                        ${howLocked ? '<p class="ps-step-note">全員が同時に口頭で答えると聞き取れないので、手書きで答えます</p>' : ''}</div>` : ''}
                     ${f.fixedHow ? `<p class="ps-step-note">${f.howNote}</p>` : ''}
                     ${showAfter ? `<div class="ps-step"><div class="ps-step-k"><b>3</b>正解が出たら</div>
                         ${opts('after', Object.entries(this.AFTER), sel.after)}</div>` : ''}
@@ -174,8 +181,8 @@ App.PlayStyle = {
         const ctx = RE.context(conf, qs);
         if (ctx.isDobon) return 'ダウト（順番に回す）';
         if (ctx.isBlackjack) return '数字予想（順番に回す）';
-        const who = { normal: '全員で', buzz: '早押し', turn: '順番に', nominate: '指名して', solo: '1人で' }[ctx.mode] || '';
-        const by = { oral: '口頭', written: '手書き', button: 'ボタン' }[ctx.answerBy] || '';
+        const who = ctx.mode === 'solo' ? '1人で' : ((RE.WHO[ctx.mode] || {}).label || '');
+        const by = (RE.HOW[ctx.answerBy] || {}).label || '';
         let s = `${who}・${by}`;
         if (ctx.writtenBuzz && ctx.wbContinue) s = '早押し・手書き・抜けて続ける';
         if (ctx.isPanel) s = `パネル・${who}`;
