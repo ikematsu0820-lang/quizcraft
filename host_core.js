@@ -418,7 +418,7 @@ window.App.bindEvents = function () {
             const creatorView = document.getElementById('creator-view');
             if (creatorView && !creatorView.classList.contains('hidden')
                 && window.App.Creator && window.App.Creator.hasUnsavedWork && window.App.Creator.hasUnsavedWork()) {
-                if (!(await window.App.Dialog.confirm('保存されていない問題があります。このまま離れると内容が失われます。\n（「リストに追加」「リストを保存する」を押すと保存されます）', { ok: '保存せずに離れる', cancel: '画面に残る', danger: true }))) {
+                if (!(await window.App.Dialog.confirm(`保存されていない問題があります。このまま離れると内容が失われます。\n（「${window.App.Creator.btnNames().save}」を押すと保存されます）`, { ok: '保存せずに離れる', cancel: '画面に残る', danger: true }))) {
                     return;
                 }
             }

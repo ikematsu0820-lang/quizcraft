@@ -850,7 +850,7 @@ window.App.Creator = {
         });
         if (changed > 0) {
             this.renderList();
-            window.App.Ui.showToast(`セット内の${changed}問を「${suffix === 'oral' ? '口頭で答える' : '手書きで答える'}」に変更しました（リストを保存すると確定します）`);
+            window.App.Ui.showToast(`セット内の${changed}問を「${suffix === 'oral' ? '口頭で答える' : '手書きで答える'}」に変更しました（「${this.btnNames().save}」で確定します）`);
         }
     },
 
@@ -2769,7 +2769,7 @@ ${spec.memo}" style="
         if (!list) return;
         const questions = window.App.Data.createdQuestions;
         if (questions.length === 0) {
-            list.innerHTML = '<p style="color:#666; font-size:0.8rem; text-align:center; padding:20px 0;">まだ問題がありません。問題文を入力して、「リストに追加」するとここに表示されます。</p>';
+            list.innerHTML = '<p style="color:#666; font-size:0.8rem; text-align:center; padding:20px 0;">まだ問題がありません。問題文を入力して、「' + this.btnNames().add + '」するとここに表示されます。</p>';
             return;
         }
 
@@ -2818,6 +2818,12 @@ ${spec.memo}" style="
 
     // 保存 — 押したらすぐ「保存しています」を出し、失敗・通信の遅れ・途中のエラーは必ず画面に出す
     //   （何も出ないと「押しても反応しない」ように見えるため）
+    // 画面にあるボタンの名前（案内の文で使う）— PCとスマホで違う
+    btnNames: function () {
+        const M = window.App.CreatorMobile;
+        return (M && M.isMobile && M.isMobile()) ? { add: '追加して次の問題へ', save: '保存して完了' } : { add: 'リストに追加', save: 'リストを保存する' };
+    },
+
     save: async function () {
         if (this._saving) { window.App.Ui.showToast('保存しています…'); return; }
         this._saving = true;
