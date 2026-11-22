@@ -300,7 +300,26 @@ App.Territory = {
     },
 };
 
+// 問題を書く画面の案内 — 陣取りは盤面のマスと問題が結びつかないので、それを最初に伝える
+App.Territory.creatorGuide = function () {
+    const view = document.getElementById('creator-view');
+    const wrap = document.getElementById('creator-editor-wrap');
+    let el = document.getElementById('tp-guide');
+    const conf = (window.App.Data && window.App.Data.currentConfig) || {};
+    const on = view && !view.classList.contains('hidden') && this.isOn(conf) && wrap;
+    if (!on) { el?.remove(); return; }
+    const { rows, cols } = this.size(conf);
+    const n = (window.App.Data.createdQuestions || []).length;
+    const html = `<b>陣取りパネル（${rows}×${cols}＝${rows * cols}マス）</b>
+        <span>ここには、ふつうの一問一答の問題を1問ずつ書きます。マスと問題は結びついていません。</span>
+        <span>出題中に正解した人が、空いているマスを1つ選んで取ります。盤面を埋めるには、${rows * cols}問くらいが目安です（今 ${n}問）。</span>
+        <span>盤面の大きさは「セットの設定」の「勝ち方」で変えられます。</span>`;
+    if (!el) { el = document.createElement('div'); el.id = 'tp-guide'; }
+    if (el.parentNode !== wrap.parentNode || el.nextSibling !== wrap) wrap.parentNode.insertBefore(el, wrap);
+    if (el.innerHTML !== html) el.innerHTML = html;
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     App.Territory.hookStudio();
-    setInterval(() => { try { App.Territory.watch(); App.Territory.ensureHostButton(); } catch (e) { /* noop */ } }, 700);
+    setInterval(() => { try { App.Territory.watch(); App.Territory.ensureHostButton(); App.Territory.creatorGuide(); } catch (e) { /* noop */ } }, 700);
 });

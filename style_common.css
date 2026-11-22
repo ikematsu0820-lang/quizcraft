@@ -1250,3 +1250,7 @@ body.tp-open :is(#unified-toggle-container, #test-view-dock) { display: none !im
 [data-theme-id="newspaper"][data-theme-id="newspaper"] :is(*, #x) .cs-item { border: 0.25cqh solid #1a1a1a !important; background: #faf6ec !important; }
 [data-theme-id="newspaper"][data-theme-id="newspaper"] #viewer-main-text.cs-framed::before { border-radius: 0 !important; border-width: 0.5cqh !important; border-style: double !important; border-color: #1a1a1a !important; box-shadow: none !important; inset: 1.4cqh !important; }
 [data-theme-id="newspaper"][data-theme-id="newspaper"] #viewer-main-text.cs-framed::after { border-radius: 0 !important; background: #1a1a1a !important; text-shadow: none !important; font-family: var(--theme-font, serif); letter-spacing: 0.4em; }
+/* 陣取りの問題を書く画面の案内（territory.js creatorGuide） */
+#tp-guide { display: flex; flex-direction: column; gap: 4px; margin: 0 0 12px; padding: 12px 14px; border-radius: 12px; background: #16161a; box-shadow: inset 3px 0 0 #f59e0b; color: #c9c9cf; font-size: 0.82rem; line-height: 1.55; }
+#tp-guide b { color: #fbbf24; font-size: 0.9rem; }
+#creator-view:not(.cm-edit):not(.cp-on) #tp-guide { display: none; }
