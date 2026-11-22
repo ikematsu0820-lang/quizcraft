@@ -795,6 +795,38 @@ App.CreatorInput = {
         this.segmentSelects(document.getElementById('creator-outside-opts'));
     },
 
+    // PCの問題の入力画面も、テーマの書体・色・飾り・背景は映さない（本番と同じ見た目だと思って編集しないように）。
+    //   本番の見え方は「本番の見え方」で確かめる。タイトル・ブリッジ・結果の画面は見た目のプレビューなのでそのまま。
+    pcPlain: function () {
+        const M = window.App.CreatorMobile;
+        if (M && M.isMobile()) return;
+        const C = window.App.Creator;
+        const preview = document.getElementById('creator-monitor-preview');
+        if (!preview) return;
+        const on = !C || !C.previewSlide || C.previewSlide === 'question';
+        preview.classList.toggle('cp-plain', on);
+        if (!on) return;
+        const set = (el, props) => { if (el) Object.entries(props).forEach(([k, v]) => el.style.setProperty(k, v, 'important')); };
+        set(preview, { 'background-image': 'none', 'background-color': '#111114' });
+        [...preview.classList].forEach(c => { if (/^(qskin-|cskin|cpal-|cs-framed$|cvf$)/.test(c)) preview.classList.remove(c); });
+        preview.removeAttribute('data-frame-title');
+        document.querySelector('#creator-monitor-q-area > .qs-num')?.remove();
+        // テーマの書体・文字の飾りを外す（theme_presets.js applyToElement の印）
+        [preview, ...preview.querySelectorAll('.theme-font, .tfx-q, .tfx-c, .tfx-b')].forEach(el => {
+            el.classList.remove('theme-font', 'tfx-q', 'tfx-c', 'tfx-b', 'tfx-fill');
+        });
+        let p = preview.parentElement;
+        while (p && p !== document.body) { p.classList.remove('theme-font', 'tfx-q', 'tfx-c', 'tfx-b', 'tfx-fill'); p = p.parentElement; }
+        set(document.getElementById('creator-monitor-q-area'), { 'border-color': '#2c2c33', 'background-color': '#1b1b20', 'box-shadow': 'none' });
+        const qText = document.getElementById('question-text');
+        set(qText, { color: '#fff', 'text-shadow': 'none' });
+        document.querySelectorAll('#creator-form-container .choice-text-input, #creator-form-container .row-input').forEach(el => set(el, { color: '#fff', 'text-shadow': 'none' }));
+        document.querySelectorAll('#creator-form-container .choice-frame, #creator-form-container .row-frame').forEach(f => {
+            f.style.borderColor = 'rgba(255,255,255,0.12)';
+            f.style.background = '#16161a';
+        });
+    },
+
     // スマホでは、選ぶものが少ないプルダウン（2〜3個、または短い言葉の6個まで）を
     // 全部見えるボタンの並びにする。元の select は隠して値を持たせたまま、押したら change を送る。
     segmentSelects: function (root) {
@@ -1143,6 +1175,7 @@ document.addEventListener('DOMContentLoaded', () => {
         C.applyDesignToPreview = function () {
             const r = orig.apply(this, arguments);
             try { App.CreatorInput.plainEditor(); } catch (e) { console.warn('plainEditor', e); }
+            try { App.CreatorInput.pcPlain(); } catch (e) { console.warn('pcPlain', e); }
             return r;
         };
     }

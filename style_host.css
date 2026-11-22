@@ -5893,3 +5893,7 @@ body.mans-open #unified-toggle-container, body.mans-open #test-view-dock { displ
 #host-control-view #console-answer-board > div:first-child[style*="background:#000"] { background: transparent !important; color: #fbbf24 !important; font-size: 15px !important; padding: 2px 4px 6px !important; }
 /* 部屋コードは光らせない */
 #host-control-view #studio-header-room-id { text-shadow: none !important; color: #f59e0b !important; }
+/* PCの問題の入力画面（creator_mobile.js pcPlain）— テーマの書体・飾りを映さない */
+#creator-monitor-preview.cp-plain, #creator-monitor-preview.cp-plain * { font-family: 'M PLUS 1p', 'Hiragino Kaku Gothic ProN', sans-serif !important; -webkit-text-stroke: 0 !important; }
+#creator-monitor-preview.cp-plain :is(input, textarea) { text-shadow: none !important; }
+#creator-monitor-preview.cp-plain #pbq-board :is(.pbq-genre, .pbq-genre-head, .pbq-head) { background: #16161a !important; border-color: #2c2c33 !important; }
