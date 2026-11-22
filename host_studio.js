@@ -420,28 +420,18 @@ App.Studio = {
             });
 
             // Apply Dynamic Gradient based on class
-            if (pcBtn.classList.contains('action-next')) {
-                mobBtn.style.background = 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)'; // Green for Next
-                mobBtn.style.boxShadow = '0 4px 15px rgba(46, 204, 113, 0.4)';
-            } else if (pcBtn.classList.contains('action-stop')) {
-                mobBtn.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)'; // Red for Stop
-                mobBtn.style.boxShadow = '0 4px 15px rgba(231, 76, 60, 0.4)';
-            } else if (pcBtn.classList.contains('action-ready')) {
-                mobBtn.style.background = 'linear-gradient(135deg, #f59e0b 0%, #b45309 100%)'; // Blue for Ready/Start
-                mobBtn.style.boxShadow = '0 4px 15px rgba(245, 158, 11, 0.4)';
-            } else {
-                mobBtn.style.background = '#444'; // Default Grey
-                mobBtn.style.boxShadow = 'none';
-            }
+            // 色は1つ（アンバー）にそろえる — 止める操作だけ赤、押せない時は暗く
+            const stop = pcBtn.classList.contains('action-stop');
+            mobBtn.style.background = stop ? '#b91c1c' : 'linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%)';
+            mobBtn.style.boxShadow = stop ? 'none' : '0 6px 18px rgba(245, 158, 11, 0.25), inset 0 1px 0 rgba(255,255,255,0.35)';
+            mobBtn.style.color = stop ? '#fff' : '#1b1300';
 
             // Sync disabled state
             mobBtn.disabled = pcBtn.disabled;
             if (mobBtn.disabled) {
-                mobBtn.style.background = '#333';
-                mobBtn.style.color = '#777';
+                mobBtn.style.background = '#1b1b20';
+                mobBtn.style.color = '#55555e';
                 mobBtn.style.boxShadow = 'none';
-            } else {
-                mobBtn.style.color = '#fff';
             }
         }
     },
@@ -3600,12 +3590,11 @@ App.Studio = {
             const selected = this._deskSelected === p.id;
             const glow = answered && !res;
             btn.style.cssText = `
-                width:100%; padding:12px 6px; border-radius:12px; cursor:pointer; font-weight:900; font-size:15px;
-                overflow:hidden; text-overflow:ellipsis; white-space:nowrap; transition:all 0.2s;
-                color:${glow ? '#fff' : res === 'win' ? '#bbf7d0' : res === 'lose' ? '#8b8b95' : '#ddd'};
-                background:${glow ? 'linear-gradient(135deg,#ef4444,#b91c1c)' : res === 'win' ? 'rgba(34,197,94,0.18)' : '#222'};
-                border:2px solid ${selected ? '#f59e0b' : glow ? '#fca5a5' : '#444'};
-                box-shadow:${glow ? '0 0 14px rgba(239,68,68,0.75)' : 'none'};
+                width:100%; padding:12px 8px; border-radius:10px; cursor:pointer; font-weight:800; font-size:15px; border:none;
+                overflow:hidden; text-overflow:ellipsis; white-space:nowrap; transition:all 0.2s; text-align:left;
+                color:${glow ? '#fbbf24' : res === 'win' ? '#86efac' : res === 'lose' ? '#6b6b74' : '#c9c9cf'};
+                background:${glow ? '#2a1d05' : res === 'win' ? 'rgba(34,197,94,0.12)' : '#1b1b20'};
+                box-shadow:${selected ? 'inset 0 0 0 2px #f59e0b' : glow ? 'inset 0 0 0 1px rgba(245,158,11,0.5)' : 'none'};
             `;
             btn.textContent = (res === 'win' ? '〇 ' : res === 'lose' ? '✕ ' : '') + (p.name || '---');
             if (isWriting(p)) {
@@ -3627,7 +3616,7 @@ App.Studio = {
         const sel = sortedPlayers.find(p => p.id === this._deskSelected) || null;
         if (!sel) {
             const anyAnswered = sortedPlayers.some(p => hasAns(p) && !resultOf(p));
-            board.innerHTML = `<div style="flex:1; display:flex; align-items:center; justify-content:center; color:#666; font-size:14px; text-align:center;">${anyAnswered ? '赤く光っている名前を押すと<br>解答が表示されます' : '回答待ち'}</div>`;
+            board.innerHTML = `<div style="flex:1; display:flex; align-items:center; justify-content:center; color:#666; font-size:14px; text-align:center;">${anyAnswered ? '光っている名前を押すと<br>解答が表示されます' : '回答待ち'}</div>`;
         } else {
             const ans = sel.lastAnswer;
             const noData = (ans === null || ans === undefined || ans === '');
@@ -3658,10 +3647,10 @@ App.Studio = {
         const canJudge = !!(sel && hasAns(sel) && !resultOf(sel));
         const selRes = resultOf(sel);
         judge.innerHTML = `
-            <div style="color:#8b8b95; font-size:12px; font-weight:bold;">判定</div>
+            <div style="color:#8b8b95; font-size:11px; font-weight:800; letter-spacing:0.08em;">判定</div>
             <div style="display:flex; gap:8px;">
-                <button type="button" data-desk-judge="1" style="width:52px; height:64px; border:none; border-radius:10px; font-size:28px; font-weight:900; color:#fff; cursor:${canJudge ? 'pointer' : 'default'}; background:#22a55a; opacity:${canJudge ? 1 : 0.3};">〇</button>
-                <button type="button" data-desk-judge="0" style="width:52px; height:64px; border:none; border-radius:10px; font-size:28px; font-weight:900; color:#fff; cursor:${canJudge ? 'pointer' : 'default'}; background:#c0392b; opacity:${canJudge ? 1 : 0.3};">✕</button>
+                <button type="button" data-desk-judge="1" style="width:56px; height:64px; border:none; border-radius:10px; font-size:28px; font-weight:900; cursor:${canJudge ? 'pointer' : 'default'}; color:${canJudge ? '#fff' : '#3f3f46'}; background:${canJudge ? '#16a34a' : '#1b1b20'};">〇</button>
+                <button type="button" data-desk-judge="0" style="width:56px; height:64px; border:none; border-radius:10px; font-size:28px; font-weight:900; cursor:${canJudge ? 'pointer' : 'default'}; color:${canJudge ? '#fff' : '#3f3f46'}; background:${canJudge ? '#dc2626' : '#1b1b20'};">✕</button>
             </div>
             ${selRes ? `<div style="color:${selRes === 'win' ? '#4ade80' : '#f87171'}; font-size:12px; font-weight:bold; text-align:center;">${selRes === 'win' ? '正解にしました' : '不正解にしました'}</div>` : ''}`;
         judge.querySelectorAll('[data-desk-judge]').forEach(b => {
