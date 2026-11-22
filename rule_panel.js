@@ -52,6 +52,8 @@ App.RulePanel = {
         if (max !== undefined) n = Math.min(max, n);
         return n;
     },
+    note: function (t) { return t ? `<p class="rule-adv-note">${t}</p>` : ''; },
+
     // ---------------------------------------------------------
     // 全体
     // ---------------------------------------------------------
