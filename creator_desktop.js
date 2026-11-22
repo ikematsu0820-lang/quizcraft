@@ -46,7 +46,7 @@ App.CreatorDesktop = {
                     <button type="button" id="cp-preview-btn" class="cp-preview-btn">本番の見え方</button>
                 </div>
                 <div id="cp-center-slot"></div>
-                <div class="cp-shortcuts">Ctrl / ⌘ + Enter：追加・更新　　Ctrl / ⌘ + S：保存</div>
+                <div class="cp-shortcuts">Ctrl / ⌘ + Enter：追加して次へ（直して次へ）　　Ctrl / ⌘ + S：追加して完了</div>
             </section>
             <aside id="cp-right">
                 <div class="cp-tabs" role="tablist">
@@ -139,7 +139,7 @@ App.CreatorDesktop = {
         const el = document.getElementById('cp-edit-title');
         if (!el) return;
         const qs = window.App.Data.createdQuestions || [];
-        el.textContent = C.editingIndex === null ? `新しい問題（Q${qs.length + 1}）` : `Q${C.editingIndex + 1} を編集中`;
+        el.textContent = C.editingIndex === null ? `新しい問題（Q${qs.length + 1}）` : `Q${C.editingIndex + 1} を編集`;
     },
 
     // ---------------------------------------------------------
@@ -164,7 +164,7 @@ App.CreatorDesktop = {
         }
 
         if (!qs.length) {
-            box.innerHTML = '<div class="cp-empty">まだ問題がありません。<br>中央のプレビューに入力して<br>「リストに追加」してください。</div>';
+            box.innerHTML = '<div class="cp-empty">まだ問題がありません。<br>中央に入力して<br>「追加して次へ」を押してください。</div>';
         } else {
             box.innerHTML = qs.map((q, i) => {
                 const missing = check ? check.missing(q) : [];
@@ -214,7 +214,7 @@ App.CreatorDesktop = {
         if (C.editingIndex !== null) return true; // 既存の問題は C.edit() が自動で反映する
         const text = (document.getElementById('question-text')?.value || '').trim();
         if (!text) return true;
-        if (!(await window.App.Dialog.confirm('書きかけの問題があります。リストに追加してから移動しますか？\n（「追加しない」を選ぶと、書きかけの内容は消えます）', { ok: '追加して移動', cancel: '追加しない' }))) return true;
+        if (!(await window.App.Dialog.confirm('書きかけの問題があります。追加してから移動しますか？\n（「追加しない」を選ぶと、書きかけの内容は消えます）', { ok: '追加して移動', cancel: '追加しない' }))) return true;
         const before = qs.length;
         C.add();
         return qs.length > before;
@@ -252,11 +252,11 @@ App.CreatorDesktop = {
         const C = this.C();
         if (e.key === 'Enter') {
             e.preventDefault();
-            if (C.editingIndex !== null) C.update(); else C.add();
+            if (C.editingIndex !== null) C.updateAndNext(); else C.add();
             setTimeout(() => document.getElementById('question-text')?.focus(), 30);
         } else if (e.key === 's' || e.key === 'S') {
             e.preventDefault();
-            C.save();
+            if (window.App.CreatorMobile && window.App.CreatorMobile.finish) window.App.CreatorMobile.finish(); else C.save();
         }
     },
 };

@@ -207,7 +207,7 @@ App.SetMerge = {
         b.type = 'button';
         b.id = 'sm-pc-btn';
         b.className = 'sm-pc-btn';
-        b.textContent = '別のセットから取り込む';
+        b.textContent = '別のセットから問題を取り込む';
         b.onclick = () => App.SetMerge.open();
         nb.after(b);
     };

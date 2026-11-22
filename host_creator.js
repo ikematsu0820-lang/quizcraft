@@ -343,8 +343,7 @@ window.App.Creator = {
 
         document.getElementById('creator-form-title').textContent = APP_TEXT.Creator.HeadingNewQ;
         document.getElementById('add-question-btn')?.classList.remove('hidden');
-        const inlineAddBtn = document.getElementById('creator-inline-add-btn');
-        if (inlineAddBtn) inlineAddBtn.textContent = APP_TEXT.Creator.BtnAdd;
+        this.syncActionLabels();
         document.getElementById('question-text').value = '';
 
         const sel = document.getElementById('creator-q-type');
@@ -2730,8 +2729,7 @@ ${spec.memo}" style="
         const q = window.App.Data.createdQuestions[index];
         document.getElementById('creator-form-title').textContent = APP_TEXT.Creator.HeadingEditQ;
         document.getElementById('add-question-btn')?.classList.add('hidden');
-        const inlineAddBtn = document.getElementById('creator-inline-add-btn');
-        if (inlineAddBtn) inlineAddBtn.textContent = APP_TEXT.Creator.BtnUpdateQ;
+        this.syncActionLabels();
         document.getElementById('question-text').value = q.q;
         const titleEl = document.getElementById('question-title');
         if (titleEl) titleEl.value = q.title || '';
@@ -2818,10 +2816,31 @@ ${spec.memo}" style="
 
     // 保存 — 押したらすぐ「保存しています」を出し、失敗・通信の遅れ・途中のエラーは必ず画面に出す
     //   （何も出ないと「押しても反応しない」ように見えるため）
-    // 画面にあるボタンの名前（案内の文で使う）— PCとスマホで違う
+    // 画面にあるボタンの名前（案内の文で使う）— PCとスマホで同じ（スマホの一覧の保存だけ「保存して完了」）
     btnNames: function () {
         const M = window.App.CreatorMobile;
-        return (M && M.isMobile && M.isMobile()) ? { add: '追加して次へ', save: '保存して完了' } : { add: 'リストに追加', save: 'リストを保存する' };
+        return (M && M.isMobile && M.isMobile()) ? { add: '追加して次へ', save: '保存して完了' } : { add: '追加して次へ', save: '追加して完了' };
+    },
+    // PCの下の2つのボタンの名前（スマホの入力画面の下のバーと同じ）
+    syncActionLabels: function () {
+        const editing = this.editingIndex !== null;
+        const add = document.getElementById('creator-inline-add-btn');
+        if (add) add.textContent = editing ? '直して次へ' : '追加して次へ';
+        const save = document.getElementById('creator-inline-save-btn');
+        if (save) {
+            const label = editing ? '直して完了' : '追加して完了';
+            const span = save.querySelector('span');
+            if (span) span.textContent = label; else save.lastChild.textContent = label;
+        }
+    },
+    // 「直して次へ」— 直したら、次の問題を開く（最後なら新しい問題）
+    updateAndNext: function () {
+        const i = this.editingIndex;
+        this.update();
+        if (this.editingIndex !== null) return; // 入力不足
+        const qs = window.App.Data.createdQuestions || [];
+        if (i !== null && i + 1 < qs.length) this.edit(i + 1);
+        if (window.App.CreatorDesktop && window.App.CreatorDesktop.renderList) window.App.CreatorDesktop.renderList();
     },
 
     save: async function () {
@@ -2977,10 +2996,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Shortcuts inside the 問題編集 inline panel, so add/save are reachable
     // without leaving that panel or opening the cart modal.
     document.getElementById('creator-inline-add-btn')?.addEventListener('click', () => {
-        if (window.App.Creator.editingIndex !== null) window.App.Creator.update();
+        if (window.App.Creator.editingIndex !== null) window.App.Creator.updateAndNext();
         else window.App.Creator.add();
     });
-    document.getElementById('creator-inline-save-btn')?.addEventListener('click', () => window.App.Creator.save());
+    // 「追加して完了」— この問題を入れて、そのままセットを保存（スマホと同じ動き）
+    document.getElementById('creator-inline-save-btn')?.addEventListener('click', () => {
+        if (window.App.CreatorMobile && window.App.CreatorMobile.finish) window.App.CreatorMobile.finish();
+        else window.App.Creator.save();
+    });
 
     document.getElementById('cancel-update-btn')?.addEventListener('click', () => window.App.Creator.resetForm());
     document.getElementById('save-to-cloud-btn')?.addEventListener('click', () => window.App.Creator.save());

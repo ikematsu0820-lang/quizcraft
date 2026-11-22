@@ -53,16 +53,16 @@ App.CreatorMobile = {
             <div id="cm-warn" class="cm-warn hidden"></div>
             <div class="cm-section-head">セットの設定<span>タップで変更</span></div>
             <div id="cm-settings"></div>
-            <div class="cm-section-head">問題</div>
+            <div class="cm-section-head">問題一覧</div>
             <div id="cm-qcards"></div>
             <div class="cm-add-row">
-                <button type="button" id="cm-add-btn" class="cm-add-card">＋ 問題を追加</button>
+                <button type="button" id="cm-add-btn" class="cm-add-card">＋ 新しい問題</button>
                 <button type="button" id="cm-bulk-btn" class="cm-ghost-btn">メモのようにまとめて入力</button>
             </div>
             <div id="cm-list-bar" class="cm-bottom-bar">
                 <button type="button" data-cm-sheet="design" class="cm-bar-btn">${window.App.Icons.svg('palette')}<span>見た目</span></button>
                 <button type="button" data-cm-sheet="rules" class="cm-bar-btn">${window.App.Icons.svg('sliders')}<span>ルール</span></button>
-                <button type="button" id="cm-preview-list-btn" class="cm-bar-btn">${window.App.Icons.svg('monitor')}<span>見る</span></button>
+                <button type="button" id="cm-preview-list-btn" class="cm-bar-btn">${window.App.Icons.svg('monitor')}<span>本番の見え方</span></button>
                 <button type="button" id="cm-save-btn" class="cm-bar-btn cm-primary">保存して完了</button>
             </div>
         `;
@@ -87,8 +87,8 @@ App.CreatorMobile = {
         editBar.id = 'cm-edit-bar';
         editBar.className = 'cm-bottom-bar';
         editBar.innerHTML = `
-            <button type="button" id="cm-preview-btn" class="cm-bar-btn">${window.App.Icons.svg('monitor')}<span>見る</span></button>
-            <button type="button" id="cm-edit-settings-btn" class="cm-bar-btn">${window.App.Icons.svg('sliders')}<span>セット設定</span></button>
+            <button type="button" id="cm-preview-btn" class="cm-bar-btn">${window.App.Icons.svg('monitor')}<span>本番の見え方</span></button>
+            <button type="button" id="cm-edit-settings-btn" class="cm-bar-btn">${window.App.Icons.svg('sliders')}<span>セットの設定</span></button>
             <button type="button" id="cm-done-btn" class="cm-bar-btn cm-done">追加して完了</button>
             <button type="button" id="cm-next-btn" class="cm-bar-btn cm-primary">次の問題へ</button>
         `;
@@ -334,7 +334,7 @@ App.CreatorMobile = {
         document.getElementById('cm-add-btn')?.classList.toggle('hidden', hasBoard);
         document.getElementById('cm-bulk-btn')?.classList.toggle('hidden', boardSet);
         const addBtn = document.getElementById('cm-add-btn');
-        if (addBtn) addBtn.textContent = boardSet ? '＋ 盤面を作る' : '＋ 問題を追加';
+        if (addBtn) addBtn.textContent = boardSet ? '＋ 盤面を作る' : '＋ 新しい問題';
         const count = document.getElementById('cm-count');
         if (count) count.textContent = `${qs.length}問`;
 
@@ -352,7 +352,7 @@ App.CreatorMobile = {
             box.innerHTML = `
                 <div class="cm-empty">
                     <div class="cm-empty-title">最初の問題を作りましょう</div>
-                    <div class="cm-empty-sub">「＋ 問題を追加」から1問ずつ、または「メモのようにまとめて入力」で一気に入れられます。</div>
+                    <div class="cm-empty-sub">「＋ 新しい問題」から1問ずつ、または「メモのようにまとめて入力」で一気に入れられます。</div>
                 </div>`;
             return;
         }
