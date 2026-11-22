@@ -19,7 +19,7 @@ App.PlayStyle = {
         assoc_group: { name: '連想クイズ', who: ['buzz', 'all', 'turn', 'nominate'], how: true, base: 'assoc' },
         choice: { name: '選択式', who: ['all', 'nominate', 'buzz', 'turn'], score: true, q: { type: 'choice' } },
         sort: { name: '並べ替え', who: ['all', 'nominate', 'buzz', 'turn'], score: true, q: { type: 'sort' } },
-        multi_group: { name: '多答クイズ', who: ['turn', 'buzz', 'nominate'], base: 'multi', fixedHow: 'oral', howNote: '答えは口で1つずつ言います' },
+        multi_group: { name: '多答クイズ', who: ['turn', 'buzz', 'nominate'], how: true, base: 'multi' },
     },
     WHO: {
         buzz: { label: '早押し', sub: '分かった人が押して答える', mode: 'buzz' },

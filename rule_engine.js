@@ -76,7 +76,9 @@ App.RuleEngine = {
         return [
             { value: 'normal', label: '全員が同時に手元で解答', disabled: !!normalWhy, reason: normalWhy },
             { value: 'buzz', label: '早く押した人から解答', disabled: !!buzzWhy, reason: buzzWhy },
-            { value: 'nominate', label: '指名された人のみ解答', disabled: turnOnly, reason: turnOnly ? turnOnlyWhy : '' },
+            // 多答（パネルを除く）は早押しか順番で、答えを1つずつ開けていく形式 — 指名は使わない（9月に決めた組み合わせ）
+            { value: 'nominate', label: '指名された人のみ解答', disabled: turnOnly || (ctx.isMulti && !ctx.isPanel),
+              reason: turnOnly ? turnOnlyWhy : (ctx.isMulti && !ctx.isPanel) ? '多答は早押しか順番で、答えを1つずつ開けていく形式です' : '' },
             { value: 'turn', label: '特定の人や順番で解答', disabled: !!turnWhy, reason: turnWhy },
         ];
     },
