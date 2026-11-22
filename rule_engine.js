@@ -359,7 +359,7 @@ App.RuleEngine = {
         let gain;
         if (ctx.isPanel) gain = '解答者は「◯番、答え」とパネルを指名し、正解したらそのパネルの点';
         else if (c.gameType === 'timerace') gain = '正解した数を数える';
-        else if (c.gameType === 'territory') gain = '正解するとパネルを1枚取れる（パネルの枚数が得点）';
+        else if (c.gameType === 'territory') gain = '開いたマスの問題に正解すると、そのマスを取れる（マスの枚数が得点）';
         else if (st === 'ranked') gain = '正解すると速い順に傾斜した点';
         else if (st === 'hint') gain = '正解すると少ないヒントほど高い点';
         else if (st === 'first') gain = `先着${parseInt(c.firstN) || 1}人だけ得点`;

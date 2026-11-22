@@ -19,7 +19,7 @@ App.PlayStyle = {
         assoc_group: { name: '連想クイズ', who: ['buzz', 'all', 'turn', 'nominate'], how: true, base: 'assoc' },
         choice: { name: '選択式', who: ['all', 'turn', 'nominate', 'buzz'], score: true, q: { type: 'choice' } },
         sort: { name: '並べ替え', who: ['all', 'turn', 'nominate', 'buzz'], score: true, q: { type: 'sort' } },
-        territory: { name: '陣取りパネル', who: ['buzz', 'turn'], base: 'free', initType: 'free', game: 'territory', fixedHow: 'oral', howNote: '答えは口頭で言います。正解した人がパネルを1枚取ります' },
+        territory: { name: '陣取りパネル', who: ['buzz'], base: 'free', initType: 'free', game: 'territory', fixedHow: 'oral', howNote: '順番にマスを開き、そのマスの問題を全員で早押し。正解した人がそのマスを取ります' },
         multi_group: { name: '多答クイズ', who: ['turn', 'nominate'], how: true, base: 'multi' },
     },
     // 呼び名は rule_engine.js（WHO・HOW）と同じ — ルール画面・セット設定の一覧とそろえる

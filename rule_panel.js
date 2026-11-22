@@ -364,7 +364,7 @@ App.RulePanel = {
                 <p class="rp-fixed">陣取り：パネルが多い人が勝ち</p>
                 ${this.row('盤面の縦', this.num('rp-tp-rows', sz.rows, '行', { min: 2, max: 8 }))}
                 ${this.row('盤面の横', this.num('rp-tp-cols', sz.cols, '列', { min: 2, max: 8 }))}
-                ${this.note('正解した人が空いているパネルを1枚取ります。縦・横・ななめで自分の色に挟んだパネルは、自分の色にひっくり返ります。パネルの枚数がそのまま得点です。')}`;
+                ${this.note('参加した順にマスを開き、そのマスの問題を全員で早押し。正解した人がそのマスを取り、縦・横・ななめで挟んだマスは自分の色にひっくり返ります。マスの枚数がそのまま得点です。')}`;
             const bindN = (id, key) => { const el = box.querySelector('#' + id); if (el) el.onchange = () => { conf[key] = Math.max(2, Math.min(8, parseInt(el.value) || 5)); this.soft(); }; };
             bindN('rp-tp-rows', 'tpRows'); bindN('rp-tp-cols', 'tpCols');
             return;

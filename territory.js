@@ -67,7 +67,10 @@ App.Territory = {
             const owner = cells[i];
             const cls = ['tp-cell'];
             if (owner) cls.push('own');
-            if (opts.pickable && !owner) cls.push('can');
+            const hasQ = !tp.qcells || tp.qcells[i];
+            if (!hasQ) cls.push('none');
+            if (opts.pickable && !owner && hasQ) cls.push('can');
+            if (tp.cur === i) cls.push('cur');
             if (last.idx === i && opts.fresh) cls.push('just');
             if (flips.has(i) && opts.fresh) cls.push('flip');
             html += `<div class="${cls.join(' ')}" data-tp="${i}" style="${owner ? `--c:${this.colorOf(tp, owner)};` : ''}">
@@ -92,29 +95,53 @@ App.Territory = {
         const conf = App.Data.currentConfig;
         if (!this.isOn(conf) || !this.room()) { this.tp = null; return; }
         const { rows, cols } = this.size(conf);
-        this.tp = { rows, cols, cells: Array(rows * cols).fill(''), colors: {}, picking: '', show: false, last: null, seq: 0 };
+        const n = rows * cols;
+        // マスと問題を結ぶ（q.tpCell）。決まっていない問題は空いているマスへ
+        const qs = App.Data.studioQuestions || [];
+        const used = new Set();
+        qs.forEach(q => { const c = parseInt(q.tpCell); if (!isNaN(c) && c >= 0 && c < n && !used.has(c)) used.add(c); else q.tpCell = null; });
+        qs.forEach(q => { if (q.tpCell === null || q.tpCell === undefined) { let c = 0; while (c < n && used.has(c)) c++; if (c < n) { q.tpCell = c; used.add(c); } } });
+        const qcells = Array.from({ length: n }, (_, i) => used.has(i));
+        this.tp = { rows, cols, cells: Array(n).fill(''), qcells, colors: {}, picking: '', cur: -1, show: false, last: null, seq: 0, order: [], pi: 0 };
+        this._chosen = false;
         this.push();
+    },
+    // まだ取られていない、問題のあるマス
+    remaining: function () {
+        const t = this.tp;
+        if (!t) return [];
+        return t.qcells.map((h, i) => (h && !t.cells[i] ? i : -1)).filter(i => i >= 0);
+    },
+    // マスを開く人（参加した順に回る）
+    nextPicker: function () {
+        const t = this.tp;
+        const ids = Object.keys(App.Data.players || {}).filter(pid => (App.Data.players[pid] || {}).isAlive !== false);
+        ids.forEach(pid => { if (!t.order.includes(pid)) t.order.push(pid); });
+        const live = t.order.filter(pid => ids.includes(pid));
+        if (!live.length) return '';
+        const pid = live[t.pi % live.length];
+        t.pi = (t.pi + 1) % live.length;
+        return pid;
     },
     push: function () {
         if (!this.tp || !this.room()) return;
         const t = this.tp;
         window.db.ref(`rooms/${this.room()}/status/tp`).set({
-            rows: t.rows, cols: t.cols, cells: t.cells.map(v => v || ''), colors: t.colors, picking: t.picking || '',
+            rows: t.rows, cols: t.cols, cells: t.cells.map(v => v || ''), qcells: t.qcells || null, cur: t.cur ?? -1, colors: t.colors, picking: t.picking || '',
             show: !!t.show, last: t.last || null, seq: t.seq || 0,
         });
     },
 
-    // 正解した人がパネルを選ぶ
-    startPick: function (pid) {
-        if (!this.tp || !pid) return;
-        if (!this.tp.cells.some(v => !v)) { App.Ui.showToast('盤面はすべて埋まっています'); return; }
-        if (this.tp.colors[pid] === undefined) this.tp.colors[pid] = Object.keys(this.tp.colors).length;
-        this.tp.picking = pid;
-        this.tp.show = true;
-        this.tp.last = null;
+    // 順番の人がマスを開く（開いたマスの問題を、全員で早押し）
+    startCellPick: function () {
+        const t = this.tp;
+        if (!t) return;
+        const pid = this.nextPicker();
+        if (!pid) { App.Ui.showToast('参加者がいません'); return; }
+        if (t.colors[pid] === undefined) t.colors[pid] = Object.keys(t.colors).length;
+        t.picking = pid; t.cur = -1; t.show = true; t.last = null;
         this.push();
         window.db.ref(`rooms/${this.room()}/players/${pid}/tpPick`).remove();
-        // 回答者の端末で選んだら受け取る
         if (this._pickRef) this._pickRef.off();
         this._pickRef = window.db.ref(`rooms/${this.room()}/players/${pid}/tpPick`);
         this._pickRef.on('value', snap => {
@@ -124,28 +151,46 @@ App.Territory = {
         });
         this.openHost();
     },
+    // マスを開いた → そのマスの問題へ
     place: function (idx) {
         const t = this.tp;
-        if (!t || !t.picking || isNaN(idx) || t.cells[idx]) return;
+        if (!t || !t.picking || isNaN(idx) || t.cells[idx] || !t.qcells[idx]) return;
         const pid = t.picking;
+        t.picking = ''; t.cur = idx; t.show = false;
+        if (this._pickRef) { this._pickRef.off(); this._pickRef = null; }
+        window.db.ref(`rooms/${this.room()}/players/${pid}/tpPick`).remove();
+        this.push();
+        this.closeHost();
+        const qi = (App.Data.studioQuestions || []).findIndex(q => q.tpCell === idx);
+        if (qi < 0) return;
+        App.State.currentQIndex = qi;
+        this._chosen = true;
+        const name = ((App.Data.players || {})[pid] || {}).name || '';
+        App.Ui.showToast(`${name} さんが ${idx + 1}番を開きました`);
+        this.S().setStep(1);
+    },
+    // 正解した人が、開いたマスを取る（挟んだマスはひっくり返る）
+    onCorrect: function (pid) {
+        const t = this.tp;
+        if (!t || !pid || t.cur < 0 || t.cells[t.cur]) return;
+        if (t.colors[pid] === undefined) t.colors[pid] = Object.keys(t.colors).length;
+        const idx = t.cur;
         const flips = this.flipsFor(t, idx, pid);
         t.cells[idx] = pid;
         flips.forEach(i => { t.cells[i] = pid; });
         t.last = { idx, flips, by: pid };
-        t.picking = '';
+        t.cur = -1; t.show = true;
         t.seq = (t.seq || 0) + 1;
-        if (this._pickRef) { this._pickRef.off(); this._pickRef = null; }
-        window.db.ref(`rooms/${this.room()}/players/${pid}/tpPick`).remove();
         this.push();
         this.syncScores();
         const name = ((App.Data.players || {})[pid] || {}).name || '';
         App.Ui.showToast(flips.length ? `${name} さんが ${idx + 1}番を取り、${flips.length}枚ひっくり返しました` : `${name} さんが ${idx + 1}番を取りました`);
-        if (!t.cells.some(v => !v)) setTimeout(() => App.Ui.showToast('盤面がすべて埋まりました'), 1500);
+        this.openHost();
         this.renderHost(true);
     },
     skipPick: function () {
         if (!this.tp) return;
-        this.tp.picking = '';
+        this.tp.picking = ''; this.tp.show = false;
         if (this._pickRef) { this._pickRef.off(); this._pickRef = null; }
         this.push();
         this.closeHost();
@@ -188,15 +233,15 @@ App.Territory = {
         const pname = picking ? this.esc((players[picking] || {}).name || '') : '';
         ov.innerHTML = `
             <div class="tp-head">
-                <div class="tp-title">${picking ? `<b style="color:${this.colorOf(t, picking)}">${pname}</b> さんがパネルを選びます` : '陣取りの盤面'}</div>
-                <button type="button" class="tp-close">${picking ? '取らない' : '閉じる'}</button>
+                <div class="tp-title">${picking ? `<b style="color:${this.colorOf(t, picking)}">${pname}</b> さんが開くマスを選びます` : '陣取りの盤面'}</div>
+                <button type="button" class="tp-close">閉じる</button>
             </div>
             <div class="tp-board">${this.boardHtml(t, players, { pickable: !!picking, fresh, names: true })}</div>
             <div class="tp-foot">
-                <span>${picking ? '空いているパネルを押す（本人のスマホからも選べます）' : 'モニターにも盤面を出しています'}</span>
+                <span>${picking ? '開くマスを押す（本人のスマホからも選べます）。開いたマスの問題を全員で早押し' : `残り ${this.remaining().length}マス`}</span>
                 <button type="button" class="tp-mon">${t.show ? 'モニターの盤面をしまう' : 'モニターに盤面を出す'}</button>
             </div>`;
-        ov.querySelector('.tp-close').onclick = () => (picking ? this.skipPick() : this.closeHost());
+        ov.querySelector('.tp-close').onclick = () => this.closeHost();
         ov.querySelector('.tp-mon').onclick = () => { this.setShow(!t.show); this.renderHost(false); };
         if (picking) ov.querySelectorAll('.tp-cell.can').forEach(c => { c.onclick = () => this.place(parseInt(c.dataset.tp)); });
     },
@@ -230,23 +275,41 @@ App.Territory = {
                 return r;
             };
         };
+        const on = () => T.isOn(App.Data.currentConfig);
         // セットを読み込んだら盤面を新しく
         wrap('setupPeriod', null, function () { T.initBoard(); T.ensureHostButton(); });
-        // 早押しの正解 → その人がパネルを選ぶ
-        wrap('judgeBuzz', function (ok) { return ok ? this.buzzWinner : null; }, function (winner) {
-            if (winner && T.isOn(App.Data.currentConfig)) T.startPick(winner);
-        });
-        // 順番・指名の正解 → その人がパネルを選ぶ
-        wrap('updatePlayerScore', function (pid, ok) { return ok ? pid : null; }, function (pid) {
-            const mode = (App.Data.currentConfig || {}).mode;
-            if (pid && T.isOn(App.Data.currentConfig) && mode !== 'buzz') T.startPick(pid);
-        });
-        // 次の問題に進んだら、モニターの盤面はしまう
-        wrap('goNext', null, function () {
-            if (T.tp && T.tp.show && !T.tp.picking) { T.tp.show = false; T.tp.last = null; T.push(); }
+        // 早押し（など）の正解 → 開いたマスを取る
+        wrap('judgeBuzz', function (ok) { return ok ? this.buzzWinner : null; }, function (winner) { if (winner && on()) T.onCorrect(winner); });
+        wrap('updatePlayerScore', function (pid, ok) { return ok ? pid : null; }, function (pid) { if (pid && on()) T.onCorrect(pid); });
+        // 問題を出す前に、順番の人がマスを開く
+        const origSetStep = S.setStep;
+        S.setStep = function (stepId) {
+            if (stepId === 1 && on() && T.tp && !T._chosen) {
+                if (!T.remaining().length) { this.handleSetCompletion && this.handleSetCompletion(); return; }
+                this.currentStepId = 1;
+                T.startCellPick();
+                return;
+            }
+            return origSetStep.apply(this, arguments);
+        };
+        // 次へ — 次のマスを開く（問題の並び順ではなく、盤面の残りで進める）
+        const origNext = S.goNext;
+        S.goNext = function () {
+            if (!on() || !T.tp) return origNext.apply(this, arguments);
             T.closeHost();
-            T.ensureHostButton();
-        });
+            if (T.tp.show) { T.tp.show = false; T.tp.last = null; T.push(); }
+            T._chosen = false;
+            const endMsg = this.checkSetEnd && this.checkSetEnd();
+            if (endMsg || !T.remaining().length) {
+                App.State.currentQIndex = (App.Data.studioQuestions || []).length - 1;
+                return origNext.apply(this, arguments);
+            }
+            this.resetPlayerStatus();
+            this.revealedMultiIndices = {};
+            window.db.ref(`rooms/${App.State.currentRoomId}/status/revealedMulti`).remove();
+            this.currentStepId = null;
+            this.setStep(1);
+        };
     },
 
     // ---------------------------------------------------------
@@ -291,7 +354,7 @@ App.Territory = {
         const pname = tp.picking ? this.esc((players[tp.picking] || {}).name || '') : '';
         const lastBy = tp.last && tp.last.by ? this.esc((players[tp.last.by] || {}).name || '') : '';
         const msg = tp.picking
-            ? (mine ? 'あなたの番です。取りたいパネルを押してください' : `<b style="color:${this.colorOf(tp, tp.picking)}">${pname}</b> さんがパネルを選んでいます`)
+            ? (mine ? 'あなたが開くマスを選んでください' : `<b style="color:${this.colorOf(tp, tp.picking)}">${pname}</b> さんが開くマスを選んでいます`)
             : (tp.last ? `<b style="color:${this.colorOf(tp, tp.last.by)}">${lastBy}</b> さんが ${tp.last.idx + 1}番を取りました${(tp.last.flips || []).length ? `（${tp.last.flips.length}枚ひっくり返し）` : ''}` : '陣取りの盤面');
         ov.innerHTML = `<div class="tp-msg">${msg}</div><div class="tp-board">${this.boardHtml(tp, players, { pickable: mine, fresh, names: this._role === 'viewer' })}</div>`;
         if (mine) ov.querySelectorAll('.tp-cell.can').forEach(c => {
@@ -300,7 +363,17 @@ App.Territory = {
     },
 };
 
-// 問題を書く画面の案内 — 陣取りは盤面のマスと問題が結びつかないので、それを最初に伝える
+// 問題を書く画面 — 盤面のマス目を押して、そのマスの問題を書く（マス＝問題）
+App.Territory.assignCells = function () {
+    const conf = (window.App.Data && window.App.Data.currentConfig) || {};
+    const { rows, cols } = this.size(conf);
+    const n = rows * cols;
+    const qs = window.App.Data.createdQuestions || [];
+    const used = new Set();
+    qs.forEach(q => { const c = parseInt(q.tpCell); if (!isNaN(c) && c >= 0 && c < n && !used.has(c)) used.add(c); else q.tpCell = null; });
+    qs.forEach(q => { if (q.tpCell === null || q.tpCell === undefined) { let c = 0; while (c < n && used.has(c)) c++; if (c < n) { q.tpCell = c; used.add(c); } } });
+    return { n, rows, cols, used };
+};
 App.Territory.creatorGuide = function () {
     const view = document.getElementById('creator-view');
     const wrap = document.getElementById('creator-editor-wrap');
@@ -308,18 +381,72 @@ App.Territory.creatorGuide = function () {
     const conf = (window.App.Data && window.App.Data.currentConfig) || {};
     const on = view && !view.classList.contains('hidden') && this.isOn(conf) && wrap;
     if (!on) { el?.remove(); return; }
-    const { rows, cols } = this.size(conf);
-    const n = (window.App.Data.createdQuestions || []).length;
-    const html = `<b>陣取りパネル（${rows}×${cols}＝${rows * cols}マス）</b>
-        <span>ここには、ふつうの一問一答の問題を1問ずつ書きます。マスと問題は結びついていません。</span>
-        <span>出題中に正解した人が、空いているマスを1つ選んで取ります。盤面を埋めるには、${rows * cols}問くらいが目安です（今 ${n}問）。</span>
-        <span>盤面の大きさは「セットの設定」の「勝ち方」で変えられます。</span>`;
+    const C = window.App.Creator;
+    const { n, rows, cols, used } = this.assignCells();
+    const qs = window.App.Data.createdQuestions || [];
+    const editing = C && C.editingIndex !== null && C.editingIndex !== undefined ? (qs[C.editingIndex] || {}).tpCell : (this._pendingCell ?? (() => { let c = 0; while (c < n && used.has(c)) c++; return c < n ? c : -1; })());
+    const key = JSON.stringify([rows, cols, qs.map(q => [q.tpCell, (q.q || '').slice(0, 12)]), editing]);
     if (!el) { el = document.createElement('div'); el.id = 'tp-guide'; }
     if (el.parentNode !== wrap.parentNode || el.nextSibling !== wrap) wrap.parentNode.insertBefore(el, wrap);
-    if (el.innerHTML !== html) el.innerHTML = html;
+    if (el._key === key) return;
+    el._key = key;
+    const byCell = {};
+    qs.forEach((q, i) => { if (q.tpCell !== null && q.tpCell !== undefined) byCell[q.tpCell] = i; });
+    let cells = '';
+    for (let c = 0; c < n; c++) {
+        const qi = byCell[c];
+        const q = qi !== undefined ? qs[qi] : null;
+        cells += `<button type="button" class="tpg-cell${q ? ' has' : ''}${editing === c ? ' on' : ''}" data-c="${c}"><b>${c + 1}</b><span>${q ? this.esc((q.q || '').slice(0, 14)) : '＋'}</span></button>`;
+    }
+    el.innerHTML = `<div class="tpg-head"><b>陣取りの盤面（${rows}×${cols}）</b><span>${Object.keys(byCell).length} / ${n}マスに問題</span></div>
+        <div class="tpg-grid" style="grid-template-columns:repeat(${cols}, minmax(0, 1fr));">${cells}</div>
+        <p class="tpg-note">マスを押すと、そのマスの問題を書けます。出題では順番にマスを開き、開いたマスの問題を全員で早押し。正解した人がそのマスを取ります。問題が無いマスは出題で使いません。</p>`;
+    el.querySelectorAll('.tpg-cell').forEach(b => {
+        b.onclick = () => this.openCell(parseInt(b.dataset.c));
+    });
+};
+// マスを押した: 問題があれば直す、無ければそのマスの新しい問題
+App.Territory.openCell = function (c) {
+    const C = window.App.Creator;
+    const M = window.App.CreatorMobile, D = window.App.CreatorDesktop;
+    const qs = window.App.Data.createdQuestions || [];
+    const qi = qs.findIndex(q => q.tpCell === c);
+    if (qi >= 0) {
+        this._pendingCell = null;
+        if (M && M.isMobile && M.isMobile()) M.showEdit(qi); else if (D && D.openQuestion) D.openQuestion(qi); else C.edit(qi);
+    } else {
+        this._pendingCell = c;
+        if (M && M.isMobile && M.isMobile()) M.showEdit(null); else if (D && D.newQuestion) D.newQuestion(); else C.resetForm();
+        this._pendingCell = c; // 新しい問題を開く処理で消えないように
+    }
+    const el = document.getElementById('tp-guide'); if (el) el._key = null;
+    this.creatorGuide();
+    setTimeout(() => document.getElementById('question-text')?.focus(), 50);
+};
+// 問題を追加した時、書いていたマスに結ぶ
+App.Territory.hookCreator = function () {
+    const C = window.App.Creator;
+    if (!C || C._tpHooked) return;
+    C._tpHooked = true;
+    const T = this;
+    const origAdd = C.add;
+    C.add = function () {
+        const qs = window.App.Data.createdQuestions || [];
+        const before = qs.length;
+        const cell = T._pendingCell;
+        const r = origAdd.apply(this, arguments);
+        const now = window.App.Data.createdQuestions || [];
+        if (T.isOn(window.App.Data.currentConfig) && now.length > before) {
+            const last = now[now.length - 1];
+            if (cell !== null && cell !== undefined && !now.some(q => q !== last && q.tpCell === cell)) last.tpCell = cell;
+            T._pendingCell = null;
+        }
+        return r;
+    };
 };
 
 document.addEventListener('DOMContentLoaded', () => {
     App.Territory.hookStudio();
+    App.Territory.hookCreator();
     setInterval(() => { try { App.Territory.watch(); App.Territory.ensureHostButton(); App.Territory.creatorGuide(); } catch (e) { /* noop */ } }, 700);
 });
