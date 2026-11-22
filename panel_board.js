@@ -229,7 +229,7 @@ App.PanelBoard = {
     renderBoardEditor: function (C, data) {
         const container = document.getElementById('creator-form-container');
         if (!container) return;
-        const genres = (data && Array.isArray(data.boardGenres)) ? data.boardGenres : this.genresFrom((data && data.panels) || []);
+        const genres = this.padGenres((data && Array.isArray(data.boardGenres)) ? data.boardGenres : this.genresFrom((data && data.panels) || []));
         container.innerHTML = '';
         container.style.overflowY = 'auto';
         const board = document.createElement('div');
@@ -253,6 +253,27 @@ App.PanelBoard = {
         if (outside) { [hint, wrongSel, addG, paste].forEach(el => outside.appendChild(el)); outside.classList.remove('hidden'); }
         addG.onclick = () => this.addGenre(board, { name: '', items: [10, 20, 30, 40].map(pts => ({ pts, pq: '', answer: '' })) });
         paste.onclick = () => this.openBoardPaste(board);
+    },
+
+    // 保存すると空欄の行・ジャンルは抜けるので、開き直した時は最初の形（4ジャンル × 4問）まで空欄の枠を足して戻す
+    //   （あとで書き足す時に、いちいち「＋ 問題を追加」しなくていいように。空欄のままなら保存の時にまた抜ける）
+    padGenres: function (genres) {
+        const DEF = [10, 20, 30, 40];
+        const out = (genres || []).map(g => {
+            const items = (g.items || []).slice();
+            const used = new Set(items.map(it => Number(it.pts)));
+            let next = DEF.find(p => !used.has(p));
+            while (items.length < DEF.length) {
+                const pts = next !== undefined ? next : (Math.max(0, ...items.map(it => Number(it.pts) || 0)) + 10);
+                items.push({ pts, pq: '', answer: '' });
+                used.add(pts);
+                next = DEF.find(p => !used.has(p));
+            }
+            items.sort((x, y) => (Number(x.pts) || 0) - (Number(y.pts) || 0));
+            return Object.assign({}, g, { items });
+        });
+        while (out.length < 4) out.push({ name: '', items: DEF.map(pts => ({ pts, pq: '', answer: '' })) });
+        return out;
     },
 
     // 保存済みのパネルを、ジャンルごとのまとまりに戻す（並びは書いた順）
