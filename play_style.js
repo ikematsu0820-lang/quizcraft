@@ -16,9 +16,9 @@ App.PlayStyle = {
     //   だれが答える → どう答える（一問一答・連想）→ 正解が出たら（早押し×手書き）／点の付け方（選択式・並べ替えの全員）
     FORMATS: {
         free: { name: '一問一答', who: ['buzz', 'all', 'turn', 'nominate'], how: true, base: 'free' },
-        assoc_group: { name: '連想クイズ', who: ['buzz', 'all', 'turn'], how: true, base: 'assoc' },
-        choice: { name: '選択式', who: ['all', 'buzz', 'turn'], score: true },
-        sort: { name: '並べ替え', who: ['all', 'buzz', 'turn'], score: true },
+        assoc_group: { name: '連想クイズ', who: ['buzz', 'all', 'turn', 'nominate'], how: true, base: 'assoc' },
+        choice: { name: '選択式', who: ['all', 'nominate', 'buzz', 'turn'], score: true, q: { type: 'choice' } },
+        sort: { name: '並べ替え', who: ['all', 'nominate', 'buzz', 'turn'], score: true, q: { type: 'sort' } },
         multi_group: { name: '多答クイズ', who: ['turn', 'buzz', 'nominate'], base: 'multi', fixedHow: 'oral', howNote: '答えは口で1つずつ言います' },
     },
     WHO: {
@@ -41,6 +41,19 @@ App.PlayStyle = {
     },
     // 後から PRESETS[形式] を見て「遊び方を選ぶ一手があるか」を判定している所のため
     get PRESETS() { return this.FORMATS; },
+
+    // だれが答えるか、のそれぞれが選べるか — ルールの相性の表（rule_engine.js）をそのまま使う
+    whoState: function (fmt, sel) {
+        const f = this.FORMATS[fmt];
+        const RE = window.App.RuleEngine;
+        return f.who.map(k => {
+            const how = f.fixedHow || (f.how && k === 'all' ? 'written' : sel.how) || 'oral';
+            const q = f.q || { type: `${f.base}_${how}` };
+            if (!RE) return { k, ok: true, why: '' };
+            const m = RE.modes(RE.context({ mode: this.WHO[k].mode }, [q])).find(x => x.value === this.WHO[k].mode);
+            return { k, ok: !!(m && !m.disabled && !m.hidden), why: (m && m.reason) || '' };
+        });
+    },
 
     // 今の選び方から、ルールの値を作る
     build: function (fmt, sel) {
@@ -70,6 +83,7 @@ App.PlayStyle = {
         if (!view) { startFn(null); return; }
         this.close();
         const sel = { who: f.who[0], how: 'oral', after: 'end', score: 'same' };
+        { const first = this.whoState(cardType, sel).find(w => w.ok); if (first) sel.who = first.k; }
         const ov = document.createElement('div');
         ov.id = 'ps-overlay';
         view.appendChild(ov);
@@ -82,6 +96,8 @@ App.PlayStyle = {
             if (howLocked) sel.how = 'written';
             const showAfter = f.base === 'free' && sel.who === 'buzz' && sel.how === 'written';
             const showScore = f.score && sel.who === 'all';
+            const ws = this.whoState(cardType, sel);
+            const off = ws.filter(w => !w.ok);
             const built = this.build(cardType, sel);
             ov.innerHTML = `
                 <div class="ps-panel" role="dialog" aria-label="遊び方を選ぶ">
@@ -90,7 +106,8 @@ App.PlayStyle = {
                         <div class="ps-title"><span class="ps-format">${f.name}</span>遊び方を選んでください</div>
                     </div>
                     <div class="ps-step"><div class="ps-step-k"><b>1</b>だれが答える</div>
-                        ${opts('who', f.who.map(k => [k, this.WHO[k]]), sel.who)}</div>
+                        ${opts('who', f.who.map(k => [k, this.WHO[k]]), sel.who, (v) => !(ws.find(w => w.k === v) || {}).ok)}
+                        ${off.length ? `<p class="ps-step-note">${[...new Set(off.map(w => w.why))].filter(Boolean).map(why => `${off.filter(w => w.why === why).map(w => this.WHO[w.k].label).join('・')}：${why}`).join('<br>')}</p>` : ''}</div>
                     ${f.how ? `<div class="ps-step"><div class="ps-step-k"><b>2</b>どう答える</div>
                         ${opts('how', Object.entries(this.HOW), sel.how, (v) => howLocked && v === 'oral')}
                         ${howLocked ? '<p class="ps-step-note">全員が同時に口で答えると聞き取れないので、手書きで答えます</p>' : ''}</div>` : ''}

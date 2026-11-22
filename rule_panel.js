@@ -58,6 +58,14 @@ App.RulePanel = {
         if (all && all.disabled && ctx.isOral && !ctx.isMulti && !ctx.isPanel && !ctx.isDobon && !ctx.isBlackjack) {
             return '<p class="rp-why">答え方を「手書き」にすると、「全員（手元で同時に）」も選べます。</p>';
         }
+        // 形式と合わないので出していない解答権（選択式・並べ替えの早押し・順番など）は、理由を1行で
+        const RE = this.RE();
+        const hidden = RE.modes(ctx).filter(m => (m.value === 'buzz' || m.value === 'turn') && m.disabled && m.reason && !ctx.isDobon && !ctx.isBlackjack);
+        if (hidden.length) {
+            const name = { buzz: '早押し', turn: '順番' };
+            const reasons = [...new Set(hidden.map(m => m.reason))];
+            return `<p class="rp-why">${reasons.map(r => `${hidden.filter(m => m.reason === r).map(m => name[m.value]).join('・')}：${r}`).join('<br>')}</p>`;
+        }
         return '';
     },
 
