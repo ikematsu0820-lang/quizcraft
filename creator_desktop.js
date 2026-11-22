@@ -208,32 +208,32 @@ App.CreatorDesktop = {
 
     // 書きかけの新しい問題があれば、移る前に追加するか確認する。
     // 戻り値 false なら移動を中止（入力不足でアラートが出た時）。
-    settleDraft: function () {
+    settleDraft: async function () {
         const C = this.C();
         const qs = window.App.Data.createdQuestions;
         if (C.editingIndex !== null) return true; // 既存の問題は C.edit() が自動で反映する
         const text = (document.getElementById('question-text')?.value || '').trim();
         if (!text) return true;
-        if (!confirm('書きかけの問題があります。リストに追加してから移動しますか？\n（キャンセルすると書きかけの内容は消えます）')) return true;
+        if (!(await window.App.Dialog.confirm('書きかけの問題があります。リストに追加してから移動しますか？\n（「追加しない」を選ぶと、書きかけの内容は消えます）', { ok: '追加して移動', cancel: '追加しない' }))) return true;
         const before = qs.length;
         C.add();
         return qs.length > before;
     },
 
-    openQuestion: function (index) {
+    openQuestion: async function (index) {
         const C = this.C();
         if (C.editingIndex === index) return;
-        if (!this.settleDraft()) return;
+        if (!(await this.settleDraft())) return;
         C.edit(index);
         this.renderList();
     },
 
-    newQuestion: function () {
+    newQuestion: async function () {
         const C = this.C();
         if (C.editingIndex !== null) {
             C.update();
             if (C.editingIndex !== null) return; // 入力不足
-        } else if (!this.settleDraft()) {
+        } else if (!(await this.settleDraft())) {
             return;
         }
         if (C.previewSlide !== 'question') C.setPreviewSlide('question');

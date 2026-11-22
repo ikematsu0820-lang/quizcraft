@@ -155,8 +155,8 @@ window.App.SoundLibrary = {
             };
         });
         container.querySelectorAll('[data-delete]').forEach(btn => {
-            btn.onclick = () => {
-                if (!confirm('この音源を削除しますか？（この音源を使っている問題では、以後「未設定」扱いになります）')) return;
+            btn.onclick = async () => {
+                if (!(await window.App.Dialog.confirm('この音源を削除しますか？\n（この音源を使っている問題では、以後「未設定」扱いになります）', { ok: '削除する', danger: true }))) return;
                 const key = btn.dataset.key;
                 window.db.ref(`sound_library/${key}/${btn.dataset.delete}`).remove();
             };

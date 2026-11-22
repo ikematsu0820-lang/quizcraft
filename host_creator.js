@@ -279,8 +279,8 @@ window.App.Creator = {
         el.onclick = () => this.editSetTitle();
     },
 
-    editSetTitle: function () {
-        const name = prompt('セット名', this.editingTitle || '');
+    editSetTitle: async function () {
+        const name = await window.App.Dialog.prompt('セット名', this.editingTitle || '');
         if (name === null) return; // キャンセル
         this.editingTitle = name.trim();
         this.renderSetTitle();
@@ -1462,7 +1462,7 @@ window.App.Creator = {
     // --- Choice Input: viewer .choice-item style (full-width horizontal row) ---
     addChoiceInput: function (parent, index, text = "", checked = false) {
         const limit = (this.choiceSubtype === 'multi') ? 36 : 20;
-        if (parent.children.length >= limit) { alert(`選択肢の上限は${limit}個までです`); return; }
+        if (parent.children.length >= limit) { window.App.Dialog.alert(`選択肢の上限は${limit}個までです`); return; }
 
         const idx = (index !== undefined) ? index : parent.children.length;
         const label = window.App.ChoiceLabel(idx, (window.App.Data.currentDesign || {}).cPrefixType);
@@ -1600,7 +1600,7 @@ window.App.Creator = {
     },
 
     addSortInput: function (parent, index, text = "", rank = "") {
-        if (parent.children.length >= 20) { alert("並べ替え問題の上限は20個までです"); return; }
+        if (parent.children.length >= 20) { window.App.Dialog.alert("並べ替え問題の上限は20個までです"); return; }
         const row = document.createElement('div');
         row.className = 'sort-row';
         row.style.cssText = `
@@ -1797,7 +1797,7 @@ window.App.Creator = {
                 const num = Number(m[2].replace(/[,，]/g, ''));
                 return (name && !isNaN(num)) ? { name, value: num } : null;
             }).filter(Boolean);
-            if (!rows.length) { alert('「項目名[タブ]数」の行が見つかりませんでした'); return; }
+            if (!rows.length) { window.App.Dialog.alert('「項目名[タブ]数」の行が見つかりませんでした'); return; }
             if (overlay.querySelector('#ng-paste-replace').checked) list.innerHTML = '';
             else list.querySelectorAll('.ng-row').forEach(r => { if (!r.querySelector('.ng-name').value.trim() && !r.querySelector('.ng-value').value.trim()) r.remove(); });
             rows.forEach(r => this.addNumGameRow(list, r.name, r.value));
@@ -1956,7 +1956,7 @@ window.App.Creator = {
         }
 
         const qText = document.getElementById('question-text').value.trim();
-        if (!qText) { alert(APP_TEXT.Creator.AlertNoQ); return null; }
+        if (!qText) { window.App.Dialog.alert(APP_TEXT.Creator.AlertNoQ); return null; }
         const sel = document.getElementById('creator-q-type');
         // NOTE: #creator-q-subtype is a legacy element that the card-based type
         // picker (initWithType) never populates — it stays empty. The subtype
@@ -2741,8 +2741,8 @@ ${spec.memo}" style="
         document.getElementById('creator-view').scrollIntoView({ behavior: "smooth" });
     },
 
-    delete: function (index) {
-        if (confirm(APP_TEXT.Dashboard.DeleteConfirm)) {
+    delete: async function (index) {
+        if (await window.App.Dialog.confirm(APP_TEXT.Dashboard.DeleteConfirm, { ok: '削除する', danger: true })) {
             window.App.Data.createdQuestions.splice(index, 1);
             if (this.editingIndex === index) this.resetForm();
             this.renderList();
@@ -2816,7 +2816,7 @@ ${spec.memo}" style="
         });
     },
 
-    save: function () {
+    save: async function () {
         if (this.editingIndex !== null) {
             const currentQ = this.getData();
             if (currentQ) {
@@ -2826,7 +2826,7 @@ ${spec.memo}" style="
 
         console.log("Save initiated. Questions:", window.App.Data.createdQuestions.length);
         if (window.App.Data.createdQuestions.length === 0) {
-            alert('問題がありません。追加してください。');
+            window.App.Dialog.alert('問題がありません。追加してください。');
             return;
         }
 
@@ -2834,7 +2834,7 @@ ${spec.memo}" style="
         // 名前が無い時だけ入れてもらう
         let title = (this.editingTitle || '').trim();
         if (!title) {
-            title = (prompt("セット名を入力してください:", "") || '').trim();
+            title = ((await window.App.Dialog.prompt('セット名を入れてください', '', { ok: '保存する' })) || '').trim();
             if (!title) return;
             this.editingTitle = title;
             this.renderSetTitle();
@@ -2844,7 +2844,7 @@ ${spec.memo}" style="
         if (!showId) showId = sessionStorage.getItem('qs_show_id');
 
         if (!showId) {
-            alert("エラー: 番組IDの取得に失敗しました。一度ダッシュボードに戻ってから再度お試しください。");
+            window.App.Dialog.alert("エラー: 番組IDの取得に失敗しました。一度ダッシュボードに戻ってから再度お試しください。");
             return;
         }
         // Sanitize showId: remove dots and other problematic characters
@@ -2942,7 +2942,7 @@ ${spec.memo}" style="
             } else {
                 msg += "原因: " + err.message;
             }
-            alert(msg);
+            window.App.Dialog.alert(msg);
         });
     }
 };

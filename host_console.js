@@ -313,16 +313,16 @@ App.HostConsole = {
             const box = document.createElement('div');
             box.className = 'hc-score';
             box.innerHTML = `<button type="button" data-d="-1">−1</button><button type="button" data-d="set">直す</button><button type="button" data-d="1">＋1</button>`;
-            box.onclick = (e) => {
+            box.onclick = async (e) => {
                 e.stopPropagation();
                 const b = e.target.closest('button');
                 if (!b) return;
                 const cur = Number(((window.App.Data.players || {})[p.id] || {}).periodScore) || 0;
                 let next;
                 if (b.dataset.d === 'set') {
-                    const v = prompt(`${p.name || '---'} さんの得点`, String(cur));
-                    if (v === null || v.trim() === '' || isNaN(Number(v))) return;
-                    next = Number(v);
+                    const v = await window.App.Dialog.number(`${p.name || '---'} さんの得点`, String(cur), { ok: '直す' });
+                    if (v === null) return;
+                    next = v;
                 } else next = cur + Number(b.dataset.d);
                 this.snapshot(`${p.name || '---'} さんの得点`);
                 const diff = next - cur;

@@ -312,7 +312,7 @@ window.App.bindEvents = function () {
     // ログイン処理
     const handleHostLogin = () => {
         const input = document.getElementById('show-id-input').value.trim().toUpperCase();
-        if (!input) { alert("番組IDを入力してください"); return; }
+        if (!input) { window.App.Dialog.alert("番組IDを入力してください"); return; }
 
         window.App.State.currentShowId = input;
         sessionStorage.setItem('qs_show_id', input);
@@ -329,7 +329,7 @@ window.App.bindEvents = function () {
         const roomIdInput = document.getElementById('room-id-input');
         const code = roomIdInput ? roomIdInput.value.trim().toUpperCase() : '';
         if (!code) {
-            if (typeof playerNotice === "function") playerNotice("ルームIDを入力してください", "error"); else alert("ルームIDを入力してください");
+            if (typeof playerNotice === "function") playerNotice("ルームIDを入力してください", "error"); else window.App.Dialog.alert("ルームIDを入力してください");
             return;
         }
 
@@ -406,7 +406,7 @@ window.App.bindEvents = function () {
 
     // ログアウト / 戻るボタン
     document.querySelectorAll('.header-back-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
             // host-close-studio-btn-simple has its own listener (host_studio.js)
             // that confirms before ending an in-progress quiz — don't also
             // navigate away here unconditionally.
@@ -418,7 +418,7 @@ window.App.bindEvents = function () {
             const creatorView = document.getElementById('creator-view');
             if (creatorView && !creatorView.classList.contains('hidden')
                 && window.App.Creator && window.App.Creator.hasUnsavedWork && window.App.Creator.hasUnsavedWork()) {
-                if (!confirm('保存されていない問題があります。このまま離れると内容が失われますが、よろしいですか？\n（「リストに追加」「リストを保存する」を押すと保存されます）')) {
+                if (!(await window.App.Dialog.confirm('保存されていない問題があります。このまま離れると内容が失われます。\n（「リストに追加」「リストを保存する」を押すと保存されます）', { ok: '保存せずに離れる', cancel: '画面に残る', danger: true }))) {
                     return;
                 }
             }
@@ -532,10 +532,10 @@ window.App._showTestNavBar = function (testId, playerCount) {
         return true;
     };
 
-    const switchTo = (tabId) => {
+    const switchTo = async (tabId) => {
         if (tabId === 'dashboard') {
             select.value = 'host';
-            if (confirm('ダッシュボードに戻りますか？テストセッションが終了します。')) {
+            if (await window.App.Dialog.confirm('テストを終えてメニューに戻りますか？', { ok: 'テストを終える' })) {
                 select.remove();
                 dock.remove();
                 iframeOverlay.remove();
@@ -833,11 +833,11 @@ window.App.Dashboard = {
         }
     },
 
-    renameItem: function (key, type) {
+    renameItem: async function (key, type) {
         const path = (type === 'set') ? 'saved_sets' : 'saved_programs';
         const data = this.itemCache[key];
         const oldTitle = data.title || "";
-        const newTitle = prompt("新しい名前を入力してください:", oldTitle);
+        const newTitle = await window.App.Dialog.prompt('新しい名前', oldTitle);
 
         if (newTitle && newTitle !== oldTitle) {
             const showId = window.App.State.currentShowId;
@@ -999,33 +999,29 @@ window.App.Dashboard = {
         });
     },
 
-    quickProg: function (key) {
-        window.App.Ui.showToast("番組クイックスタート機能は現在再設計中です（実装待ち）");
-    },
-
 
     // Quick Start: プログラムを直接スタジオに送る
-    quickProg: function (key) {
+    quickProg: async function (key) {
         try {
             if (this.itemCache && this.itemCache[key]) {
                 const data = this.itemCache[key];
-                if (confirm(`番組構成「${data.title}」をすぐに開始しますか？`)) {
+                if (await window.App.Dialog.confirm(`番組構成「${data.title}」をすぐに開始しますか？`, { ok: '開始する' })) {
                     if (window.App.Studio && window.App.Studio.quickStartProg) {
                         window.App.Studio.quickStartProg(data);
                     } else {
-                        alert("エラー: スタジオ機能が読み込まれていません。");
+                        window.App.Dialog.alert("エラー: スタジオ機能が読み込まれていません。");
                     }
                 }
                 return;
             }
-            window.db.ref(`saved_programs/${window.App.State.currentShowId}/${key}`).once('value', snap => {
+            window.db.ref(`saved_programs/${window.App.State.currentShowId}/${key}`).once('value', async snap => {
                 const data = snap.val();
-                if (data && confirm(`番組構成「${data.title}」をすぐに開始しますか？`)) {
+                if (data && await window.App.Dialog.confirm(`番組構成「${data.title}」をすぐに開始しますか？`, { ok: '開始する' })) {
                     window.App.Studio.quickStartProg(data);
                 }
             });
         } catch (e) {
-            alert("起動エラー: " + e.message);
+            window.App.Dialog.alert("起動エラー: " + e.message);
             console.error(e);
         }
     },
@@ -1068,39 +1064,36 @@ window.App.Dashboard = {
         });
     },
 
-    testItem: function (key, type) {
+    testItem: async function (key, type) {
         const data = this.itemCache && this.itemCache[key];
         if (!data) return;
         // 未完成の問題があるセットはテストプレイもできない
         if (type === 'set' && data.questions && window.App.QuizCheck) {
             const bad = window.App.QuizCheck.incompleteIn(data.questions);
             if (bad.length) {
-                alert(`未完成の問題があるため、このセットは出題できません。\n問題作成で完成させてください。\n\n${window.App.QuizCheck.describe(bad)}`);
+                window.App.Dialog.alert(`未完成の問題があるため、このセットは出題できません。\n問題作成で完成させてください。\n\n${window.App.QuizCheck.describe(bad)}`);
                 return;
             }
         }
 
-        const countStr = prompt("テストプレイのプレイヤー数を入力してください (1〜8)", "2");
-        if (countStr === null) return;
-        let count = parseInt(countStr);
-        if (isNaN(count) || count < 1) count = 1;
-        if (count > 8) count = 8;
+        const count = await window.App.Dialog.number('テストの回答者を何人にしますか？（1〜8人）', '2', { title: 'テストプレイ', ok: 'テストを始める', min: 1, max: 8 });
+        if (count === null) return;
 
         const isSet = (type === 'set');
         const testId = `TEST-${Math.floor(Math.random() * 9000) + 1000}`;
         const baseUrl = window.location.origin + window.location.pathname;
         const sid = encodeURIComponent(window.App.State.currentShowId || '');
         const hostUrl = `${baseUrl}?${isSet ? 'testHost' : 'testProg'}=${testId}&tp=${count}&sid=${sid}`;
-        window.open(hostUrl, '_blank');
-
+        // 新しいタブは開かず、この画面のままテストに入る（スマホでどのタブか分からなくならないように）
         const dbPath = isSet ? `saved_sets/${testId}` : `saved_programs/${testId}`;
-        window.db.ref(dbPath).set(data).catch(err => {
-            alert("テスト準備エラー: " + err.message);
+        window.App.Ui.showToast('テストを準備しています');
+        window.db.ref(dbPath).set(data).then(() => { window.location.href = hostUrl; }).catch(err => {
+            window.App.Dialog.alert('テストを準備できませんでした: ' + err.message);
         });
     },
 
-    del: function (path, key) {
-        if (!confirm("本当に削除しますか？")) return;
+    del: async function (path, key) {
+        if (!(await window.App.Dialog.confirm('本当に削除しますか？', { ok: '削除する', danger: true }))) return;
         const showId = window.App.State.currentShowId;
         window.db.ref(`${path}/${showId}/${key}`).remove().then(() => {
             // Keep saved_sets_meta from accumulating orphaned entries for

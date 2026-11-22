@@ -1024,8 +1024,8 @@ App.CreatorDraft = {
             `保存していない下書きがあります（${d.title ? `「${d.title}」` : ''}${d.questions.length}問・${hhmm}）`;
         bar.classList.remove('hidden');
         bar.querySelector('[data-draft="restore"]').onclick = () => { this.restore(d); bar.classList.add('hidden'); };
-        bar.querySelector('[data-draft="discard"]').onclick = () => {
-            if (!confirm('下書きを削除しますか？')) return;
+        bar.querySelector('[data-draft="discard"]').onclick = async () => {
+            if (!(await window.App.Dialog.confirm('下書きを削除しますか？', { ok: '削除する', danger: true }))) return;
             this.clear();
             bar.classList.add('hidden');
         };

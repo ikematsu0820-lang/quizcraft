@@ -215,7 +215,7 @@ window.App.Viewer = {
                 }
                 this.startListener();
             } else {
-                alert("Room not found");
+                window.App.Dialog.alert("Room not found");
                 if (btn) { btn.disabled = false; btn.textContent = "接続する"; }
             }
         });

@@ -286,10 +286,10 @@ App.PanelBoard = {
             const last = [...items.querySelectorAll('.pbq-pts')].map(x => Number(x.value)).filter(n => !isNaN(n) && n > 0).pop();
             this.addBoardItem(items, { pts: last ? last + 10 : 10, pq: '', answer: '' });
         };
-        sec.querySelector('.pbq-gdel').onclick = () => {
+        sec.querySelector('.pbq-gdel').onclick = async () => {
             if (board.querySelectorAll('.pbq-genre').length <= 1) { window.App.Ui.showToast('ジャンルは1つ以上必要です'); return; }
             const filled = [...sec.querySelectorAll('input')].some(x => x.value.trim() && !x.classList.contains('pbq-pts'));
-            if (filled && !confirm('このジャンルと、その問題を消しますか？')) return;
+            if (filled && !(await window.App.Dialog.confirm('このジャンルと、その問題を消しますか？', { ok: '消す', danger: true }))) return;
             sec.remove();
             this.renumberGenres(board);
         };
@@ -360,7 +360,7 @@ App.PanelBoard = {
                 const [name, pts, pq, answer] = l.split(/\t|,|，/).map(x => x.trim());
                 return { name: name || '', pts: pts !== undefined && pts !== '' && !isNaN(Number(pts)) ? Number(pts) : '', pq: pq || '', answer: answer || '' };
             }).filter(r => r.pq || r.answer);
-            if (!rows.length) { alert('「ジャンル[タブ]点[タブ]問題文[タブ]答え」の行が見つかりませんでした'); return; }
+            if (!rows.length) { window.App.Dialog.alert('「ジャンル[タブ]点[タブ]問題文[タブ]答え」の行が見つかりませんでした'); return; }
             if (overlay.querySelector('#pb-paste-replace').checked) board.innerHTML = '';
             const secOf = (name) => [...board.querySelectorAll('.pbq-genre')].find(sec => sec.querySelector('.pbq-gname').value.trim() === name);
             rows.forEach(r => {
@@ -455,7 +455,7 @@ App.PanelBoard = {
                 const pts = parts[2] !== undefined && parts[2] !== '' && !isNaN(Number(parts[2])) ? Number(parts[2]) : '';
                 return { label: parts[0], answer: parts[1], pts };
             }).filter(r => r && (r.label || r.answer || r.pq));
-            if (!rows.length) { alert(this.panelQ ? '「表[タブ]問題文[タブ]答え」の行が見つかりませんでした' : '「表の問題[タブ]答え」の行が見つかりませんでした'); return; }
+            if (!rows.length) { window.App.Dialog.alert(this.panelQ ? '「表[タブ]問題文[タブ]答え」の行が見つかりませんでした' : '「表の問題[タブ]答え」の行が見つかりませんでした'); return; }
             if (overlay.querySelector('#pb-paste-replace').checked) list.innerHTML = '';
             else list.querySelectorAll('.pb-row').forEach(r => { if (!r.querySelector('.pb-label').value.trim() && !r.querySelector('.pb-answer').value.trim()) r.remove(); });
             rows.forEach(r => this.addRow(list, r));
@@ -691,8 +691,8 @@ App.PanelBoard = {
                 btnMain.onclick = () => { pb.revealAll = true; this.clearAnswerTimer(); this.pbPush(); this.renderPanelConsole(); };
             } else {
                 btnMain.textContent = 'このボードを終える';
-                btnMain.onclick = () => {
-                    if (!confirm('このボードを終えて、残りのパネルの答えを見せますか？')) return;
+                btnMain.onclick = async () => {
+                    if (!(await window.App.Dialog.confirm('このボードを終えて、残りのパネルの答えを見せますか？', { ok: '終える' }))) return;
                     pb.finished = true; pb.revealAll = true; pb.sel = null;
                     this.clearAnswerTimer();
                     this.pbPush(); this.renderPanelConsole();

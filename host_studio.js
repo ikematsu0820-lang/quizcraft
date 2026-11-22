@@ -31,7 +31,7 @@ App.Studio = {
         // This is a fallback/dispatcher. Typically btnMain.onclick is overwritten by setStep.
         // If it's called here, it usually means the button was clicked before a program was loaded.
         if (App.Data.studioQuestions.length === 0) {
-            alert("⚠️ 最初にプログラム（セット）をロードしてください。");
+            window.App.Dialog.alert("⚠️ 最初にプログラム（セット）をロードしてください。");
         }
     },
 
@@ -565,12 +565,12 @@ App.Studio = {
             }
         };
 
-        btn.onclick = () => {
+        btn.onclick = async () => {
             const val = select.value;
             if (!val) return;
 
             if (this._forcedMode === 'solo') {
-                const ok = confirm('ソロモードで始めます。\n\n・1人ずつの挑戦になり、セットの「解答権」は使いません\n・ライフとクリア条件は、セットのルール「1人で挑戦するとき」の設定を使います\n・制限時間はセットの設定のままです\n\nよろしいですか？');
+                const ok = await window.App.Dialog.confirm('・1人ずつの挑戦になり、セットの「解答権」は使いません\n・ライフとクリア条件は、セットのルール「1人で挑戦するとき」の設定を使います\n・制限時間はセットの設定のままです', { title: 'ソロモードで始めます', ok: '始める' });
                 if (!ok) return;
             }
 
@@ -634,7 +634,7 @@ App.Studio = {
             if (bad.length) msgs.push(`【${set.title || 'セット'}】\n${App.QuizCheck.describe(bad)}`);
         });
         if (!msgs.length) return true;
-        alert(`未完成の問題があるため、このセットは出題できません。\n問題作成で完成させてから、もう一度読み込んでください。\n\n${msgs.join('\n\n')}`);
+        window.App.Dialog.alert(`未完成の問題があるため、このセットは出題できません。\n問題作成で完成させてから、もう一度読み込んでください。\n\n${msgs.join('\n\n')}`);
         return false;
     },
 
@@ -669,7 +669,7 @@ App.Studio = {
                 // 別タブで開いた時は、ボタンを押した瞬間（ブラウザが新しい
                 // タブを許可するタイミング）にモニターを開く
                 if (isHandoff) this.openMonitorTab();
-                try { this.setupPeriod(0); } catch (e) { alert("開始エラー: " + e.message); }
+                try { this.setupPeriod(0); } catch (e) { window.App.Dialog.alert("開始エラー: " + e.message); }
             };
             this.syncMainButton();
             if (isHandoff) App.Ui.showToast('「番組を開始」を押すとモニター画面が開きます');
@@ -682,7 +682,7 @@ App.Studio = {
             window.db.ref(`saved_sets/${showId}/${key}`).once('value').then(snap => {
                 setBusy(false);
                 const freshSet = snap.val();
-                if (!freshSet) { alert('セットデータが見つかりません'); return; }
+                if (!freshSet) { window.App.Dialog.alert('セットデータが見つかりません'); return; }
                 freshSet.key = key;
                 if (this.localSetsCache) this.localSetsCache[key] = freshSet;
                 if (!this.checkPlayable([freshSet])) return;
@@ -695,11 +695,11 @@ App.Studio = {
             window.db.ref(`saved_programs/${showId}/${key}`).once('value').then(snap => {
                 setBusy(false);
                 const freshProg = snap.val();
-                if (!freshProg) { alert('プログラムデータが見つかりません'); return; }
+                if (!freshProg) { window.App.Dialog.alert('プログラムデータが見つかりません'); return; }
                 if (this.localProgramsCache) this.localProgramsCache[key] = freshProg;
                 App.Data.periodPlaylist = freshProg.playlist || [];
                 if (App.Data.periodPlaylist.length === 0) {
-                    alert("⚠️ このプログラムにはセットが登録されていません。");
+                    window.App.Dialog.alert("⚠️ このプログラムにはセットが登録されていません。");
                     return;
                 }
                 if (!this.checkPlayable(App.Data.periodPlaylist)) return;
@@ -774,13 +774,13 @@ App.Studio = {
         console.log("Setup Period:", index);
         if (index === 0) this._eliminationDone = {}; // 番組を最初から — 足切りもやり直す
         if (!App.Data.periodPlaylist || App.Data.periodPlaylist.length === 0) {
-            alert("再生するプレイリストがありません。一度プログラムをセット（読込）してください。");
+            window.App.Dialog.alert("再生するプレイリストがありません。一度プログラムをセット（読込）してください。");
             return;
         }
 
         const item = App.Data.periodPlaylist[index];
         if (!item) {
-            alert(`エラー: セット番号[${index}]のデータが見つかりません。`);
+            window.App.Dialog.alert(`エラー: セット番号[${index}]のデータが見つかりません。`);
             return;
         }
 
@@ -817,7 +817,7 @@ App.Studio = {
 
         const roomId = App.State.currentRoomId;
         if (!roomId) {
-            alert("エラー: 部屋IDが取得できません。再起動してください。");
+            window.App.Dialog.alert("エラー: 部屋IDが取得できません。再起動してください。");
             return;
         }
 
@@ -1690,7 +1690,7 @@ App.Studio = {
         const options = this._getContainerOptions(container);
 
         if (!container || !options[childIndex]) {
-            alert("エラー: 選択されたセットが見つかりません。");
+            window.App.Dialog.alert("エラー: 選択されたセットが見つかりません。");
             return;
         }
 
@@ -1724,7 +1724,7 @@ App.Studio = {
 
         const roomId = App.State.currentRoomId;
         if (!roomId) {
-            alert("エラー: 部屋IDが取得できません。");
+            window.App.Dialog.alert("エラー: 部屋IDが取得できません。");
             return;
         }
 
@@ -1816,9 +1816,9 @@ App.Studio = {
         window.db.ref(`rooms/${App.State.currentRoomId}/status`).update({ step: 'final_ranking' });
 
         // Wait a moment for the ranking to be seen, then ask
-        setTimeout(() => {
+        setTimeout(async () => {
             const currentCode = App.State.currentRoomId;
-            const reuse = confirm(`全プログラムが終了しました。\n\n現在の部屋コード [${currentCode}] を維持したまま、\n次のクイズ（別のセットやプログラム）を行いますか？\n\n[OK] 維持してクイズ選択画面へ\n[キャンセル] 終了してダッシュボードへ`);
+            const reuse = await window.App.Dialog.confirm(`同じ部屋コード（${currentCode}）のまま、次のクイズ（別のセットや番組）を行いますか？`, { title: 'すべて終了しました', ok: '同じ部屋で次へ', cancel: '終えてメニューへ' });
 
             if (reuse) {
                 // Reuse Room: Store ID and go to selection
@@ -4067,7 +4067,7 @@ App.Studio = {
         if (!Array.isArray(list)) list = Object.values(list);
         App.Data.periodPlaylist = list;
         if (App.Data.periodPlaylist.length === 0) {
-            alert("このプログラムにはセットが含まれていません。");
+            window.App.Dialog.alert("このプログラムにはセットが含まれていません。");
             return;
         }
         this.startRoom(true);
@@ -4460,7 +4460,7 @@ App.Studio = {
 
             cell.onclick = () => {
                 if (!this.selectedPanelColor) {
-                    alert('色を選択してください');
+                    window.App.Dialog.alert('色を選択してください');
                     return;
                 }
 
@@ -4944,14 +4944,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-judge-wrong')?.addEventListener('click', () => App.Studio.judgeBuzz(false));
     document.getElementById('btn-toggle-ans')?.addEventListener('click', () => App.Studio.toggleAns());
     document.getElementById('btn-force-next')?.addEventListener('click', () => App.Studio.goNext());
-    document.getElementById('host-close-studio-btn-simple')?.addEventListener('click', () => {
+    document.getElementById('host-close-studio-btn-simple')?.addEventListener('click', async () => {
         // App.Studio.open() reuses the existing room/session whenever
         // App.State.currentRoomId is still set, silently skipping the
         // program/set selection screen. Confirm before leaving an active
         // session, and reset that state on OK so the next "問題を出す"
         // starts fresh and shows the selection screen again.
         if (App.State.currentRoomId) {
-            const ok = confirm('進行中のクイズを終了してメニューに戻りますか？\n（戻ると今回のセッションは終了し、次回は問題セットを選び直せます）');
+            const ok = await window.App.Dialog.confirm('進行中のクイズを終えてメニューに戻りますか？\n（今回の部屋は閉じます。次は問題セットを選び直します）', { ok: '終えて戻る', danger: true });
             if (!ok) return;
             // Tell whatever's still showing the monitor/viewer screen (a
             // separate tab/device) that the host ended the session — it has

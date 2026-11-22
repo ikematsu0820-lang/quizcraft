@@ -191,7 +191,7 @@ window.App.ProgConfig = {
         const select = document.getElementById('prog-set-select');
         const key = select.value;
         if (!key) {
-            alert("セットを選択してください");
+            window.App.Dialog.alert("セットを選択してください");
             return;
         }
 
@@ -472,8 +472,8 @@ window.App.ProgConfig = {
         this.renderPlaylist();
     },
 
-    remove: function (index) {
-        if (!confirm("この項目を削除しますか？")) return;
+    remove: async function (index) {
+        if (!(await window.App.Dialog.confirm('この項目を削除しますか？', { ok: '削除する', danger: true }))) return;
         window.App.Data.periodPlaylist.splice(index, 1);
         this.renderPlaylist();
     },
@@ -587,12 +587,12 @@ window.App.ProgConfig = {
         container.title = value;
     },
 
-    syncWithSource: function (i) {
+    syncWithSource: async function (i) {
         const item = window.App.Data.periodPlaylist[i];
         if (!item.sourceKey || !this.localItemsCache[item.sourceKey]) return;
 
         const latest = this.localItemsCache[item.sourceKey];
-        if (confirm(`「${latest.title}」の最新設定（ルールや問題数）をこのプログラムに適用しますか？\n(このステージ内の脱落設定などは維持されます)`)) {
+        if (await window.App.Dialog.confirm(`「${latest.title}」の最新設定（ルールや問題数）をこのプログラムに適用しますか？\n（このステージ内の脱落設定などは維持されます）`, { ok: '適用する' })) {
             item.title = latest.title;
             item.questions = JSON.parse(JSON.stringify(latest.questions || []));
             item.config = JSON.parse(JSON.stringify(latest.config || { mode: 'normal', gameType: 'score' }));
@@ -608,15 +608,15 @@ window.App.ProgConfig = {
         });
     },
 
-    saveProgram: function (silent = false) {
-        if (!window.App.Data.periodPlaylist?.length) { if (!silent) alert("リストが空です"); return Promise.reject(); }
+    saveProgram: async function (silent = false) {
+        if (!window.App.Data.periodPlaylist?.length) { if (!silent) window.App.Dialog.alert("リストが空です"); return Promise.reject(); }
 
         let title = "";
         if (!silent) {
-            title = window.prompt("番組の名称（タイトル）を入力してください", "新しい番組");
+            title = await window.App.Dialog.prompt('番組の名前', '新しい番組', { ok: '保存する' });
             if (title === null) return Promise.reject(); // Cancel
             title = title.trim();
-            if (!title) { alert("番組名を入力してください"); return Promise.reject(); }
+            if (!title) { window.App.Dialog.alert("番組名を入力してください"); return Promise.reject(); }
         }
 
         const data = {
