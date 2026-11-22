@@ -5897,3 +5897,7 @@ body.mans-open #unified-toggle-container, body.mans-open #test-view-dock { displ
 #creator-monitor-preview.cp-plain, #creator-monitor-preview.cp-plain * { font-family: 'M PLUS 1p', 'Hiragino Kaku Gothic ProN', sans-serif !important; -webkit-text-stroke: 0 !important; }
 #creator-monitor-preview.cp-plain :is(input, textarea) { text-shadow: none !important; }
 #creator-monitor-preview.cp-plain #pbq-board :is(.pbq-genre, .pbq-genre-head, .pbq-head) { background: #16161a !important; border-color: #2c2c33 !important; }
+/* PCの入力画面: 行の番号（ヒント1・A・1位）は落ち着いた色に（古い水色をやめる） */
+#creator-monitor-preview.cp-plain :is(.row-label, .choice-label-text, .multi-label) { color: #8b8b95 !important; text-shadow: none !important; }
+/* PCの入力画面の下の「正解」欄も、ほかの入力欄と同じ暗いへこみに */
+#creator-view:not(.cm-on) #creator-outside-opts input[type="text"] { background: #09090b !important; color: #fff !important; border: none !important; box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.85) !important; }
