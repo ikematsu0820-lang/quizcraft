@@ -942,7 +942,7 @@ window.App.Dashboard = {
 
         // Edit 
         const editAction = isSet
-            ? `window.App.Dashboard.openEditMenuInSheet('${key}')`
+            ? `window.App.Dashboard.transitionToCreator('${key}'); document.getElementById('item-menu-modal')?.remove()`
             : `window.App.ProgConfig.loadProgramForDashboard(window.App.Dashboard.itemCache['${key}'])`;
 
         // Copy
@@ -959,7 +959,7 @@ window.App.Dashboard = {
 
         // 下から出る操作のシート — 一番使う「スタート」だけ大きく、ほかは同じ形の行で
         const I = (n) => window.App.Icons.svg(n, 20);
-        const close = "document.getElementById('item-menu-modal').remove()";
+        const close = "document.getElementById('item-menu-modal')?.remove()";
         const kind = isSet ? `セット・${(data.questions || []).length}問` : `番組・${(data.playlist || []).length}セット`;
         const html = `
             <div id="item-menu-modal" class="im-ov" onclick="if(event.target===this)this.remove()">
@@ -971,7 +971,7 @@ window.App.Dashboard = {
                     <button type="button" class="im-start" onclick="${startAction}; ${close}">${I('play')}<span>スタート</span></button>
                     <div class="im-list">
                         <button type="button" class="im-row" onclick="${testAction}; ${close}">${I('flask')}<span>テストプレイ</span></button>
-                        <button type="button" class="im-row" onclick="${editAction}">${I('pencil')}<span>編集する</span></button>
+                        <button type="button" class="im-row" onclick="${editAction}; ${close}">${I('pencil')}<span>編集する</span></button>
                         <button type="button" class="im-row" onclick="${copyAction}; ${close}">${I('copy')}<span>複製する</span></button>
                         <button type="button" class="im-row" onclick="window.App.Dashboard.renameItem('${key}', '${type}')">${I('type')}<span>名前を変える</span></button>
                         <button type="button" class="im-row im-danger" onclick="${delAction}; ${close}">${I('trash')}<span>削除する</span></button>
