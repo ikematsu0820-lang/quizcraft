@@ -408,3 +408,4 @@
 }
 .cskin-capsule .c-stretch .cs-badge::after { content: '' !important; }
 .c-stretch .cs-item .cs-label { position: relative; z-index: 1; flex: 1 1 auto; text-align: center !important; justify-content: center !important; }
+:is(.cskin-button, .cskin-panel, .cskin-capsule) .c-stretch .cs-badge { font-size: min(2.6em, 11cqh) !important; }

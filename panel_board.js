@@ -816,7 +816,7 @@ App.PanelBoard = {
             this._pbSeqShown = pb.seq || 0;
             const last = pb.last || {};
             // 見た目の「パネル」の文字サイズ（小・中・大）と文字色を、まだ開いていないパネルの表に
-            const sizeRate = { '4vh': 0.8, '6vh': 1, '9vh': 1.3 }[d.cFontSize] || 1;
+            const sizeRate = { '4vh': 0.8, '6vh': 1, '9vh': 1.3, '13vh': 1.6, '18vh': 1.9 }[d.cFontSize] || 1;
             const fontPx = Math.max(2.4, Math.min(6, 40 / rows)) * sizeRate;
             mainText.style.flexDirection = 'column';
             mainText.style.justifyContent = 'flex-start';
