@@ -5924,3 +5924,7 @@ body:has(.qd-ov, .im-ov) :is(#unified-toggle-container, #test-view-dock) { displ
 #cm-edit-bar { overflow: hidden; }
 #cm-edit-bar .cm-bar-btn { min-width: 0 !important; overflow: hidden; text-overflow: ellipsis; }
 #cm-edit-bar .cm-bar-btn.cm-primary, #cm-edit-bar .cm-bar-btn.cm-done { font-size: clamp(0.78rem, 3.6vw, 0.9rem) !important; }
+/* 1つ戻るは左に1つだけ。進行ボタンの説明はボタンのすぐ上に中央寄せ（どのボタンの説明か分かるように） */
+.hc-row { justify-content: flex-start; margin-bottom: 8px; }
+#hc-next.hc-next { flex: none; width: 100%; max-width: 400px; text-align: center; margin: 0 0 4px; color: #a1a1aa; font-size: 12px; line-height: 1.4; }
+#hc-next.hc-next:empty { display: none; }

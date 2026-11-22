@@ -65,8 +65,13 @@ App.HostConsole = {
             const row = document.createElement('div');
             row.id = 'hc-row';
             row.className = 'hc-row';
-            row.innerHTML = `<button type="button" id="hc-back" class="hc-back" disabled>1つ戻る</button><div id="hc-next" class="hc-next"></div>`;
+            row.innerHTML = `<button type="button" id="hc-back" class="hc-back" disabled>1つ戻る</button>`;
             bar.insertBefore(row, main);
+            // 「押すと何が起きるか」は進行ボタンのすぐ上に、矢印付きで（1つ戻るの説明と間違えないように）
+            const next = document.createElement('div');
+            next.id = 'hc-next';
+            next.className = 'hc-next';
+            bar.insertBefore(next, main);
             row.querySelector('#hc-back').onclick = () => this.back();
             // 進行ボタンの文字が変わったら「押すと何が起きるか」も変える
             if (window.MutationObserver) new MutationObserver(() => this.updateNext()).observe(main, { childList: true, characterData: true, subtree: true });
@@ -298,7 +303,7 @@ App.HostConsole = {
         if (!main || !el) return;
         const t = (main.textContent || '').trim();
         const hit = this.NEXT.find(([re]) => re.test(t));
-        el.textContent = hit ? `押すと: ${hit[1]}` : '';
+        el.textContent = hit ? `▼ 「${t}」を押すと、${hit[1]}` : '';
     },
 
     // ---------------------------------------------------------
