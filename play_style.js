@@ -17,9 +17,9 @@ App.PlayStyle = {
     FORMATS: {
         free: { name: '一問一答', who: ['buzz', 'all', 'turn', 'nominate'], how: true, base: 'free' },
         assoc_group: { name: '連想クイズ', who: ['buzz', 'all', 'turn', 'nominate'], how: true, base: 'assoc' },
-        choice: { name: '選択式', who: ['all', 'nominate', 'buzz', 'turn'], score: true, q: { type: 'choice' } },
-        sort: { name: '並べ替え', who: ['all', 'nominate', 'buzz', 'turn'], score: true, q: { type: 'sort' } },
-        multi_group: { name: '多答クイズ', who: ['turn'], how: true, base: 'multi' },
+        choice: { name: '選択式', who: ['all', 'turn', 'nominate', 'buzz'], score: true, q: { type: 'choice' } },
+        sort: { name: '並べ替え', who: ['all', 'turn', 'nominate', 'buzz'], score: true, q: { type: 'sort' } },
+        multi_group: { name: '多答クイズ', who: ['turn', 'nominate'], how: true, base: 'multi' },
     },
     // 呼び名は rule_engine.js（WHO・HOW）と同じ — ルール画面・セット設定の一覧とそろえる
     get WHO() {

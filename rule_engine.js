@@ -65,24 +65,24 @@ App.RuleEngine = {
         else if (ctx.isPanel) normalWhy = 'パネルは1人ずつ選んで答える形式です';
         else if (ctx.isMulti) normalWhy = '多答・ランキングは1人ずつ答えて、答えを開けていく形式です';
         else if (ctx.isOral) normalWhy = '口頭で答える時は、全員が同時には答えられません（手書きにすると選べます）';
-        // 選択式・並べ替え（パネル・ダウトを除く）は「全員で」か「指名」だけ
+        // 選択式・並べ替え（パネル・ダウトを除く）は早押しだけ使わない
         //   早押し: 選択肢が見えている／並べる速さで競う形式なので、全員で答えて早い人ほど高い点にする方が合う
-        //   順番  : 前の人の答え（モニター）で、後の番の人ほど有利になる
+        //   順番・指名: 1問目はAさん、2問目はBさん、のように1問を1人が答える形なら成り立つ（2つは同じ扱い）
         const isSort = ctx.firstType === 'sort';
         const allOnly = (ctx.isPlainChoice || isSort) && !ctx.isPanel;
-        //   多答（パネルを除く）は順番だけ — 早押しだと先に押した人が簡単な答えを取っていき、答えを開けていく遊びにならない
+        //   多答（パネルを除く）は順番か指名 — 早押しだと先に押した人が簡単な答えを取っていき、答えを開けていく遊びにならない
         const multiTurnOnly = ctx.isMulti && !ctx.isPanel;
-        const multiWhy = '多答は順番に1人ずつ答えて、答えを開けていく形式です';
+        const multiWhy = '多答は順番か指名で1人ずつ答えて、答えを開けていく形式です';
         const buzzWhy = turnOnly ? turnOnlyWhy
             : multiTurnOnly ? multiWhy
             : allOnly ? (isSort ? '並べ替えは並べる速さで競う形式なので、全員で並べて早い人ほど高い点にします' : '選択式は選択肢が見えているので、全員で答えて早い人ほど高い点にします') : '';
-        const turnWhy = allOnly ? '1人ずつ答えると、前の人の答えで後の番の人ほど有利になります' : '';
+        const turnWhy = '';
         return [
             { value: 'normal', label: '全員が同時に手元で解答', disabled: !!normalWhy, reason: normalWhy },
             { value: 'buzz', label: '早く押した人から解答', disabled: !!buzzWhy, reason: buzzWhy },
-            // 多答（パネルを除く）は順番で答えを1つずつ開けていく形式 — 指名・早押しは使わない
-            { value: 'nominate', label: '指名された人のみ解答', disabled: turnOnly || multiTurnOnly,
-              reason: turnOnly ? turnOnlyWhy : multiTurnOnly ? multiWhy : '' },
+            // 指名と順番は「1人ずつ答える」同士なので、相性は同じ（片方だけ外すことはしない）
+            { value: 'nominate', label: '指名された人のみ解答', disabled: turnOnly,
+              reason: turnOnly ? turnOnlyWhy : '' },
             { value: 'turn', label: '特定の人や順番で解答', disabled: !!turnWhy, reason: turnWhy },
         ];
     },
