@@ -137,7 +137,12 @@ function playerNotice(msg, kind) {
 // ---------------------------------------------------------
 const PLAYER_SESSION_KEY = 'qs_player_session';
 const PlayerSession = {
+    // テストの回答者（autoName 付き・部屋が TEST-…）は覚えない — 同じ端末の司会者の画面に「参加中」と出てしまうため
+    isTest(room) {
+        return /^TEST-/.test(String(room || '')) || new URLSearchParams(location.search).has('autoName');
+    },
     save(room, id, name) {
+        if (this.isTest(room)) return;
         try { localStorage.setItem(PLAYER_SESSION_KEY, JSON.stringify({ room, id, name, at: Date.now() })); } catch (e) { /* noop */ }
         try { localStorage.setItem('qs_player_last_name', name); } catch (e) { /* noop */ }
     },
@@ -165,13 +170,34 @@ function enterGame(code, playerId, name) {
     startPlayerListener(code, playerId);
 }
 
+// 司会者がクイズを終えた時の画面
+function showRoomEnded() {
+    PlayerSession.clear();
+    if (document.getElementById('player-ended')) return;
+    const box = document.createElement('div');
+    box.id = 'player-ended';
+    box.innerHTML = `<div class="pe-card"><b>このクイズは終わりました</b><span>参加してくれてありがとうございました</span>
+        <button type="button">参加の画面に戻る</button></div>`;
+    box.querySelector('button').onclick = () => { location.href = location.origin + location.pathname; };
+    document.body.appendChild(box);
+}
+
 // 前回の参加が残っていれば「戻る」カードを出す
 function offerResume() {
+    // 司会者・モニター・テストの画面では出さない（回答者として参加する入口だけ）
+    const qp = new URLSearchParams(location.search);
+    if (['testHost', 'testProg', 'hostLoad', 'vcode', 'autoName', 'sid'].some(k => qp.has(k))) return;
     const sess = PlayerSession.read();
     if (!sess || !window.db) return;
-    window.db.ref(`rooms/${sess.room}/players/${sess.id}`).once('value', snap => {
-        const p = snap.val();
-        if (!p) { PlayerSession.clear(); return; }
+    if (PlayerSession.isTest(sess.room)) { PlayerSession.clear(); return; }
+    window.db.ref(`rooms/${sess.room}`).once('value', snap => {
+        const room = snap.val() || {};
+        const p = (room.players || {})[sess.id];
+        // 部屋が終わっている（司会者が閉じた）なら忘れる
+        if (!p || !room.status || room.status.step === 'host_ended') { PlayerSession.clear(); return; }
+        // 回答者の入口が見えている時だけ（司会者のメニューなどの上には出さない）
+        const vis = (id) => { const e = document.getElementById(id); return !!(e && !e.classList.contains('hidden')); };
+        if (!vis('respondent-view') && !vis('host-login-view')) return;
         if (myPlayerId) return; // もう参加している
         let card = document.getElementById('player-resume-card');
         if (!card) {
@@ -486,6 +512,8 @@ function startPlayerListener(roomId, playerId) {
     statusRef.on('value', snap => {
         const st = snap.val();
         if (!st) return;
+        // 司会者がクイズを終えた — ここに閉じ込められないよう、終わりの画面と入口へ戻るボタン
+        if (st.step === 'host_ended') { showRoomEnded(); return; }
 
         // --- Production: Detect step change for animation ---
         if (localStatus.step !== st.step) {

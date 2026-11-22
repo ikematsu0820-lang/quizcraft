@@ -1847,3 +1847,10 @@ body.buzz-flash::after {
 #player-game-view .multi-mode-container .oral-help { display: none !important; }
 #player-game-view .player-multi-grid.pm-dense { gap: 4px 6px !important; margin-top: 0 !important; }
 #player-game-view .player-multi-grid.pm-dense .player-multi-item { padding: 4px 6px !important; min-height: 30px !important; }
+
+/* 司会者がクイズを終えた時（player.js showRoomEnded） */
+#player-ended { position: fixed; inset: 0; z-index: 2147482000; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(15, 10, 40, 0.88); }
+#player-ended .pe-card { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center; padding: 24px 18px; border-radius: 18px; background: #fff; color: #1f2937; }
+#player-ended b { font-size: 1.3em; font-weight: 900; }
+#player-ended span { color: #64748b; font-size: 0.9em; }
+#player-ended button { margin-top: 10px; width: 100%; min-height: 50px; border: none; border-radius: 12px; background: #6d28d9; color: #fff; font-size: 1em; font-weight: 800; cursor: pointer; }

@@ -536,6 +536,8 @@ window.App._showTestNavBar = function (testId, playerCount) {
         if (tabId === 'dashboard') {
             select.value = 'host';
             if (await window.App.Dialog.confirm('テストを終えてメニューに戻りますか？', { ok: 'テストを終える' })) {
+                try { window.db.ref(`rooms/${testId}/status`).update({ step: 'host_ended' }); } catch (e) { /* noop */ }
+                try { window.App.State.currentRoomId = null; } catch (e) { /* noop */ }
                 select.remove();
                 dock.remove();
                 iframeOverlay.remove();
