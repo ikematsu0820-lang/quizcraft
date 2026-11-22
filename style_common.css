@@ -1240,3 +1240,5 @@ body.tp-open :is(#unified-toggle-container, #test-view-dock) { display: none !im
 #tp-host .tp-board .tp-grid { width: min(100%, calc((100vh - 220px) * var(--arw, 1))) !important; }
 #tp-remote.tp-mon .tp-grid { height: calc(100% - 6vh) !important; }
 #tp-remote.tp-pl .tp-grid { width: 100% !important; }
+/* 小さい札（「第1問」など）と選択肢の記号には飾りをかけない — 小さい文字は縁と影でつぶれる */
+:is(.tfx-q, .tfx-c, .tfx-b) :is(.qs-num, .choice-prefix, .choice-prefix *, .cs-prefix, .tp-no) { -webkit-text-stroke: 0 !important; text-shadow: none !important; }

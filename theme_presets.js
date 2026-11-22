@@ -39,16 +39,16 @@ App.Themes = {
         telop: { name: 'テロップ', stroke: 'thick', strokeColor: '#000000', shadow: 'drop',   shadowColor: 'rgba(0,0,0,0.7)', fill: '' },
         gold:  { name: '金文字', stroke: 'thin',  strokeColor: '#3a2500', shadow: 'solid',  shadowColor: '#7a5600', fill: '#ffd84a' },
         neon:  { name: 'ネオン', stroke: 'none',  strokeColor: '#000000', shadow: 'glow',   shadowColor: '', fill: '' },
-        pop:   { name: 'ポップ', stroke: 'thick', strokeColor: '#ffffff', shadow: 'offset', shadowColor: '#e91e63', fill: '' },
+        pop:   { name: 'ポップ', stroke: 'thin', strokeColor: '#1f1147', shadow: 'offset', shadowColor: 'rgba(0,0,0,0.35)', fill: '' },
         solid: { name: '立体',   stroke: 'thin',  strokeColor: '#000000', shadow: 'solid',  shadowColor: '#000000', fill: '' },
     },
-    STROKE_W: { none: '0', thin: '0.08em', thick: '0.17em' },
+    STROKE_W: { none: '0', thin: '0.06em', thick: '0.12em' },
     // 影の作り方（c は影の色）
     shadowCss: function (kind, c) {
         if (kind === 'drop') return `0 0.06em 0.14em ${c}`;
-        if (kind === 'offset') return `0.09em 0.09em 0 ${c}`;
+        if (kind === 'offset') return `0.06em 0.07em 0 ${c}`;
         if (kind === 'glow') return `0 0 0.06em #ffffff, 0 0 0.25em ${c}, 0 0 0.6em ${c}`;
-        if (kind === 'solid') return `0.025em 0.025em 0 ${c}, 0.05em 0.05em 0 ${c}, 0.075em 0.075em 0 ${c}, 0.1em 0.1em 0 ${c}, 0.12em 0.14em 0.12em rgba(0,0,0,0.5)`;
+        if (kind === 'solid') return `0.03em 0.03em 0 ${c}, 0.06em 0.06em 0 ${c}, 0.08em 0.1em 0.1em rgba(0,0,0,0.45)`;
         return 'none';
     },
     // 今のデザインの飾り（型＋詳細の上書き）。前から作ってあるセットは「なし」のまま（見た目が勝手に変わらないように）
@@ -177,7 +177,7 @@ App.Themes = {
         {
             // おもちゃ箱 — 空色の地に、赤い箱の縁・4色のボタン・まるもじ＋ブロックのような立体文字
             id: 'toybox', name: 'おもちゃ箱', desc: '空色×原色のにぎやかな箱',
-            fx: 'solid', fxOver: { tfx_shadowColor: '#1e3a8a' }, font: 'cute', accent: '#ef4444', timer: 'number', frame: '#ef4444',
+            fx: 'solid', fxOver: { tfx_shadowColor: '#1e3a8a' }, font: 'rounded', accent: '#ef4444', timer: 'number', frame: '#ef4444',
             bridge: { style: 'count', bg: '#7dd3fc', text: '#1e3a8a' },
             skin: { c: 'button', pal: 'four', q: 'board', fx: '', frame: true },
             colors: {
