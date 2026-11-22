@@ -5827,3 +5827,33 @@ body:not(:has(#player-game-view:not(.hidden))) #toast-container { --color-primar
 #saved-items-view .dash-list-item { flex-direction: row !important; justify-content: flex-start !important; text-align: left !important; }
 #saved-items-view .item-main { display: block !important; text-align: left !important; }
 #saved-items-view .item-meta { justify-content: flex-start !important; }
+
+/* =========================================================
+ * 司会者: 多答の正解一覧 — 2列の大きなマス、「広げる」で画面いっぱい（host_studio.js renderUnifiedConsole）
+ * ======================================================= */
+.multi-ans-wrapper { background: #16161a !important; border: none !important; border-radius: 10px !important; padding: 8px !important; }
+.mans-head { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
+.mans-q { flex: 1; min-width: 0; color: #e5e5e8; font-weight: 800; font-size: 0.95rem; line-height: 1.4; }
+.mans-count { flex: 0 0 auto; color: #8b8b95; font-size: 0.8rem; font-family: ui-monospace, Menlo, monospace; }
+.mans-expand { flex: 0 0 auto; min-height: 36px; padding: 0 14px; border: none; border-radius: 8px; background: #26262d; color: #e5e5e8; font-weight: 800; font-size: 0.85rem; cursor: pointer; }
+.multi-ans-container { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 6px !important; max-height: 44vh !important; padding: 0 !important; }
+.multi-ans-item { min-height: 48px; padding: 8px 10px !important; border-radius: 8px !important; background: #222228 !important; border: none !important; color: #e5e5e8 !important; font-size: 15px !important; transform: none !important; }
+.multi-ans-item .multi-ans-idx { width: auto !important; min-width: 24px; height: 22px !important; padding: 0 5px; border-radius: 5px !important; margin-right: 8px !important; font-size: 11px !important; color: #8b8b95 !important; }
+.multi-ans-item.revealed { background: #15803d !important; box-shadow: none !important; }
+.multi-ans-item.revealed .multi-ans-idx { color: #fff !important; }
+.multi-ans-check { margin-left: 4px !important; }
+/* 広げた時: 画面いっぱいに、3列の押しやすいマス */
+.multi-ans-wrapper.mans-full {
+    position: fixed; inset: 0; z-index: 2147480000; border-radius: 0 !important; margin: 0 !important;
+    padding: calc(12px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom)) !important;
+    background: #0d0d10 !important; display: flex; flex-direction: column;
+}
+.mans-full .multi-ans-container { flex: 1; max-height: none !important; overflow-y: auto; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important; align-content: start; gap: 8px !important; }
+.mans-full .multi-ans-item { min-height: 60px; font-size: 17px !important; }
+body.mans-open { overflow: hidden; }
+.mans-foot { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.mans-who { flex: 1; min-width: 0; color: #8b8b95; font-size: 0.85rem; }
+.mans-ng { flex: 0 0 auto; min-height: 52px; padding: 0 18px; border: none; border-radius: 12px; background: #b91c1c; color: #fff; font-weight: 900; font-size: 1rem; cursor: pointer; }
+/* 一覧を広げている間は、下の「司会者／モニター」の切り替えとテストの切り替えを隠す */
+body.mans-open #unified-toggle-container, body.mans-open #test-view-dock { display: none !important; }
+#mans-full-ov .multi-ans-item { font-weight: 800; }

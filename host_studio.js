@@ -1459,6 +1459,9 @@ App.Studio = {
 
                 // Reset Multi-Answer State
                 this.revealedMultiIndices = {};
+                this._multiExpanded = false;
+                document.body.classList.remove('mans-open');
+                document.getElementById('mans-full-ov')?.remove();
                 // Clear from Firebase immediately to prevent ghost reveals
                 const roomId = App.State.currentRoomId;
                 if (roomId) {
@@ -3157,6 +3160,9 @@ App.Studio = {
             cardQ.textContent = q.q || "(No Text)";
         }
         if (q && cardCorrect) {
+            // 参加者の更新のたびに描き直すので、正解一覧のスクロール位置を持っておく
+            const oldList = document.querySelector('#mans-full-ov .multi-ans-container') || cardCorrect.querySelector('.multi-ans-container');
+            const keepScroll = oldList ? oldList.scrollTop : 0;
             cardCorrect.innerHTML = ""; // Clear previous content
 
             // Reset layout for normal questions
@@ -3174,9 +3180,19 @@ App.Studio = {
                 const isAssoc = q.type.startsWith('assoc');
                 const correctList = isAssoc ? q.c : (Array.isArray(q.correct) ? q.correct : [q.correct]);
 
-                // Wrapper
+                // Wrapper — 「広げる」で画面いっぱいの一覧にして、押しやすくする
                 const wrapper = document.createElement('div');
-                wrapper.className = 'multi-ans-wrapper';
+                wrapper.className = 'multi-ans-wrapper' + (this._multiExpanded ? ' mans-full' : '');
+                const openN = correctList.filter((_, i) => this.revealedMultiIndices && this.revealedMultiIndices[i]).length;
+                const head = document.createElement('div');
+                head.className = 'mans-head';
+                head.innerHTML = `<span class="mans-q">${this._multiExpanded ? String(q.q || '').replace(/</g, '&lt;') : ''}</span><span class="mans-count">${openN} / ${correctList.length} 開けた</span><button type="button" class="mans-expand">${this._multiExpanded ? '閉じる' : '広げる'}</button>`;
+                head.querySelector('.mans-expand').onclick = (e) => {
+                    e.stopPropagation();
+                    this._multiExpanded = !this._multiExpanded;
+                    this.renderUnifiedConsole(App.Data.players || {});
+                };
+                wrapper.appendChild(head);
 
                 // Scroll Container
                 const container = document.createElement('div');
@@ -3220,12 +3236,33 @@ App.Studio = {
                         } else {
                             item.classList.remove('revealed');
                         }
+                        const n = container.querySelectorAll('.multi-ans-item.revealed').length;
+                        const c = wrapper.querySelector('.mans-count');
+                        if (c) c.textContent = `${n} / ${correctList.length} 開けた`;
                     };
                     container.appendChild(item);
                 });
 
                 wrapper.appendChild(container);
-                cardCorrect.appendChild(wrapper);
+                // 広げている間は下の判定ボタンが隠れるので、ここにも出す（答えを押すと正解、どれでもない時は✕）
+                if (this._multiExpanded) {
+                    const foot = document.createElement('div');
+                    foot.className = 'mans-foot';
+                    const who = (App.Data.players || {})[this.turnOrder && this.turnOrder[this.turnIndex]] || null;
+                    foot.innerHTML = `<span class="mans-who">${who ? `${String(who.name || '').replace(/</g, '&lt;')} さんの番 ／ ` : ''}${(App.Data.currentConfig || {}).mode === 'turn' ? '言った答えを押すと正解' : '出た答えを押して開ける'}</span><button type="button" class="mans-ng">✕ 一覧にない</button>`;
+                    foot.querySelector('.mans-ng').onclick = (e) => {
+                        e.stopPropagation();
+                        const ng = document.querySelector('#hc-judge .hc-judge-ng') || document.querySelector('[data-desk-judge="0"]');
+                        if (ng) ng.click(); else App.Ui.showToast('今は判定できません');
+                    };
+                    wrapper.appendChild(foot);
+                }
+                // 広げた一覧は画面の一番上の層に（親の重なり順に閉じ込められて、下のバーに隠れないように）
+                document.getElementById('mans-full-ov')?.remove();
+                if (this._multiExpanded) { wrapper.id = 'mans-full-ov'; document.body.appendChild(wrapper); }
+                else cardCorrect.appendChild(wrapper);
+                container.scrollTop = keepScroll;
+                document.body.classList.toggle('mans-open', !!this._multiExpanded);
 
             } else {
                 // Single Answer (Normal)

@@ -1830,3 +1830,20 @@ body.buzz-flash::after {
 @media (orientation: landscape) {
     #player-game-view .player-multi-grid.pm-dense, #player-numgame .ng-grid.ng-dense { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
 }
+
+/* 多答: 正解した後も一覧は残し、手書き欄と送信だけ片づける */
+#player-input-container.pl-hide-input > :not(.player-multi-grid) { display: none !important; }
+
+/* 状態の帯は細く（「あなたの番です」が下の一覧を押し下げないように） — 1行に題と説明 */
+.psb { flex-direction: row !important; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 2px 10px !important; margin: 6px 0 !important; padding: 8px 14px !important; border-radius: 12px !important; }
+.psb b { font-size: 1.15em !important; }
+.psb span { font-size: 0.78em !important; }
+.psb-me { box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.3) !important; animation: psbIn 0.25s ease-out, psbPulseSm 1.4s ease-in-out infinite !important; }
+@keyframes psbPulseSm { 50% { box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.12); } }
+
+/* 多答の画面: 問題文を小さめにして、一覧を詰める（30個ほどを1画面に） */
+#player-game-view:has(.multi-mode-container) .player-q-text { padding: 10px 14px !important; font-size: 1em !important; line-height: 1.45 !important; margin: 0 0 8px !important; min-height: 0 !important; }
+#player-game-view .multi-mode-container { margin-top: 0 !important; padding-top: 0 !important; }
+#player-game-view .multi-mode-container .oral-help { display: none !important; }
+#player-game-view .player-multi-grid.pm-dense { gap: 4px 6px !important; margin-top: 0 !important; }
+#player-game-view .player-multi-grid.pm-dense .player-multi-item { padding: 4px 6px !important; min-height: 30px !important; }

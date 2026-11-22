@@ -579,7 +579,7 @@ function updateSpeedBadge(st, p) {
 function updateUI() {
     const st = localStatus;
     const p = localPlayerData;
-    document.getElementById('player-input-container')?.classList.remove('pl-hide');
+    document.getElementById('player-input-container')?.classList.remove('pl-hide', 'pl-hide-input');
     clearInterval(window._wbCountdown); // 書く持ち時間の表示は、必要な時だけ下で付け直す
     updateSpeedBadge(st, p);
     // 入室者の名前の購読は待機画面の間だけ
@@ -1196,7 +1196,12 @@ function renderStateBanner(st, p) {
         if (waitMsg && ['win', 'lose', 'other', 'me'].includes(kind) && !(kind === 'me' && by !== 'oral')) waitMsg.classList.add('hidden');
         document.getElementById('current-turn-header-disp')?.classList.add('hidden');
         // 正解した後は、入力欄（手書き欄・送信）を片づける
-        if (kind === 'win' || (kind === 'lose' && mode === 'buzz')) document.getElementById('player-input-container')?.classList.add('pl-hide');
+        if (kind === 'win' || (kind === 'lose' && mode === 'buzz')) {
+            const ic = document.getElementById('player-input-container');
+            // 多答・ランキング・連想は、答えの一覧は残す（手書き欄と送信だけ片づける）
+            if (ic && ic.classList.contains('multi-mode-container')) ic.classList.add('pl-hide-input');
+            else ic?.classList.add('pl-hide');
+        }
     }
 }
 
@@ -1284,8 +1289,15 @@ function toggleInputEnabled(enabled) {
 
     if (enabled) {
         cont.style.opacity = "1";
+        [...cont.children].forEach(ch => { ch.style.opacity = ''; });
         cont.style.pointerEvents = "auto";
         cont.classList.remove('input-disabled-safe');
+    } else if (cont.classList.contains('multi-mode-container')) {
+        // 多答: 答えの一覧はみんなが見るものなので薄くしない（手書き欄・送信だけ薄く）
+        cont.style.opacity = "1";
+        [...cont.children].forEach(ch => { if (!ch.classList.contains('player-multi-grid')) ch.style.opacity = '0.4'; });
+        cont.style.pointerEvents = "auto";
+        cont.classList.add('input-disabled-safe');
     } else {
         cont.style.opacity = "0.4"; // 薄くする
         cont.style.pointerEvents = "auto"; // スクロールは可能にする
