@@ -174,6 +174,34 @@ App.Themes = {
                 pbBg: '#ffffff', pbText: '#1f2937', pbBorder: '#cbd5e1', pbOk: '#2563eb', pbOkText: '#ffffff', pbDone: '#eef1f6', pbDoneText: '#94a3b8', pbGloss: 'none',
             },
         },
+        {
+            // おもちゃ箱 — 空色の地に、赤い箱の縁・4色のボタン・まるもじ＋ブロックのような立体文字
+            id: 'toybox', name: 'おもちゃ箱', desc: '空色×原色のにぎやかな箱',
+            fx: 'solid', fxOver: { tfx_shadowColor: '#1e3a8a' }, font: 'cute', accent: '#ef4444', timer: 'number', frame: '#ef4444',
+            bridge: { style: 'count', bg: '#7dd3fc', text: '#1e3a8a' },
+            skin: { c: 'button', pal: 'four', q: 'board', fx: '', frame: true },
+            colors: {
+                mainBgColor: '#7dd3fc',
+                qTextColor: '#1e3a8a', qBgColor: '#ffffff', qBorderColor: '#ef4444',
+                cTextColor: '#ffffff', cBgColor: '#2563eb', cBorderColor: '#ffffff',
+                revealTextColor: '#1e3a8a', revealBorderColor: '#facc15', revealBgColor: '#facc15',
+                pbBg: '#ef4444', pbText: '#ffffff', pbBorder: '#ffffff', pbOk: '#facc15', pbOkText: '#1e3a8a', pbDone: '#bae6fd', pbDoneText: '#60a5fa', pbGloss: '',
+            },
+        },
+        {
+            // 学校 — 黒板の緑に木の枠、チョークの白と黄色、手書きの文字
+            id: 'school', name: '学校', desc: '黒板とチョークの教室',
+            fx: 'none', fxOver: { tfx_shadow: 'drop', tfx_shadowColor: 'rgba(255,255,255,0.35)' }, font: 'hand', accent: '#fde047', timer: 'clock', frame: '#8b5a2b',
+            bridge: { style: 'typewriter', bg: '#1f3b2d', text: '#f5f5f0' },
+            skin: { c: '', pal: '', q: '', fx: '', frame: true },
+            colors: {
+                mainBgColor: '#1f3b2d',
+                qTextColor: '#f5f5f0', qBgColor: 'transparent', qBorderColor: 'rgba(245, 245, 240, 0.35)',
+                cTextColor: '#f5f5f0', cBgColor: 'transparent', cBorderColor: 'rgba(245, 245, 240, 0.6)',
+                revealTextColor: '#1f3b2d', revealBorderColor: '#fde047', revealBgColor: '#fde047',
+                pbBg: '#2a4a38', pbText: '#f5f5f0', pbBorder: '#f5f5f0', pbOk: '#fde047', pbOkText: '#1f3b2d', pbDone: '#18301f', pbDoneText: '#4d6b58', pbGloss: 'none',
+            },
+        },
     ],
 
     get: function (id) {
@@ -192,6 +220,7 @@ App.Themes = {
         // 文字の飾りもテーマの型に戻す（詳細の上書きは消す）
         design.textFx = t.fx || 'none';
         Object.keys(design).forEach(k => { if (k.indexOf('tfx_') === 0) delete design[k]; });
+        Object.assign(design, t.fxOver || {}); // テーマごとの飾りの細部（学校のチョークのにじみなど）
         if (t.timer) design.timerStyle = t.timer; // タイマーの見た目もテーマに合わせる
         // 画面の型は1つ（バラエティ枠も標準の設定の組み合わせ）
         delete design.layoutTemplate;
@@ -220,7 +249,7 @@ App.Themes = {
         const t = design && this.get(design.themeId);
         if (!t) return false;
         if ((design.fontFamily || '') !== t.font) return true;
-        if ((design.textFx || 'none') !== (t.fx || 'none') || Object.keys(design).some(k => k.indexOf('tfx_') === 0 && design[k] !== '')) return true;
+        if ((design.textFx || 'none') !== (t.fx || 'none') || Object.keys(design).some(k => k.indexOf('tfx_') === 0 && (design[k] || '') !== ((t.fxOver || {})[k] || ''))) return true;
         if (t.skin && ((design.cSkin || '') !== t.skin.c || (design.cPalette || '') !== t.skin.pal || (design.qSkin || '') !== t.skin.q)) return true;
         return Object.keys(t.colors).some(k => (design[k] || '') !== (t.colors[k] || ''));
     },
