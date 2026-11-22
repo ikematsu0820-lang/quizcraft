@@ -189,6 +189,20 @@ App.Themes = {
             },
         },
         {
+            // 新聞記事 — 生成りの紙に墨の文字、明朝の見出し、罫線で区切る
+            id: 'newspaper', name: '新聞記事', desc: '生成りの紙に明朝の見出し',
+            fx: 'none', font: 'mincho', accent: '#b91c1c', timer: 'number', frame: '#1a1a1a',
+            bridge: { style: 'typewriter', bg: '#f1ead9', text: '#1a1a1a' },
+            skin: { c: 'card', pal: '', q: 'board', fx: '', frame: true },
+            colors: {
+                mainBgColor: '#f1ead9',
+                qTextColor: '#1a1a1a', qBgColor: '#faf6ec', qBorderColor: '#1a1a1a',
+                cTextColor: '#1a1a1a', cBgColor: '#faf6ec', cBorderColor: '#1a1a1a',
+                revealTextColor: '#faf6ec', revealBorderColor: '#b91c1c', revealBgColor: '#b91c1c',
+                pbBg: '#faf6ec', pbText: '#1a1a1a', pbBorder: '#1a1a1a', pbOk: '#b91c1c', pbOkText: '#faf6ec', pbDone: '#e4dcc6', pbDoneText: '#9a8f75', pbGloss: 'none',
+            },
+        },
+        {
             // 学校 — 黒板の緑に木の枠、チョークの白と黄色、手書きの文字
             id: 'school', name: '学校', desc: '黒板とチョークの教室',
             fx: 'none', fxOver: { tfx_shadow: 'drop', tfx_shadowColor: 'rgba(255,255,255,0.35)' }, font: 'hand', accent: '#fde047', timer: 'clock', frame: '#8b5a2b',
@@ -288,6 +302,8 @@ App.Themes = {
             el.style.removeProperty('--theme-font');
             el.classList.remove('theme-font');
         }
+        // テーマごとの細かい形（style_common.css [data-theme-id=…]）
+        if (d.themeId) el.setAttribute('data-theme-id', d.themeId); else el.removeAttribute('data-theme-id');
         // 文字の飾り（style_common.css .tfx-*）— 付ける場所ごとにクラスを分ける
         const fx = this.textFx(d);
         ['tfx-q', 'tfx-c', 'tfx-b', 'tfx-fill'].forEach(c => el.classList.remove(c));

@@ -1242,3 +1242,11 @@ body.tp-open :is(#unified-toggle-container, #test-view-dock) { display: none !im
 #tp-remote.tp-pl .tp-grid { width: 100% !important; }
 /* 小さい札（「第1問」など）と選択肢の記号には飾りをかけない — 小さい文字は縁と影でつぶれる */
 :is(.tfx-q, .tfx-c, .tfx-b) :is(.qs-num, .choice-prefix, .choice-prefix *, .cs-prefix, .tp-no) { -webkit-text-stroke: 0 !important; text-shadow: none !important; }
+
+/* 新聞記事のテーマ — 角は四角、影は付けず、墨の罫線で区切る（盤面・選択肢・外枠のスキンを上書き） */
+[data-theme-id="newspaper"][data-theme-id="newspaper"] :is(*, #x) :is(.q-area, .choice-item, .cs-item, .cs-badge, .pbv-panel, .pbv-theme) { border-radius: 0 !important; box-shadow: none !important; }
+[data-theme-id="newspaper"][data-theme-id="newspaper"] :is(*, #x) .q-area { border: none !important; border-top: 0.9cqh double #1a1a1a !important; border-bottom: 0.9cqh double #1a1a1a !important; background: transparent !important; }
+[data-theme-id="newspaper"][data-theme-id="newspaper"] :is(*, #x) .q-area .qs-num { background: #1a1a1a !important; letter-spacing: 0.3em; text-shadow: none !important; }
+[data-theme-id="newspaper"][data-theme-id="newspaper"] :is(*, #x) .cs-item { border: 0.25cqh solid #1a1a1a !important; background: #faf6ec !important; }
+[data-theme-id="newspaper"][data-theme-id="newspaper"] #viewer-main-text.cs-framed::before { border-radius: 0 !important; border-width: 0.5cqh !important; border-style: double !important; border-color: #1a1a1a !important; box-shadow: none !important; inset: 1.4cqh !important; }
+[data-theme-id="newspaper"][data-theme-id="newspaper"] #viewer-main-text.cs-framed::after { border-radius: 0 !important; background: #1a1a1a !important; text-shadow: none !important; font-family: var(--theme-font, serif); letter-spacing: 0.4em; }
