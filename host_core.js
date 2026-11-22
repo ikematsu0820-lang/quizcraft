@@ -792,15 +792,13 @@ window.App.Dashboard = {
             const d = item;
             this.itemCache[k] = d;
 
-            const dateStr = (typeof d.createdAt === 'number')
-                ? new Date(d.createdAt).toLocaleDateString()
-                : "New!";
+            const dateStr = (typeof d.createdAt === 'number') ? new Date(d.createdAt).toLocaleDateString() : '';
             const qCount = (d.qCount !== undefined) ? d.qCount
                 : Array.isArray(d.questions) ? d.questions.length : (d.questions ? Object.keys(d.questions).length : 0);
 
             // 1MBを超えると開始・配信が目に見えて遅くなるので色で知らせる
             const sizeColor = !d.size ? '#888' : d.size >= 1024 * 1024 ? '#ff6b6b' : d.size >= 300 * 1024 ? '#ffb74d' : '#888';
-            const sizeStr = d.size ? `<span style="margin-left:6px; color:${sizeColor}; font-size:0.85em;">${this.formatSize(d.size)}</span>` : '';
+            const sizeStr = d.size ? `<span style="color:${sizeColor};">${this.formatSize(d.size)}</span>` : '';
 
             const div = document.createElement('div');
             div.className = 'dash-list-item item-type-set';
@@ -809,9 +807,10 @@ window.App.Dashboard = {
 
             div.innerHTML = `
                 <div class="item-main">
-                    <div class="item-title"><span class="badge-set">SET</span> ${d.title || "Untitled"}</div>
-                    <div class="item-meta">${dateStr} / ${qCount}Q${sizeStr}</div>
-                </div>`;
+                    <div class="item-title">${this.esc(d.title || '名前なし')}</div>
+                    <div class="item-meta"><span class="item-kind">セット</span><span>${qCount}問</span>${sizeStr}${dateStr ? `<span>${dateStr}</span>` : ''}</div>
+                </div>
+                <span class="item-chev">${window.App.Icons.svg('chevron', 18)}</span>`;
             listEl.appendChild(div);
         });
 
@@ -829,9 +828,10 @@ window.App.Dashboard = {
 
                 div.innerHTML = `
                     <div class="item-main">
-                        <div class="item-title"><span class="badge-prog">番組</span> ${item.title}</div>
-                        <div class="item-meta">${new Date(item.createdAt || 0).toLocaleDateString()} / ${item.playlist ? item.playlist.length : 0} セット収録</div>
-                    </div>`;
+                        <div class="item-title">${this.esc(item.title || '名前なし')}</div>
+                        <div class="item-meta"><span class="item-kind is-prog">番組</span><span>${item.playlist ? item.playlist.length : 0}セット</span>${item.createdAt ? `<span>${new Date(item.createdAt).toLocaleDateString()}</span>` : ''}</div>
+                    </div>
+                    <span class="item-chev">${window.App.Icons.svg('chevron', 18)}</span>`;
                 listEl.appendChild(div);
             });
         }
@@ -907,6 +907,8 @@ window.App.Dashboard = {
         };
     },
 
+    esc: function (v) { return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); },
+
     openItemMenu: function (key, type) {
         // Close existing if open
         const existing = document.getElementById('item-menu-modal');
@@ -928,7 +930,7 @@ window.App.Dashboard = {
             return;
         }
 
-        const title = data.title || (isSet ? 'Untitled Set' : 'Untitled Program');
+        const title = this.esc(data.title || '名前なし');
 
         // Actions
         // Start
@@ -953,38 +955,24 @@ window.App.Dashboard = {
         // Test
         const testAction = `window.App.Dashboard.testItem('${key}', '${type}')`;
 
+        // 下から出る操作のシート — 一番使う「スタート」だけ大きく、ほかは同じ形の行で
+        const I = (n) => window.App.Icons.svg(n, 20);
+        const close = "document.getElementById('item-menu-modal').remove()";
+        const kind = isSet ? `セット・${(data.questions || []).length}問` : `番組・${(data.playlist || []).length}セット`;
         const html = `
-            <div id="item-menu-modal" class="design-modal-overlay" onclick="if(event.target===this)this.remove()">
-                <div class="design-modal-content" style="max-width:340px; padding:24px !important;">
-                    <div class="item-menu-header" style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:18px;">
-                        <div class="item-menu-title" onclick="window.App.Dashboard.startInlineRename(this, '${key}', '${type}')" style="cursor:pointer; min-width:0; display:flex; align-items:center; gap:8px; font-size:1.1em; font-weight:800; color:#fff;">
-                            <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${title}</span>
-                            <i class="fas fa-pen" style="font-size:0.65em; opacity:0.6; flex-shrink:0;"></i>
-                        </div>
-                        <button onclick="document.getElementById('item-menu-modal').remove()" style="
-                            flex-shrink:0; width:28px; height:28px; border-radius:50%; background:rgba(255,255,255,0.1);
-                            border:none; color:#fff; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center;
-                        ">×</button>
+            <div id="item-menu-modal" class="im-ov" onclick="if(event.target===this)this.remove()">
+                <div class="im-box" role="dialog" aria-label="${title}">
+                    <div class="im-head">
+                        <div class="im-title-wrap"><div class="im-title">${title}</div><div class="im-kind">${kind}</div></div>
+                        <button type="button" class="im-close" onclick="${close}" aria-label="閉じる">${window.App.Icons.svg('wrong', 18)}</button>
                     </div>
-                    <div class="item-menu-body" style="display:flex; flex-direction:column; gap:8px;">
-                        <button class="item-menu-btn" onclick="${startAction}; document.getElementById('item-menu-modal').remove()">
-                            <i class="fas fa-play" style="color:#f59e0b;"></i><span>スタート</span>
-                        </button>
-                        <button class="item-menu-btn" onclick="${testAction}; document.getElementById('item-menu-modal').remove()">
-                            <i class="fas fa-flask" style="color:#f39c12;"></i><span>テスト</span>
-                        </button>
-                        <button class="item-menu-btn" onclick="${editAction}">
-                            <i class="fas fa-pen-fancy" style="color:#64b5f6;"></i><span>編集</span>
-                        </button>
-                        <button class="item-menu-btn" onclick="${copyAction}; document.getElementById('item-menu-modal').remove()">
-                            <i class="far fa-file-alt" style="color:#81c784;"></i><span>複製</span>
-                        </button>
-
-                        <div style="height:1px; background:rgba(255,255,255,0.08); margin:4px 0;"></div>
-
-                        <button class="item-menu-btn item-menu-btn-danger" onclick="${delAction}; document.getElementById('item-menu-modal').remove()">
-                            <i class="fas fa-trash-alt"></i><span>削除</span>
-                        </button>
+                    <button type="button" class="im-start" onclick="${startAction}; ${close}">${I('play')}<span>スタート</span></button>
+                    <div class="im-list">
+                        <button type="button" class="im-row" onclick="${testAction}; ${close}">${I('flask')}<span>テストプレイ</span></button>
+                        <button type="button" class="im-row" onclick="${editAction}">${I('pencil')}<span>編集する</span></button>
+                        <button type="button" class="im-row" onclick="${copyAction}; ${close}">${I('copy')}<span>複製する</span></button>
+                        <button type="button" class="im-row" onclick="window.App.Dashboard.renameItem('${key}', '${type}')">${I('type')}<span>名前を変える</span></button>
+                        <button type="button" class="im-row im-danger" onclick="${delAction}; ${close}">${I('trash')}<span>削除する</span></button>
                     </div>
                 </div>
             </div>

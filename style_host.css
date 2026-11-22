@@ -5759,3 +5759,71 @@ body:not(:has(#player-game-view:not(.hidden))) #toast-container { --color-primar
 #host-lobby .hl-guide { margin: 6px 0 0; color: #c9c9cf; font-size: 0.88rem; line-height: 1.6; }
 #host-lobby .hl-hint { margin: 16px 0 0; padding-top: 12px; border-top: 1px solid #26262d; color: #8b8b95; font-size: 0.85rem; }
 #host-control-view.hl-before #hc-back { visibility: hidden; }
+
+/* =========================================================
+ * メニュー・形式選択・保存したセット・サウンド編集の見た目をそろえる
+ *   見出し: 戻るは左上（入力画面の「形式選択に戻る」と同じ形）、題名はその右
+ * ======================================================= */
+:is(#select-type-view, #saved-items-view, #sound-library-view) > .view-header {
+    display: flex !important; flex-direction: row-reverse !important; justify-content: flex-end !important; align-items: center !important;
+    gap: 12px !important; border-bottom: 1px solid #26262d !important; padding: 0 0 12px !important; margin: 0 0 18px !important; background: none !important;
+}
+:is(#select-type-view, #saved-items-view, #sound-library-view) > .view-header :is(h2, h3) { margin: 0 !important; font-size: 1.1rem !important; font-weight: 800 !important; color: #fff !important; }
+#host-main-menu-view > .view-header { border-bottom: 1px solid #26262d !important; }
+:is(#host-main-menu-view, #select-type-view, #saved-items-view, #sound-library-view) .header-back-btn {
+    flex: 0 0 auto; min-height: 40px; padding: 0 14px !important; border-radius: 10px !important; margin: 0 !important;
+    background: transparent !important; border: 1px solid #2c2c33 !important; color: #e5e5e8 !important;
+    font-size: 0.9rem !important; font-weight: 700 !important; cursor: pointer; box-shadow: none !important; width: auto !important;
+}
+#host-main-menu-view .btn-logout { color: #f87171 !important; }
+
+/* 1行のボタン（形式選択の「保存したセットを開く」・メニューの「サウンド編集」） */
+.qc-row-btn {
+    width: 100%; min-height: 52px; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 0 16px; border: none !important; border-radius: 12px; background: #16161a !important; color: #e5e5e8 !important;
+    font-size: 0.95rem; font-weight: 700; cursor: pointer; box-sizing: border-box;
+}
+.qc-row-btn.qc-row-center { justify-content: center; color: #c9c9cf !important; }
+.qc-row-btn .ic { color: #8b8b95; flex: 0 0 auto; }
+
+/* 保存したセットの一覧 — 入れ子のカードをやめて、1行ずつ線で区切る */
+#saved-items-view .dashboard-list-area { background: none !important; border: none !important; box-shadow: none !important; padding: 0 !important; backdrop-filter: none !important; }
+#saved-items-view .scroll-list { display: flex; flex-direction: column; gap: 0 !important; padding: 0 !important; background: none !important; border: none !important; }
+#saved-items-view .dash-list-item {
+    display: flex !important; align-items: center !important; gap: 10px !important; margin: 0 !important;
+    padding: 14px 4px !important; border: none !important; border-bottom: 1px solid #1f1f25 !important; border-radius: 0 !important;
+    background: transparent !important; box-shadow: none !important; transform: none !important; min-height: 0 !important;
+}
+#saved-items-view .dash-list-item::before, #saved-items-view .dash-list-item::after { display: none !important; }
+#saved-items-view .dash-list-item:active { background: #16161a !important; }
+#saved-items-view .item-main { flex: 1; min-width: 0; }
+#saved-items-view .item-title {
+    color: #fff !important; font-size: 1rem !important; font-weight: 800 !important; line-height: 1.4 !important; margin: 0 0 4px !important;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+#saved-items-view .item-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; color: #8b8b95 !important; font-size: 0.8rem !important; font-family: inherit !important; }
+#saved-items-view .item-kind { padding: 1px 7px; border-radius: 5px; background: #1b1b20; color: #c9c9cf; font-size: 0.72rem; font-weight: 700; }
+#saved-items-view .item-kind.is-prog { color: #f59e0b; }
+#saved-items-view .item-chev { flex: 0 0 auto; color: #4b4b55; display: flex; }
+
+/* 保存したセットの操作シート（host_core.js openItemMenu）— 画面内ダイアログと同じ形 */
+.im-ov { position: fixed; inset: 0; z-index: 2147482000; background: rgba(0, 0, 0, 0.6); display: flex; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box; }
+.im-box { width: 100%; max-width: 380px; background: #16161a; border-radius: 14px; padding: 18px 16px 14px; box-sizing: border-box; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6); }
+.im-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 14px; }
+.im-title-wrap { flex: 1; min-width: 0; }
+.im-title { color: #fff; font-size: 1.05rem; font-weight: 800; line-height: 1.4; word-break: break-word; }
+.im-kind { color: #8b8b95; font-size: 0.8rem; margin-top: 2px; }
+.im-close { flex: 0 0 36px; width: 36px; height: 36px; border-radius: 50%; border: none; background: #26262d; color: #c9c9cf; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
+.im-start { width: 100%; min-height: 52px; display: flex; align-items: center; justify-content: center; gap: 8px; border: none; border-radius: 12px; background: linear-gradient(180deg, #fbbf24, #f59e0b); color: #1b1300; font-size: 1rem; font-weight: 800; cursor: pointer; }
+.im-list { margin-top: 8px; display: flex; flex-direction: column; }
+.im-row { display: flex; align-items: center; gap: 12px; min-height: 50px; padding: 0 6px; border: none; border-bottom: 1px solid #1f1f25; background: none; color: #e5e5e8; font-size: 0.95rem; font-weight: 700; text-align: left; cursor: pointer; }
+.im-row:last-child { border-bottom: none; }
+.im-row .ic { color: #8b8b95; flex: 0 0 auto; }
+.im-row.im-danger, .im-row.im-danger .ic { color: #f87171; }
+@media (max-width: 600px) {
+    .im-ov { align-items: flex-end; padding: 0; }
+    .im-box { max-width: none; border-radius: 16px 16px 0 0; padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
+}
+#saved-items-view .dash-list-item { flex-direction: row !important; justify-content: flex-start !important; text-align: left !important; }
+#saved-items-view .item-main { display: block !important; text-align: left !important; }
+#saved-items-view .item-meta { justify-content: flex-start !important; }
