@@ -5920,3 +5920,7 @@ body:has(.qd-ov, .im-ov) :is(#unified-toggle-container, #test-view-dock) { displ
 #design-grid-modal .gm-step input { flex: 1 1 0 !important; width: 0 !important; max-width: none !important; text-align: center !important; }
 #design-grid-modal .design-modal-content { max-width: 340px !important; }
 #design-grid-modal .design-modal-content button:not(.gm-btn) { white-space: nowrap; font-size: 0.85rem; padding: 12px 4px !important; }
+/* 下のバーがはみ出さないように（ボタンは縮めてよい、文字は収まる大きさに） */
+#cm-edit-bar { overflow: hidden; }
+#cm-edit-bar .cm-bar-btn { min-width: 0 !important; overflow: hidden; text-overflow: ellipsis; }
+#cm-edit-bar .cm-bar-btn.cm-primary, #cm-edit-bar .cm-bar-btn.cm-done { font-size: clamp(0.78rem, 3.6vw, 0.9rem) !important; }

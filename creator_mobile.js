@@ -248,7 +248,7 @@ App.CreatorMobile = {
             if (nextBtn) nextBtn.textContent = '追加して次へ';
         } else {
             if (el) el.textContent = `Q${C.editingIndex + 1} を編集`;
-            if (nextBtn) nextBtn.textContent = (C.editingIndex + 1 < qs.length) ? '直して次へ' : '直して新しい問題へ';
+            if (nextBtn) nextBtn.textContent = '直して次へ';
         }
     },
 
