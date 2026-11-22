@@ -803,7 +803,8 @@ App.CreatorInput = {
                 const d = window.App.Data.currentDesign || {};
                 const wm = d.qWritingMode;
                 d.qWritingMode = '';
-                try { C.fitQuestionTextHeight(); } finally { d.qWritingMode = wm; }
+                // 元に無かった時は消して戻す（undefined を残すと保存できなくなる）
+                try { C.fitQuestionTextHeight(); } finally { if (wm === undefined) delete d.qWritingMode; else d.qWritingMode = wm; }
             }
         }
         document.querySelectorAll('#creator-form-container .choice-text-input, #creator-form-container .row-input').forEach(el => {

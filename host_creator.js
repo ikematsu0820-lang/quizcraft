@@ -2929,6 +2929,18 @@ ${spec.memo}" style="
             updatedAt: firebase.database.ServerValue.TIMESTAMP
         };
 
+        // 保存先は undefined（中身なし）を受け付けないので、保存の前に取り除く
+        const stripUndef = (v) => {
+            if (Array.isArray(v)) return v.map(x => (x === undefined ? null : stripUndef(x)));
+            if (v && typeof v === 'object' && !(v['.sv'])) {
+                const o = {};
+                Object.keys(v).forEach(k => { if (v[k] !== undefined) o[k] = stripUndef(v[k]); });
+                return o;
+            }
+            return v;
+        };
+        ['questions', 'images', 'config'].forEach(k => { if (data[k]) data[k] = stripUndef(data[k]); });
+
         const setId = window.App.State.editingSetId;
         const baseRef = window.db.ref("saved_sets").child(showId);
         const ref = setId ? baseRef.child(setId) : baseRef.push();
