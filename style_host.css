@@ -5903,3 +5903,11 @@ body.mans-open #unified-toggle-container, body.mans-open #test-view-dock { displ
 #creator-view:not(.cm-on) #creator-outside-opts input[type="text"] { background: #09090b !important; color: #fff !important; border: none !important; box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.85) !important; }
 /* 確認・入力のダイアログや操作のシートを開いている間は、下の「司会者／モニター」とテストの切り替えを隠す（ボタンが隠れないように） */
 body:has(.qd-ov, .im-ov) :is(#unified-toggle-container, #test-view-dock) { display: none !important; }
+/* 入力画面の下のバー: 見る／セット設定／追加して完了（アンバーの縁）／追加して次の問題へ */
+#cm-edit-bar .cm-bar-btn.cm-done { flex: 1.7; flex-direction: row; background: #1b1b20 !important; border: 1px solid rgba(245, 158, 11, 0.6) !important; color: #fbbf24 !important; font-size: 0.85rem; line-height: 1.25; padding: 0 6px; }
+#cm-edit-bar .cm-bar-btn.cm-done.hidden { display: none; }
+#cm-edit-bar .cm-bar-btn.cm-primary { flex: 2.3 !important; font-size: 0.88rem; line-height: 1.25; padding: 0 6px; }
+#cm-edit-bar .cm-bar-btn:not(.cm-primary):not(.cm-done) { flex: 0 0 58px; }
+#cm-edit-bar .cm-bar-btn:not(.cm-primary):not(.cm-done) { flex: 0 0 64px; }
+#cm-edit-bar .cm-bar-btn:not(.cm-primary):not(.cm-done) span { font-size: 0.64rem; white-space: nowrap; }
+#cm-edit-bar .cm-bar-btn.cm-primary, #cm-edit-bar .cm-bar-btn.cm-done { white-space: nowrap; font-size: 0.9rem; }

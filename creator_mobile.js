@@ -89,6 +89,7 @@ App.CreatorMobile = {
         editBar.innerHTML = `
             <button type="button" id="cm-preview-btn" class="cm-bar-btn">${window.App.Icons.svg('monitor')}<span>見る</span></button>
             <button type="button" id="cm-edit-settings-btn" class="cm-bar-btn">${window.App.Icons.svg('sliders')}<span>セット設定</span></button>
+            <button type="button" id="cm-done-btn" class="cm-bar-btn cm-done">追加して完了</button>
             <button type="button" id="cm-next-btn" class="cm-bar-btn cm-primary">次の問題へ</button>
         `;
         view.appendChild(editBar);
@@ -136,6 +137,7 @@ App.CreatorMobile = {
         document.getElementById('cm-save-btn').onclick = () => C().save();
         document.getElementById('cm-back-btn').onclick = () => this.backToList();
         document.getElementById('cm-next-btn').onclick = () => this.next();
+        document.getElementById('cm-done-btn').onclick = () => this.finish();
         document.getElementById('cm-preview-btn').onclick = () => this.openPreview();
         document.getElementById('cm-edit-settings-btn').onclick = () => this.openSheet('menu');
         document.getElementById('cm-preview-list-btn').onclick = () => this.openPreview();
@@ -231,6 +233,11 @@ App.CreatorMobile = {
         if (back) back.textContent = !this._fromSelect ? '一覧に戻る' : qs.length ? '問題一覧へ' : '形式選択に戻る';
         const board = !!(window.App.PanelBoard && window.App.PanelBoard.board);
         document.getElementById('cm-edit-bulk')?.classList.toggle('hidden', C.editingIndex !== null || board);
+        const doneBtn = document.getElementById('cm-done-btn');
+        if (doneBtn) {
+            doneBtn.classList.toggle('hidden', board);
+            doneBtn.textContent = C.editingIndex === null ? '追加して完了' : '直して完了';
+        }
         if (board) {
             if (el) el.textContent = 'パネルクイズの盤面';
             if (nextBtn) nextBtn.textContent = '盤面を保存';
@@ -238,11 +245,30 @@ App.CreatorMobile = {
         }
         if (C.editingIndex === null) {
             if (el) el.textContent = `新しい問題（Q${qs.length + 1}）`;
-            if (nextBtn) nextBtn.textContent = '追加して次の問題へ';
+            if (nextBtn) nextBtn.textContent = '追加して次へ';
         } else {
             if (el) el.textContent = `Q${C.editingIndex + 1} を編集`;
-            if (nextBtn) nextBtn.textContent = (C.editingIndex + 1 < qs.length) ? '保存して次の問題へ' : '保存して新しい問題へ';
+            if (nextBtn) nextBtn.textContent = (C.editingIndex + 1 < qs.length) ? '直して次へ' : '直して新しい問題へ';
         }
+    },
+
+    // 「追加して完了」— この問題を入れて、そのままセットを保存して終わる
+    //   （問題文が空なら追加はせず、保存だけ）
+    finish: function () {
+        const C = this.C();
+        const qs = window.App.Data.createdQuestions;
+        const text = (document.getElementById('question-text')?.value || '').trim();
+        if (C.editingIndex === null) {
+            if (text) {
+                const before = qs.length;
+                C.add();
+                if (qs.length === before) return; // 入力不足（お知らせ済み）
+            }
+        } else {
+            C.update();
+            if (C.editingIndex !== null) return; // 入力不足
+        }
+        C.save();
     },
 
     // 「次の問題へ」— 新規なら追加、編集中なら更新して、続けて次を書く

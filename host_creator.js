@@ -2821,7 +2821,7 @@ ${spec.memo}" style="
     // 画面にあるボタンの名前（案内の文で使う）— PCとスマホで違う
     btnNames: function () {
         const M = window.App.CreatorMobile;
-        return (M && M.isMobile && M.isMobile()) ? { add: '追加して次の問題へ', save: '保存して完了' } : { add: 'リストに追加', save: 'リストを保存する' };
+        return (M && M.isMobile && M.isMobile()) ? { add: '追加して次へ', save: '保存して完了' } : { add: 'リストに追加', save: 'リストを保存する' };
     },
 
     save: async function () {
