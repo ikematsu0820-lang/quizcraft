@@ -991,6 +991,7 @@ window.App.Dashboard = {
             const data = snap.val();
             if (!data) { window.App.Ui.showToast('エラー: セットデータが見つかりません'); return; }
             if (!window.App.Studio || !window.App.Studio.quickStart) { window.App.Ui.showToast('エラー: Studio未初期化'); return; }
+            if (!(data.questions || []).length) { window.App.Dialog.alert('このセットにはまだ問題がありません。「編集する」から問題を追加してください。'); return; }
             window.App.Studio.quickStart(data);
         }).catch(err => {
             window.App.Ui.showToast('Firebase読み込みエラー: ' + (err.message || err.code));
@@ -1065,6 +1066,7 @@ window.App.Dashboard = {
     testItem: async function (key, type) {
         const data = this.itemCache && this.itemCache[key];
         if (!data) return;
+        if (type === 'set' && !(data.questions || []).length) { window.App.Dialog.alert('このセットにはまだ問題がありません。「編集する」から問題を追加してください。'); return; }
         // 未完成の問題があるセットはテストプレイもできない
         if (type === 'set' && data.questions && window.App.QuizCheck) {
             const bad = window.App.QuizCheck.incompleteIn(data.questions);

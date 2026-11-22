@@ -193,7 +193,7 @@ window.App.Creator = {
         // Design is shared across the whole set (Creator.save() copies one
         // design object onto every question that doesn't already have its
         // own) — seed the editor from the first question's design/layout/align.
-        const firstQForDesign = (item.questions || [])[0] || {};
+        const firstQForDesign = (item.questions || [])[0] || { design: item.design || {} };
         window.App.Data.currentDesign = window.App.Design
             ? { ...JSON.parse(JSON.stringify(window.App.Design.defaultsWithSavedSounds())), ...(firstQForDesign.design || {}) }
             : (firstQForDesign.design || {});
@@ -249,6 +249,7 @@ window.App.Creator = {
         } else {
             sel.disabled = false;
             document.getElementById('creator-type-locked-msg').classList.add('hidden');
+            if (item.formType) resolvedType = item.formType;
         }
 
         this.editingIndex = null;
@@ -2867,10 +2868,7 @@ ${spec.memo}" style="
         }
 
         console.log("Save initiated. Questions:", window.App.Data.createdQuestions.length);
-        if (window.App.Data.createdQuestions.length === 0) {
-            window.App.Dialog.alert('問題がありません。追加してください。');
-            return;
-        }
+        const noQuestions = window.App.Data.createdQuestions.length === 0;
 
         // セット名は左上の見出しで編集する — 保存のたびには聞かず、まだ
         // 名前が無い時だけ入れてもらう
@@ -2926,6 +2924,9 @@ ${spec.memo}" style="
             questions: packed.questions,
             images: packed.images.length ? packed.images : null,
             config: window.App.Data.currentConfig,
+            // 問題が無くても開き直せるように、形式と見た目もセットに持つ
+            formType: this.currentType || null,
+            design: design,
             updatedAt: firebase.database.ServerValue.TIMESTAMP
         };
 
@@ -2939,7 +2940,7 @@ ${spec.memo}" style="
             }
             return v;
         };
-        ['questions', 'images', 'config'].forEach(k => { if (data[k]) data[k] = stripUndef(data[k]); });
+        ['questions', 'images', 'config', 'design'].forEach(k => { if (data[k]) data[k] = stripUndef(data[k]); });
 
         const setId = window.App.State.editingSetId;
         const baseRef = window.db.ref("saved_sets").child(showId);
@@ -2962,7 +2963,7 @@ ${spec.memo}" style="
                 window.db.ref(`saved_sets_meta/${showId}/${ref.key}`).set(window.App.Dashboard.buildSetMeta(data));
             }
             const savedBad = window.App.QuizCheck ? window.App.QuizCheck.incompleteIn(data.questions).length : 0;
-            window.App.Ui.showToast(savedBad ? `保存しました（未完成の問題が${savedBad}問あるため、このままでは出題できません）` : "保存しました");
+            window.App.Ui.showToast(noQuestions ? '設定を保存しました（問題はまだありません）' : savedBad ? `保存しました（未完成の問題が${savedBad}問あるため、このままでは出題できません）` : "保存しました");
             // 保存できたので端末の下書きは不要（creator_mobile.js App.CreatorDraft）
             if (window.App.CreatorDraft) window.App.CreatorDraft.clear();
             window.App.State.editingSetId = null;
