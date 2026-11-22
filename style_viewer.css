@@ -522,3 +522,11 @@ body {
 .c-area.c-stretch { flex: 1 1 auto !important; min-height: 0 !important; justify-content: stretch !important; align-content: stretch !important; margin-bottom: 2cqh; }
 .c-area.c-stretch:not([style*="grid"]) > .choice-item { flex: 1 1 0 !important; }
 .c-area.c-stretch > .choice-item { height: auto !important; max-height: none !important; min-height: 0 !important; align-self: stretch !important; }
+
+/* モニターのタイトル画面（待機中）— テーマの問題文の枠・色・書体・飾りに合わせる */
+.tt-board { max-width: 90%; padding: 5cqh 7cqw; border-top: 1.2cqh solid var(--tt-line); border-bottom: 1.2cqh solid var(--tt-line); box-shadow: 0 2cqh 5cqh rgba(0,0,0,0.35); border-radius: 1.5cqh; }
+.tt-board .tt-title { font-weight: 900; line-height: 1.25; }
+.tt-room { display: flex; align-items: baseline; gap: 2cqw; font-weight: 800; font-size: 4cqh; }
+.tt-room b { font-family: ui-monospace, Menlo, monospace; font-size: 7cqh; letter-spacing: 0.12em; }
+.tt-ready { font-size: 3.2cqh; font-weight: 700; opacity: 0.8; animation: pulse 2s infinite; }
+[data-theme-id="newspaper"] .tt-board { border-radius: 0; box-shadow: none; border-top-style: double; border-bottom-style: double; }

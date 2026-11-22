@@ -331,21 +331,31 @@ window.App.Viewer = {
                 // タイトル画面の文言・色・サイズ・背景（問題作成のプレビュー
                 // 「タイトル」で設定 — 未設定なら従来どおり）
                 const td = firstQ.design || {};
-                this.applyDefaultDesign(viewContainer, (td.titleBgColor || td.titleUseBgImage)
-                    ? { mainBgColor: td.titleBgColor || '#0a0a0a', bgImage: td.titleUseBgImage ? td.bgImage : '' }
-                    : null);
+                // テーマの背景（タイトル画面だけの背景色・画像があればそちら）
+                const tbg = td.titleBgColor || td.mainBgColor || '#0a0a0a';
+                this.applyDefaultDesign(viewContainer, { mainBgColor: tbg, bgImage: td.titleUseBgImage ? td.bgImage : '' });
+                if (window.App.ChoiceSkin && td.bgFx === 'studio' && !(td.titleUseBgImage && td.bgImage)) viewContainer.style.backgroundImage = window.App.ChoiceSkin.studioBg(tbg);
                 const title = (td.titleText || '').trim() || st.programTitle || this.config.periodTitle || "Quiz Studio";
-                const titleColor = td.titleColor || '#ffd700';
+                const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
                 // 左右・上下（問題作成のプレビュー「タイトル」で設定。既定は中央）
                 const tAlign = td.titleAlign || 'center';
                 const tItems = { left: 'flex-start', center: 'center', right: 'flex-end' }[tAlign] || 'center';
                 const tJustify = { top: 'flex-start', bottom: 'flex-end' }[td.titleVAlign] || 'center';
+                // 題名の札はテーマの問題文の枠と同じ色（文字色・枠・地）、強調はアクセント色
+                const faint = (c) => !c || c === 'transparent' || /rgba\([^)]*,\s*0(\.0\d*)?\)/.test(c) || /rgba\([^)]*,\s*0\.0\d\)/.test(c);
+                const accent = td.accentColor || td.qBorderColor || '#f59e0b';
+                const boardBg = faint(td.qBgColor) ? 'rgba(0,0,0,0.35)' : td.qBgColor;
+                const titleColor = td.titleColor || td.qTextColor || '#ffffff';
+                const lineColor = td.qBorderColor && !faint(td.qBorderColor) ? td.qBorderColor : accent;
+                const subColor = td.cTextColor && !faint(td.cTextColor) ? td.cTextColor : '#e5e5e8';
 
                 mainText.innerHTML = `
-                    <div style="display:flex; flex-direction:column; align-items:${tItems}; justify-content:${tJustify}; height:100%; width:100%; padding:5vh 4vw; box-sizing:border-box;">
-                        <div style="font-size:${td.titleFontSize || '5vw'}; font-weight:900; color:${titleColor}; text-shadow:0 0 30px rgba(0,0,0,0.5); margin-bottom:20px; text-align:${tAlign}; white-space:pre-wrap;">${title}</div>
-                        <div style="font-size:2vw; color:#fff; font-family:monospace; letter-spacing:5px;">ROOM ID: ${this.roomId}</div>
-                        <div style="margin-top:50px; font-size:1.5vw; color:#00bfff; animation:pulse 2s infinite;">READY TO START...</div>
+                    <div class="tt-wrap" style="display:flex; flex-direction:column; align-items:${tItems}; justify-content:${tJustify}; height:100%; width:100%; padding:6cqh 5cqw; box-sizing:border-box; gap:4cqh;">
+                        <div class="tt-board" style="--tt-line:${lineColor}; background:${boardBg}; color:${titleColor}; text-align:${tAlign};">
+                            <div class="tt-title" style="font-size:${td.titleFontSize || '11cqh'}; color:${titleColor}; background:transparent; border:none; padding:0; width:auto; white-space:pre-wrap;">${esc(title)}</div>
+                        </div>
+                        <div class="tt-room" style="color:${subColor};"><span>部屋コード</span><b style="color:${accent};">${esc(this.roomId)}</b></div>
+                        <div class="tt-ready" style="color:${subColor};">まもなく始まります</div>
                         ${this.joinQrHtml()}
                     </div>
                     <style>@keyframes pulse { 0%{opacity:0.6;} 50%{opacity:1;} 100%{opacity:0.6;} }</style>

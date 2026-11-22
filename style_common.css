@@ -1177,14 +1177,14 @@ button.btn-player-hero:hover {
  *   tfx-q: 問題文  tfx-c: 選択肢・パネル  tfx-b: 第◯問（ブリッジ）
  *   部品ごとに影を直書きしている所があるので !important でまとめて上書き
  * ------------------------------------------------------- */
-.tfx-q :is(.q-area, .q-title, .pbv-theme, .pbv-qtext),
+.tfx-q :is(.q-area, .q-title, .pbv-theme, .pbv-qtext, .tt-title),
 .tfx-c :is(.choice-item, .choice-item *, .pbv-label, .pbv-big, .pbv-ans, .bq-cat, .bq-pts),
 .tfx-b :is(.bv-text, .bv-count-num, .bv-count-side, .bv-shutter, .bv-shutter *, .bv-band) {
     -webkit-text-stroke: var(--tfx-stroke) !important;
     paint-order: stroke fill;
     text-shadow: var(--tfx-shadow) !important;
 }
-.tfx-fill.tfx-q :is(.q-area, .q-title, .pbv-theme, .pbv-qtext),
+.tfx-fill.tfx-q :is(.q-area, .q-title, .pbv-theme, .pbv-qtext, .tt-title),
 .tfx-fill.tfx-c :is(.choice-item, .choice-item *, .pbv-label, .pbv-big, .pbv-ans),
 .tfx-fill.tfx-b :is(.bv-text, .bv-count-num, .bv-count-side) {
     color: var(--tfx-fill) !important;
