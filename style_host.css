@@ -5642,3 +5642,72 @@ body:not(:has(#player-game-view:not(.hidden))) #toast-container { --color-primar
 .ps-sum b { color: #ececef; font-size: 0.95rem; }
 .ps-go { min-height: 50px; border: none; border-radius: 12px; cursor: pointer; font-size: 1rem; font-weight: 800; color: #1a1205; background: linear-gradient(180deg, #fbbf24, #f59e0b); box-shadow: 0 4px 0 #b45309, 0 8px 18px rgba(245, 158, 11, 0.25); }
 .ps-go:active { transform: translateY(2px); box-shadow: 0 2px 0 #b45309; }
+
+/* =========================================================
+ * スマホの入力画面を見やすく（放送卓風の仕上げ）
+ *   ・枠の入れ子をやめる（カード／選択の枠／行のカード／入力欄の枠 → 明るさの差だけ）
+ *   ・アンバーは「入力中の欄」と「下の主ボタン」だけ。ほかは無彩色
+ *   ・点線・ぼやけた影・青みをなくす
+ * ======================================================= */
+#creator-view.cm-on.cm-edit #creator-form-container,
+#creator-view.cm-on.cm-edit #creator-form-container *,
+#creator-view.cm-on.cm-edit #creator-monitor-q-area { outline: none !important; }
+/* 外側のカード */
+#creator-view.cm-on.cm-edit #creator-monitor-preview,
+#creator-view.cm-on.cm-edit #creator-monitor-flexwrap { border-color: transparent !important; background: #141417 !important; box-shadow: none !important; }
+/* 問題文の欄 — 凹んだ黒い窓。入力中だけ下にアンバーの線 */
+#creator-view.cm-on.cm-edit #creator-monitor-q-area {
+    border: none !important; background: #09090b !important; border-radius: 10px !important;
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.85) !important;
+}
+#creator-view.cm-on.cm-edit #creator-monitor-q-area:focus-within { box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.85), inset 0 -2px 0 #f59e0b !important; }
+#creator-view.cm-on.cm-edit #question-text { text-shadow: none !important; }
+#creator-view.cm-on.cm-edit #question-text::placeholder { color: #5e5e67 !important; }
+#creator-view.cm-on.cm-edit .qimg-pick { border: none !important; background: #1f1f24 !important; color: #c9c9cf !important; }
+/* 選択肢・項目の行 — カードをやめ、細い区切り線だけ */
+#creator-view.cm-on.cm-edit :is(.multi-row, .choice-row, .sort-row, .assoc-row) {
+    border: none !important; background: transparent !important; box-shadow: none !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important; border-radius: 0 !important;
+}
+#creator-view.cm-on.cm-edit :is(.multi-row, .choice-row, .sort-row, .assoc-row) .choice-frame,
+#creator-view.cm-on.cm-edit :is(.multi-row, .choice-row, .sort-row, .assoc-row) .row-frame { border: none !important; background: transparent !important; box-shadow: none !important; }
+/* 入力欄 — 枠なしの凹み。入力中だけ下にアンバーの線 */
+#creator-view.cm-on.cm-edit #creator-form-container :is(.row-input, .choice-text-input, .multi-text-input, .sort-text-input, .assoc-text-input, input[type="text"]) {
+    border: none !important; background: #09090b !important; color: #ececef !important;
+    box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.85) !important; border-radius: 8px !important;
+}
+#creator-view.cm-on.cm-edit #creator-form-container :is(.row-input, .choice-text-input, .multi-text-input, .sort-text-input, .assoc-text-input, input[type="text"]):focus {
+    box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.85), inset 0 -2px 0 #f59e0b !important;
+}
+#creator-view.cm-on.cm-edit #creator-form-container ::placeholder { color: #5e5e67 !important; }
+/* 行の番号・A B C — 無彩色の等幅（色で目を引かない） */
+#creator-view.cm-on.cm-edit .row-label,
+#creator-view.cm-on.cm-edit .choice-label-text,
+#creator-view.cm-on.cm-edit .ng-no { color: #8b8b95 !important; text-shadow: none !important; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace !important; font-weight: 700 !important; }
+/* 画像・削除のボタン — 点線をやめ、目立たない無彩色に */
+#creator-view.cm-on.cm-edit .cimg-btn { border: none !important; background: #1b1b20 !important; color: #8b8b95 !important; }
+#creator-view.cm-on.cm-edit .cimg-btn.has { background: transparent !important; }
+#creator-view.cm-on.cm-edit :is([class^="btn-remove"], [class*=" btn-remove"]) { color: #5e5e67 !important; }
+/* ＋ 追加 — 点線とアンバーをやめ、静かなボタンに */
+#creator-view.cm-on.cm-edit :is(#multi-add-btn, #choice-add-btn, #sort-add-btn, #assoc-add-btn),
+#creator-view.cm-on.cm-edit #creator-form-container button[id$="-add-btn"],
+#creator-view.cm-on.cm-edit #creator-outside-opts button[id$="-add-btn"] {
+    border: none !important; background: #1b1b20 !important; color: #c9c9cf !important;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset !important;
+}
+/* 形式の切り替え（通常／ランキング…）— 選んだ物はアンバーの塗りではなく、明るさ＋上のLED */
+#creator-view.cm-on.cm-edit .seg-ctl { border: none !important; background: #09090b !important; box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.8) !important; }
+#creator-view.cm-on.cm-edit .seg-ctl button { position: relative; color: #8b8b95 !important; background: transparent !important; box-shadow: none !important; border: none !important; }
+#creator-view.cm-on.cm-edit .seg-ctl button.on { background: #26262d !important; color: #fff !important; }
+#creator-view.cm-on.cm-edit .seg-ctl button.on::before {
+    content: ""; position: absolute; left: 18%; right: 18%; top: 0; height: 2px; border-radius: 0 0 2px 2px;
+    background: #f59e0b; box-shadow: 0 0 6px rgba(245, 158, 11, 0.55);
+}
+/* 下のオプションの帯 — 枠なし */
+#creator-view.cm-on.cm-edit #creator-outside-opts { border: none !important; background: transparent !important; }
+/* 入力画面の上の「遊び方」の札 — アンバーの枠をやめ、文字だけアンバー */
+#creator-view.cm-on #creator-playstyle-chip { border: none !important; background: #141417 !important; }
+/* 入力画面: 行のカード・水色の番号・外枠を消す（枠は入力欄の凹みだけ） */
+#creator-view.cm-on.cm-edit :is(.multi-row, .choice-row, .sort-row, .assoc-row) { border: none !important; background: transparent !important; box-shadow: none !important; }
+#creator-view.cm-on.cm-edit :is(.multi-row, .choice-row, .sort-row, .assoc-row)::before { color: #6b6b75 !important; text-shadow: none !important; font-family: ui-monospace, Menlo, monospace !important; background: transparent !important; border: none !important; box-shadow: none !important; }
+#creator-view.cm-on.cm-edit #creator-editor-wrap > div { border-color: transparent !important; box-shadow: none !important; }

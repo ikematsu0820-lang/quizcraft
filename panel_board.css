@@ -134,8 +134,8 @@
 #creator-view.cm-on.cm-edit #creator-choices-list:has(> .multi-row) { counter-reset: cmn; gap: 8px !important; }
 #creator-view.cm-on.cm-edit .multi-row {
     display: grid !important; grid-template-columns: 2.4em minmax(0, 1fr) 28px; align-items: center !important; gap: 6px !important;
-    height: auto !important; min-height: 0 !important; padding: 8px !important;
-    border: 1px solid #1f2733 !important; border-radius: 10px !important; background: rgba(255, 255, 255, 0.03) !important;
+    height: auto !important; min-height: 0 !important; padding: 2px 0 !important;
+    border: none !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important;
 }
 /* 枠の中の入力欄と × を、行の中に直接並べる */
 #creator-view.cm-on.cm-edit .multi-row .row-frame { display: contents !important; }
@@ -144,7 +144,7 @@
 #creator-view.cm-on.cm-edit .multi-row::before,
 #creator-view.cm-on.cm-edit .multi-row .multi-label,
 #creator-view.cm-on.cm-edit .pb-row .pb-no {
-    color: #00e5ff !important; font-family: inherit !important; font-weight: 900 !important; font-size: 0.95rem !important;
+    color: #6b6b75 !important; font-family: ui-monospace, Menlo, monospace !important; font-weight: 700 !important; font-size: 0.9rem !important;
     text-shadow: none !important; text-align: center !important; min-width: 0 !important; margin: 0 !important;
 }
 #creator-view.cm-on.cm-edit .multi-row .multi-text-input {
