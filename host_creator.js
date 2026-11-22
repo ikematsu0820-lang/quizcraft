@@ -559,8 +559,10 @@ window.App.Creator = {
                 const qsNow = window.App.Data.createdQuestions || [];
                 const last = qsNow[qsNow.length - 1];
                 const carry = (window.App.Data.currentConfig || {}).sameChoices && last && last.type === 'choice' && Array.isArray(last.c) && last.c.length ? last.c : null;
+                // 続けて作る時は、直前の選択式と同じ数の空欄で始める（3択のセットなら次も3択）
+                const lastN = last && last.type === 'choice' && !last.ox && Array.isArray(last.c) && last.c.length >= 2 ? last.c.length : 4;
                 if (carry) carry.forEach((txt, i) => this.addChoiceInput(choicesDiv, i, txt, false));
-                else for (let i = 0; i < 4; i++) this.addChoiceInput(choicesDiv, i);
+                else for (let i = 0; i < lastN; i++) this.addChoiceInput(choicesDiv, i);
             }
 
             // ＋選択肢を追加 はタブの外（プレビュー直下）、シャッフルは その他 タブ

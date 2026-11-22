@@ -872,9 +872,14 @@ App.CreatorInput = {
             });
             return;
         }
+        // 一覧の上: 多答の「通常／ランキング／パネル指名」、選択式の「まるばつモード」
+        //   （まるばつは下の設定の中だと、押した時に選択肢が縮んで目線が迷うので、問題文のすぐ下に）
         const seg = document.getElementById('multi-mode-seg');
-        if (seg && seg.parentNode !== above) { above.innerHTML = ''; above.appendChild(seg); }
-        if (!seg) above.innerHTML = '';
+        const oxRow = document.getElementById('choice-ox-chk')?.closest('label');
+        if (oxRow) oxRow.classList.add('cm-ox-row');
+        const top = [seg, oxRow].filter(Boolean);
+        [...above.children].forEach(el => { if (!top.includes(el)) el.remove(); });
+        top.forEach(el => { if (el.parentNode !== above) above.appendChild(el); });
         const want = this.LIST_ADD_IDS.map(id => document.getElementById(id)).filter(Boolean);
         // 並べ替えの「＋ 項目を追加」は ID が無く、この問題の設定（#creator-options-extra）にある
         const extraAdd = below.querySelector('[data-cm-from="extra"]')
@@ -911,6 +916,7 @@ App.CreatorInput = {
             : '';
         label('cm-sec-q', qArea, (PB && PB.board) ? '盤面のタイトル（空欄なら「パネルクイズ」）' : '問題文');
         label('cm-sec-form', form, form.children.length ? formText : '');
+
     },
 
     init: function () {
