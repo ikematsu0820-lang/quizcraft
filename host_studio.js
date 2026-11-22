@@ -4635,7 +4635,7 @@ App.Studio = {
         if (playerIds.length === 0) {
             const emptyMsg = document.createElement('div');
             emptyMsg.style.cssText = 'color:#aaa; text-align:center; padding:20px; font-size:0.9em; background:rgba(0,0,0,0.3); border-radius:8px;';
-            emptyMsg.innerHTML = 'まだ誰も入っていません。<br>参加者が入ると、ここで順番を決められます。';
+            emptyMsg.innerHTML = '参加者が入ると、ここに並びます。';
             container.appendChild(emptyMsg);
 
             // Insert before participant section

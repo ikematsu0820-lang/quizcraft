@@ -103,7 +103,7 @@ App.HostLobby = {
         box.querySelector('.hl-count').textContent = ps.length;
         box.querySelector('.hl-players').innerHTML = ps.length
             ? names.map(n => `<span class="hl-p">${this.esc(n)}</span>`).join('')
-            : '<span class="hl-empty">まだ誰も入っていません。部屋コードかQRで入ってもらいましょう</span>';
+            : '<span class="hl-empty">まだ誰もいません。部屋コードかQRで入ってもらいます</span>';
         this.renderHint();
     },
 
@@ -114,7 +114,7 @@ App.HostLobby = {
         const n = Object.keys(App.Data.players || {}).length;
         el.textContent = (mode === 'turn' || mode === 'solo')
             ? (n ? (mode === 'solo' ? '下で挑戦する人を決めてから、「第1問 開始」を押します' : '下で答える順番を決めてから、「第1問 開始」を押します')
-                : '参加者が入ると、下で答える順番を決められます')
+                : '参加者が入るのを待っています')
             : '全員そろったら、下の「第1問 開始」を押します';
     },
 

@@ -497,7 +497,7 @@ window.App.Creator = {
         if (type === 'choice') {
             const subtype = this.choiceSubtype || 'single';
             const isDobon = (this.choiceSubtype === 'multi');
-            const msg = isDobon ? "不正解をタップして選択" : "正解をタップして選択";
+            const msg = isDobon ? "不正解をタップ" : "正解をタップ";
 
             // 選択式は最初から正解を複数選べる（2つ以上選んだら、すべて
             // 選んだ時だけ正解 — 保存時に multiCorrect を付ける）。

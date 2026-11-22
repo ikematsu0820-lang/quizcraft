@@ -792,7 +792,7 @@ App.Design = {
                     <div style="display:flex; gap:14px; flex-wrap:wrap; margin-top:10px;">
                         ${flag('tfxQ', '問題文')}${flag('tfxC', '選択肢・パネル')}${flag('tfxB', '第◯問')}
                     </div>
-                    <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">※飾りを付ける場所を選べます。色を空にすると、型の色になります</p>
+                    <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">色を空にすると、型の色に戻ります</p>
                     ${isPanel ? `${head('パネルの色')}
                     <div style="display:flex; gap:6px; flex-wrap:wrap;">
                         ${colorSwatch('パネル', 'pbBg')}${colorSwatch('数字', 'pbText')}${colorSwatch('枠', 'pbBorder')}
@@ -813,9 +813,9 @@ App.Design = {
                                 <input type="range" id="split-ratio-range" min="15" max="80" step="1" value="${r || 40}" style="flex:1; height:auto !important; min-height:0 !important; margin:0; accent-color:#f59e0b;">
                                 <button type="button" id="split-ratio-auto" style="flex:0 0 auto; padding:5px 10px; border-radius:6px; background:${r ? '#1b1b20' : 'rgba(245, 158, 11,0.12)'}; border:1px solid ${r ? '#3a3a42' : '#f59e0b'}; color:${r ? '#e5e5e8' : '#f59e0b'}; font-size:0.7rem; cursor:pointer;">自動</button>
                             </div>
-                            <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">※プレビューの境目（点線のつまみ）をドラッグしても変えられます</p>`;
+                            <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">プレビューの点線をドラッグしても変えられます</p>`;
                     })()}
-                    <p style="color:#555; font-size:0.62rem; margin:10px 0 0;">※部品ごとの文字・色・形は「文字の細部」「部品の細部」のタブで変えられます（このセットの全問題に効きます）</p>
+                    <p style="color:#555; font-size:0.62rem; margin:10px 0 0;">部品ごとの文字・色・形は「文字の細部」「部品の細部」で変えられます</p>
                 </details>
             `;
         };

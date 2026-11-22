@@ -62,7 +62,7 @@ App.CreatorMobile = {
             <div id="cm-list-bar" class="cm-bottom-bar">
                 <button type="button" data-cm-sheet="design" class="cm-bar-btn">${window.App.Icons.svg('palette')}<span>見た目</span></button>
                 <button type="button" data-cm-sheet="rules" class="cm-bar-btn">${window.App.Icons.svg('sliders')}<span>ルール</span></button>
-                <button type="button" id="cm-preview-list-btn" class="cm-bar-btn">${window.App.Icons.svg('monitor')}<span>本番の見え方</span></button>
+                <button type="button" id="cm-preview-list-btn" class="cm-bar-btn">${window.App.Icons.svg('monitor')}<span>プレビュー</span></button>
                 <button type="button" id="cm-save-btn" class="cm-bar-btn cm-primary">保存して完了</button>
             </div>
         `;
@@ -87,7 +87,7 @@ App.CreatorMobile = {
         editBar.id = 'cm-edit-bar';
         editBar.className = 'cm-bottom-bar';
         editBar.innerHTML = `
-            <button type="button" id="cm-preview-btn" class="cm-bar-btn">${window.App.Icons.svg('monitor')}<span>本番の見え方</span></button>
+            <button type="button" id="cm-preview-btn" class="cm-bar-btn">${window.App.Icons.svg('monitor')}<span>プレビュー</span></button>
             <button type="button" id="cm-edit-settings-btn" class="cm-bar-btn">${window.App.Icons.svg('sliders')}<span>セットの設定</span></button>
             <button type="button" id="cm-done-btn" class="cm-bar-btn cm-done">追加して完了</button>
             <button type="button" id="cm-next-btn" class="cm-bar-btn cm-primary">次の問題へ</button>
@@ -773,7 +773,7 @@ App.CreatorInput = {
 
     // スマホの入力画面は見やすさ優先 — 見た目（文字の大きさ・色・縦書き・
     // 配置・スキン）は入力欄に映さず、決まった読みやすい形で出す。
-    // 本番の見え方は「見る」で確かめる。見た目の反映の後に毎回かける。
+    // プレビューは「見る」で確かめる。見た目の反映の後に毎回かける。
     plainEditor: function () {
         const M = window.App.CreatorMobile;
         if (!M || !M.isMobile()) return;
@@ -823,7 +823,7 @@ App.CreatorInput = {
     },
 
     // PCの問題の入力画面も、テーマの書体・色・飾り・背景は映さない（本番と同じ見た目だと思って編集しないように）。
-    //   本番の見え方は「本番の見え方」で確かめる。タイトル・ブリッジ・結果の画面は見た目のプレビューなのでそのまま。
+    //   プレビューは「プレビュー」で確かめる。タイトル・ブリッジ・結果の画面は見た目のプレビューなのでそのまま。
     pcPlain: function () {
         const M = window.App.CreatorMobile;
         if (M && M.isMobile()) return;

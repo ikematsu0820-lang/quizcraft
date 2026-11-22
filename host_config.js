@@ -417,8 +417,8 @@ App.Config = {
         const row = (label, inner) => `<div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;"><span style="flex:0 0 96px; color:#8b8b95; font-size:0.72rem; font-weight:bold;">${label}</span><div style="flex:1; min-width:0;">${inner}</div></div>`;
         const inner = `
             ${row('ライフ', `<span class="rp-num"><input type="number" id="conf-solo-life" value="${life}" min="0" step="1" inputmode="numeric"><span class="rp-num-unit">回まで間違えられる</span><span class="rp-num-hint">0＝無制限</span></span>`)}
-            ${row('クリア条件', `<span class="rp-num"><input type="number" id="conf-solo-clear" value="${clear}" min="0" step="1" inputmode="numeric"><span class="rp-num-unit">問正解でクリア</span><span class="rp-num-hint">0＝なし（全問やる）</span></span>`)}
-            <p class="rule-adv-note" style="margin:0;">司会者が出題の読み込み時に「ソロモード」を選んだ時だけ使います。タイムショック風にするなら、制限時間を「セット全体」にしてください。</p>`;
+            ${row('クリア条件', `<span class="rp-num"><input type="number" id="conf-solo-clear" value="${clear}" min="0" step="1" inputmode="numeric"><span class="rp-num-unit">問正解でクリア</span><span class="rp-num-hint">0＝最後まで</span></span>`)}
+            <p class="rule-adv-note" style="margin:0;">出題の時に「ソロモード」を選んだ時だけ使います。</p>`;
         box.innerHTML = this.advancedBlock('solo', inner, null, '1人で挑戦するとき（ソロモード）');
         this.wireAdvancedBlocks(box);
         const l = box.querySelector('#conf-solo-life');
@@ -519,7 +519,7 @@ App.Config = {
                     </div>
                     <p style="color:#777; font-size:0.68rem; margin:4px 0 0; line-height:1.4;">正解しても、解答時間が遅い人から脱落します（一番速い人は必ず残ります）。</p>` : '';
                 area.innerHTML = `<p style="color:#666; font-size:0.72em; margin:6px 0 0;">※不正解・無回答がミスになります（1問につき1回まで）。脱落した人は以降の問題に答えられません</p>`
-                    + this.advancedBlock('survival', slowHtml, [!canSlow.ok ? canSlow.why : '']);
+                    + this.advancedBlock('survival', slowHtml);
                 this.wireAdvancedBlocks(area);
                 side.querySelector('#conf-survival-lives').onchange = (e) => {
                     conf.survivalLives = parseInt(e.target.value) || 1;

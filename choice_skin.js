@@ -334,7 +334,7 @@ App.ChoiceSkin = {
             <div style="display:flex; flex-direction:column; gap:6px; margin-top:8px;">
                 ${chk('qNumBadge', 'テロップ・ボードに問題番号を出す', true)}
                 ${chk('stageFrame', '画面の外枠と上の帯を付ける', false)}
-                ${chk('bgFx', 'スタジオ照明の背景（背景画像が無い時）', false)}
+                ${chk('bgFx', 'スタジオ照明の背景', false)}
             </div>
             ${design.stageFrame ? `
                 <div style="display:flex; gap:6px; margin-top:8px;">
@@ -343,7 +343,7 @@ App.ChoiceSkin = {
                     <button type="button" data-color-swatch-key="frameColor" data-color-swatch-label="枠の色" style="flex:0 0 auto; padding:0 10px; border-radius:6px; background:#1b1b20; border:1px solid #3a3a42; color:#e5e5e8; font-size:0.7rem; cursor:pointer; display:flex; align-items:center; gap:6px;">
                         <span style="width:14px; height:14px; border-radius:3px; background:${design.frameColor || this.accent(design)}; border:1px solid #fff3;"></span>枠の色</button>
                 </div>` : ''}
-            <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">※ボタンの形は選択式（まるばつ・ドボン以外）に効きます</p>`;
+            <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">ボタンの形は選択式だけに効きます</p>`;
     },
 
     wirePanel: function (body, design, onChange, renderBody) {

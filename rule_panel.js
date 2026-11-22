@@ -118,7 +118,7 @@ App.RulePanel = {
         const modeNote = {
             normal: '全員が手元の端末で同時に答えます。',
             buzz: '一番早く押した人が答えます。誤答の時の扱いは「誤答」のタブで決めます。',
-            turn: '決めた順番で1人ずつ答えます。順番は出題の前に司会者が決めます。',
+            turn: '順番は出題前に司会者が決めます。',
             nominate: '司会者が参加者リストから指名した人が答えます。',
         }[conf.mode] || '';
 
@@ -257,7 +257,7 @@ App.RulePanel = {
         let basic = '';
         if (st === 'uniform') {
             const v = conf.uniformPts !== undefined && conf.uniformPts !== '' ? conf.uniformPts : '';
-            basic = this.row('正解したら', `<div style="display:flex; align-items:center; gap:6px;"><input type="number" id="rp-uniform" value="${v}" placeholder="問題ごと" min="0" style="${this.SEL} width:90px; text-align:center;"><span style="color:#8b8b95; font-size:0.8rem;">点（空欄なら問題ごとの配点）</span></div>`);
+            basic = this.row('正解したら', `<div style="display:flex; align-items:center; gap:6px;"><input type="number" id="rp-uniform" value="${v}" placeholder="問題ごと" min="0" style="${this.SEL} width:90px; text-align:center;"><span style="color:#8b8b95; font-size:0.8rem;">点（空欄なら問題ごと）</span></div>`);
         } else if (st === 'first') {
             const n = parseInt(conf.firstN) || 1;
             const pts = conf.firstPts !== undefined && conf.firstPts !== '' ? conf.firstPts : 1;
@@ -272,13 +272,13 @@ App.RulePanel = {
         const streak = Number(conf.streakBonus) || 0;
         const adv = `
             ${this.row('連続正解ボーナス', this.num('rp-streak', streak, '点', { zero: 'なし' }))}
-            ${this.note('2問以上続けて正解した人に、毎問この点を足します（間違えると0から数え直し）。')}`;
+            ${this.note('2問以上続けて正解すると、毎問この点を足します（間違えたらリセット）。')}`;
 
         box.innerHTML = `
             ${this.head('正解した人への得点')}
             ${this.tiles('scoreType', types, st)}
             ${basic}
-            ${this.Cfg().advancedBlock('correct', adv, [!canHint.ok ? canHint.why : ''])}`;
+            ${this.Cfg().advancedBlock('correct', adv)}`;
         this.Cfg().wireAdvancedBlocks(box);
         if (st === 'hint') {
             this.Cfg().renderScoreDetailInSheet(st, conf);
@@ -316,7 +316,7 @@ App.RulePanel = {
                 { v: 'next', t: '次の人に解答権が移る' },
             ], a));
         } else if (conf.mode === 'turn' && (ctx.isMulti || ctx.isDobon)) {
-            basic = this.note(ctx.isDobon ? 'ダウトは、ダウト（誤答）が出た時点でその問題が終わります。' : '多答は、正解・誤答にかかわらず次の人に順番が回ります。');
+            basic = this.note(ctx.isDobon ? 'ダウトは、ダウト（誤答）が出た時点でその問題が終わります。' : '多答は、正解でも誤答でも次の人へ回ります。');
         }
 
         // 減点（どの解答権でも共通）
@@ -362,7 +362,7 @@ App.RulePanel = {
         let basic = '', adv = '', notes = [];
 
         if (gt === 'score') {
-            basic = this.note('得点の入れ方は「正解」、減点は「誤答」のタブで決めます。' + (conf.tieBreak === 'time' && RE.can('tieBreakTime', ctx).ok ? '同点の時は解答時間の合計で決めます（「時間」のタブ）。' : ''));
+            basic = this.note('点は「正解」「誤答」のタブで決めます。' + (conf.tieBreak === 'time' && RE.can('tieBreakTime', ctx).ok ? '同点の時は解答時間の合計で決めます（「時間」のタブ）。' : ''));
         } else if (gt === 'survival') {
             basic = this.row('脱落するミス', this.num('rp-lives', conf.survivalLives || 1, '回で脱落', { min: 1 }))
                 + this.note('誤答・無回答がミスになります（1問につき1回まで）。脱落した人は以降の問題に答えられません。');
@@ -391,10 +391,10 @@ App.RulePanel = {
                 { v: 'score_rank', t: '得点と順位' },
                 { v: 'none', t: '出さない' },
             ], conf.playerScoreView || 'score'))}
-            ${this.note('「出さない」にすると、回答者は自分の得点も順位も分からず、モニターや結果発表で初めて知ります。会場の発表で盛り上げたい時に。')}
+            ${this.note('「出さない」にすると、得点と順位は結果発表まで分かりません（発表で盛り上げたい時に）。')}
             ${this.head('進行')}
             ${this.row('1問ごとの結果発表', this.select('rp-result-each', [{ v: 'show', t: '出す' }, { v: 'skip', t: '出さない' }], conf.resultEachQ === 'skip' ? 'skip' : 'show'))}
-            ${this.note('「出さない」にすると、正解を見せた後すぐ次の問題へ進めます（1問あたり押す回数が1回へる）。全員同時の選択式などは「解答オープン」で結果を見せます。')}
+            ${this.note('「出さない」にすると、正解を見せたらすぐ次の問題へ進みます。')}
             <div id="gametype-solo"></div>`;
         this.Cfg().wireAdvancedBlocks(box);
         this.Cfg()._renderSoloRules(box.querySelector('#gametype-solo'), conf, () => this.soft());
@@ -480,8 +480,8 @@ App.RulePanel = {
         const tiles = [
             { value: 'off', label: 'なし', sub: '時間を区切らない' },
             { value: 'per_q', label: '1問ごと', sub: conf.mode === 'buzz' ? '1問ごとに押せる時間を決める' : '1問ごとに答える時間を決める' },
-            { value: 'pool', label: 'セット全体', sub: '全部の問題で同じ時間を使い切る' },
-        ].concat(oneByOne ? [{ value: 'personal', label: '1人ずつ', sub: '1人ずつ持ち時間があり、答える間だけ減る' }] : []);
+            { value: 'pool', label: 'セット全体', sub: '全問で持ち時間を使い切る' },
+        ].concat(oneByOne ? [{ value: 'personal', label: '1人ずつ', sub: '1人ずつの持ち時間（答える間だけ減る）' }] : []);
         const secs = parseFloat(conf.timeLimitSeconds) || (kind === 'per_q' ? 10 : 60);
         const canSec = RE.can('answerSec', ctx).ok;
         const ansSec = Number(conf.answerSec) || 0;

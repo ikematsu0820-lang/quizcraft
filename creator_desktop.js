@@ -43,7 +43,7 @@ App.CreatorDesktop = {
             <section id="cp-center">
                 <div id="cp-center-head">
                     <span id="cp-edit-title"></span>
-                    <button type="button" id="cp-preview-btn" class="cp-preview-btn">本番の見え方</button>
+                    <button type="button" id="cp-preview-btn" class="cp-preview-btn">プレビュー</button>
                 </div>
                 <div id="cp-center-slot"></div>
                 <div class="cp-shortcuts">Ctrl / ⌘ + Enter：追加して次へ（直して次へ）　　Ctrl / ⌘ + S：追加して完了</div>

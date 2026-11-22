@@ -41,7 +41,7 @@ App.PlayStyle = {
     },
     SCORE: {
         same: { label: '同じ点', sub: '正解者全員に同じ点' },
-        speed: { label: '早い人ほど高い点', sub: '早く正解した順に傾ける' },
+        speed: { label: '早い人ほど高い点', sub: '1位から順に点が下がる' },
     },
     // 後から PRESETS[形式] を見て「遊び方を選ぶ一手があるか」を判定している所のため
     get PRESETS() { return this.FORMATS; },
@@ -127,7 +127,7 @@ App.PlayStyle = {
                     <div class="ps-foot">
                         <div class="ps-sum"><span>この遊び方</span><b>${built.label}</b></div>
                         <button type="button" class="ps-go">この遊び方で作る</button>
-                        <p class="ps-note">あとで「セット設定」のルールから細かく変えられます。</p>
+                        <p class="ps-note">あとで「セットの設定」から変えられます。</p>
                     </div>
                 </div>`;
             ov.querySelector('.ps-back').onclick = () => this.close();
