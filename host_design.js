@@ -1454,17 +1454,19 @@ App.Design = {
                 <div style="display:flex; gap:12px; margin-bottom:6px;">
                     <div style="flex:1;">
                         <label style="color:#8b8b95; font-size:0.75rem; display:block; margin-bottom:4px; text-align:center;">行数</label>
-                        <input type="number" id="grid-modal-rows" min="1" max="10" value="${design.gridRows || ''}" placeholder="自動" style="
-                            width:100%; padding:8px; text-align:center; background:#1b1b20; border:1px solid #3a3a42;
-                            border-radius:8px; color:#fff; font-size:1rem; box-sizing:border-box;
-                        ">
+                        <div class="gm-step">
+                            <button type="button" class="gm-btn" data-gm="grid-modal-rows" data-d="-1" aria-label="1つ減らす">−</button>
+                            <input type="number" id="grid-modal-rows" min="1" max="10" value="${design.gridRows || ''}" placeholder="自動" readonly>
+                            <button type="button" class="gm-btn" data-gm="grid-modal-rows" data-d="1" aria-label="1つ増やす">＋</button>
+                        </div>
                     </div>
                     <div style="flex:1;">
                         <label style="color:#8b8b95; font-size:0.75rem; display:block; margin-bottom:4px; text-align:center;">列数</label>
-                        <input type="number" id="grid-modal-cols" min="1" max="10" value="${design.gridCols || ''}" placeholder="自動" style="
-                            width:100%; padding:8px; text-align:center; background:#1b1b20; border:1px solid #3a3a42;
-                            border-radius:8px; color:#fff; font-size:1rem; box-sizing:border-box;
-                        ">
+                        <div class="gm-step">
+                            <button type="button" class="gm-btn" data-gm="grid-modal-cols" data-d="-1" aria-label="1つ減らす">−</button>
+                            <input type="number" id="grid-modal-cols" min="1" max="10" value="${design.gridCols || ''}" placeholder="自動" readonly>
+                            <button type="button" class="gm-btn" data-gm="grid-modal-cols" data-d="1" aria-label="1つ増やす">＋</button>
+                        </div>
                     </div>
                 </div>
                 <div id="grid-modal-error" style="color:#ff5555; font-size:0.75rem; text-align:center; min-height:1.2em; margin-bottom:6px;"></div>
@@ -1478,6 +1480,28 @@ App.Design = {
         document.body.appendChild(overlay);
 
         const close = () => overlay.remove();
+        // −／＋で行数・列数を変える（キーボードを出さない）。「自動」の時は、今の数が入る形から始める
+        const rowsEl = overlay.querySelector('#grid-modal-rows');
+        const colsEl = overlay.querySelector('#grid-modal-cols');
+        const hint = overlay.querySelector('#grid-modal-error');
+        const showHint = () => {
+            const r = parseInt(rowsEl.value) || 0, c = parseInt(colsEl.value) || 0;
+            hint.style.color = r && c && choiceCount && r * c < choiceCount ? '#ff5555' : '#8b8b95';
+            hint.textContent = r && c ? `${r}行 × ${c}列 ＝ ${r * c}マス${choiceCount && r * c < choiceCount ? `（${itemWord}${choiceCount}個に足りません）` : ''}` : '自動で並べます';
+        };
+        overlay.querySelectorAll('.gm-btn').forEach(btn => {
+            btn.onclick = () => {
+                if (!rowsEl.value || !colsEl.value) {
+                    const c0 = Math.max(1, Math.min(choiceCount || 2, 2));
+                    colsEl.value = c0;
+                    rowsEl.value = Math.max(1, Math.ceil((choiceCount || 2) / c0));
+                }
+                const el = overlay.querySelector('#' + btn.dataset.gm);
+                el.value = Math.max(1, Math.min(10, (parseInt(el.value) || 1) + parseInt(btn.dataset.d)));
+                showHint();
+            };
+        });
+        showHint();
         overlay.querySelector('#grid-modal-cancel').onclick = close;
         overlay.querySelector('#grid-modal-clear').onclick = () => {
             design.gridRows = '';
