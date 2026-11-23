@@ -450,3 +450,36 @@ document.addEventListener('DOMContentLoaded', () => {
     App.Territory.hookCreator();
     setInterval(() => { try { App.Territory.watch(); App.Territory.ensureHostButton(); App.Territory.creatorGuide(); } catch (e) { /* noop */ } }, 700);
 });
+
+
+// 出題中の画面のすみに出す小さな盤面 — 「いま何番のマスの問題か」と陣地のようす
+//   モニター（viewer.js）と作成画面のプレビュー（creator_mobile.js）で使う
+App.Territory.miniBadge = function (stage, conf, cell, tp) {
+    if (!stage) return;
+    const old = stage.querySelector(':scope > .tp-qbadge');
+    const idx = parseInt(cell);
+    if (!this.isOn(conf) || isNaN(idx) || idx < 0) { old?.remove(); return; }
+    const sz = this.size(conf);
+    const rows = (tp && tp.rows) || sz.rows, cols = (tp && tp.cols) || sz.cols;
+    const cells = (tp && tp.cells) || [];
+    let html = `<div class="tp-qb-label"><b>${idx + 1}</b>番のマス</div><div class="tp-qb-grid" style="grid-template-columns:repeat(${cols}, 1fr); grid-template-rows:repeat(${rows}, 1fr); aspect-ratio:${cols} / ${rows};">`;
+    for (let i = 0; i < rows * cols; i++) {
+        const owner = cells[i];
+        html += `<i class="${i === idx ? 'now' : ''}${owner ? ' own' : ''}" style="${owner ? `--c:${this.colorOf(tp, owner)};` : ''}"></i>`;
+    }
+    html += '</div>';
+    const el = old || document.createElement('div');
+    el.className = 'tp-qbadge';
+    if (el._html !== html) { el.innerHTML = html; el._html = html; }
+    if (!old) stage.appendChild(el);
+};
+// 作成画面で、いま書いている問題のマス
+App.Territory.editingCell = function () {
+    const C = window.App.Creator;
+    const { n, used } = this.assignCells();
+    const qs = window.App.Data.createdQuestions || [];
+    if (C && C.editingIndex !== null && C.editingIndex !== undefined) return (qs[C.editingIndex] || {}).tpCell;
+    if (this._pendingCell !== null && this._pendingCell !== undefined) return this._pendingCell;
+    let c = 0; while (c < n && used.has(c)) c++;
+    return c < n ? c : null;
+};

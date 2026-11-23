@@ -670,3 +670,12 @@ img.q-photo.rv-img-zoom { transform: scale(3.2); }
 .th-elim-card.out .th-elim-tag { background: var(--th-bad, #6b7280); color: var(--th-bad-text, #fff); }
 /* テーマの枠が子要素の位置を変えても、下の帯は画面の下中央に */
 #viewer-main-text > .rv-strip:not(.rv-flow) { position: absolute !important; left: 50% !important; right: auto !important; bottom: 1.5cqh !important; top: auto !important; transform: translateX(-50%) !important; width: max-content !important; max-width: 92% !important; margin: 0 !important; }
+/* 陣取りパネル: 出題中のすみの小さな盤面（territory.js miniBadge） */
+.tp-qbadge { position: absolute; right: 2.5cqw; bottom: 3cqh; z-index: 880; display: flex; flex-direction: column; align-items: stretch; gap: 1cqh; width: 22cqh; padding: 1.4cqh; border-radius: 1.4cqh; background: rgba(0,0,0,0.72); color: #fff; pointer-events: none; }
+.tp-qb-label { text-align: center; font-size: 2.6cqh; font-weight: 800; }
+.tp-qb-label b { font-size: 1.5em; color: var(--th-accent, #f59e0b); margin-right: 0.1em; }
+.tp-qb-grid { display: grid; gap: 0.5cqh; width: 100%; }
+.tp-qb-grid i { display: block; border-radius: 0.4cqh; background: rgba(255,255,255,0.16); }
+.tp-qb-grid i.own { background: var(--c); }
+.tp-qb-grid i.now { background: var(--th-accent, #f59e0b); box-shadow: 0 0 0 0.4cqh #fff; animation: tpNow 1.2s ease-in-out infinite; }
+@keyframes tpNow { 50% { opacity: 0.55; } }

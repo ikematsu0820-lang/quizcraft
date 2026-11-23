@@ -704,6 +704,9 @@ App.CreatorMobile = {
         if (window.App.Themes) window.App.Themes.applyToElement(stage, q.design);
         // ロゴ・すみの文字もプレビューに
         if (window.App.Viewer && window.App.Viewer.renderDecor) { window.App.Viewer._decorKey = null; window.App.Viewer.renderDecor(stage, q.design, { step: 'answering' }); }
+        // 陣取りパネル: いま書いている問題のマスを、すみの小さな盤面で
+        const T = window.App.Territory;
+        if (T && T.miniBadge) T.miniBadge(stage, window.App.Data.currentConfig || {}, step === 'bridge' ? null : T.editingCell(), null);
         this.toContainerUnits(stage);
     },
 

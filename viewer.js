@@ -309,6 +309,13 @@ window.App.Viewer = {
             window.App.Themes.applyToElement(viewContainer, themeQ.design);
             this.renderDecor(viewContainer, themeQ.design, st);
         }
+        // 陣取りパネル: 出題中は、すみに小さな盤面（何番のマスの問題か）
+        if (window.App.Territory && window.App.Territory.miniBadge) {
+            const tq = this.questions[st.qIndex] || {};
+            const asking = ['reveal_q_num', 'reveal_q', 'answering', 'closed', 'reveal_player', 'reveal_correct', 'answer'].includes(st.step);
+            const remote = window.App.Territory._remote && window.App.Territory._remote.tp;
+            window.App.Territory.miniBadge(viewContainer, this.config || {}, asking ? tq.tpCell : null, remote);
+        }
         this.updateThinkingBgm(st, this.questions[st.qIndex]);
         this.updateQNumSound(st, this.questions[st.qIndex]);
         this.updateResultSound(st, this.questions[st.qIndex]);
