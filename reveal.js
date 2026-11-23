@@ -1,17 +1,16 @@
 /* =========================================================
- * reveal.js — 正解の発表（判定の合図 → 正解の出し方 → 結果・得点）
+ * reveal.js — 正解表示（判定演出・正解の出し方・併せて表示）と、問題ごとの欄
  *
- * 設定はルールの「発表」タブにまとめる（セット全体の値＝ currentConfig）:
- *   判定の合図   judgeCue     sound（音だけ）| big（〇✕を大きく）| big_name（〇✕と答えた人の名前）
- *                revealTiming host（司会者のボタンで）| auto（正解が出たらすぐ正解を出す）
- *   正解の出し方 revealStyle  band | full | inline | letters（答えが文字の形式）
- *                revealSort   all | one（並べ替え: 一度に／1つずつ並べる）
- *                revealPause  now | tame（ためてから出す）
- *                rvWinners / rvCount / rvDist / rvRate / rvNote   一緒に出すもの（'on' / 'off'）
- *   結果・得点   rvGain（正解者の名前に＋点）・1問ごとの結果発表・解答者の端末の得点
- * 問題ごとの上書き（問題を書く画面の「この問題の正解表示」）:
- *   q.revealStyle（count＝数字のカウント も選べる）・q.imgReveal（blur | zoom）・q.publicRate・q.commentary
- * 以前の見た目の設定（design.revealStyle / revealWinners）も読む。
+ * 設定の画面は「デザイン › 正解表示」（renderDesign）。値はセットの currentConfig に入る:
+ *   judgeCue     sound | big | big_name            判定演出（早押し・順番・指名）
+ *   revealTiming host | auto                       正解後（auto＝正解者の発表をはさまず即正解表示）
+ *   revealStyle  band | full | inline | letters    表示方法（答えが文字の形式。問題ごとに count も）
+ *   revealSort   all | one                         並べ替えの並べ方
+ *   revealPause  now | tame                        表示タイミング（ため演出）
+ *   rvWinners / rvGain / rvCount / rvDist / rvRate / rvNote   併せて表示（'on' / 'off'）
+ * 問題ごと（問題を書く画面の「この問題のデザイン」「解説・正解率」— mountQuestionBox）:
+ *   q.themeId・q.revealStyle・q.publicRate・q.commentary（q.imgReveal はモニター側だけ。画像クイズで使う予定）
+ * 以前の版の design.revealStyle / revealWinners も読む。詳しくは docs/FORMATS.md「正解表示」。
  * =======================================================*/
 window.App = window.App || {};
 

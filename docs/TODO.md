@@ -1,5 +1,7 @@
 # 次にやること（商用化に向けて）
 
+関連: HANDOFF.md（引き継ぎ）・DESIGN.md・FORMATS.md・ARCHITECTURE.md・HISTORY.md
+
 2026-11 時点のまとめ。上から順に進める。
 
 ## 公開前に必ずやること

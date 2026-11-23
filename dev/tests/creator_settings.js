@@ -1,0 +1,36 @@
+// 確認用（docs/ARCHITECTURE.md の「確かめ方」）。node dev/tests/creator_settings.js で動かし、写真は dev/tests/out/ に出る
+const path = require('path'); const fs = require('fs');
+const OUT = path.join(__dirname, 'out'); fs.mkdirSync(OUT, { recursive: true });
+const APP = 'file://' + path.resolve(__dirname, '../../index.html');
+const FAKEFB = path.resolve(__dirname, '../fakefb.js');
+const { chromium } = require(process.env.PLAYWRIGHT || '/opt/node-tools/node_modules/playwright');
+(async () => {
+  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  await ctx.addInitScript({ path: FAKEFB });
+  const p = await ctx.newPage();
+  p.on('pageerror', e => console.log('ERR', e.message));
+  await p.route(/gstatic|googleapis\.com\/(?!css)|jsdelivr/, r => r.abort());
+  await p.goto(APP); await p.waitForTimeout(800);
+  await p.evaluate(() => window.App.Ui.showView(window.App.Ui.views.selectType));
+  await p.evaluate(() => document.querySelector('#select-type-view .type-select-card[data-type="free"]').click()); await p.waitForTimeout(300);
+  await p.evaluate(() => document.querySelector('#ps-overlay .ps-go').click()); await p.waitForTimeout(700);
+  await p.screenshot({ path: OUT + '/rs-1.png' });
+  await p.evaluate(() => document.querySelector('.cm-title-chip').click()); await p.waitForTimeout(300);
+  await p.screenshot({ path: OUT + '/rs-2.png' });
+  console.log('title visible', await p.evaluate(() => { const t = document.getElementById('question-title'); return !t.classList.contains('hidden') && !!t.offsetParent; }), await p.evaluate(() => document.querySelector('.cm-title-chip')?.textContent));
+  await p.evaluate(() => document.querySelector('.rv-lookbox').scrollIntoView({ block: 'center' }));
+  await p.screenshot({ path: OUT + '/rs-3.png' });
+  await p.evaluate(() => window.App.CreatorMobile.openSheet('menu')); await p.waitForTimeout(300);
+  await p.screenshot({ path: OUT + '/rs-4.png' });
+  await p.evaluate(() => document.querySelector('#cm-sheet-menu [data-set-key="reveal"]').click()); await p.waitForTimeout(500);
+  await p.evaluate(() => document.querySelector('#ds-reveal')?.scrollIntoView({ block: 'start' }));
+  await p.screenshot({ path: OUT + '/rs-5.png' });
+  console.log('tabs', await p.evaluate(() => [...document.querySelectorAll('.design-subtab-btn')].map(b => b.textContent.trim()).join('/')), await p.evaluate(() => document.getElementById('cm-sheet-title').textContent));
+  await p.evaluate(() => document.querySelector('.rp-tile[data-rp="rv-revealStyle"][data-val="full"]').click()); await p.waitForTimeout(200);
+  console.log('conf style', await p.evaluate(() => window.App.Data.currentConfig.revealStyle));
+  await p.evaluate(() => window.App.CreatorMobile.openSheet('rules', 'win')); await p.waitForTimeout(400);
+  await p.screenshot({ path: OUT + '/rs-6.png' });
+  console.log('rule tabs', await p.evaluate(() => [...document.querySelectorAll('.creator-rules-subtab-btn')].map(b => b.textContent.trim()).join('/')));
+  await b.close();
+})();
