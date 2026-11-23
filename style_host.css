@@ -6004,3 +6004,17 @@ body:has(.qd-ov, .im-ov) :is(#unified-toggle-container, #test-view-dock) { displ
 #trial-ov .tr-b { flex: 0 0 auto; white-space: nowrap; }
 /* 問題一覧の下に来たセットの設定: 上と少し間をあける */
 .cm-section-head.cm-set-head { margin-top: 28px; }
+/* 「追加して次へ」のあと: 入れた問題の知らせと、新しい問題の見出し・入力欄を一瞬光らせる */
+#cm-saved-note { display: none; }
+#creator-view.cm-on.cm-edit #cm-saved-note { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; padding: 10px 12px; border-radius: 12px; background: #13241a; color: #c9f5d6; font-size: 0.85rem; transition: opacity 0.6s; }
+#cm-saved-note.cm-sn-in { animation: cmSnIn 0.35s ease-out; }
+#cm-saved-note.cm-sn-fade { opacity: 0.55; }
+#cm-saved-note .cm-sn-mark { flex: 0 0 auto; width: 24px; height: 24px; border-radius: 50%; background: #16a34a; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.8rem; }
+#cm-saved-note .cm-sn-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#cm-saved-note .cm-sn-text b { color: #86efac; margin-right: 2px; }
+#cm-saved-note .cm-sn-fix { flex: 0 0 auto; min-height: 32px; padding: 0 12px; border: none; border-radius: 8px; background: rgba(255,255,255,0.08); color: #e5e5e8; font-weight: 800; font-size: 0.78rem; cursor: pointer; }
+@keyframes cmSnIn { from { transform: translateY(-8px); opacity: 0; } to { transform: none; opacity: 1; } }
+#cm-edit-title.cm-title-flash { animation: cmTitleFlash 1.2s ease-out; }
+@keyframes cmTitleFlash { 0%, 30% { color: #fbbf24; transform: scale(1.08); } 100% { color: inherit; transform: none; } }
+#creator-editor-wrap.cm-next-in { animation: cmNextIn 0.35s ease-out; }
+@keyframes cmNextIn { from { transform: translateX(24px); opacity: 0.2; } to { transform: none; opacity: 1; } }

@@ -201,6 +201,7 @@ App.CreatorMobile = {
     },
 
     showList: function () {
+        document.getElementById('cm-saved-note')?.remove();
         this.screen = 'list';
         this._fromSelect = false; // 一覧を見たら、入力画面の「戻る」は一覧へ
         this.apply();
@@ -229,6 +230,7 @@ App.CreatorMobile = {
 
     renderEditHead: function () {
         const C = this.C();
+        if (C.editingIndex !== null) document.getElementById('cm-saved-note')?.remove();
         const el = document.getElementById('cm-edit-title');
         const qs = window.App.Data.createdQuestions || [];
         const nextBtn = document.getElementById('cm-next-btn');
@@ -287,19 +289,53 @@ App.CreatorMobile = {
             this.showList();
             return;
         }
+        let savedAt = -1, added = false;
+        // 「追加しました」の上のお知らせは、見出しの下の知らせ（showSavedNote）と重なるので出さない
+        const Ui = window.App.Ui, T = window.APP_TEXT || (typeof APP_TEXT !== 'undefined' ? APP_TEXT : null);
+        const origToast = Ui.showToast;
+        const quiet = T && T.Creator ? [T.Creator.MsgAddedToast, T.Creator.MsgUpdatedToast] : [];
+        Ui.showToast = function (m) { if (quiet.includes(m)) return; return origToast.apply(this, arguments); };
+        try { return this._nextInner(C, qs); } finally { Ui.showToast = origToast; }
+    },
+    _nextInner: function (C, qs) {
+        let savedAt = -1, added = false;
         if (C.editingIndex === null) {
             const before = qs.length;
             C.add();
             if (qs.length === before) return; // 入力不足（アラート済み）
+            savedAt = qs.length - 1; added = true;
         } else {
             const i = C.editingIndex;
             C.update();
             if (C.editingIndex !== null) return; // 入力不足
+            savedAt = i;
             if (i + 1 < qs.length) C.edit(i + 1);
         }
         this.renderEditHead();
         window.scrollTo(0, 0);
+        this.showSavedNote(savedAt, added);
         this.focusQuestion();
+    },
+
+    // 「追加して次へ」のあと — 入れた問題と、いま新しい（次の）問題にいることを、ひと目で分かるように
+    //   見出しの下に「Q2「…」を追加しました　直す」を出し、見出しと入力欄を一瞬光らせる
+    showSavedNote: function (idx, added) {
+        const qs = window.App.Data.createdQuestions || [];
+        const q = qs[idx];
+        const head = document.getElementById('cm-edit-head');
+        if (!q || !head) return;
+        let note = document.getElementById('cm-saved-note');
+        if (!note) { note = document.createElement('div'); note.id = 'cm-saved-note'; head.parentNode.insertBefore(note, head.nextSibling); }
+        const text = String(q.q || '').replace(/\s+/g, ' ');
+        note.innerHTML = `<span class="cm-sn-mark">✓</span><span class="cm-sn-text"><b>Q${idx + 1}</b>「${this.esc(text.length > 18 ? text.slice(0, 18) + '…' : text)}」を${added ? '追加' : '保存'}しました</span><button type="button" class="cm-sn-fix">直す</button>`;
+        note.classList.remove('cm-sn-in'); void note.offsetWidth; note.classList.add('cm-sn-in');
+        note.querySelector('.cm-sn-fix').onclick = () => { note.remove(); this.showEdit(idx); };
+        const title = document.getElementById('cm-edit-title');
+        if (title) { title.classList.remove('cm-title-flash'); void title.offsetWidth; title.classList.add('cm-title-flash'); }
+        const wrap = document.getElementById('creator-editor-wrap');
+        if (wrap) { wrap.classList.remove('cm-next-in'); void wrap.offsetWidth; wrap.classList.add('cm-next-in'); }
+        clearTimeout(this._snTimer);
+        this._snTimer = setTimeout(() => note.classList.add('cm-sn-fade'), 6000);
     },
 
     // 「← 一覧」— 書きかけがあれば追加／更新してから戻る

@@ -17,8 +17,11 @@ const { chromium } = require(process.env.PLAYWRIGHT || '/opt/node-tools/node_mod
   await p.evaluate(() => document.querySelector('#ps-overlay .ps-go').click()); await p.waitForTimeout(700);
   for (const [q, a] of [['日本一高い山は？', '富士山'], ['日本一長い川は？', '信濃川']]) {
     await p.fill('#question-text', q); await p.fill('#creator-text-answer', a);
-    await p.evaluate(() => [...document.querySelectorAll('button')].find(x => x.offsetParent && /追加して次へ/.test(x.textContent)).click()); await p.waitForTimeout(400);
+    await p.evaluate(() => [...document.querySelectorAll('button')].find(x => x.offsetParent && /追加して次へ/.test(x.textContent)).click()); await p.waitForTimeout(150);
+    await p.screenshot({ path: `${OUT}/cnext-flash.png` }); await p.waitForTimeout(250);
   }
+  await p.waitForTimeout(2600); // お知らせが消えるのを待つ
+  await p.screenshot({ path: `${OUT}/cnext.png` });
   await p.evaluate(() => window.App.CreatorMobile.showList()); await p.waitForTimeout(600);
   await p.screenshot({ path: `${OUT}/clist.png` });
   await b.close();
