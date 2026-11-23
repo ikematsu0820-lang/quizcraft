@@ -206,6 +206,13 @@ window.App.init = function () {
     const testProg = urlParams.get('testProg');
 
     if (vcode) {
+        // 解答者のスマホの上に入れるモニター（player.js syncPlayerMonitor）— 音は解答者の画面が鳴らすので、こちらは鳴らさない
+        if (urlParams.has('embed')) {
+            window.__embedMonitor = true;
+            try { HTMLMediaElement.prototype.play = function () { return Promise.resolve(); }; } catch (e) { /* noop */ }
+            try { window.AudioContext = undefined; window.webkitAudioContext = undefined; } catch (e) { /* noop */ }
+            document.documentElement.classList.add('embed-monitor');
+        }
         this.Ui.showView(this.Ui.views.viewerMain);
         if (window.App.Viewer && window.App.Viewer.connect) {
             window.App.Viewer.connect(vcode);

@@ -17,7 +17,10 @@ const firebaseConfig = {
 const __localTrial = (() => {
     try {
         if (!new URLSearchParams(location.search).has('local')) return null;
-        return (window.parent && window.parent !== window && window.parent.__trialStore) || null;
+        // 親、その親…と上へたどる（お試しの解答者の中に、さらにモニターを入れる時）
+        let w = window;
+        while (w.parent && w.parent !== w) { w = w.parent; if (w.__trialStore) return w.__trialStore; }
+        return null;
     } catch (e) { return null; }
 })();
 

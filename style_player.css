@@ -1911,3 +1911,16 @@ body.buzz-flash::after {
     #player-game-view:has(#player-buzz-area:not(.hidden) .buzz-btn.buzz-round) { padding-bottom: 0 !important; }
     #global-buzz-overlay { bottom: 50%; left: auto !important; right: 22vw; }
 }
+
+/* =========================================================
+ * 解答者のスマホの上にモニター（司会者が待合室で「出す」にした時 — player.js syncPlayerMonitor）
+ *   モニターと全く同じ画面を上に16:9で。問題文のカードは出さない（モニターに出ているので）
+ * ======================================================= */
+#player-monitor { display: none; }
+body.pl-mon #player-monitor { display: block; width: 100%; aspect-ratio: 16 / 9; margin: 10px 0 12px; border-radius: 12px; overflow: hidden; background: #000; box-shadow: 0 8px 24px rgba(0,0,0,0.35); }
+#player-monitor iframe { display: block; width: 100%; height: 100%; border: none; pointer-events: none; }
+body.pl-mon #question-text-disp { display: none !important; }
+/* 横持ち: 左にモニター、右に操作（押し面は右半分のまま） */
+@media (orientation: landscape) {
+    body.pl-mon #player-monitor { position: fixed; left: 12px; top: 72px; width: calc(52vw - 24px); margin: 0; z-index: 5; }
+}

@@ -19,9 +19,9 @@ const { chromium } = require(process.env.PLAYWRIGHT || '/opt/node-tools/node_mod
     for (let i = 0; i < 4; i++) { const s = await h.evaluate(() => window.App.Studio.currentStepId); if (s === 2) break; await h.evaluate(() => document.getElementById('console-btn-phase-main').click()); await h.waitForTimeout(400); }
     await h.evaluate((room) => { window.App.Ui.showView(window.App.Ui.views.respondent || document.getElementById('room-code-input').closest('.view')); document.getElementById('room-code-input').value = room; document.getElementById('player-name-input').value = 'あなた'; document.getElementById('join-room-btn').click(); }, room);
     await h.waitForTimeout(1500);
-    await h.evaluate((room) => window.__fakeDb.ref(`rooms/${room}/status`).update({ step: 'answering', qIndex: 0, isBuzzActive: true, t: Date.now() }), room);
+    await h.evaluate(([room, pm]) => window.__fakeDb.ref(`rooms/${room}/status`).update({ step: 'answering', qIndex: 0, isBuzzActive: true, t: Date.now(), playerMonitor: pm }), [room, process.env.PMON ? true : null]);
     await h.waitForTimeout(1000);
-    const tag = `${vp.width}x${vp.height}`;
+    const tag = `${vp.width}x${vp.height}${process.env.PMON ? '-mon' : ''}`;
     await h.screenshot({ path: `${OUT}/pbuzz-${tag}-1.png` });
     console.log(tag, await h.evaluate(() => { const b = document.getElementById('player-buzz-btn').getBoundingClientRect(); const q = document.querySelector('#question-text-disp, .player-q-text'); const qr = q ? q.getBoundingClientRect() : null; return `pad y=${Math.round(b.y)} h=${Math.round(b.height)} | q bottom=${qr ? Math.round(qr.bottom) : '-'} | overlap=${qr ? qr.bottom > b.y : '-'}`; }));
     const box = await h.$('#player-buzz-btn');

@@ -84,10 +84,16 @@ App.HostLobby = {
                 <div class="hl-players"></div>
             </div>
             ${guide ? `<div class="hl-sec"><div class="hl-k">今回の遊び方</div><p class="hl-guide">${this.esc(guide)}</p></div>` : ''}
+            <label class="hl-sec hl-pmon"><span><b>解答者のスマホにモニターを映す</b><small>スマホの上にモニターと同じ画面、下に押す・選ぶなどの操作。会場のモニターが無い時や、見えにくい席がある時に</small></span><input type="checkbox" class="hl-pmon-chk"></label>
             <p class="hl-hint"></p>`;
         box.querySelector('.hl-back').onclick = () => this.back();
         box.querySelector('.hl-code').onclick = () => this.copy(code, '部屋コードをコピーしました');
         box.querySelector('.hl-share').onclick = () => this.share();
+        const pm = box.querySelector('.hl-pmon-chk');
+        if (pm) {
+            window.db.ref(`rooms/${code}/status/playerMonitor`).once('value', s => { pm.checked = !!s.val(); });
+            pm.onchange = () => window.db.ref(`rooms/${code}/status`).update({ playerMonitor: pm.checked ? true : null });
+        }
         this.renderPlayers();
         this.renderHint();
     },

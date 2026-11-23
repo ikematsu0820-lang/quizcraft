@@ -6018,3 +6018,9 @@ body:has(.qd-ov, .im-ov) :is(#unified-toggle-container, #test-view-dock) { displ
 @keyframes cmTitleFlash { 0%, 30% { color: #fbbf24; transform: scale(1.08); } 100% { color: inherit; transform: none; } }
 #creator-editor-wrap.cm-next-in { animation: cmNextIn 0.35s ease-out; }
 @keyframes cmNextIn { from { transform: translateX(24px); opacity: 0.2; } to { transform: none; opacity: 1; } }
+/* 待合室: 解答者のスマホにモニターを映す */
+#host-lobby .hl-pmon { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+#host-lobby .hl-pmon span { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+#host-lobby .hl-pmon b { color: #e5e5e8; font-size: 0.9rem; }
+#host-lobby .hl-pmon small { color: #8b8b95; font-size: 0.72rem; line-height: 1.45; }
+#host-lobby .hl-pmon input { width: auto; margin: 0; accent-color: #f59e0b; transform: scale(1.3); }

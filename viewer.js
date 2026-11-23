@@ -214,6 +214,9 @@ window.App.Viewer = {
                     document.getElementById('viewer-main-view').classList.remove('hidden');
                 }
                 this.startListener();
+            } else if (window.__embedMonitor) {
+                // 解答者のスマホの上のモニター: 知らせは出さず、少し待ってつなぎ直す
+                setTimeout(() => this.connect(code), 2000);
             } else {
                 window.App.Dialog.alert("Room not found");
                 if (btn) { btn.disabled = false; btn.textContent = "接続する"; }

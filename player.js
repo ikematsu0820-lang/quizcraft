@@ -605,6 +605,7 @@ function startPlayerListener(roomId, playerId) {
         }
 
         localStatus = st;
+        syncPlayerMonitor(roomId, !!st.playerMonitor);
 
         if (['answering', 'question', 'answer', 'reveal_q', 'reveal_correct'].includes(st.step)) {
             window.db.ref(`rooms/${roomId}/questions/${st.qIndex}`).once('value', qSnap => {
@@ -2634,4 +2635,36 @@ function submitAnswer(roomId, playerId, answer) {
     });
     // 手書きの送信ボタンは送ったら消す（残っていると送れていないように見える）
     document.getElementById('written-submit-btn')?.classList.add('hidden');
+}
+
+
+// ---------------------------------------------------------
+// 解答者のスマホの上にモニターを映す（司会者が待合室で「出す」にした時 — status.playerMonitor）
+//   モニターと全く同じ画面（?vcode=部屋&embed=1）を上に入れ、問題文のカードはやめる。
+//   下は今まで通り、形式ごとの操作（押し面・選択肢・書く欄など）。
+// ---------------------------------------------------------
+function syncPlayerMonitor(roomId, on) {
+    const view = document.getElementById('player-game-view');
+    let box = document.getElementById('player-monitor');
+    if (!on || !roomId || !view) {
+        if (box) box.remove();
+        document.body.classList.remove('pl-mon');
+        return;
+    }
+    if (!box) {
+        box = document.createElement('div');
+        box.id = 'player-monitor';
+        const bar = document.getElementById('player-status-bar');
+        view.insertBefore(box, bar ? bar.nextSibling : view.firstChild);
+    }
+    const local = new URLSearchParams(location.search).has('local') ? 'local=1&' : '';
+    const src = `${location.pathname}?${local}vcode=${encodeURIComponent(roomId)}&embed=1`;
+    let f = box.querySelector('iframe');
+    if (!f || f.dataset.room !== roomId) {
+        box.innerHTML = '<iframe title="モニター" tabindex="-1"></iframe>';
+        f = box.querySelector('iframe');
+        f.dataset.room = roomId;
+        f.src = src;
+    }
+    document.body.classList.add('pl-mon');
 }
