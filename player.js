@@ -103,8 +103,52 @@ if (window.db) {
 }
 
 // 早押しボタンを押した瞬間の手応え（通信を待たない）
+// 押した手応え — スマホは本物のボタンのように「押した」感じが弱いので、
+//   振動（Android は vibrate、iPhone は iOS 18 からの「スイッチ」の触覚）・短いクリック音・
+//   押した所から広がる波紋・押し面の沈み込み、を重ねる
+let _hapticSwitch = null;
+function buzzHaptic() {
+    try { if (navigator.vibrate) { navigator.vibrate([25, 30, 45]); return; } } catch (e) { /* noop */ }
+    try {
+        if (!_hapticSwitch) {
+            _hapticSwitch = document.createElement('label');
+            _hapticSwitch.setAttribute('aria-hidden', 'true');
+            _hapticSwitch.style.cssText = 'position:fixed; left:-9999px; top:0; width:1px; height:1px; overflow:hidden;';
+            _hapticSwitch.innerHTML = '<input type="checkbox" switch tabindex="-1">';
+            document.body.appendChild(_hapticSwitch);
+        }
+        _hapticSwitch.click();
+    } catch (e) { /* noop */ }
+}
+function buzzClickSound() {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    try {
+        if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+        const t = ctx.currentTime;
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = 'square';
+        o.frequency.setValueAtTime(880, t);
+        o.frequency.exponentialRampToValueAtTime(330, t + 0.09);
+        g.gain.setValueAtTime(0.18, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+        o.connect(g); g.connect(ctx.destination);
+        o.start(t); o.stop(t + 0.13);
+    } catch (e) { /* noop */ }
+}
+function buzzRipple(btn, x, y) {
+    if (!btn || x === undefined) return;
+    const r = btn.getBoundingClientRect();
+    const s = document.createElement('span');
+    s.className = 'buzz-ripple';
+    s.style.left = `${x - r.left}px`;
+    s.style.top = `${y - r.top}px`;
+    btn.appendChild(s);
+    setTimeout(() => s.remove(), 650);
+}
 function buzzPressedFeedback(btn) {
-    try { if (navigator.vibrate) navigator.vibrate(60); } catch (e) { /* noop */ }
+    buzzHaptic();
     if (btn) {
         btn.classList.remove('buzz-pressed');
         void btn.offsetWidth; // アニメーションを毎回やり直す
@@ -344,7 +388,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const buzzBtn = document.getElementById('player-buzz-btn');
     if (buzzBtn) {
-        buzzBtn.addEventListener('click', () => {
+        // 指が触れた瞬間に押したことにする（離すのを待たない）— click は指以外（キーボードなど）用
+        let lastDown = 0;
+        buzzBtn.addEventListener('pointerdown', (e) => {
+            if (buzzBtn.disabled) return;
+            lastDown = Date.now();
+            e.preventDefault();
+            buzzRipple(buzzBtn, e.clientX, e.clientY);
+            doBuzz();
+        });
+        buzzBtn.addEventListener('click', () => { if (Date.now() - lastDown < 800) return; doBuzz(); });
+        function doBuzz() {
             if (!myRoomId || !myPlayerId) return;
             let sendNow = null;
             if (isWrittenBuzz() && !wbPushFirst()) {
@@ -358,6 +412,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (currentQuestion && currentQuestion.design && currentQuestion.design.seButton) {
                 playSound(currentQuestion.design.seButton);
+            } else {
+                buzzClickSound();
             }
             // 押した瞬間の時刻を、サーバーの時計に合わせて記録する。
             // buzzTime（サーバー到着時刻）だけだと通信の速い人が有利になるので、
@@ -372,7 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 buzzPressAt: pressAt
             });
             if (sendNow) submitAnswer(myRoomId, myPlayerId, sendNow);
-        });
+        }
     }
 });
 
