@@ -1924,3 +1924,10 @@ body.pl-mon #question-text-disp { display: none !important; }
 @media (orientation: landscape) {
     body.pl-mon #player-monitor { position: fixed; left: 12px; top: 72px; width: calc(52vw - 24px); margin: 0; z-index: 5; }
 }
+
+/* 口頭の問題で結果（正解です！など）が出たら、問題文のすぐ下に出す
+   （問題の欄が画面いっぱいに伸びて、結果が一番下へ押し出され、端で切れていた）。
+   「口頭で解答してください」の案内は、結果が出たら消す */
+#player-game-view:has(#player-wait-msg:not(.hidden)) #player-quiz-area:has(#player-input-container > .oral-help:only-child) { flex: 0 0 auto; }
+#player-game-view:has(#player-wait-msg:not(.hidden)) #player-input-container:has(> .oral-help:only-child) { display: none; }
+#player-game-view:has(#player-wait-msg:not(.hidden)) #player-quiz-area:has(#player-input-container > .oral-help:only-child) ~ #player-wait-msg { margin-top: 16px !important; }
