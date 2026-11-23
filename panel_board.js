@@ -330,8 +330,8 @@ App.PanelBoard = {
         row.className = 'pbq-item';
         row.innerHTML = `
             <input type="number" class="pbq-pts" placeholder="点" value="${e(it.pts)}">
-            <input type="text" class="pbq-q" placeholder="問題文" value="${e(it.pq)}">
-            <input type="text" class="pbq-a" placeholder="答え" value="${e(it.answer)}">
+            <textarea rows="1" class="pbq-q grow-ta" placeholder="問題文">${e(it.pq)}</textarea>
+            <textarea rows="1" class="pbq-a grow-ta" placeholder="答え">${e(it.answer)}</textarea>
             <button type="button" class="pbq-del" title="削除">×</button>`;
         row.querySelector('.pbq-del').onclick = () => row.remove();
         row._img = it.img || null;
@@ -403,15 +403,15 @@ App.PanelBoard = {
             <span class="pb-no" style="flex:0 0 1.8em; color:#fbbf24; font-weight:900; font-size:0.75rem; text-align:right;"></span>
             ${this.panelQ ? `
             <span class="pb-tag pb-tag-front">表</span>
-            <input type="text" class="pb-label" placeholder="表：ジャンルなど（例: 果物）" value="${e(p.label)}" style="flex:1; min-width:0; ${inp}">
+            <textarea rows="1" class="pb-label grow-ta" placeholder="表：ジャンルなど（例: 果物）" style="flex:1; min-width:0; ${inp}">${e(p.label)}</textarea>
             <span class="pb-tag pb-tag-q">問</span>
-            <input type="text" class="pb-pq" placeholder="問題文" value="${e(p.pq)}" style="flex:2.4; min-width:0; ${inp}">
+            <textarea rows="1" class="pb-pq grow-ta" placeholder="問題文" style="flex:2.4; min-width:0; ${inp}">${e(p.pq)}</textarea>
             <span class="pb-tag pb-tag-ans">裏</span>
-            <input type="text" class="pb-answer" placeholder="裏：答え（正解で出る）" value="${e(p.answer)}" style="flex:1; min-width:0; ${inp} color:#86efac !important;">` : `
+            <textarea rows="1" class="pb-answer grow-ta" placeholder="裏：答え（正解で出る）" style="flex:1; min-width:0; ${inp} color:#86efac !important;">${e(p.answer)}</textarea>` : `
             <span class="pb-tag pb-tag-front">表</span>
-            <input type="text" class="pb-label" placeholder="表：問題（任意）" value="${e(p.label)}" style="flex:1; min-width:0; ${inp}">
+            <textarea rows="1" class="pb-label grow-ta" placeholder="表：問題（任意）" style="flex:1; min-width:0; ${inp}">${e(p.label)}</textarea>
             <span class="pb-tag pb-tag-back">裏</span>
-            <input type="text" class="pb-answer" placeholder="裏：答え" value="${e(p.answer)}" style="flex:1; min-width:0; ${inp} color:#86efac !important;">`}
+            <textarea rows="1" class="pb-answer grow-ta" placeholder="裏：答え" style="flex:1; min-width:0; ${inp} color:#86efac !important;">${e(p.answer)}</textarea>`}
             <input type="number" class="pb-pts" placeholder="点" value="${e(p.pts)}" style="flex:0 0 46px; width:46px; ${inp} text-align:right !important; color:#fbbf24 !important;">
             <button type="button" class="pb-del" title="削除" style="flex:0 0 auto; background:none; border:none; color:rgba(255,255,255,0.35); cursor:pointer; padding:0 4px;">×</button>`;
         // 問題付きをオフにしても、書いた問題は行に持っておく（オンに戻した時に消えないように）

@@ -1508,9 +1508,10 @@ window.App.Creator = {
         labelSpan.textContent = label;
 
         // Editable text field
-        const inp = document.createElement('input');
-        inp.type = 'text';
-        inp.className = 'choice-text-input';
+        // 長い選択肢も全部見えるよう、文字量に合わせて縦に伸びる欄（App.GrowText）
+        const inp = document.createElement('textarea');
+        inp.rows = 1;
+        inp.className = 'choice-text-input grow-ta';
         inp.placeholder = `選択肢 ${label}`;
         inp.value = text;
         const cTextC = (window.App.Data.currentDesign || {}).cTextColor;
@@ -1616,7 +1617,7 @@ window.App.Creator = {
 
         row.innerHTML = `
             <span class="sort-label row-label" style="color:#00e5ff;font-weight:900;font-family:'Arial Black',sans-serif;margin-right:min(16px,3vw);font-size:min(1.1rem,3vw);min-width:min(22px,4vw);text-shadow:0 0 8px rgba(0,229,255,0.4);">${String.fromCharCode(65 + index)}</span>
-            <input type="text" class="sort-text-input row-input" placeholder="項目を入力" value="${text}" style="flex:1;background:transparent;border:none;color:#ddd;font-size:min(1rem,2.8vw);outline:none;padding:2px 0;">
+            <textarea rows="1" class="sort-text-input row-input grow-ta" placeholder="項目を入力" style="flex:1;background:transparent;border:none;color:#ddd;font-size:min(1rem,2.8vw);outline:none;padding:2px 0;">${String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;')}</textarea>
             <div class="sort-rank-box" style="width:min(36px,5vw);height:min(36px,5vw);border:2px solid #444;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:900;font-size:min(1rem,2.5vw);color:#f59e0b;background:rgba(0,0,0,0.3);margin-left:8px;flex-shrink:0;">
                 ${rank || ''}
             </div>
@@ -1685,7 +1686,7 @@ window.App.Creator = {
         const placeholder = isRanking ? `${idx + 1}位の答え` : '正解';
         row.innerHTML = `
             ${isRanking ? `<span class="multi-label row-label" style="color:#00e5ff;font-weight:900;font-family:'Arial Black',sans-serif;margin-right:min(16px,3vw);font-size:min(1.1rem,3vw);min-width:min(22px,4vw);text-shadow:0 0 8px rgba(0,229,255,0.4);">${labelText}</span>` : ''}
-            <input type="text" class="multi-text-input row-input" placeholder="${placeholder}" value="${text}" style="flex:1;background:transparent;border:none;color:#ddd;font-size:min(1rem,2.8vw);outline:none;padding:2px 0;">
+            <textarea rows="1" class="multi-text-input row-input grow-ta" placeholder="${placeholder}" style="flex:1;background:transparent;border:none;color:#ddd;font-size:min(1rem,2.8vw);outline:none;padding:2px 0;">${String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;')}</textarea>
             <button class="btn-remove-multi" style="background:none;border:none;color:rgba(255,255,255,0.25);font-size:0.9rem;cursor:pointer;padding:2px 4px;margin-left:4px;flex-shrink:0;">×</button>
         `;
         this._frameRow(row);
@@ -1720,7 +1721,7 @@ window.App.Creator = {
         `;
         row.innerHTML = `
             <span class="assoc-label row-label" style="color:#00e5ff;font-weight:900;font-family:'Arial Black',sans-serif;margin-right:min(16px,3vw);font-size:min(1.1rem,3vw);min-width:min(22px,4vw);text-shadow:0 0 8px rgba(0,229,255,0.4);">ヒント${idx + 1}</span>
-            <input type="text" class="assoc-text-input row-input" placeholder="ヒント内容" value="${text}" style="flex:1;background:transparent;border:none;color:#ddd;font-size:min(1rem,2.8vw);outline:none;padding:2px 0;">
+            <textarea rows="1" class="assoc-text-input row-input grow-ta" placeholder="ヒント内容" style="flex:1;background:transparent;border:none;color:#ddd;font-size:min(1rem,2.8vw);outline:none;padding:2px 0;">${String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;')}</textarea>
             <button class="btn-remove-assoc" style="background:none;border:none;color:rgba(255,255,255,0.25);font-size:0.9rem;cursor:pointer;padding:2px 4px;margin-left:4px;flex-shrink:0;">×</button>
         `;
         this._frameRow(row);

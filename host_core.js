@@ -1165,3 +1165,47 @@ window.enterDashboard = () => window.App.Dashboard.enter();
 document.addEventListener('DOMContentLoaded', () => {
     window.App.init();
 });
+
+
+/* =========================================================
+ * 文字量に合わせて縦に伸びる入力欄（textarea.grow-ta）
+ *   問題文・答え・選択肢などの1行の欄で、長い文が隠れないように。
+ *   Enter は改行せず次の欄へ（creator_mobile.js onKeyDown）。
+ *   PCのモニター型プレビューの中（スマホ以外）は、今まで通り1行のまま。
+ * =======================================================*/
+window.App.GrowText = {
+    oneLine: function (el) {
+        const M = window.App.CreatorMobile;
+        const mobile = M && M.isMobile && M.isMobile();
+        return !mobile && !!el.closest('#creator-monitor-preview');
+    },
+    fit: function (el) {
+        if (!el || !el.isConnected) return;
+        if (this.oneLine(el)) {
+            el.setAttribute('wrap', 'off');
+            el.style.removeProperty('height');
+            return;
+        }
+        el.removeAttribute('wrap');
+        if (!el.offsetParent) return; // 見えていない時は、見えた時に合わせる
+        el.style.setProperty('height', 'auto', 'important');
+        const h = el.scrollHeight;
+        if (h > 0) el.style.setProperty('height', h + 'px', 'important');
+    },
+    fitAll: function (root) {
+        (root || document).querySelectorAll('textarea.grow-ta').forEach(el => this.fit(el));
+    },
+    init: function () {
+        if (this._on) return;
+        this._on = true;
+        document.addEventListener('input', (e) => { if (e.target && e.target.matches && e.target.matches('textarea.grow-ta')) this.fit(e.target); }, true);
+        document.addEventListener('focusin', (e) => { if (e.target && e.target.matches && e.target.matches('textarea.grow-ta')) this.fit(e.target); }, true);
+        let t = null;
+        const later = () => { if (t) return; t = requestAnimationFrame(() => { t = null; this.fitAll(document.getElementById('creator-view') || document); this.fitAll(document.getElementById('cm-sheet')); }); };
+        const watch = (id) => { const el = document.getElementById(id); if (el) new MutationObserver(later).observe(el, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] }); };
+        watch('creator-view'); watch('cm-sheet');
+        window.addEventListener('resize', later);
+        later();
+    },
+};
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => window.App.GrowText.init()); else window.App.GrowText.init();
