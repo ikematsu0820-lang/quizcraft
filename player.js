@@ -556,8 +556,14 @@ function startPlayerListener(roomId, playerId) {
                     // モニターと同じテーマのフォントを回答端末にも（色は端末の
                     // 見やすさを優先して変えない）
                     if (window.App && window.App.Themes) {
-                        window.App.Themes.applyToElement(document.getElementById('player-game-view'),
-                            { fontFamily: (q.design || {}).fontFamily });
+                        // 見た目 › 回答者のスマホにも色を使う（オフなら書体だけ）
+                        const qd = (window.App.Themes.forQuestion ? window.App.Themes.forQuestion(q) : q).design || {};
+                        const pv = document.getElementById('player-game-view');
+                        const useColor = qd.playerTheme !== 'off';
+                        window.App.Themes.applyToElement(pv, useColor
+                            ? { fontFamily: qd.fontFamily, accentColor: qd.accentColor || (window.App.Themes.faintColor(qd.qBorderColor) ? '' : qd.qBorderColor), mainBgColor: qd.mainBgColor, qTextColor: qd.qTextColor }
+                            : { fontFamily: qd.fontFamily });
+                        if (pv) pv.classList.toggle('pth', useColor && !!(qd.themeId || qd.accentColor));
                     }
                     resolvePlayerSounds(q, roomId);
                     renderPlayerQuestion(q, roomId, playerId);

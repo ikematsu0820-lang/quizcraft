@@ -2002,6 +2002,8 @@ window.App.Creator = {
         if (window.App.Reveal && ['text', 'choice', 'sort'].includes(window.App.Reveal.kindOf(normalizedType))) {
             Object.assign(newQ, window.App.Reveal.qFields(this.qReveal));
         }
+        // この問題だけのテーマ（どの形式でも）
+        newQ.themeId = (this.qReveal && this.qReveal.themeId) || null;
 
         // タイトル（一問一答のみ）— 問題文の上に出る
         if (normalizedType.startsWith('free')) {

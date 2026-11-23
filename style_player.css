@@ -1858,3 +1858,9 @@ body.buzz-flash::after {
 /* 上の帯の「退出」— 押し間違えないよう小さく右端に（押すと確認が出る） */
 #player-leave-btn { flex: 0 0 auto; margin-left: 10px; padding: 4px 10px; min-height: 0; border: none; border-radius: 99px; background: rgba(100, 116, 139, 0.15); color: #64748b; font-size: 0.72rem; font-weight: 700; cursor: pointer; }
 #player-status-bar #score-display-area { margin-left: auto; }
+/* 見た目 › 回答者のスマホにも色を使う — 上の帯をテーマの背景・文字の色に */
+/*   背景はアクセント色を暗くしたグラデーション（白い文字が読めるまま）、名前・カードの線もアクセント色 */
+#player-game-view.pth { background: linear-gradient(135deg, color-mix(in srgb, var(--th-accent) 72%, #000) 0%, color-mix(in srgb, var(--th-accent) 42%, #000) 100%) !important; background-attachment: fixed !important; }
+#player-game-view.pth .player-status-bar { box-shadow: 0 6px 18px rgba(0,0,0,0.3), inset 0 -3px 0 var(--th-accent) !important; }
+#player-game-view.pth .player-name { color: var(--th-accent) !important; }
+#player-game-view.pth .player-q-text { border-left-color: var(--th-accent) !important; }

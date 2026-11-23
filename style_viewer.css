@@ -604,3 +604,69 @@ img.q-photo.rv-img-zoom { transform: scale(3.2); }
 .rv-judge-name { padding: 1cqh 4cqw; border-radius: 1cqh; background: rgba(0,0,0,0.75); color: #fff; font-size: 6cqh; font-weight: 900; }
 @keyframes rvJudge { 0% { opacity: 0; } 8% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
 #viewer-main-text > .rv-tame { position: absolute !important; left: 0 !important; right: 0 !important; bottom: 8cqh !important; top: auto !important; width: auto !important; max-width: none !important; margin: 0 !important; }
+
+/* =========================================================
+ * テーマの値（theme_presets.js setTokens）で描く画面
+ *   --th-bg / --th-text / --th-panel / --th-line / --th-accent / --th-good / --th-bad / --th-card
+ * ======================================================= */
+/* 正解者の発表 */
+.th-winners-label { color: color-mix(in srgb, var(--th-text, #ccc) 70%, transparent); }
+.th-winners-name { color: var(--th-accent, #ffd700); text-shadow: 0 0 3cqh rgba(0,0,0,0.35); }
+.th-winners-none { color: var(--th-bad, #ff5555); }
+/* 解答オープン: めくる前のカード */
+.th-card-front { background: var(--th-card, var(--th-panel, linear-gradient(135deg, #2c3e50 0%, #000 100%))); border: 0.4cqh solid var(--th-card-line, var(--th-line, rgba(255,255,255,0.25))); color: var(--th-card-text, var(--th-text, #fff)); }
+/* 選んだ人数の棒 */
+.dist-bar { background: var(--th-accent, var(--grad-primary)); box-shadow: 0 0 20px color-mix(in srgb, var(--th-accent, #00e5ff) 35%, transparent); }
+.dist-bar::after, .dist-label { color: var(--th-text, #fff); }
+/* 得点の一覧 */
+.sb-head { color: var(--th-accent, var(--color-primary, #00e5ff)); }
+.sb-card { background: var(--th-panel, rgba(255, 255, 255, 0.06)); border-color: var(--th-line, rgba(255, 255, 255, 0.12)); }
+.sb-name { color: color-mix(in srgb, var(--th-text, #e2e8f0) 85%, transparent); }
+.sb-score { color: var(--th-text, #fff); font-family: var(--theme-font, 'Arial Black', 'M PLUS 1p', sans-serif); }
+.sb-card.sb-now { border-color: var(--th-accent, #fbbf24); box-shadow: 0 0 0 0.4cqh var(--th-accent, #fbbf24), 0 0 4cqh color-mix(in srgb, var(--th-accent, #fbbf24) 60%, transparent); }
+.sb-card.sb-now .sb-name { color: var(--th-accent, #fbbf24); }
+.sb-card.sb-up .sb-score { color: var(--th-good, #4ade80); }
+.sb-card.sb-down .sb-score { color: var(--th-bad, #f87171); }
+.sb-empty { color: color-mix(in srgb, var(--th-text, #94a3b8) 60%, transparent); }
+/* 順位発表 */
+.th-rank { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3cqh; padding: 4cqh 6cqw; box-sizing: border-box; color: var(--th-text, #fff); }
+.th-rank-title { font-size: 7cqh; font-weight: 900; letter-spacing: 0.2em; color: var(--th-accent, #ffd700); }
+.th-rank-list { width: min(100%, 120cqh); display: flex; flex-direction: column; gap: 1cqh; }
+.th-rank-row { display: grid; grid-template-columns: 9cqh 1fr auto; align-items: center; gap: 2cqw; padding: 1.4cqh 2.4cqw; border-radius: 1.2cqh; background: var(--th-panel, rgba(255,255,255,0.06)); border: 0.3cqh solid var(--th-line, rgba(255,255,255,0.1)); font-size: 3.6cqh; animation: thSlide 0.45s ease-out both; }
+.th-rank-no { font-weight: 900; text-align: center; }
+.th-rank-name { font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.th-rank-score { font-weight: 900; }
+.th-rank-score span { font-size: 0.6em; margin-left: 0.2em; }
+.th-rank-score small { font-size: 0.5em; margin-left: 0.6em; opacity: 0.7; }
+.th-rank-top { font-size: 4.6cqh; }
+.th-rank-1 { font-size: 5.6cqh; background: var(--th-accent, #ffd700); color: var(--th-on-accent, #1a1000); border-color: transparent; }
+.th-rank-2 .th-rank-no, .th-rank-3 .th-rank-no { color: var(--th-accent, #ffd700); }
+.th-rank-empty, .th-rank-foot { text-align: center; font-size: 3cqh; opacity: 0.7; }
+@keyframes thSlide { from { opacity: 0; transform: translateX(-4cqw); } to { opacity: 1; transform: none; } }
+/* 脱落・通過 */
+.th-elim { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.5cqh; padding: 4cqh 6cqw; box-sizing: border-box; color: var(--th-text, #fff); }
+.th-elim-title { font-size: 8cqh; font-weight: 900; color: var(--th-bad, #ff3d00); letter-spacing: 0.15em; }
+.th-elim-sub { font-size: 3cqh; opacity: 0.75; margin-bottom: 2cqh; }
+.th-elim-grid { width: 100%; display: grid; grid-template-columns: repeat(auto-fit, minmax(28cqh, 1fr)); gap: 2cqh; }
+.th-elim-card { padding: 2cqh; border-radius: 1.6cqh; background: var(--th-panel, rgba(20,20,20,0.8)); border: 0.35cqh solid var(--th-good, #00ffcc); text-align: center; animation: rvPop 0.4s ease-out both; }
+.th-elim-card.out { border-color: var(--th-bad, #ff5555); opacity: 0.85; }
+.th-elim-tag { display: inline-block; padding: 0.3cqh 1.4cqh; border-radius: 999px; font-size: 2.2cqh; font-weight: 900; background: var(--th-good, #00ffcc); color: var(--th-good-text, #111); }
+.th-elim-card.out .th-elim-tag { background: var(--th-bad, #ff5555); color: var(--th-bad-text, #fff); }
+.th-elim-name { margin-top: 1cqh; font-size: 3.6cqh; font-weight: 900; }
+.th-elim-score { font-size: 2.4cqh; opacity: 0.7; }
+/* ロゴ・飾りの文字（どの画面にも） */
+.th-decor { position: absolute; z-index: 900; pointer-events: none; }
+.th-decor.th-at-tl { top: 2.5cqh; left: 2.5cqw; }
+.th-decor.th-at-tr { top: 2.5cqh; right: 2.5cqw; }
+.th-decor.th-at-bl { bottom: 2.5cqh; left: 2.5cqw; }
+.th-decor.th-at-br { bottom: 2.5cqh; right: 2.5cqw; }
+.th-logo img { display: block; width: auto; max-width: 30cqw; object-fit: contain; filter: drop-shadow(0 0.4cqh 1cqh rgba(0,0,0,0.35)); }
+.th-corner { padding: 0.8cqh 1.8cqw; border-radius: 0.8cqh; background: var(--th-accent, #f59e0b); color: var(--th-on-accent, #111); font-size: 2.6cqh; font-weight: 900; letter-spacing: 0.08em; max-width: 40cqw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 選んだ人数の棒: 枠に高さを持たせて、棒が伸びるように */
+.viewer-dist-container .dist-bar-wrapper { height: 100%; justify-content: flex-end; }
+.viewer-dist-container .dist-bar { min-height: 0.6cqh; }
+/* 脱落: 通過（正解の色）と見分けやすいよう、外れの色が無ければ灰色に */
+.th-elim-card.out { border-color: var(--th-bad, #6b7280); opacity: 0.7; }
+.th-elim-card.out .th-elim-tag { background: var(--th-bad, #6b7280); color: var(--th-bad-text, #fff); }
+/* テーマの枠が子要素の位置を変えても、下の帯は画面の下中央に */
+#viewer-main-text > .rv-strip:not(.rv-flow) { position: absolute !important; left: 50% !important; right: auto !important; bottom: 1.5cqh !important; top: auto !important; transform: translateX(-50%) !important; width: max-content !important; max-width: 92% !important; margin: 0 !important; }

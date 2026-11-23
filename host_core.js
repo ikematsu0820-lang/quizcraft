@@ -94,7 +94,7 @@ window.App.ChoiceLabel = function (i, type) {
 
 window.App.SetImages = {
     PREFIX: '@img:',
-    KEYS: ['bgImage', 'bgmThinking', 'seQNum', 'seResult', 'seButton', 'seCorrect', 'seWrong'],
+    KEYS: ['bgImage', 'logoImage', 'bgmThinking', 'seQNum', 'seResult', 'seButton', 'seCorrect', 'seWrong'],
 
     pack: function (questions) {
         const images = [];

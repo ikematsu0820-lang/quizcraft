@@ -782,9 +782,31 @@ App.Design = {
                 ${head('文字の飾り')}
                 <div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:6px;">${fxChips}</div>
                 ${head('色')}
-                <div style="display:flex; gap:6px; align-items:center;">
-                    ${colorSwatch('アクセント', 'accentColor')}${colorSwatch('全体の背景', 'mainBgColor')}
+                <div style="display:flex; gap:6px; align-items:flex-start; flex-wrap:wrap;">
+                    ${colorSwatch('アクセント', 'accentColor')}${colorSwatch('全体の背景', 'mainBgColor')}${colorSwatch('正解の色', 'revealBgColor')}${colorSwatch('外れの色', 'wrongColor')}
                 </div>
+                <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">正解の色・外れの色は、正解の発表・解答オープン・ダウト・脱落などの画面で使います</p>
+                ${head('ロゴ・飾り（どの画面にも出ます）')}
+                ${(() => {
+                    const POS = [{ v: 'tl', t: '左上' }, { v: 'tr', t: '右上' }, { v: 'bl', t: '左下' }, { v: 'br', t: '右下' }];
+                    const posChips = (key, def) => POS.map(o => `<button type="button" data-decor="${key}" data-val="${o.v}" style="${chip((design[key] || def) === o.v)} padding:6px 2px; font-size:0.72rem;">${o.t}</button>`).join('');
+                    const logo = design.logoImage || '';
+                    const hasLogo = /^(data:|http)/.test(logo);
+                    return `
+                    <div class="ds-decor">
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <button type="button" data-logo-pick style="flex:0 0 72px; height:48px; border-radius:8px; cursor:pointer; border:1px ${hasLogo ? 'solid #f59e0b' : 'dashed #3a3a42'}; background:${hasLogo ? `#1b1b20 center/contain no-repeat url(${logo})` : '#1b1b20'}; color:#8b8b95; font-size:0.66rem;">${hasLogo ? '' : 'ロゴ画像'}</button>
+                            ${hasLogo ? '<button type="button" data-logo-clear style="flex:0 0 auto; height:48px; padding:0 10px; border:1px dashed #ff8888; border-radius:8px; background:none; color:#ff8888; cursor:pointer; font-size:0.72rem;">外す</button>' : '<span style="color:#6f6f78; font-size:0.66rem; line-height:1.4;">番組ロゴやスポンサーの画像（透明なPNGもそのまま使えます）</span>'}
+                            <input type="file" accept="image/*" data-logo-input style="display:none;">
+                        </div>
+                        ${hasLogo ? `<div style="display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:4px; margin-top:6px;">${posChips('logoPos', 'tr')}</div>
+                        <div style="display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:4px; margin-top:4px;">${[{ v: 's', t: '小' }, { v: 'm', t: '中' }, { v: 'l', t: '大' }].map(o => `<button type="button" data-decor="logoSize" data-val="${o.v}" style="${chip((design.logoSize || 'm') === o.v)} padding:6px 2px; font-size:0.72rem;">${o.t}</button>`).join('')}</div>` : ''}
+                        <input type="text" data-decor-text value="${String(design.cornerText || '').replace(/"/g, '&quot;')}" placeholder="すみに出す文字（例: 第3回 社内クイズ大会）" style="width:100%; box-sizing:border-box; margin:10px 0 0; padding:8px 10px; background:#1b1b20; border:1px solid #3a3a42; border-radius:8px; color:#fff; font-size:0.85rem;">
+                        ${design.cornerText ? `<div style="display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:4px; margin-top:6px;">${posChips('cornerPos', 'tl')}</div>` : ''}
+                    </div>`;
+                })()}
+                ${head('回答者のスマホ')}
+                ${flag('playerTheme', '回答者のスマホにもテーマの色を使う')}
                 <details id="design-look-details" ${detailsOpen} style="margin-top:16px; border-top:1px solid #26262d; padding-top:10px;">
                     <summary style="cursor:pointer; color:#e5e5e8; font-size:0.8rem; font-weight:bold; padding:6px 0;">細かく変える</summary>
                     ${head('文字の飾りの細部')}
@@ -1033,6 +1055,46 @@ App.Design = {
                     }
                 };
             }
+            // ロゴ・飾りの文字（どの画面にも出す）
+            body.querySelectorAll('button[data-decor]').forEach(btn => {
+                btn.onclick = () => { design[btn.dataset.decor] = btn.dataset.val; if (onChange) onChange(); renderBody(); };
+            });
+            const decorText = body.querySelector('input[data-decor-text]');
+            if (decorText) {
+                decorText.oninput = () => { design.cornerText = decorText.value; if (onChange) onChange(); };
+                decorText.onchange = () => renderBody();
+            }
+            const logoPick = body.querySelector('button[data-logo-pick]');
+            const logoInput = body.querySelector('input[data-logo-input]');
+            if (logoPick && logoInput) {
+                logoPick.onclick = () => logoInput.click();
+                logoInput.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    // 透明を残すため PNG のまま、長い辺 600px までに縮める
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const k = Math.min(1, 600 / Math.max(img.width, img.height));
+                            const cv = document.createElement('canvas');
+                            cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+                            cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+                            design.logoImage = cv.toDataURL('image/png');
+                            if (onChange) onChange();
+                            renderBody();
+                        };
+                        img.onerror = () => { design.logoImage = ev.target.result; if (onChange) onChange(); renderBody(); };
+                        img.src = ev.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                };
+            }
+            body.querySelector('button[data-logo-clear]')?.addEventListener('click', () => {
+                design.logoImage = '';
+                if (onChange) onChange();
+                renderBody();
+            });
             // オン／オフの設定（オフの時だけ 'off' を持つ）— 回答者のスマホにも画像を出す など
             body.querySelectorAll('input[data-design-flag]').forEach(chk => {
                 chk.onchange = () => { design[chk.dataset.designFlag] = chk.checked ? '' : 'off'; if (onChange) onChange(); renderBody(); };

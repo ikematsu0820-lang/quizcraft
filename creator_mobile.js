@@ -629,7 +629,10 @@ App.CreatorMobile = {
         const cd = window.App.Data.currentDesign || {};
         const { layout, align, cAlign, ...design } = cd;
         if (q.bgImage) design.bgImage = q.bgImage; // この問題だけの背景
-        return { ...q, layout: layout || 'standard', align: align || 'center', cAlign: cAlign || 'left', design };
+        const out = { ...q, layout: layout || 'standard', align: align || 'center', cAlign: cAlign || 'left', design };
+        // この問題だけのテーマ（入力中の問題）
+        const tid = (this.screen === 'edit' || !this.isMobile()) && C.qReveal ? C.qReveal.themeId : q.themeId;
+        return (tid && window.App.Themes && window.App.Themes.forQuestion) ? window.App.Themes.forQuestion({ ...out, themeId: tid }) : out;
     },
 
     renderStage: function (stage, q, step) {
@@ -696,6 +699,8 @@ App.CreatorMobile = {
             main.innerHTML = '<div style="color:#aaa; font-size:4cqh; text-align:center;">この形式はまだプレビューできません</div>';
         }
         if (window.App.Themes) window.App.Themes.applyToElement(stage, q.design);
+        // ロゴ・すみの文字もプレビューに
+        if (window.App.Viewer && window.App.Viewer.renderDecor) { window.App.Viewer._decorKey = null; window.App.Viewer.renderDecor(stage, q.design, { step: 'answering' }); }
         this.toContainerUnits(stage);
     },
 

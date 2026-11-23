@@ -322,6 +322,52 @@ App.Themes = {
             el.style.removeProperty('--color-primary');
             el.style.removeProperty('--theme-accent');
         }
+        this.setTokens(el, d);
+    },
+
+    // テーマの値 — 正解者の発表・解答オープン・得点・順位・脱落など、どの画面も
+    // この名前で色を取る（未設定なら各画面の元の色）。
+    //   --th-bg 背景 / --th-text 文字 / --th-panel 面 / --th-line 線 / --th-accent アクセント
+    //   --th-good 正解の色 / --th-bad 外れの色 / --th-card 選択肢の面
+    faintColor: function (c) { return !c || c === 'transparent' || (/rgba\([^)]*,\s*0(\.\d+)?\)$/.test(c) && parseFloat(c.split(',').pop()) < 0.35); },
+    textOn: function (bg) {
+        const m = String(bg || '').match(/^#([0-9a-f]{6})$/i);
+        if (!m) return '#ffffff';
+        const n = parseInt(m[1], 16);
+        const l = (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+        return l > 0.6 ? '#111111' : '#ffffff';
+    },
+    tokens: function (d) {
+        d = d || {};
+        const t = {};
+        const accent = d.accentColor || (!this.faintColor(d.qBorderColor) ? d.qBorderColor : '');
+        if (d.mainBgColor) t['--th-bg'] = d.mainBgColor;
+        if (d.qTextColor || d.mainBgColor) t['--th-text'] = d.qTextColor || this.textOn(d.mainBgColor);
+        if (d.qBgColor && !this.faintColor(d.qBgColor)) t['--th-panel'] = d.qBgColor;
+        if (d.qBorderColor && !this.faintColor(d.qBorderColor)) t['--th-line'] = d.qBorderColor;
+        if (accent) { t['--th-accent'] = accent; t['--th-on-accent'] = this.textOn(accent); }
+        const good = !this.faintColor(d.revealBgColor) ? d.revealBgColor : accent;
+        if (good) { t['--th-good'] = good; t['--th-good-text'] = d.revealTextColor || this.textOn(good); }
+        if (d.wrongColor) { t['--th-bad'] = d.wrongColor; t['--th-bad-text'] = this.textOn(d.wrongColor); }
+        if (d.cBgColor && !this.faintColor(d.cBgColor)) { t['--th-card'] = d.cBgColor; t['--th-card-text'] = d.cTextColor || this.textOn(d.cBgColor); }
+        if (d.cBorderColor && !this.faintColor(d.cBorderColor)) t['--th-card-line'] = d.cBorderColor;
+        return t;
+    },
+    TOKEN_NAMES: ['--th-bg', '--th-text', '--th-panel', '--th-line', '--th-accent', '--th-on-accent', '--th-good', '--th-good-text', '--th-bad', '--th-bad-text', '--th-card', '--th-card-text', '--th-card-line'],
+    setTokens: function (el, d) {
+        const t = this.tokens(d);
+        this.TOKEN_NAMES.forEach(k => { if (t[k]) el.style.setProperty(k, t[k]); else el.style.removeProperty(k); });
+        el.classList.toggle('th-on', !!(d && d.themeId) || Object.keys(t).length > 2);
+    },
+    // この問題だけのテーマ（q.themeId）— セットの見た目の上にテーマを重ねる
+    forQuestion: function (q) {
+        if (!q || !q.themeId || !this.get(q.themeId)) return q;
+        const d = Object.assign({}, q.design || {});
+        const keep = { bgImage: d.bgImage, bgmThinking: d.bgmThinking, seQNum: d.seQNum, seResult: d.seResult, seButton: d.seButton, seCorrect: d.seCorrect, seWrong: d.seWrong, logoImage: d.logoImage, logoPos: d.logoPos, logoSize: d.logoSize, cornerText: d.cornerText, cornerPos: d.cornerPos };
+        this.apply(d, q.themeId);
+        Object.keys(keep).forEach(k => { if (keep[k] !== undefined) d[k] = keep[k]; });
+        if (q.bgImage) d.bgImage = q.bgImage;
+        return Object.assign({}, q, { design: d });
     },
 
     // 背景画像を軽くする — 最大 1920×1080 に縮小して JPEG にする。

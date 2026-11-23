@@ -243,6 +243,8 @@ window.App.Viewer = {
         let roomImages = null;
         const resolveQuestions = () => {
             this.questions = window.App.SetImages.unpack(rawQuestions, roomImages);
+            // この問題だけのテーマ（q.themeId）
+            if (window.App.Themes && window.App.Themes.forQuestion) this.questions = this.questions.map(q => window.App.Themes.forQuestion(q));
             this.preloadBgm();
         };
         refs.images.on('value', snap => {
@@ -305,6 +307,7 @@ window.App.Viewer = {
         if (window.App.Themes) {
             const themeQ = this.questions[st.qIndex] || this.questions[0] || {};
             window.App.Themes.applyToElement(viewContainer, themeQ.design);
+            this.renderDecor(viewContainer, themeQ.design, st);
         }
         this.updateThinkingBgm(st, this.questions[st.qIndex]);
         this.updateQNumSound(st, this.questions[st.qIndex]);
@@ -432,7 +435,7 @@ window.App.Viewer = {
             if (this.readAloud(q)) this.renderScoreBoard(mainText, st);
             else this.renderQuestionLayout(viewContainer, mainText, q, st, st.revealedMulti);
             const msg = document.createElement('div');
-            msg.style = "position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:12vh; font-weight:900; color:#ff3d00; text-shadow:0 0 40px rgba(0,0,0,0.9); animation:popInCenter 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index:500;";
+            msg.style = "position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:12cqh; font-weight:900; color:var(--th-bad, #ff3d00); text-shadow:0 0 40px rgba(0,0,0,0.9); animation:popInCenter 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index:500;";
             msg.textContent = "TIME UP!";
             mainText.appendChild(msg);
         }
@@ -538,9 +541,9 @@ window.App.Viewer = {
                 const trapSet = new Set(Array.isArray(q.correct) ? q.correct.map(Number) : (q.correct !== undefined ? [Number(q.correct)] : []));
                 mainText.querySelectorAll('.choice-item').forEach((el, i) => {
                     const isTrap = trapSet.has(i);
-                    el.style.background = isTrap ? '#ff5555' : '#2ecc71';
+                    el.style.background = isTrap ? 'var(--th-bad, #ff5555)' : 'var(--th-good, #2ecc71)';
                     el.style.border = '3px solid #fff';
-                    el.style.color = '#fff';
+                    el.style.color = isTrap ? 'var(--th-bad-text, #fff)' : 'var(--th-good-text, #fff)';
                     el.style.transform = isTrap ? 'scale(1.0)' : 'scale(1.05)';
                     el.style.transition = 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
                     const prefix = el.querySelector('.choice-prefix');
@@ -560,17 +563,17 @@ window.App.Viewer = {
                 if (!skinned) mainText.querySelectorAll('.choice-item').forEach((el, i) => {
                     el.style.transition = 'all 0.35s ease';
                     if (correctSet.has(i)) {
-                        el.style.background = 'linear-gradient(135deg, #ffd700 0%, #ffec3d 100%)';
-                        el.style.color = '#1a1000';
+                        el.style.background = 'var(--th-good, linear-gradient(135deg, #ffd700 0%, #ffec3d 100%))';
+                        el.style.color = 'var(--th-good-text, #1a1000)';
                         el.style.border = '3px solid #fff';
-                        el.style.boxShadow = '0 0 24px rgba(255,215,0,0.95), 0 0 60px rgba(255,215,0,0.55), 0 0 100px rgba(255,200,0,0.25)';
+                        el.style.boxShadow = '0 0 24px var(--th-good, rgba(255,215,0,0.95)), 0 0 60px rgba(255,215,0,0.35)';
                         el.style.transform = 'scale(1.01)'; // 横幅いっぱいなので控えめに（画面端に接しないよう）
                         el.style.zIndex = '10';
                         el.style.fontWeight = '900';
                         el.style.opacity = '1';
                         el.style.filter = '';
                         const prefix = el.querySelector('.choice-prefix');
-                        if (prefix) { prefix.style.color = '#1a1000'; prefix.style.display = ''; }
+                        if (prefix) { prefix.style.color = 'var(--th-good-text, #1a1000)'; prefix.style.display = ''; }
                     } else {
                         el.style.opacity = '0.32';
                         el.style.background = 'rgba(20,20,20,0.85)';
@@ -636,13 +639,13 @@ window.App.Viewer = {
         else if (st.step === 'intermediate_ranking' || st.step === 'final_ranking') {
             const isFinal = st.step === 'final_ranking';
             statusDiv.textContent = isFinal ? "FINALE" : "STANDINGS";
-            this.applyDefaultDesign(viewContainer, null);
+            this.applyDefaultDesign(viewContainer, this.themeDesign(st));
             this.renderRanking(mainText, isFinal);
         }
         // --- 9. ELIMINATION ---
         else if (st.step === 'elimination') {
             statusDiv.textContent = "SURVIVAL";
-            this.applyDefaultDesign(viewContainer, null);
+            this.applyDefaultDesign(viewContainer, this.themeDesign(st));
             this.renderElimination(mainText, st.eliminationData);
         }
         // --- 10. OTHERS ---
@@ -1103,16 +1106,19 @@ window.App.Viewer = {
         const names = Array.isArray(winners) ? winners : (winners ? Object.values(winners) : []);
         container.innerHTML = '';
         const wrap = document.createElement('div');
-        wrap.style.cssText = 'width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-family:sans-serif;padding:0 4vw;box-sizing:border-box;';
+        wrap.className = 'th-winners';
+        wrap.style.cssText = 'width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 4cqw;box-sizing:border-box;';
 
         const label = document.createElement('div');
-        label.style.cssText = `font-size:4vh;color:${d.resultLabelColor || '#ccc'};font-weight:bold;letter-spacing:0.3em;margin-bottom:3vh;`;
+        label.className = 'th-winners-label';
+        label.style.cssText = `font-size:4cqh;${d.resultLabelColor ? `color:${d.resultLabelColor};` : ''}font-weight:bold;letter-spacing:0.3em;margin-bottom:3cqh;`;
         wrap.appendChild(label);
 
         if (names.length === 0) {
             label.textContent = 'RESULT';
             const none = document.createElement('div');
-            none.style.cssText = 'font-size:11vh;font-weight:900;color:#ff5555;text-shadow:0 0 40px rgba(255,85,85,0.6);animation:resultWinnerPop 0.5s cubic-bezier(0.175,0.885,0.32,1.275);';
+            none.className = 'th-winners-none';
+            none.style.cssText = 'font-size:11cqh;font-weight:900;animation:resultWinnerPop 0.5s cubic-bezier(0.175,0.885,0.32,1.275);';
             none.textContent = '正解者なし';
             wrap.appendChild(none);
         } else {
@@ -1122,10 +1128,11 @@ window.App.Viewer = {
             const autoSize = names.length === 1 ? 12 : names.length <= 3 ? 8 : names.length <= 6 ? 6 : 4.5;
             const size = d.resultNameSize ? parseFloat(d.resultNameSize) : autoSize;
             const list = document.createElement('div');
-            list.style.cssText = 'display:flex;flex-wrap:wrap;justify-content:center;gap:2vh 4vw;max-width:90vw;';
+            list.style.cssText = 'display:flex;flex-wrap:wrap;justify-content:center;gap:2cqh 4cqw;max-width:90%;';
             names.forEach((name, i) => {
                 const el = document.createElement('div');
-                el.style.cssText = `font-size:${size}vh;font-weight:900;color:${d.resultNameColor || '#ffd700'};text-shadow:0 0 30px rgba(0,0,0,0.5);opacity:0;animation:resultWinnerPop 0.5s cubic-bezier(0.175,0.885,0.32,1.275) ${i * 0.15}s forwards;`;
+                el.className = 'th-winners-name';
+                el.style.cssText = `font-size:${size}cqh;font-weight:900;${d.resultNameColor ? `color:${d.resultNameColor};` : ''}opacity:0;animation:resultWinnerPop 0.5s cubic-bezier(0.175,0.885,0.32,1.275) ${i * 0.15}s forwards;`;
                 el.textContent = name;
                 list.appendChild(el);
             });
@@ -1191,14 +1198,15 @@ window.App.Viewer = {
 
             const face = 'position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; border-radius:1.2cqh; display:flex; flex-direction:column; overflow:hidden;';
             const front = document.createElement('div');
-            front.style.cssText = face + 'background:linear-gradient(135deg, #2c3e50 0%, #000 100%); border:0.4cqh solid rgba(255,255,255,0.25); align-items:center; justify-content:center;';
-            front.innerHTML = `<div style="font-size:${Math.min(5, cardH * 0.18)}cqh; font-weight:900; color:#fff;"></div>`;
+            front.className = 'th-card-front';
+            front.style.cssText = face + 'align-items:center; justify-content:center;';
+            front.innerHTML = `<div style="font-size:${Math.min(5, cardH * 0.18)}cqh; font-weight:900;"></div>`;
             front.firstChild.textContent = p.name || '---';
 
             const back = document.createElement('div');
-            back.style.cssText = face + 'transform:rotateY(180deg); background:#fff; border:0.4cqh solid var(--color-primary, #00bfff);';
+            back.style.cssText = face + 'transform:rotateY(180deg); background:#fff; border:0.4cqh solid var(--th-accent, var(--color-primary, #00bfff));';
             const nameBar = document.createElement('div');
-            nameBar.style.cssText = `flex:0 0 auto; background:var(--color-primary, #00bfff); color:#000; font-weight:900;
+            nameBar.style.cssText = `flex:0 0 auto; background:var(--th-accent, var(--color-primary, #00bfff)); color:var(--th-on-accent, #000); font-weight:900;
                 font-size:${Math.min(3.2, cardH * 0.1)}cqh; padding:0.4cqh 1cqh; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;`;
             nameBar.textContent = p.name || '---';
             const body = document.createElement('div');
@@ -1232,8 +1240,8 @@ window.App.Viewer = {
     // 正解と判定されたカードだけ背景を赤に（不正解・未判定は白のまま）
     paintAnswerCard: function (back, p) {
         const isCorrect = !!p && (p.lastResult === 'win' || p.pendingResult === 'win');
-        back.style.background = isCorrect ? '#e11d2e' : '#fff';
-        if (back._textEl) back._textEl.style.color = isCorrect ? '#fff' : '#111';
+        back.style.background = isCorrect ? 'var(--th-good, #e11d2e)' : '#fff';
+        if (back._textEl) back._textEl.style.color = isCorrect ? 'var(--th-good-text, #fff)' : '#111';
     },
 
     // 解答オープン中に出題者が判定したら、その場でカードの色を変える
@@ -1352,37 +1360,21 @@ window.App.Viewer = {
                 isAlive: p.isAlive !== false
             }));
 
-            let html = `
-                <div style="text-align:center; width:100%; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center;">
-                    <h1 style="font-size:6vh; color:#ffd700; text-shadow:0 0 20px #ffd700; margin-bottom:4vh;">${isFinal ? 'FINAL RESULTS' : 'CURRENT RANKING'}</h1>
-                    <div style="width:70%; max-width:1000px; background:rgba(0,0,0,0.5); padding:20px; border-radius:10px;">
-            `;
-
+            // 色・書体はテーマの値（style_viewer.css .th-rank）
+            const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            let rows = '';
             arr.filter(p => p.isAlive).slice(0, 10).forEach((p, i) => {
-                let rankColor = "#fff";
-                let size = "3vh";
-                let medal = "";
-
-                if (i === 0) { rankColor = "#ffd700"; size = "5vh"; medal = ""; }
-                else if (i === 1) { rankColor = "#c0c0c0"; size = "4vh"; medal = ""; }
-                else if (i === 2) { rankColor = "#cd7f32"; size = "4vh"; medal = ""; }
-
-                html += `
-                    <div style="display:flex; justify-content:space-between; align-items:center; padding:15px; border-bottom:1px solid #444; font-size:${size}; color:${rankColor}; animation:slideIn ${0.5 + i * 0.15}s ease-out; opacity:0; animation-fill-mode:forwards;">
-                        <div style="font-weight:bold; width:10%;">${i + 1}</div>
-                        <div style="flex:1; text-align:left; padding-left:20px;">${medal} ${p.name}</div>
-                        <div style="font-weight:900;">${p.score} <span style="font-size:0.6em;">pts</span>${p.time !== null ? `<span style="font-size:0.5em; color:#aaa; margin-left:0.6em;">${(p.time / 1000).toFixed(2)}秒</span>` : ''}</div>
-                    </div>
-                `;
+                rows += `<div class="th-rank-row${i < 3 ? ` th-rank-top th-rank-${i + 1}` : ''}" style="animation-delay:${(0.2 + i * 0.12).toFixed(2)}s">
+                        <div class="th-rank-no">${i + 1}</div>
+                        <div class="th-rank-name">${esc(p.name)}</div>
+                        <div class="th-rank-score">${p.score}<span>点</span>${p.time !== null ? `<small>${(p.time / 1000).toFixed(2)}秒</small>` : ''}</div>
+                    </div>`;
             });
-
-            html += `
-                    </div>
-                    ${isFinal ? '<div style="margin-top:30px; font-size:2vh; color:#aaa;">CONGRATULATIONS!</div>' : ''}
-                </div>
-                <style>@keyframes slideIn { from { opacity:0; transform:translateX(-50px); } to { opacity:1; transform:translateX(0); } }</style>
-            `;
-            container.innerHTML = html;
+            container.innerHTML = `<div class="th-rank">
+                    <div class="th-rank-title">${isFinal ? '最終結果' : '途中経過'}</div>
+                    <div class="th-rank-list">${rows || '<div class="th-rank-empty">参加者がいません</div>'}</div>
+                    ${isFinal ? '<div class="th-rank-foot">おめでとうございます</div>' : ''}
+                </div>`;
         });
     },
 
@@ -1399,31 +1391,22 @@ window.App.Viewer = {
         })[mode] || '';
         const fmtTime = (ms) => (ms === null || ms === undefined) ? '' : ` / ${(ms / 1000).toFixed(2)}秒`;
 
-        let html = `
-            <div style="text-align:center; width:100%; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center;">
-                <h1 style="font-size:8vh; color:#ff3d00; text-shadow:0 0 30px rgba(255,0,0,0.5); margin-bottom:1vh; animation:popIn 0.5s;">${title}</h1>
-                <p style="font-size:3vh; color:#aaa; margin-bottom:5vh;">${subTitle}</p>
-                
-                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:20px; width:80%;">
-        `;
-
+        const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         const all = [...survivors, ...droppedOut];
-        all.forEach((p, i) => {
+        const cards = all.map((p, i) => {
             const isOut = droppedOut.some(d => d.name === p.name);
-            const color = isOut ? "#ff5555" : "#00ffcc";
-            const statusText = isOut ? "DROPPED OUT" : "PASS";
-
-            html += `
-                <div style="background:rgba(20,20,20,0.8); border:2px solid ${color}; padding:20px; border-radius:15px; animation:popIn ${0.5 + i * 0.1}s backwards;">
-                    <div style="font-size:1.5vh; color:${color}; margin-bottom:5px; font-weight:800;">${statusText}</div>
-                    <div style="font-size:3vh; font-weight:bold; color:#fff;">${p.name}</div>
-                    <div style="font-size:2vh; color:#888;">${p.score} pts${fmtTime(p.time)}</div>
-                </div>
-            `;
-        });
-
-        html += `</div></div>`;
-        container.innerHTML = html;
+            return `<div class="th-elim-card ${isOut ? 'out' : 'pass'}" style="animation-delay:${(0.2 + i * 0.08).toFixed(2)}s">
+                    <div class="th-elim-tag">${isOut ? '脱落' : '通過'}</div>
+                    <div class="th-elim-name">${esc(p.name)}</div>
+                    <div class="th-elim-score">${p.score}点${fmtTime(p.time)}</div>
+                </div>`;
+        }).join('');
+        // 色・書体はテーマの値（style_viewer.css .th-elim）
+        container.innerHTML = `<div class="th-elim">
+                <div class="th-elim-title">${title === 'ELIMINATION' ? '脱落者発表' : '通過者発表'}</div>
+                <div class="th-elim-sub">${subTitle}</div>
+                <div class="th-elim-grid">${cards}</div>
+            </div>`;
     },
 
     renderQuestionLayout: function (container, contentBox, q, st = {}, revealedMulti = {}) {
@@ -1816,7 +1799,7 @@ window.App.Viewer = {
             <div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;padding:2vh 3vw;box-sizing:border-box;overflow:hidden;">
                 ${q.image ? `<img class="q-photo" src="${q.image}" alt="" style="max-height:16vh; margin:0 auto 1vh;">` : ''}
                 <div style="font-size:3vh;font-weight:700;color:${textColor};text-align:center;padding:1.2vh 2.5vw;background:${qBgColor};border-radius:10px;border-left:5px solid ${borderColor};width:90%;max-width:90vw;margin-bottom:1.5vh;line-height:1.4;white-space:pre-wrap;">${q.q}</div>
-                <div style="font-size:2.2vh;color:#ffd700;font-weight:900;letter-spacing:0.25em;margin-bottom:1.2vh;text-shadow:0 0 15px #ffd70066;">正　解</div>
+                <div style="font-size:2.2vh;color:var(--th-accent, #ffd700);font-weight:900;letter-spacing:0.25em;margin-bottom:1.2vh;">正　解</div>
                 <div style="width:90%;max-width:90vw;flex:1;display:flex;flex-direction:column;gap:0.7vh;background:${revealBg};border:3px solid ${revealBorder};border-radius:14px;padding:1.2vh 1.2vw;box-shadow:0 0 30px ${revealBorder}44;overflow:hidden;">
                     ${rows}
                 </div>
@@ -1862,6 +1845,34 @@ window.App.Viewer = {
     setCinemaShadow: function (hasBgImage) {
         const content = document.getElementById('viewer-content');
         if (content) content.style.boxShadow = hasBgImage ? 'none' : '';
+    },
+
+    // 問題に属さない画面（順位・脱落など）で使う、セットの見た目
+    themeDesign: function (st) {
+        const qs = this.questions || [];
+        const q = qs[(st && st.qIndex) || 0] || qs[0] || {};
+        return q.design || null;
+    },
+
+    // ロゴ・飾りの文字（見た目 › ロゴ・飾り）— どの画面にも同じ位置に重ねる
+    renderDecor: function (stage, d, st) {
+        if (!stage) return;
+        d = d || {};
+        const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const want = [];
+        const hide = st && (st.step === 'standby' || st.step === 'host_ended');
+        if (!hide && d.logoImage) want.push({ cls: 'th-logo', pos: d.logoPos || 'tr', html: `<img src="${d.logoImage}" alt="" style="height:${({ s: 8, m: 12, l: 18 })[d.logoSize] || 12}cqh;">` });
+        if (!hide && d.cornerText) want.push({ cls: 'th-corner', pos: d.cornerPos || 'tl', html: esc(d.cornerText) });
+        const key = JSON.stringify(want);
+        if (this._decorKey === key && stage.querySelector(':scope > .th-decor')) return;
+        this._decorKey = key;
+        stage.querySelectorAll(':scope > .th-decor').forEach(e => e.remove());
+        want.forEach(w => {
+            const el = document.createElement('div');
+            el.className = `th-decor ${w.cls} th-at-${w.pos}`;
+            el.innerHTML = w.html;
+            stage.appendChild(el);
+        });
     },
 
     applyDefaultDesign: function (container, design) {

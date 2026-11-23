@@ -432,6 +432,7 @@ App.Reveal = {
     Q_KEYS: ['revealStyle', 'imgReveal', 'publicRate', 'commentary'],
     pickQ: function (q) {
         const o = {};
+        if (q && q.themeId) o.themeId = q.themeId; // この問題だけのテーマ
         this.Q_KEYS.forEach(k => { if (q && q[k] !== undefined && q[k] !== null && q[k] !== '') o[k] = q[k]; });
         return o;
     },
@@ -446,8 +447,10 @@ App.Reveal = {
         if (!C) return;
         document.querySelectorAll('.rv-qbox').forEach(e => e.remove());
         const kind = this.kindOf(C.currentType);
-        if (!['text', 'choice', 'sort'].includes(kind)) return;
         const M = window.App.CreatorMobile;
+        // この問題だけのテーマ（どの形式でも）
+        this.mountLookBox(M);
+        if (!['text', 'choice', 'sort'].includes(kind)) return;
         // スマホは正解の欄の下（#creator-outside-opts）、PCは「この問題」のタブ
         const host = (M && M.isMobile && M.isMobile()) ? (document.getElementById('creator-outside-opts') || document.getElementById('creator-form-container')) : document.getElementById('creator-options-extra');
         if (!host) return;
@@ -483,6 +486,34 @@ App.Reveal = {
             };
             inp.addEventListener(inp.tagName === 'SELECT' ? 'change' : 'input', read);
         });
+    },
+
+    // 「この問題だけの見た目」— セットの見た目の上に、ほかのテーマを重ねる
+    mountLookBox: function (M) {
+        const C = window.App.Creator;
+        const Th = window.App.Themes;
+        if (!C || !Th || !Th.list) return;
+        const host = (M && M.isMobile && M.isMobile()) ? (document.getElementById('creator-outside-opts') || document.getElementById('creator-form-container')) : document.getElementById('creator-options-extra');
+        if (!host) return;
+        C.qReveal = C.qReveal || {};
+        const s = C.qReveal;
+        const el = document.createElement('details');
+        el.className = 'rv-qbox rv-lookbox';
+        if (s.themeId) el.open = true;
+        el.innerHTML = `<summary><span>この問題だけの見た目</span><small>${s.themeId ? (Th.get(s.themeId) || {}).name || '' : 'セットと同じ'}</small></summary>
+            <div class="rv-qgrid">
+                <label><span>テーマ</span><select data-rvq-theme>${[{ id: '', name: 'セットと同じ' }, ...Th.list].map(t => `<option value="${t.id}" ${(s.themeId || '') === t.id ? 'selected' : ''}>${t.name}</option>`).join('')}</select>
+                <small>決勝の問題だけ金色に、などに。背景画像・ロゴ・音はセットのまま使います</small></label>
+            </div>`;
+        host.appendChild(el);
+        setTimeout(() => { if (el.isConnected && el.nextElementSibling && !el.nextElementSibling.classList.contains('rv-qbox')) host.appendChild(el); const rb = host.querySelector('.rv-qbox:not(.rv-lookbox)'); if (rb) host.appendChild(rb); }, 0);
+        const sel = el.querySelector('select');
+        sel.onchange = () => {
+            if (sel.value) s.themeId = sel.value; else delete s.themeId;
+            el.querySelector('summary small').textContent = sel.value ? (Th.get(sel.value) || {}).name : 'セットと同じ';
+            const Mo = window.App.CreatorMobile;
+            if (Mo && Mo.renderSheetStage) try { Mo.renderSheetStage(); } catch (e) { /* プレビューは次の描き直しで */ }
+        };
     },
 
     // 問題の画面を描く関数に、あとから付け足す（作成画面・モニター）
