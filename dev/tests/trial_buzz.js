@@ -1,0 +1,41 @@
+// 確認用: お試しの早押し（自分が押す → 〇✕で判定 → 正解表示）。http で開く（python3 -m http.server 8765）
+const path = require('path'); const fs = require('fs');
+const OUT = path.join(__dirname, 'out'); fs.mkdirSync(OUT, { recursive: true });
+const APP = process.env.APP_URL || 'http://127.0.0.1:8765/index.html';
+const FAKEFB = path.resolve(__dirname, '../fakefb.js');
+const { chromium } = require(process.env.PLAYWRIGHT || '/opt/node-tools/node_modules/playwright');
+(async () => {
+  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  await ctx.addInitScript({ path: FAKEFB });
+  const p = await ctx.newPage();
+  p.on('pageerror', e => console.log('ERR', e.message));
+  await ctx.route(/gstatic|googleapis\.com\/(?!css)|jsdelivr/, r => r.abort());
+  await p.goto(APP); await p.waitForTimeout(800);
+  await p.evaluate(() => window.App.Ui.showView(window.App.Ui.views.selectType));
+  await p.evaluate(() => document.querySelector('#select-type-view .type-select-card[data-type="free"]').click()); await p.waitForTimeout(300);
+  await p.evaluate(() => document.querySelector('#ps-overlay .ps-go').click()); await p.waitForTimeout(700);
+  await p.fill('#question-text', '日本で一番高い山は何でしょう？');
+  await p.fill('#creator-text-answer', '富士山');
+  await p.evaluate(() => window.App.CreatorMobile.openPreview()); await p.waitForTimeout(300);
+  await p.screenshot({ path: `${OUT}/trial-0-preview.png` });
+  await p.click('#cm-preview-try'); await p.waitForTimeout(2500);
+  const bar = () => p.evaluate(() => document.querySelector('#trial-ov .tr-hint').textContent + ' | ' + [...document.querySelectorAll('#trial-ov .tr-b')].map(b => b.textContent).join(' / '));
+  const press = (i = 0) => p.evaluate((i) => document.querySelectorAll('#trial-ov .tr-b')[i]?.click(), i);
+  await press(); await p.waitForTimeout(1500); await press(); await p.waitForTimeout(1200);
+  await p.screenshot({ path: `${OUT}/trial-1-question.png` });
+  console.log('sizes', await p.evaluate(() => ['.tr-head', '.tr-mon', '.tr-pl', '.tr-bar', '.tr-f-pl'].map(sel => { const e = document.querySelector('#trial-ov ' + sel); const r = e.getBoundingClientRect(); return sel + ':' + (e.getAttribute('style') || '') + ':' + Math.round(r.y) + '/' + Math.round(r.height) + '/' + getComputedStyle(e).position; }).join(' ')));
+  console.log('rules', await p.evaluate(() => { const e = document.querySelector('#trial-ov .tr-f-pl'); const out = []; for (const ss of document.styleSheets) { let rs; try { rs = ss.cssRules; } catch (x) { continue; } const walk = (list) => { for (const r of list) { if (r.cssRules && !r.selectorText) { try { if (!r.media || window.matchMedia(r.media.mediaText).matches) walk(r.cssRules); } catch (x) {} continue; } if (r.selectorText && r.style && r.style.position) { try { if (e.matches(r.selectorText)) out.push((ss.href || '').split('/').pop() + ' ' + r.selectorText + ' {position:' + r.style.position + '}'); } catch (x) {} } } }; walk(rs); } return out.join('\n'); }));
+  console.log('layout', await p.evaluate(() => { const ov = document.getElementById('trial-ov'); const r = ov.getBoundingClientRect(); const top = document.elementFromPoint(200, 100); return [getComputedStyle(ov).display, r.width, r.height, getComputedStyle(ov).zIndex, top && (top.tagName + '#' + top.id + '.' + top.className), [...document.querySelectorAll('.view')].filter(v => !v.classList.contains('hidden')).map(v => v.id).join(',')].join(' | '); }));
+  const pf = p.frames().find(f => /autoName/.test(f.url()));
+  await pf.evaluate(() => document.getElementById('player-buzz-btn')?.click());
+  await p.waitForTimeout(1200);
+  console.log('judge', await bar());
+  await p.screenshot({ path: `${OUT}/trial-2-judge.png` });
+  await press(0); await p.waitForTimeout(1500);
+  console.log('after ok', await bar());
+  await p.screenshot({ path: `${OUT}/trial-3-after.png` });
+  for (let i = 0; i < 3; i++) { await press(0); await p.waitForTimeout(1500); console.log('next', await bar()); }
+  await p.screenshot({ path: `${OUT}/trial-4-end.png` });
+  await b.close();
+})();

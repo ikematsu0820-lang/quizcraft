@@ -121,6 +121,7 @@ App.CreatorMobile = {
                 <button type="button" class="cm-pill" data-cm-step="bridge">ブリッジ</button>
                 <button type="button" class="cm-pill" data-cm-step="question">問題</button>
                 <button type="button" class="cm-pill" data-cm-step="answer">正解</button>
+                <button type="button" class="cm-pill cm-try" id="cm-preview-try">お試し</button>
                 <button type="button" class="cm-pill" id="cm-preview-close">閉じる</button>
             </div>
         `;
@@ -142,6 +143,8 @@ App.CreatorMobile = {
         document.getElementById('cm-edit-settings-btn').onclick = () => this.openSheet('menu');
         document.getElementById('cm-preview-list-btn').onclick = () => this.openPreview();
         document.getElementById('cm-preview-close').onclick = () => this.closePreview();
+        // お試し — この1問をその場で遊ぶ（trial.js）
+        document.getElementById('cm-preview-try').onclick = () => { this.closePreview(); if (window.App.Trial) window.App.Trial.open(); };
         document.querySelectorAll('[data-cm-sheet]').forEach(b => { b.onclick = () => this.openSheet(b.dataset.cmSheet); });
         document.querySelectorAll('#cm-sheet [data-cm-close]').forEach(b => { b.onclick = () => this.closeSheet(); });
         document.querySelectorAll('#cm-preview [data-cm-step]').forEach(b => {

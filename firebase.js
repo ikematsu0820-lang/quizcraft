@@ -13,10 +13,23 @@ const firebaseConfig = {
   measurementId: "G-3HRYY8ZC2W"
 };
 
-// 二重初期化防止
-if (typeof firebase !== 'undefined' && !firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
+// お試し（trial.js）の画面: 通信せず、親のページの「端末の中だけのデータベース」を使う（local_db.js）
+const __localTrial = (() => {
+    try {
+        if (!new URLSearchParams(location.search).has('local')) return null;
+        return (window.parent && window.parent !== window && window.parent.__trialStore) || null;
+    } catch (e) { return null; }
+})();
 
-// グローバルなDB参照ショートカット（これだけは便利なので残す）
-window.db = firebase.database();
+if (__localTrial && window.LocalDb) {
+    window.__isTrial = true;
+    if (typeof firebase === 'undefined') window.firebase = { apps: [1], initializeApp: () => {}, database: { ServerValue: { TIMESTAMP: { '.sv': 'timestamp' } } } };
+    window.db = window.LocalDb.client(__localTrial);
+} else {
+    // 二重初期化防止
+    if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    // グローバルなDB参照ショートカット（これだけは便利なので残す）
+    window.db = firebase.database();
+}

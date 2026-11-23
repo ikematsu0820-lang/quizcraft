@@ -381,6 +381,8 @@ document.addEventListener('DOMContentLoaded', () => {
 // の #player-rotate-overlay）。
 function requestLandscape() {
     try {
+        // お試し・テストプレイの枠（iframe）の中では全画面にしない（枠いっぱいに広がってしまう）
+        if (window.self !== window.top) return;
         const el = document.documentElement;
         const fs = el.requestFullscreen ? el.requestFullscreen() : null;
         // 縦でも横でも使える画面にしたので、向きは固定しない（全画面だけ）

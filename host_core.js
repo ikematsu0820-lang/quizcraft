@@ -262,7 +262,8 @@ window.App.init = function () {
         if (!window.App.State.currentShowId) {
             window.App.State.currentShowId = urlParams.get('sid') || 'TEST';
         }
-        this._showTestNavBar(testHost, tp);
+        // お試し（trial.js）の司会者は見えない所で動くので、テスト用の切り替えバーは出さない
+        if (!window.__isTrial) this._showTestNavBar(testHost, tp);
         const ref = window.db.ref(`saved_sets/${testHost}`);
         const handler = ref.on('value', snap => {
             if (snap.exists()) {

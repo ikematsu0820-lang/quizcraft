@@ -38,6 +38,8 @@
 | バラエティ枠 | `App.VarietyFrame` | variety_frame.js |
 | 別のセットからの取り込み | `App.SetMerge` | set_merge.js |
 | 画面の中のダイアログ | `App.Dialog`（`confirm` / `alert` / `prompt` / `number`） | dialog.js |
+| お試し（プレビューの「お試し」— 1問をその場で遊ぶ） | `App.Trial` | trial.js |
+| 端末の中だけのデータベース（お試し用） | `LocalDb`（`createStore` / `client`） | local_db.js |
 | アイコン | `App.Icons.svg(name)` | icons.js |
 | タイマーの見た目 | `App.TimerView` | timer_view.js |
 | 第○問の演出 | `App.BridgeView` | bridge_view.js |
@@ -114,3 +116,23 @@ sound_library, app_defaults   … 音の候補・既定
   - スマホは `{ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }`。
   - 外の通信は `page.route(/gstatic|googleapis|jsdelivr/, r => r.abort())` で止める。
 - 画面の言葉を全部拾うときは、`dev/tests/words.js`（作る画面を順に開いて、見えている文字を集める）。
+
+## 6. お試し（trial.js / local_db.js）
+
+- プレビューの「お試し」で、今書いている1問を、その場で遊べる。
+- 本番と同じ `index.html` を iframe で3つ開き、通信の代わりに、親のページの `LocalDb` の置き場（`window.__trialStore`）でつなぐ。
+  - 司会者: `?local=1&testHost=ID`。見えない所に置き、進行ボタン・〇✕・確認を下の「司会者バー」に写す（`Trial.mirror`）。
+  - モニター: `?local=1&vcode=ID`
+  - 解答者（あなた）: `?local=1&room=ID&autoName=あなた`
+- `firebase.js` は、`?local=1` で親に置き場があれば `window.db = LocalDb.client(parent.__trialStore)` を使う。部屋IDは `TEST-T…`（テスト扱い。参加中として覚えない）。
+- **購読の外し方**: `off()` は、外した画面の購読だけを外す（`owner`）。全部の画面の購読を外すと、ほかの画面が止まってしまう。
+- **全画面**: 解答者は、iframe の中では全画面にしない（`requestLandscape`）。全画面にすると、枠いっぱいに広がってしまう。
+- **仮の参加者**（`Trial.BOTS`）は、少し遅れて動く。
+  - 早押し: 押す
+  - 一斉: 答える（半分くらい当たる）
+  - 順番・指名: 何もしない
+- 1問が終わると、セットの終わりの案内の代わりに「もう一度／問題に戻る」を出す。
+- 陣取りパネルは、盤面無しで問題だけを試す（`gameType` を `score` にする）。
+- **確かめ方**: iframe を同じページとして扱うため、http で開く。
+  - リポジトリの一番上で `python3 -m http.server 8765` を起動してから、`node dev/tests/trial.js choice` / `node dev/tests/trial_buzz.js` を動かす。
+  - `file://` で開くと、iframe が親に触れない。
