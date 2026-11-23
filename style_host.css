@@ -5936,3 +5936,26 @@ body:has(.qd-ov, .im-ov) :is(#unified-toggle-container, #test-view-dock) { displ
 .cm-set-group + .cm-set-group { margin-top: 14px; }
 .cm-set-ghead { padding: 10px 14px 4px; color: #8b8b95; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.08em; }
 .cm-set-group .cm-set-row:last-child { border-bottom: none !important; }
+/* ルール › 発表: 判定の合図 ／ 正解の出し方 ／ 結果・得点 を別のかたまりに */
+.rv-sec { padding: 12px 12px 10px; border-radius: 12px; background: #16161a; }
+.rv-sec + .rv-sec { margin-top: 12px; }
+.rv-sec-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.rv-sec-head b { color: #f2f2f4; font-size: 0.88rem; }
+.rv-sec-head span { color: #8b8b95; font-size: 0.68rem; }
+.rv-flag { display: flex; align-items: center; gap: 8px; padding: 7px 2px; color: #e5e5e8; font-size: 0.8rem; cursor: pointer; }
+.rv-flag input { width: auto; margin: 0; accent-color: #f59e0b; }
+.rv-flag small { margin-left: 6px; color: #8b8b95; font-size: 0.66rem; }
+/* 問題を書く画面: 正解の発表（この問題だけ） */
+.rv-qbox { margin-top: 10px; border-radius: 10px; background: #16161a; width: 100%; flex-basis: 100%; order: 99; box-sizing: border-box; }
+.rv-qbox > summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; color: #e5e5e8; font-size: 0.82rem; font-weight: 700; cursor: pointer; list-style: none; }
+.rv-qbox > summary::-webkit-details-marker { display: none; }
+.rv-qbox > summary small { color: #8b8b95; font-size: 0.7rem; font-weight: 600; }
+.rv-qbox[open] > summary small { color: #f59e0b; }
+.rv-qgrid { display: flex; flex-direction: column; gap: 10px; padding: 0 12px 12px; }
+.rv-qgrid label { display: flex; flex-direction: column; gap: 4px; color: #8b8b95; font-size: 0.72rem; font-weight: 700; }
+.rv-qgrid select, .rv-qgrid textarea, .rv-qgrid input { width: 100%; margin: 0; padding: 8px 10px; background: #1b1b20; border: 1px solid #3a3a42; border-radius: 8px; color: #fff; font-size: 0.9rem; box-sizing: border-box; font-family: inherit; }
+.rv-qgrid small { color: #6f6f78; font-size: 0.66rem; font-weight: 500; }
+.rv-qnum { display: flex; align-items: center; gap: 6px; color: #c9c9cf; }
+.rv-qnum input { width: 90px; }
+/* 司会者: 多答の「残りを開く」「下から開く」 */
+.mans-open { flex: 0 0 auto; min-height: 36px; padding: 0 12px; border: none; border-radius: 8px; background: #3a2a0a; color: #fbbf24; font-weight: 800; font-size: 0.82rem; cursor: pointer; }

@@ -11,9 +11,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@800;900&display=swap">
     <link rel="stylesheet" href="style_common.css?v=121">
-    <link rel="stylesheet" href="style_host.css?v=166">
+    <link rel="stylesheet" href="style_host.css?v=167">
     <link rel="stylesheet" href="style_player.css?v=117">
-    <link rel="stylesheet" href="style_viewer.css?v=110">
+    <link rel="stylesheet" href="style_viewer.css?v=111">
     <link rel="stylesheet" href="choice_skin.css?v=5">
     <link rel="stylesheet" href="rule_panel.css?v=10">
     <link rel="stylesheet" href="panel_board.css?v=13">
@@ -323,6 +323,7 @@
                             <button type="button" data-rules-subtab="wrong" class="creator-rules-subtab-btn" style="flex:1; padding:8px 2px; font-size:0.8rem; font-weight:bold; border:none; cursor:pointer; color:#fff;">誤答</button>
                             <button type="button" data-rules-subtab="win" class="creator-rules-subtab-btn" style="flex:1; padding:8px 2px; font-size:0.8rem; font-weight:bold; border:none; cursor:pointer; color:#fff;">勝ち方</button>
                             <button type="button" data-rules-subtab="time" class="creator-rules-subtab-btn" style="flex:1; padding:8px 2px; font-size:0.8rem; font-weight:bold; border:none; cursor:pointer; color:#fff;">時間</button>
+                            <button type="button" data-rules-subtab="reveal" class="creator-rules-subtab-btn" style="flex:1; padding:8px 2px; font-size:0.8rem; font-weight:bold; border:none; cursor:pointer; color:#fff;">発表</button>
                         </div>
                         <div id="creator-rules-sub-format">
                             <!-- 解答形式 (subtype, e.g. 口頭/手書き) and 解答権
@@ -360,6 +361,10 @@
                         </div>
                         <div id="creator-rules-sub-time" class="hidden">
                             <div id="creator-inline-timelimit"></div>
+                        </div>
+                        <!-- 発表: 判定の合図・正解の出し方・結果と得点（reveal.js） -->
+                        <div id="creator-rules-sub-reveal" class="hidden">
+                            <div id="creator-inline-reveal"></div>
                         </div>
                     </div>
                 </div>
@@ -800,23 +805,23 @@
     <script src="theme_presets.js?v=13"></script>
     <script src="timer_view.js?v=3"></script>
     <script src="bridge_view.js?v=1"></script>
-    <script src="host_design.js?v=302"></script>
-    <script src="host_creator.js?v=323"></script>
+    <script src="host_design.js?v=303"></script>
+    <script src="host_creator.js?v=324"></script>
     <script src="host_config.js?v=266"></script>
     <script src="host_prog_config.js?v=238"></script>
-    <script src="host_studio.js?v=282"></script>
+    <script src="host_studio.js?v=283"></script>
     <script src="player.js?v=267"></script>
-    <script src="viewer.js?v=291"></script>
-    <script src="creator_mobile.js?v=42"></script>
+    <script src="viewer.js?v=292"></script>
+    <script src="creator_mobile.js?v=43"></script>
     <script src="variety_frame.js?v=7"></script>
     <script src="layout_editor.js?v=3"></script>
     <script src="choice_skin.js?v=5"></script>
-    <script src="rule_panel.js?v=26"></script>
+    <script src="rule_panel.js?v=27"></script>
     <script src="play_style.js?v=13"></script>
     <script src="set_merge.js?v=3"></script>
     <script src="host_console.js?v=3"></script>
     <script src="host_lobby.js?v=2"></script>
-    <script src="reveal.js?v=2"></script>
+    <script src="reveal.js?v=3"></script>
     <script src="territory.js?v=4"></script>
     <script src="item_image.js?v=2"></script>
     <script src="panel_board.js?v=18"></script>

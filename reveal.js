@@ -1,13 +1,17 @@
 /* =========================================================
- * reveal.js — モニターの「正解の出し方」（一問一答・連想・文字パネルなど、答えが文字の形式）
+ * reveal.js — 正解の発表（判定の合図 → 正解の出し方 → 結果・得点）
  *
- *   見た目 › 正解の出し方（design.revealStyle）
- *     band   … 下に帯で（問題文は残る）— 最初の値
- *     full   … 全画面で大きく
- *     inline … 問題文のすぐ下に添える
- *   design.revealWinners === 'off' なら正解者の名前を出さない
- *   色・書体・文字の飾りはテーマから（正解の地＝正解の色、無ければアクセント色）
- *   選択式・並べ替え・多答などは、それぞれの形式の出し方（光る・並ぶ・開く）のまま。
+ * 設定はルールの「発表」タブにまとめる（セット全体の値＝ currentConfig）:
+ *   判定の合図   judgeCue     sound（音だけ）| big（〇✕を大きく）| big_name（〇✕と答えた人の名前）
+ *                revealTiming host（司会者のボタンで）| auto（正解が出たらすぐ正解を出す）
+ *   正解の出し方 revealStyle  band | full | inline | letters（答えが文字の形式）
+ *                revealSort   all | one（並べ替え: 一度に／1つずつ並べる）
+ *                revealPause  now | tame（ためてから出す）
+ *                rvWinners / rvCount / rvDist / rvRate / rvNote   一緒に出すもの（'on' / 'off'）
+ *   結果・得点   rvGain（正解者の名前に＋点）・1問ごとの結果発表・回答者の端末の得点
+ * 問題ごとの上書き（問題を書く画面の「正解の発表（この問題だけ）」）:
+ *   q.revealStyle（count＝数字のカウント も選べる）・q.imgReveal（blur | zoom）・q.publicRate・q.commentary
+ * 以前の見た目の設定（design.revealStyle / revealWinners）も読む。
  * =======================================================*/
 window.App = window.App || {};
 
@@ -16,21 +20,40 @@ App.Reveal = {
         { v: 'band', t: '帯で', sub: '問題文は残す' },
         { v: 'full', t: '全画面で', sub: '答えを大きく' },
         { v: 'inline', t: '添える', sub: '問題文のすぐ下' },
+        { v: 'letters', t: '1文字ずつ', sub: '文字が順に出る' },
     ],
+    DEF: { revealStyle: 'band', revealPause: 'now', revealSort: 'all', rvWinners: 'on', rvCount: 'off', rvDist: 'off', rvRate: 'on', rvNote: 'on', rvGain: 'off', judgeCue: 'sound', revealTiming: 'host' },
+    TAME_MS: 1800,
 
-    // 今作っているセットで、この設定を出すか（答えが文字の形式だけ）
+    // ---------------------------------------------------------
+    // 共通
+    // ---------------------------------------------------------
+    esc: function (v) { return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); },
+    kindOf: function (type) {
+        const t = String(type || '');
+        if (/^(free|assoc|letter_select)/.test(t)) return 'text';
+        if (/^choice/.test(t) || t === 'dobon') return 'choice';
+        if (t === 'sort') return 'sort';
+        if (/^(multi|ranking)/.test(t)) return 'multi';
+        return 'other';
+    },
+    // 今作っているセットで、答えが文字の形式か
     applies: function () {
         const C = window.App.Creator;
-        const t = (C && C.currentType) || '';
-        return /^(free|assoc|letter_select)/.test(t);
+        return this.kindOf(C && C.currentType) === 'text';
     },
-    summary: function (d) {
-        const s = this.STYLES.find(o => o.v === ((d && d.revealStyle) || 'band')) || this.STYLES[0];
-        return s.t + ((d && d.revealWinners === 'off') ? '' : '・正解者の名前');
+    // 値を決める: 問題 → セット（ルール） → 以前の見た目の設定 → 最初の値
+    get: function (key, conf, d, q) {
+        if (q && q[key] !== undefined && q[key] !== null && q[key] !== '') return q[key];
+        if (conf && conf[key] !== undefined && conf[key] !== null && conf[key] !== '') return conf[key];
+        if (key === 'revealStyle' && d && d.revealStyle) return d.revealStyle;
+        if (key === 'rvWinners' && d && d.revealWinners === 'off') return 'off';
+        return this.DEF[key];
     },
+    on: function (key, conf, d, q) { return this.get(key, conf, d, q) !== 'off'; },
+    hasJudge: function (conf) { return ['buzz', 'turn', 'nominate'].includes((conf || {}).mode); },
 
-    esc: function (v) { return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); },
-    faint: function (c) { return !c || c === 'transparent' || /rgba\([^)]*,\s*0(\.\d+)?\)$/.test(c) && parseFloat(c.split(',').pop()) < 0.35; },
+    faint: function (c) { return !c || c === 'transparent' || (/rgba\([^)]*,\s*0(\.\d+)?\)$/.test(c) && parseFloat(c.split(',').pop()) < 0.35); },
     // 地の色に乗る文字の色（明るい地なら黒、暗い地なら白）
     textOn: function (bg) {
         const m = String(bg || '').match(/^#([0-9a-f]{6})$/i);
@@ -39,49 +62,443 @@ App.Reveal = {
         const l = (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
         return l > 0.6 ? '#111111' : '#ffffff';
     },
-
     colors: function (d) {
         const accent = d.accentColor || (!this.faint(d.qBorderColor) ? d.qBorderColor : '') || '#f59e0b';
         const bg = !this.faint(d.revealBgColor) ? d.revealBgColor : accent;
         const fg = d.revealTextColor || this.textOn(bg);
         const line = !this.faint(d.revealBorderColor) ? d.revealBorderColor : bg;
-        // 問題文の色（全画面・添える時の答えの文字）
         const qfg = d.qTextColor || this.textOn(d.mainBgColor);
         return { accent, bg, fg, line, qfg };
     },
+    setVars: function (el, c) {
+        el.style.setProperty('--rv-bg', c.bg);
+        el.style.setProperty('--rv-fg', c.fg);
+        el.style.setProperty('--rv-line', c.line);
+        el.style.setProperty('--rv-accent', c.accent);
+        el.style.setProperty('--rv-qfg', c.qfg);
+    },
+    viewerConf: function () { return (window.App.Viewer && window.App.Viewer.config) || {}; },
+    players: function () { return (window.App.Viewer && window.App.Viewer._players) || {}; },
 
-    render: function (mainText, q, st, d) {
+    // ---------------------------------------------------------
+    // 正解した人・人数・選んだ人数（モニター）
+    // ---------------------------------------------------------
+    isRight: function (p, q) {
+        if (!p) return false;
+        if (p.lastResult === 'win' || p.pendingResult === 'win') return true;
+        if (this.kindOf(q.type) === 'choice' && p.lastAnswer !== undefined && p.lastAnswer !== null && p.lastAnswer !== '') {
+            const corr = (Array.isArray(q.correct) ? q.correct : [q.correctIndex !== undefined ? q.correctIndex : q.correct]).map(Number);
+            if (Array.isArray(p.lastAnswer)) return JSON.stringify(p.lastAnswer.map(Number).sort()) === JSON.stringify(corr.slice().sort());
+            return corr.includes(Number(p.lastAnswer));
+        }
+        return false;
+    },
+    tally: function (q, st) {
+        const list = Object.values(this.players()).filter(p => p && p.name);
+        const judged = this.hasJudge(this.viewerConf());
+        const winners = (st.revealWinners && st.revealWinners.length) ? st.revealWinners
+            : judged ? [] : list.filter(p => this.isRight(p, q)).map(p => p.name);
+        const right = judged ? winners.length : list.filter(p => this.isRight(p, q)).length;
+        const dist = {};
+        list.forEach(p => {
+            const a = p.lastAnswer;
+            (Array.isArray(a) ? a : [a]).forEach(v => { const i = parseInt(v); if (!isNaN(i)) dist[i] = (dist[i] || 0) + 1; });
+        });
+        return { total: list.length, right, winners, dist };
+    },
+
+    // 一緒に出すもの（正解者・人数・世間の正解率・解説）
+    extrasHtml: function (q, st, d, conf) {
+        const parts = [];
+        const t = this.tally(q, st);
+        if (this.on('rvWinners', conf, d, q) && t.winners.length) {
+            const gains = {};
+            if (this.on('rvGain', conf, d, q)) (st.revealGains || []).forEach(x => { if (x && x.n) gains[x.n] = x.g; });
+            parts.push(`<div class="rv-who">正解者${t.winners.map(n => `<span class="rv-name">${this.esc(n)}${gains[n] ? `<b class="rv-gain">+${gains[n]}</b>` : ''}</span>`).join('')}</div>`);
+        }
+        const stats = [];
+        if (this.on('rvCount', conf, d, q) && t.total) stats.push(`<span class="rv-stat">正解 <b class="rv-count">${t.right}</b>人 / ${t.total}人</span>`);
+        const rate = q.publicRate;
+        if (this.on('rvRate', conf, d, q) && rate !== undefined && rate !== null && rate !== '') stats.push(`<span class="rv-stat">世間の正解率 <b>${this.esc(rate)}</b>%</span>`);
+        if (stats.length) parts.push(`<div class="rv-stats">${stats.join('')}</div>`);
+        const note = st.commentary || q.commentary || '';
+        if (this.on('rvNote', conf, d, q) && note) parts.push(`<div class="rv-note">${this.esc(note)}</div>`);
+        return parts.join('');
+    },
+
+    // ---------------------------------------------------------
+    // ため（正解は……）— true の間は呼び出し側は正解を描かない
+    // ---------------------------------------------------------
+    holding: function (mainText, q, st, d, conf) {
+        conf = conf || this.viewerConf();
+        if (this.get('revealPause', conf, d, q) !== 'tame') return false;
+        const key = `${st.qIndex}`;
+        if (this._tamed === key) return false;
+        mainText.querySelectorAll('.rv-tame').forEach(e => e.remove());
+        const el = document.createElement('div');
+        el.className = 'rv-tame';
+        this.setVars(el, this.colors(d || {}));
+        el.innerHTML = '<span>正解は</span><i></i><i></i><i></i>';
+        mainText.appendChild(el);
+        if (!this._tameTimer) {
+            this._tameTimer = setTimeout(() => {
+                this._tameTimer = null;
+                this._tamed = key;
+                const V = window.App.Viewer;
+                const cur = V && V._st;
+                if (cur && String(cur.qIndex) === key && ['reveal_correct', 'answer'].includes(cur.step)) V.render(cur);
+            }, this.TAME_MS);
+        }
+        return true;
+    },
+    // 正解の画面から離れたら、次の発表でまたためる・動きを付ける
+    resetFor: function (st) {
+        if (!st || ['reveal_correct', 'answer'].includes(st.step)) return;
+        this._tamed = undefined;
+        this._shown = null;
+        this._live = null;
+    },
+    // 同じ発表を描き直す時（得点の更新など）は動きを付けない
+    stillKey: function (st) {
+        const key = `${st.qIndex}`;
+        const still = this._shown === key;
+        this._shown = key;
+        return still;
+    },
+
+    // ---------------------------------------------------------
+    // 答えが文字の形式（一問一答・連想・文字パネル）
+    // ---------------------------------------------------------
+    numParts: function (s) {
+        const m = String(s || '').trim().match(/^([^\d\-]*)(-?[\d,]*\.?\d+)(.*)$/);
+        if (!m) return null;
+        const n = parseFloat(m[2].replace(/,/g, ''));
+        if (isNaN(n)) return null;
+        return { pre: m[1], n, post: m[3], comma: /,/.test(m[2]) || Math.abs(n) >= 10000, dec: (m[2].split('.')[1] || '').length };
+    },
+    fmtNum: function (v, p) {
+        const s = v.toFixed(p.dec);
+        if (!p.comma) return s;
+        const [a, b] = s.split('.');
+        return a.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (b ? '.' + b : '');
+    },
+    countUp: function (el, p) {
+        const t0 = performance.now(), dur = 1600;
+        const step = (now) => {
+            if (!el.isConnected) return;
+            const k = Math.min(1, (now - t0) / dur);
+            el.textContent = this.fmtNum(p.n * (1 - Math.pow(1 - k, 3)), p);
+            if (k < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+    },
+
+    render: function (mainText, q, st, d, conf) {
         d = d || {};
-        const style = d.revealStyle || 'band';
-        const ans = this.esc(st.correct || '');
-        const winners = d.revealWinners === 'off' ? [] : (st.revealWinners || []);
-        const note = this.esc(st.commentary || q.commentary || '');
-        const c = this.colors(d);
-        const len = String(st.correct || '').length;
+        conf = conf || this.viewerConf();
+        let style = this.get('revealStyle', conf, d, q);
+        const still = this.stillKey(st);
+        const raw = String(st.correct || '');
+        const ans = this.esc(raw);
+        const len = raw.length;
         const size = d.revealFontSize || null;
-        const who = winners.length ? `<div class="rv-who">正解者　${winners.map(n => this.esc(n)).join('・')}</div>` : '';
-        mainText.querySelectorAll('.rv-box').forEach(e => e.remove());
+        const extras = this.extrasHtml(q, st, d, conf);
+        const num = style === 'count' ? this.numParts(raw) : null;
+        if (style === 'count' && !num) style = 'full';
+        mainText.querySelectorAll('.rv-box, .rv-tame').forEach(e => e.remove());
         const box = document.createElement('div');
-        box.className = `rv-box rv-${style}`;
-        box.style.setProperty('--rv-bg', c.bg);
-        box.style.setProperty('--rv-fg', c.fg);
-        box.style.setProperty('--rv-line', c.line);
-        box.style.setProperty('--rv-accent', c.accent);
-        box.style.setProperty('--rv-qfg', c.qfg);
-        if (style === 'full') {
-            const fs = size || (len > 20 ? '8cqh' : len > 10 ? '12cqh' : '18cqh');
+        const big = style === 'full' || style === 'letters' || style === 'count';
+        box.className = `rv-box rv-${big ? 'full' : style}${still ? ' rv-still' : ''}`;
+        this.setVars(box, this.colors(d));
+        if (big) {
             box.style.background = d.mainBgColor || '#0a0a0a';
-            box.innerHTML = `<div class="rv-label">正解</div><div class="rv-ans" style="font-size:${fs};">${ans}</div>${who}${note ? `<div class="rv-note">${note}</div>` : ''}`;
+            let core;
+            if (style === 'letters') {
+                const chars = [...raw];
+                const fs = size || (chars.length > 12 ? '7cqh' : chars.length > 7 ? '10cqh' : '14cqh');
+                let n = 0;
+                core = `<div class="rv-letters" style="font-size:${fs};">${chars.map(ch => ch.trim() ? `<span class="rv-ch" style="animation-delay:${(0.2 + (n++) * 0.32).toFixed(2)}s">${this.esc(ch)}</span>` : '<span class="rv-sp"></span>').join('')}</div>`;
+            } else if (style === 'count') {
+                core = `<div class="rv-ans rv-num" style="font-size:${size || '16cqh'};">${this.esc(num.pre)}<span class="rv-digits">${this.fmtNum(still ? num.n : 0, num)}</span>${this.esc(num.post)}</div>`;
+            } else {
+                const fs = size || (len > 20 ? '8cqh' : len > 10 ? '12cqh' : '18cqh');
+                core = `<div class="rv-ans" style="font-size:${fs};">${ans}</div>`;
+            }
+            box.innerHTML = `<div class="rv-label">正解</div>${core}${extras}`;
             mainText.appendChild(box);
+            if (style === 'count' && !still) this.countUp(box.querySelector('.rv-digits'), num);
         } else if (style === 'inline') {
             const fs = size || (len > 20 ? '5cqh' : '7cqh');
-            box.innerHTML = `<span class="rv-mark">正解</span><span class="rv-ans" style="font-size:${fs};">${ans}</span>${who}${note ? `<div class="rv-note">${note}</div>` : ''}`;
+            box.innerHTML = `<span class="rv-mark">正解</span><span class="rv-ans" style="font-size:${fs};">${ans}</span>${extras}`;
             const qa = mainText.querySelector('.q-area');
             if (qa && qa.parentNode) qa.parentNode.insertBefore(box, qa.nextSibling); else mainText.appendChild(box);
         } else {
             const fs = size || (len > 20 ? '5.5cqh' : len > 10 ? '7.5cqh' : '9cqh');
-            box.innerHTML = `<div class="rv-row"><span class="rv-mark">正解</span><span class="rv-ans" style="font-size:${fs};">${ans}</span></div>${who || note ? `<div class="rv-sub">${who}${note ? `<div class="rv-note">${note}</div>` : ''}</div>` : ''}`;
+            box.innerHTML = `<div class="rv-row"><span class="rv-mark">正解</span><span class="rv-ans" style="font-size:${fs};">${ans}</span></div>${extras ? `<div class="rv-sub">${extras}</div>` : ''}`;
             mainText.appendChild(box);
+        }
+        this._live = { q, st };
+    },
+
+    // ---------------------------------------------------------
+    // 選択式・並べ替え: 選んだ人数を選択肢に・下に正解した人数などの帯
+    // ---------------------------------------------------------
+    choiceExtras: function (mainText, q, st, d, conf) {
+        d = d || {};
+        conf = conf || this.viewerConf();
+        const still = this.stillKey(st);
+        mainText.querySelectorAll('.rv-dist, .rv-strip').forEach(e => e.remove());
+        if (this.kindOf(q.type) === 'choice' && this.on('rvDist', conf, d, q)) {
+            const t = this.tally(q, st);
+            mainText.querySelectorAll('.choice-item').forEach((el, i) => {
+                if (getComputedStyle(el).position === 'static') el.style.position = 'relative';
+                const b = document.createElement('span');
+                b.className = 'rv-dist' + (still ? ' rv-still' : '');
+                b.dataset.i = i;
+                b.textContent = `${t.dist[i] || 0}人`;
+                el.appendChild(b);
+            });
+        }
+        const extras = this.extrasHtml(q, st, d, conf);
+        if (extras) {
+            const strip = document.createElement('div');
+            strip.className = 'rv-strip' + (still ? ' rv-still' : '');
+            this.setVars(strip, this.colors(d));
+            strip.innerHTML = extras;
+            const col = this.kindOf(q.type) === 'sort' ? mainText.querySelector(':scope > div') : null;
+            if (col) { strip.classList.add('rv-flow'); col.appendChild(strip); } else mainText.appendChild(strip);
+        }
+        this._live = { q, st };
+    },
+
+    // 回答者の答え・判定が届いたら、人数だけ差し替える
+    updateLive: function () {
+        const L = this._live;
+        const V = window.App.Viewer;
+        if (!L || !V || !V._st || !['reveal_correct', 'answer'].includes(V._st.step) || String(V._st.qIndex) !== String(L.st.qIndex)) return;
+        const t = this.tally(L.q, L.st);
+        document.querySelectorAll('#viewer-main-text .rv-count').forEach(el => { el.textContent = t.right; });
+        document.querySelectorAll('#viewer-main-text .rv-dist').forEach(el => { el.textContent = `${t.dist[el.dataset.i] || 0}人`; });
+    },
+
+    // 並べ替え: 1つずつ並べる時の間隔（秒）
+    sortDelay: function (q, conf) {
+        return this.get('revealSort', conf || this.viewerConf(), (q && q.design) || {}, q) === 'one' ? 0.9 : 0.07;
+    },
+
+    // ---------------------------------------------------------
+    // 画像の答え合わせ — 出題中はぼかす／拡大、正解でくっきり全体に
+    // ---------------------------------------------------------
+    afterLayout: function (mainText, q, st) {
+        const mode = q && q.imgReveal;
+        if (!mode || !st || !mainText) return;
+        const asking = ['reveal_q', 'answering', 'question', 'closed', 'judging'].includes(st.step);
+        const answer = ['reveal_correct', 'answer'].includes(st.step);
+        if (!asking && !answer) return;
+        const cls = mode === 'zoom' ? 'rv-img-zoom' : 'rv-img-blur';
+        mainText.querySelectorAll('img.q-photo').forEach(img => {
+            let wrap = img.parentElement;
+            if (!wrap.classList.contains('rv-imgwrap')) {
+                wrap = document.createElement('span');
+                wrap.className = 'rv-imgwrap';
+                img.parentNode.insertBefore(wrap, img);
+                wrap.appendChild(img);
+            }
+            if (asking) { img.classList.add(cls); this._imgShown = null; return; }
+            if (this._imgShown === st.qIndex) return; // 発表済み — くっきりのまま
+            this._imgShown = st.qIndex;
+            img.classList.add(cls);
+            void img.offsetWidth;
+            setTimeout(() => img.classList.remove(cls), 60);
+        });
+    },
+
+    // ---------------------------------------------------------
+    // 判定の合図 — 〇✕を大きく（司会者が判定した瞬間）
+    // ---------------------------------------------------------
+    judgeFlash: function (stage, st) {
+        const cue = st && st.judgeCue;
+        const mode = this.get('judgeCue', this.viewerConf(), {}, null);
+        if (!cue || !stage || mode === 'sound' || cue.at === this._cueAt) return;
+        this._cueAt = cue.at;
+        const off = (window.App.Viewer && window.App.Viewer._serverOffset) || 0;
+        if (Date.now() + off - cue.at > 15000) return; // 開き直した時に古い判定を出さない
+        stage.querySelectorAll('.rv-judge').forEach(e => e.remove());
+        const el = document.createElement('div');
+        el.className = `rv-judge ${cue.ok ? 'ok' : 'ng'}`;
+        el.innerHTML = `<div class="rv-judge-mark"></div>${mode === 'big_name' && cue.name ? `<div class="rv-judge-name">${this.esc(cue.name)}</div>` : ''}`;
+        stage.appendChild(el);
+        setTimeout(() => el.remove(), 1400);
+    },
+
+    // ---------------------------------------------------------
+    // ルールの「発表」タブ
+    // ---------------------------------------------------------
+    flagRow: function (key, label, conf, sub) {
+        const on = this.get(key, conf, window.App.Data.currentDesign || {}, null) !== 'off';
+        return `<label class="rv-flag"><input type="checkbox" data-rv-flag="${key}" ${on ? 'checked' : ''}><span>${label}${sub ? `<small>${sub}</small>` : ''}</span></label>`;
+    },
+    renderRules: function (box, conf, onSoft) {
+        if (!box || !conf) return;
+        const R = window.App.RulePanel;
+        const C = window.App.Creator;
+        const kind = this.kindOf(C && C.currentType);
+        const d = window.App.Data.currentDesign || {};
+        const judge = this.hasJudge(conf);
+        const g = (k) => this.get(k, conf, d, null);
+        const tiles = (key, items) => R.tiles('rv-' + key, items.map(o => ({ value: o.v, label: o.t, sub: o.sub })), g(key));
+        const sec = (title, sub, inner) => `<section class="rv-sec"><div class="rv-sec-head"><b>${title}</b><span>${sub}</span></div>${inner}</section>`;
+        // 1. 判定の合図
+        let a = '';
+        if (judge) {
+            a += tiles('judgeCue', [{ v: 'sound', t: '音だけ' }, { v: 'big', t: '〇✕を大きく' }, { v: 'big_name', t: '〇✕と名前' }]);
+            a += R.head('正解が出たら');
+            a += tiles('revealTiming', [{ v: 'host', t: '司会者のボタンで', sub: '正解者の発表をはさむ' }, { v: 'auto', t: 'すぐ正解を出す', sub: '発表をはさまない' }]);
+        } else {
+            a += R.note('全員が同時に答える遊び方なので、判定の合図はありません（締め切ってからまとめて判定します）。');
+        }
+        // 2. 正解の出し方
+        let b = '';
+        if (kind === 'text') b += R.head('見せ方') + tiles('revealStyle', this.STYLES);
+        else if (kind === 'choice') b += R.note('選択式は、正解の選択肢が光ってほかが暗くなります。');
+        else if (kind === 'sort') b += R.head('並べ方') + tiles('revealSort', [{ v: 'all', t: '一度に並べる' }, { v: 'one', t: '1つずつ並べる' }]);
+        else if (kind === 'multi') b += R.note('多答・ランキングは、司会者の画面で答えを1つずつ開きます。「残りを開く」「下から開く」でまとめて開くこともできます。');
+        else b += R.note('この形式は、盤面やゲームの画面のまま正解を見せます。');
+        if (['text', 'choice', 'sort'].includes(kind)) {
+            b += R.head('出すまで') + tiles('revealPause', [{ v: 'now', t: 'すぐ出す' }, { v: 'tame', t: 'ためてから', sub: '「正解は…」をはさむ' }]);
+            b += R.head('一緒に出すもの');
+            b += this.flagRow('rvWinners', '正解した人の名前', conf);
+            b += this.flagRow('rvCount', '正解した人数', conf);
+            if (kind === 'choice') b += this.flagRow('rvDist', '選んだ人数', conf, '選択肢ごと');
+            b += this.flagRow('rvRate', '世間の正解率', conf, '問題ごとに入れた時');
+            b += this.flagRow('rvNote', '解説', conf, '問題ごとに入れた時');
+        }
+        // 3. 結果・得点
+        let c = '';
+        if (['text', 'choice', 'sort'].includes(kind)) c += this.flagRow('rvGain', '正解者の名前に、入った点を添える', conf, '例: 山田 +10');
+        c += R.row('1問ごとの結果発表', R.select('rv-result-each', [{ v: 'show', t: '出す' }, { v: 'skip', t: '出さない' }], conf.resultEachQ === 'skip' ? 'skip' : 'show'));
+        c += R.note('「出さない」にすると、正解を見せたらすぐ次の問題へ進みます。');
+        c += R.row('回答者の端末の得点', R.select('rv-score-view', [{ v: 'score', t: '得点だけ' }, { v: 'score_rank', t: '得点と順位' }, { v: 'none', t: '出さない' }], conf.playerScoreView || 'score'));
+        c += R.note('「出さない」にすると、得点と順位は結果発表まで分かりません。');
+        box.innerHTML = sec('判定の合図', '答えを判定した瞬間', a) + sec('正解の出し方', 'モニターに正解を出す時', b) + sec('結果・得点', '正解のあと', c);
+        box.querySelectorAll('.rp-tile[data-rp^="rv-"]').forEach(btn => {
+            btn.onclick = () => { conf[btn.dataset.rp.slice(3)] = btn.dataset.val; this.renderRules(box, conf, onSoft); if (onSoft) onSoft(); };
+        });
+        box.querySelectorAll('input[data-rv-flag]').forEach(chk => {
+            chk.onchange = () => { conf[chk.dataset.rvFlag] = chk.checked ? 'on' : 'off'; if (onSoft) onSoft(); };
+        });
+        const sel = (id, fn) => { const el = box.querySelector('#' + id); if (el) el.onchange = () => { fn(el.value); if (onSoft) onSoft(); }; };
+        sel('rv-result-each', v => { conf.resultEachQ = v; });
+        sel('rv-score-view', v => { conf.playerScoreView = v; });
+    },
+
+    // セットの設定の一覧に出す行（判定の合図・正解の出し方・結果と得点）
+    summaryRows: function (conf) {
+        const C = window.App.Creator;
+        const kind = this.kindOf(C && C.currentType);
+        const d = window.App.Data.currentDesign || {};
+        const g = (k) => this.get(k, conf, d, null);
+        const rows = [];
+        if (this.hasJudge(conf)) {
+            const cue = { sound: '音だけ', big: '〇✕を大きく', big_name: '〇✕と名前' }[g('judgeCue')] || '音だけ';
+            rows.push({ key: 'judge', label: '判定の合図', value: cue + (g('revealTiming') === 'auto' ? '・すぐ正解を出す' : '') });
+        }
+        let how = kind === 'text' ? (this.STYLES.find(o => o.v === g('revealStyle')) || this.STYLES[0]).t
+            : kind === 'choice' ? '正解が光る' : kind === 'sort' ? (g('revealSort') === 'one' ? '1つずつ並べる' : '一度に並べる')
+            : kind === 'multi' ? '1つずつ開く' : '盤面のまま';
+        if (['text', 'choice', 'sort'].includes(kind)) {
+            if (g('revealPause') === 'tame') how += '・ためて';
+            const w = [];
+            if (g('rvWinners') !== 'off') w.push('正解者');
+            if (g('rvCount') !== 'off') w.push('人数');
+            if (kind === 'choice' && g('rvDist') !== 'off') w.push('選んだ人数');
+            if (w.length) how += '・' + w.join('と');
+        }
+        rows.push({ key: 'reveal', label: '正解の出し方', value: how });
+        const res = [conf.resultEachQ === 'skip' ? '1問ごとの発表なし' : '1問ごとに発表'];
+        if (g('rvGain') !== 'off' && ['text', 'choice', 'sort'].includes(kind)) res.push('＋点を添える');
+        rows.push({ key: 'result', label: '結果・得点', value: res.join('・') });
+        return rows;
+    },
+    // 以前の版（見た目の設定）の要約
+    summary: function (d) {
+        const s = this.STYLES.find(o => o.v === ((d && d.revealStyle) || 'band')) || this.STYLES[0];
+        return s.t + ((d && d.revealWinners === 'off') ? '' : '・正解者の名前');
+    },
+
+    // ---------------------------------------------------------
+    // 問題を書く画面: 「正解の発表（この問題だけ）」
+    // ---------------------------------------------------------
+    Q_KEYS: ['revealStyle', 'imgReveal', 'publicRate', 'commentary'],
+    pickQ: function (q) {
+        const o = {};
+        this.Q_KEYS.forEach(k => { if (q && q[k] !== undefined && q[k] !== null && q[k] !== '') o[k] = q[k]; });
+        return o;
+    },
+    // 保存する値（空は null で消す）
+    qFields: function (s) {
+        const o = {};
+        this.Q_KEYS.forEach(k => { const v = s && s[k]; o[k] = (v === undefined || v === null || v === '') ? null : v; });
+        return o;
+    },
+    mountQuestionBox: function () {
+        const C = window.App.Creator;
+        if (!C) return;
+        document.querySelectorAll('.rv-qbox').forEach(e => e.remove());
+        const kind = this.kindOf(C.currentType);
+        if (!['text', 'choice', 'sort'].includes(kind)) return;
+        const M = window.App.CreatorMobile;
+        // スマホは正解の欄の下（#creator-outside-opts）、PCは「この問題」のタブ
+        const host = (M && M.isMobile && M.isMobile()) ? (document.getElementById('creator-outside-opts') || document.getElementById('creator-form-container')) : document.getElementById('creator-options-extra');
+        if (!host) return;
+        C.qReveal = C.qReveal || {};
+        const s = C.qReveal;
+        const conf = window.App.Data.currentConfig || {};
+        const d = window.App.Data.currentDesign || {};
+        const setStyle = (this.STYLES.find(o => o.v === this.get('revealStyle', conf, d, null)) || this.STYLES[0]).t;
+        const opts = (list, cur) => list.map(o => `<option value="${o.v}" ${String(cur || '') === o.v ? 'selected' : ''}>${o.t}</option>`).join('');
+        const isSet = () => this.Q_KEYS.some(k => s[k] !== undefined && s[k] !== '');
+        const el = document.createElement('details');
+        el.className = 'rv-qbox';
+        if (isSet() || this._qboxOpen) el.open = true;
+        el.innerHTML = `<summary><span>正解の発表（この問題だけ）</span><small>${isSet() ? '設定あり' : 'セットと同じ'}</small></summary>
+            <div class="rv-qgrid">
+                ${kind === 'text' ? `<label><span>見せ方</span><select data-rvq="revealStyle">${opts([{ v: '', t: `セットと同じ（${setStyle}）` }, ...this.STYLES.map(o => ({ v: o.v, t: o.t })), { v: 'count', t: '数字のカウント（答えが数字の時）' }], s.revealStyle)}</select></label>` : ''}
+                <label><span>画像の答え合わせ</span><select data-rvq="imgReveal">${opts([{ v: '', t: 'しない' }, { v: 'blur', t: 'ぼかしが取れる' }, { v: 'zoom', t: '拡大から全体へ' }], s.imgReveal)}</select><small>問題に画像を入れた時。出題中はぼかし・拡大して見せ、正解で全体を見せます</small></label>
+                <label><span>世間の正解率</span><span class="rv-qnum"><input type="number" min="0" max="100" step="1" inputmode="numeric" data-rvq="publicRate" value="${s.publicRate ?? ''}" placeholder="なし"> %</span></label>
+                <label><span>解説</span><textarea rows="2" data-rvq="commentary" placeholder="正解のあとに添えるひとこと（なしでも可）">${this.esc(s.commentary || '')}</textarea></label>
+            </div>`;
+        host.appendChild(el);
+        // あとから足される設定（シャッフルなど）より下に置く
+        setTimeout(() => { if (el.isConnected && el.nextElementSibling) host.appendChild(el); }, 0);
+        el.addEventListener('toggle', () => { this._qboxOpen = el.open; });
+        el.querySelectorAll('[data-rvq]').forEach(inp => {
+            const k = inp.dataset.rvq;
+            const read = () => {
+                let v = inp.value;
+                if (k === 'publicRate' && v !== '') v = Math.max(0, Math.min(100, Math.round(Number(v) || 0)));
+                if (v === '' || v === null) delete s[k]; else s[k] = v;
+                const sm = el.querySelector('summary small');
+                if (sm) sm.textContent = isSet() ? '設定あり' : 'セットと同じ';
+            };
+            inp.addEventListener(inp.tagName === 'SELECT' ? 'change' : 'input', read);
+        });
+    },
+
+    // 問題の画面を描く関数に、あとから付け足す（作成画面・モニター）
+    hook: function () {
+        const C = window.App.Creator;
+        if (C && C.renderForm && !C.renderForm._rv) {
+            const orig = C.renderForm;
+            C.renderForm = function () { const r = orig.apply(this, arguments); try { App.Reveal.mountQuestionBox(); } catch (e) { console.warn(e); } return r; };
+            C.renderForm._rv = true;
+        }
+        const V = window.App.Viewer;
+        if (V && V.renderQuestionLayout && !V.renderQuestionLayout._rv) {
+            const orig = V.renderQuestionLayout;
+            V.renderQuestionLayout = function (vc, mainText, q, st) { const r = orig.apply(this, arguments); try { App.Reveal.afterLayout(mainText, q, st || this._st); } catch (e) { console.warn(e); } return r; };
+            V.renderQuestionLayout._rv = true;
         }
     },
 };
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => App.Reveal.hook()); else setTimeout(() => App.Reveal.hook(), 0);

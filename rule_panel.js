@@ -70,6 +70,8 @@ App.RulePanel = {
         this.renderWrong(document.getElementById('creator-inline-wrong-body'));
         this.renderWin(document.getElementById('creator-inline-gametype'));
         this.renderTime(document.getElementById('creator-inline-timelimit'));
+        // 発表: 判定の合図・正解の出し方・結果と得点（reveal.js）
+        if (window.App.Reveal) window.App.Reveal.renderRules(document.getElementById('creator-inline-reveal'), conf, () => this.soft());
     },
 
     changed: function () {
@@ -399,16 +401,7 @@ App.RulePanel = {
             ${this.tiles('gameType', types, gt)}
             ${basic}
             ${this.Cfg().advancedBlock('win_' + gt, adv, notes)}
-            ${this.head('回答者の端末に出すもの')}
-            ${this.row('得点・順位', this.select('rp-score-view', [
-                { v: 'score', t: '得点だけ' },
-                { v: 'score_rank', t: '得点と順位' },
-                { v: 'none', t: '出さない' },
-            ], conf.playerScoreView || 'score'))}
-            ${this.note('「出さない」にすると、得点と順位は結果発表まで分かりません（発表で盛り上げたい時に）。')}
-            ${this.head('進行')}
-            ${this.row('1問ごとの結果発表', this.select('rp-result-each', [{ v: 'show', t: '出す' }, { v: 'skip', t: '出さない' }], conf.resultEachQ === 'skip' ? 'skip' : 'show'))}
-            ${this.note('「出さない」にすると、正解を見せたらすぐ次の問題へ進みます。')}
+            ${this.note('1問ごとの結果発表・回答者の端末の得点は「発表」のタブにあります。')}
             <div id="gametype-solo"></div>`;
         this.Cfg().wireAdvancedBlocks(box);
         this.Cfg()._renderSoloRules(box.querySelector('#gametype-solo'), conf, () => this.soft());

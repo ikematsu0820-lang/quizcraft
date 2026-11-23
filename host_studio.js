@@ -1387,7 +1387,9 @@ App.Studio = {
                     correct: this.getAnswerString(q),
                     commentary: q.commentary || "",
                     // 正解の出し方の「正解者の名前」用（早押し・順番・指名で正解した人）
-                    revealWinners: Object.values(this._qWinners || {}).length ? Object.values(this._qWinners || {}) : null
+                    revealWinners: Object.values(this._qWinners || {}).length ? Object.values(this._qWinners || {}) : null,
+                    // 正解者の名前に添える点（ルール › 発表 › 結果・得点）
+                    revealGains: Object.keys(this._qGains || {}).length ? Object.entries(this._qGains).map(([n, g]) => ({ n, g })) : null
                 });
 
                 // Automatic Judging for Choice / Sort / Letter Select (Skip for Buzz or Written)
@@ -2098,9 +2100,11 @@ App.Studio = {
             isNominateMode: null, // 指名モードは出題時（step 2）に付け直す
             resultShowWinners: null,
             resultWinners: null,
+            judgeCue: null,
             wbWinners: null       // 早押し×手書きの抜けた順
         });
         this._qWinners = {}; // この問題の正解者（結果発表で表示）
+        this._qGains = {};   // 正解者ごとに入った点（正解の発表で「+10」）
         this._wbWinners = [];
         this.wbClearAllTimers();
 
@@ -2318,7 +2322,7 @@ App.Studio = {
                         lastResult: 'win',
                         ...this._resultFields(p, true)
                     });
-                    this.recordWinner(turnPlayerId, p.name);
+                    this.recordWinner(turnPlayerId, p.name, gain);
                 });
 
                 this.turnIndex = (this.turnIndex + 1) % this.turnOrder.length;
@@ -2404,6 +2408,19 @@ App.Studio = {
             btn.onclick = () => this.toggleMultiAnswer(i);
             container.appendChild(btn);
         });
+    },
+
+    // 多答・ランキングの答えを、点を動かさずにまとめて開く
+    //   rest … まだ開いていない答えを一斉に ／ bottom … 開いていない中で一番下の順位を1つ
+    openMultiAnswers: function (n, how) {
+        const roomId = App.State.currentRoomId;
+        this.revealedMultiIndices = this.revealedMultiIndices || {};
+        const closed = [];
+        for (let i = 0; i < n; i++) if (!this.revealedMultiIndices[i]) closed.push(i);
+        if (!closed.length) return;
+        (how === 'bottom' ? [closed[closed.length - 1]] : closed).forEach(i => { this.revealedMultiIndices[i] = true; });
+        window.db.ref(`rooms/${roomId}/status`).update({ revealedMulti: this.revealedMultiIndices });
+        this.renderUnifiedConsole(App.Data.players || {});
     },
 
     renderPanelControl: function () {
@@ -2600,7 +2617,8 @@ App.Studio = {
                 const gain = this._correctPts(p, App.Data.studioQuestions[App.State.currentQIndex]);
                 const winRank = Object.keys(this._qWinners || {}).length + 1;
                 snap.ref.update({ periodScore: (p.periodScore || 0) + gain, totalScore: (p.totalScore || 0) + gain, lastResult: 'win', winRank, lastGain: gain, ...this._resultFields(p, true) });
-                this.recordWinner(winnerId, p.name);
+                this.recordWinner(winnerId, p.name, gain);
+                this.sendJudgeCue(true, p.name);
                 if (this.wbOn('continue')) this.wbNoteWin(winnerId, p.name, gain);
                 this.clearAnswerTimer();
                 document.getElementById('studio-sub-info').classList.add('hidden');
@@ -2614,11 +2632,12 @@ App.Studio = {
                     App.Ui.showToast(`${p.name || '---'} さん正解（${Object.keys(this._qWinners || {}).length}人目）`);
                     this.wbAfterJudge();
                 } else {
-                    this.setStep(4);
+                    this.setStep(this.stepAfterCorrect());
                 }
                 this.buzzWinner = null;
             } else {
                 // 不正解時
+                this.sendJudgeCue(false, p && p.name);
                 const loss = this.buzzWrongLoss(App.Data.studioQuestions[App.State.currentQIndex]);
                 snap.ref.update({
                     lastResult: 'lose',
@@ -2776,18 +2795,20 @@ App.Studio = {
                 const gain = this._correctPts(p, q);
                 const winRank = Object.keys(this._qWinners || {}).length + 1;
                 snap.ref.update({ periodScore: (p.periodScore || 0) + gain, totalScore: (p.totalScore || 0) + gain, lastResult: 'win', winRank, lastGain: gain, ...this._resultFields(p, true) });
-                this.recordWinner(playerId, p.name);
+                this.recordWinner(playerId, p.name, gain);
+                this.sendJudgeCue(true, p.name);
                 this.wbClearTimer(playerId);
                 if (this.wbOn('continue')) this.wbNoteWin(playerId, p.name, gain);
                 if (!this.wbOn('continue')) {
                     window.db.ref(`rooms/${roomId}/status`).update({ isBuzzActive: false });
-                    this.setStep(4);
+                    this.setStep(this.stepAfterCorrect());
                     return;
                 }
                 App.Ui.showToast(`${p.name || '---'} さん正解（${Object.keys(this._qWinners || {}).length}人目・+${gain}点）`);
                 this.wbAfterJudge();
             } else {
                 const loss = this._wrongLoss(q);
+                this.sendJudgeCue(false, p.name);
                 snap.ref.update({
                     lastResult: 'lose', buzzTime: null, lastAnswer: null, answerTime: null, wbDeadline: null,
                     periodScore: (p.periodScore || 0) - loss, totalScore: (p.totalScore || 0) - loss,
@@ -2809,10 +2830,26 @@ App.Studio = {
 
     // 結果発表で「正解者」として出すため記録（順番モードでは判定後に
     // lastResult がリセットされるので、Firebase の値だけでは拾えない）
-    recordWinner: function (playerId, name) {
+    recordWinner: function (playerId, name, gain) {
         if (!playerId) return;
         if (!this._qWinners) this._qWinners = {};
         this._qWinners[playerId] = name || '---';
+        if (gain !== undefined && gain !== null) {
+            if (!this._qGains) this._qGains = {};
+            this._qGains[name || '---'] = gain;
+        }
+    },
+
+    // 判定の合図（ルール › 発表）— 〇✕を大きく出す時だけ、判定した瞬間をモニターへ
+    sendJudgeCue: function (ok, name) {
+        const conf = App.Data.currentConfig || {};
+        if (!conf.judgeCue || conf.judgeCue === 'sound') return;
+        const roomId = App.State.currentRoomId;
+        if (roomId) window.db.ref(`rooms/${roomId}/status`).update({ judgeCue: { ok: !!ok, name: name || '', at: Date.now() } });
+    },
+    // 正解が出たら: 司会者のボタンで（正解者の発表へ）／すぐ正解を出す
+    stepAfterCorrect: function () {
+        return (App.Data.currentConfig || {}).revealTiming === 'auto' ? 5 : 4;
     },
 
     // ソロ（1人で挑戦）の状態 — ライフ・クリア条件はセットのルール
@@ -3178,7 +3215,13 @@ App.Studio = {
                 const openN = correctList.filter((_, i) => this.revealedMultiIndices && this.revealedMultiIndices[i]).length;
                 const head = document.createElement('div');
                 head.className = 'mans-head';
-                head.innerHTML = `<span class="mans-q">${this._multiExpanded ? String(q.q || '').replace(/</g, '&lt;') : ''}</span><span class="mans-count">${openN} / ${correctList.length} 開けた</span><button type="button" class="mans-expand">${this._multiExpanded ? '閉じる' : '広げる'}</button>`;
+                const restN = correctList.length - openN;
+                const openBtns = (!isAssoc && restN > 0)
+                    ? `${q.type.startsWith('ranking') ? '<button type="button" class="mans-open" data-open="bottom">下から開く</button>' : ''}<button type="button" class="mans-open" data-open="rest">残りを開く</button>` : '';
+                head.innerHTML = `<span class="mans-q">${this._multiExpanded ? String(q.q || '').replace(/</g, '&lt;') : ''}</span><span class="mans-count">${openN} / ${correctList.length} 開けた</span>${openBtns}<button type="button" class="mans-expand">${this._multiExpanded ? '閉じる' : '広げる'}</button>`;
+                head.querySelectorAll('.mans-open').forEach(b => {
+                    b.onclick = (e) => { e.stopPropagation(); this.openMultiAnswers(correctList.length, b.dataset.open); };
+                });
                 head.querySelector('.mans-expand').onclick = (e) => {
                     e.stopPropagation();
                     this._multiExpanded = !this._multiExpanded;
@@ -3765,8 +3808,8 @@ App.Studio = {
             const pts = isCorrect ? this._correctPts(p, q) : -loss;
             const result = isCorrect ? 'win' : 'lose';
             const extra = this._resultFields(p, isCorrect);
-            if (isCorrect) this.recordWinner(playerId, p.name);
-            if (config.mode !== 'normal') this.clearAnswerTimer();
+            if (isCorrect) this.recordWinner(playerId, p.name, pts);
+            if (config.mode !== 'normal') { this.clearAnswerTimer(); this.sendJudgeCue(isCorrect, p.name); }
 
             if (isNormalFreeWritten && answerAttempts === 'single') {
                 // ★ Single attempt mode: store as pending, don't reveal to player yet

@@ -254,6 +254,7 @@ window.App.Creator = {
 
         this.editingIndex = null;
         this.qNumText = '';
+        this.qReveal = {};
         this.renderForm(resolvedType);
         this.renderList();
         window.App.Ui.showView(window.App.Ui.views.creator);
@@ -361,6 +362,7 @@ window.App.Creator = {
         const titleEl = document.getElementById('question-title');
         if (titleEl) titleEl.value = '';
         this.qNumText = '';
+        this.qReveal = {};
         this.renderForm(type);
     },
 
@@ -1083,7 +1085,7 @@ window.App.Creator = {
     rulesSubTab: 'format',
 
     renderRulesSubtabs: function () {
-        const subs = { format: 'creator-rules-sub-format', correct: 'creator-rules-sub-correct', wrong: 'creator-rules-sub-wrong', win: 'creator-rules-sub-win', time: 'creator-rules-sub-time' };
+        const subs = { format: 'creator-rules-sub-format', correct: 'creator-rules-sub-correct', wrong: 'creator-rules-sub-wrong', win: 'creator-rules-sub-win', time: 'creator-rules-sub-time', reveal: 'creator-rules-sub-reveal' };
         Object.entries(subs).forEach(([k, id]) => {
             document.getElementById(id)?.classList.toggle('hidden', this.rulesSubTab !== k);
         });
@@ -1996,6 +1998,11 @@ window.App.Creator = {
         const qNumText = (this.qNumText || '').trim();
         newQ.qNumText = qNumText || null;
 
+        // 正解の発表（この問題だけ）— 見せ方・画像の答え合わせ・世間の正解率・解説（reveal.js）
+        if (window.App.Reveal && ['text', 'choice', 'sort'].includes(window.App.Reveal.kindOf(normalizedType))) {
+            Object.assign(newQ, window.App.Reveal.qFields(this.qReveal));
+        }
+
         // タイトル（一問一答のみ）— 問題文の上に出る
         if (normalizedType.startsWith('free')) {
             const title = (document.getElementById('question-title')?.value || '').trim();
@@ -2735,6 +2742,7 @@ ${spec.memo}" style="
         const titleEl = document.getElementById('question-title');
         if (titleEl) titleEl.value = q.title || '';
         this.qNumText = q.qNumText || '';
+        this.qReveal = window.App.Reveal ? window.App.Reveal.pickQ(q) : {};
         this.renderForm(q.type, q);
         this.renderList(); // refresh row highlight to the one now being edited
         document.getElementById('creator-view').scrollIntoView({ behavior: "smooth" });

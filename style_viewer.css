@@ -559,3 +559,48 @@ body {
 .rv-box.rv-inline { width: 96%; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 1cqh 2.4cqw; margin: 2cqh auto 0; padding: 2cqh 3cqw; background: color-mix(in srgb, var(--rv-bg) 18%, transparent); border-left: 1cqh solid var(--rv-line); color: var(--rv-qfg); animation: rvPop 0.3s ease-out; box-sizing: border-box; }
 .rv-inline .rv-mark { font-weight: 900; font-size: 3.4cqh; color: var(--rv-line); letter-spacing: 0.2em; }
 .rv-inline .rv-who, .rv-inline .rv-note { flex-basis: 100%; text-align: center; }
+/* 一緒に出すもの: 正解者（＋点）・人数・世間の正解率 */
+.rv-who { display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 0.6cqh 2cqw; }
+.rv-who .rv-name { display: inline-flex; align-items: baseline; gap: 0.6cqw; }
+.rv-who .rv-gain { font-size: 0.8em; padding: 0.1em 0.45em; border-radius: 0.4em; background: var(--rv-accent); color: #111; animation: rvGain 0.6s 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+@keyframes rvGain { from { transform: translateY(60%) scale(0.6); opacity: 0; } to { transform: none; opacity: 1; } }
+.rv-stats { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6cqh 3cqw; font-size: 3.2cqh; font-weight: 700; }
+.rv-stats b { font-size: 1.3em; font-weight: 900; }
+.rv-full .rv-stats { color: var(--rv-qfg); }
+.rv-inline .rv-stats { flex-basis: 100%; }
+/* ため: 「正解は…」 */
+.rv-tame { position: absolute; left: 0; right: 0; bottom: 8cqh; z-index: 320; display: flex; align-items: center; justify-content: center; gap: 1.6cqw; padding: 3cqh 0; background: var(--rv-bg); color: var(--rv-fg); font-weight: 900; font-size: 7cqh; letter-spacing: 0.2em; animation: rvBand 0.35s cubic-bezier(0.2, 1, 0.3, 1); }
+.rv-tame i { width: 1.6cqh; height: 1.6cqh; border-radius: 50%; background: currentColor; animation: rvDot 0.9s ease-in-out infinite; }
+.rv-tame i:nth-of-type(2) { animation-delay: 0.15s; }
+.rv-tame i:nth-of-type(3) { animation-delay: 0.3s; }
+@keyframes rvDot { 0%, 100% { opacity: 0.25; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-1cqh); } }
+/* 1文字ずつ */
+.rv-letters { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.18em; font-weight: 900; color: var(--rv-qfg); }
+.rv-letters .rv-ch { display: inline-flex; align-items: center; justify-content: center; min-width: 1.25em; height: 1.35em; padding: 0 0.1em; border-radius: 0.12em; background: var(--rv-bg); color: var(--rv-fg); box-shadow: 0 0.06em 0 rgba(0,0,0,0.35); animation: rvCh 0.45s cubic-bezier(0.2, 1.3, 0.4, 1) both; }
+.rv-letters .rv-sp { width: 0.4em; }
+@keyframes rvCh { from { transform: rotateX(90deg); opacity: 0; } to { transform: none; opacity: 1; } }
+/* 数字のカウント */
+.rv-num { font-variant-numeric: tabular-nums; }
+/* 選択式: 選んだ人数・下の帯 */
+.rv-dist { position: absolute; top: 50%; right: 1.2cqw; transform: translateY(-50%); z-index: 12; padding: 0.4cqh 1.2cqw; border-radius: 999px; background: rgba(0,0,0,0.72); color: #fff; font-size: 3cqh; font-weight: 900; font-family: inherit; animation: rvPop 0.35s 0.3s ease-out both; pointer-events: none; }
+.rv-strip { position: absolute; left: 50%; bottom: 1.5cqh; transform: translateX(-50%); z-index: 20; display: flex; flex-direction: column; align-items: center; gap: 0.8cqh; max-width: 92%; padding: 1.2cqh 3cqw; border-radius: 1.2cqh; background: rgba(0,0,0,0.78); color: #fff; animation: rvPop 0.35s ease-out both; text-align: center; }
+.rv-strip .rv-who { font-weight: 800; font-size: 3.2cqh; }
+.rv-strip .rv-note { font-size: 2.6cqh; opacity: 0.85; }
+.rv-strip.rv-flow { position: static; transform: none; margin-top: 1cqh; }
+/* 描き直しの時は動きを付けない */
+.rv-still, .rv-still *, .rv-still .rv-ch, .rv-still .rv-gain { animation: none !important; }
+/* 画像の答え合わせ */
+.rv-imgwrap { display: block; width: fit-content; max-width: 100%; margin: 0 auto 1.5cqh; overflow: hidden; border-radius: 1cqh; }
+.rv-imgwrap > img.q-photo { margin: 0 !important; transition: filter 1.4s ease, transform 1.4s cubic-bezier(0.3, 0.7, 0.2, 1); }
+img.q-photo.rv-img-blur { filter: blur(2.2cqh) saturate(0.8); }
+img.q-photo.rv-img-zoom { transform: scale(3.2); }
+/* 判定の合図: 〇✕を大きく */
+.rv-judge { position: absolute; inset: 0; z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2cqh; pointer-events: none; background: radial-gradient(circle, rgba(0,0,0,0.35), rgba(0,0,0,0.7)); animation: rvJudge 1.4s ease both; }
+.rv-judge-mark { position: relative; width: 48cqh; height: 48cqh; animation: rvPop 0.3s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+.rv-judge.ok .rv-judge-mark { border-radius: 50%; border: 6cqh solid #ef4444; box-sizing: border-box; filter: drop-shadow(0 0 3cqh rgba(239,68,68,0.6)); }
+.rv-judge.ng .rv-judge-mark::before, .rv-judge.ng .rv-judge-mark::after { content: ''; position: absolute; left: 50%; top: 50%; width: 60cqh; height: 6.5cqh; margin: -3.25cqh 0 0 -30cqh; border-radius: 1cqh; background: #3b82f6; filter: drop-shadow(0 0 3cqh rgba(59,130,246,0.6)); }
+.rv-judge.ng .rv-judge-mark::before { transform: rotate(45deg); }
+.rv-judge.ng .rv-judge-mark::after { transform: rotate(-45deg); }
+.rv-judge-name { padding: 1cqh 4cqw; border-radius: 1cqh; background: rgba(0,0,0,0.75); color: #fff; font-size: 6cqh; font-weight: 900; }
+@keyframes rvJudge { 0% { opacity: 0; } 8% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
+#viewer-main-text > .rv-tame { position: absolute !important; left: 0 !important; right: 0 !important; bottom: 8cqh !important; top: auto !important; width: auto !important; max-width: none !important; margin: 0 !important; }

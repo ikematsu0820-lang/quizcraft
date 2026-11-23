@@ -785,12 +785,6 @@ App.Design = {
                 <div style="display:flex; gap:6px; align-items:center;">
                     ${colorSwatch('アクセント', 'accentColor')}${colorSwatch('全体の背景', 'mainBgColor')}
                 </div>
-                ${window.App.Reveal && window.App.Reveal.applies() ? `${head('正解の出し方')}
-                <div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:6px;">
-                    ${window.App.Reveal.STYLES.map(o => `<button type="button" data-rv-style="${o.v}" style="${chip((design.revealStyle || 'band') === o.v)} padding:8px 4px;">
-                        <span style="display:block; font-weight:800; font-size:0.85rem;">${o.t}</span><span style="display:block; color:#8b8b95; font-size:0.62rem; margin-top:2px;">${o.sub}</span></button>`).join('')}
-                </div>
-                <label class="ds-flag" style="margin-top:8px;"><input type="checkbox" data-design-flag="revealWinners" ${design.revealWinners !== 'off' ? 'checked' : ''}><span>正解した人の名前も出す</span></label>` : ''}
                 <details id="design-look-details" ${detailsOpen} style="margin-top:16px; border-top:1px solid #26262d; padding-top:10px;">
                     <summary style="cursor:pointer; color:#e5e5e8; font-size:0.8rem; font-weight:bold; padding:6px 0;">細かく変える</summary>
                     ${head('文字の飾りの細部')}
@@ -1002,9 +996,6 @@ App.Design = {
                     if (onChange) onChange();
                     renderBody();
                 };
-            });
-            body.querySelectorAll('button[data-rv-style]').forEach(btn => {
-                btn.onclick = () => { design.revealStyle = btn.dataset.rvStyle; if (onChange) onChange(); renderBody(); };
             });
             const lookDetails = body.querySelector('#design-look-details');
             if (lookDetails) lookDetails.ontoggle = () => { this._lookDetailsOpen = lookDetails.open; };

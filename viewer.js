@@ -268,6 +268,7 @@ window.App.Viewer = {
             if (this._scoreBoardSt) this.updateScoreBoard();
             if (window.App.VarietyFrame && this._st) window.App.VarietyFrame.updateLive(this._st, this._players, this.questions[this._st.qIndex]);
             if (window.App.ChoiceSkin && this._st) window.App.ChoiceSkin.updateLive(this._st, this._players, this.questions[this._st.qIndex]);
+            if (window.App.Reveal) window.App.Reveal.updateLive();
         });
     },
 
@@ -281,6 +282,8 @@ window.App.Viewer = {
 
         this._renderSeq = (this._renderSeq || 0) + 1;
         this._st = st;
+        // 正解の発表（reveal.js）: 正解の画面を離れたら次の発表に備える・判定の合図（〇✕を大きく）
+        if (window.App.Reveal) { window.App.Reveal.resetFor(st); window.App.Reveal.judgeFlash(viewContainer, st); }
         // 選択式の見せ方（choice_skin.js）の印は、問題の画面を描く時だけ付け直す
         if (window.App.ChoiceSkin) window.App.ChoiceSkin.clear(mainText);
         // タイマーは出題中だけ（正解発表などの画面では消す — 途中で return する
@@ -505,10 +508,16 @@ window.App.Viewer = {
 
             // Sort answer reveal: replace entire content with ordered list (no choice grid behind it)
             if (q.type === 'sort') {
+                // ためてから: 問題の画面に「正解は…」を重ねてから並べる
+                if (window.App.Reveal) {
+                    this.renderQuestionLayout(viewContainer, mainText, q, st);
+                    if (window.App.Reveal.holding(mainText, q, st, q.design || {})) return;
+                }
                 mainText.style.flexDirection = '';
                 mainText.style.justifyContent = '';
                 mainText.style.alignItems = '';
                 this.renderSortReveal(mainText, q, st);
+                if (window.App.Reveal) window.App.Reveal.choiceExtras(mainText, q, st, q.design || {});
                 return;
             }
 
@@ -516,6 +525,9 @@ window.App.Viewer = {
             if (this.readAloud(q)) this.renderScoreBoard(mainText, st);
             else this.renderQuestionLayout(viewContainer, mainText, q, st, st.revealedMulti);
             if (window.App.VarietyFrame && window.App.VarietyFrame.applies(q)) return; // 枠の中で発表済み
+            // ためてから（ルール › 発表）: 「正解は…」をはさむ間は正解を描かない
+            const rvKind = window.App.Reveal ? window.App.Reveal.kindOf(q.type) : '';
+            if ((rvKind === 'text' || rvKind === 'choice') && window.App.Reveal.holding(mainText, q, st, q.design || {})) return;
 
             // Suppress popup for ANY multi type that has a grid layout (q.c)
             if (q.type && (q.type.startsWith('multi') || q.type.startsWith('ranking')) && Array.isArray(q.c) && q.c.length > 0) return;
@@ -569,7 +581,9 @@ window.App.Viewer = {
                     }
                 });
                 const commentary = st.commentary || q.commentary || '';
-                if (commentary) {
+                // 選んだ人数・正解した人数・世間の正解率・解説（ルール › 発表 › 一緒に出すもの）
+                if (window.App.Reveal) window.App.Reveal.choiceExtras(mainText, q, st, q.design || {});
+                else if (commentary) {
                     const cd = document.createElement('div');
                     cd.style.cssText = 'position:absolute;bottom:2.5vh;left:50%;transform:translateX(-50%);font-size:2.2vh;color:#aaa;text-align:center;max-width:85%;font-family:sans-serif;pointer-events:none;';
                     cd.textContent = commentary;
@@ -1785,14 +1799,17 @@ window.App.Viewer = {
             const text = (q.c && q.c[origIdx] !== undefined) ? q.c[origIdx] : label;
             const itemImg = Array.isArray(q.cImg) && q.cImg[origIdx] ? `<img src="${q.cImg[origIdx]}" alt="" style="height:6vh; max-width:12vw; object-fit:contain; border-radius:6px; flex:0 0 auto;">` : '';
             const color = badgeColors[origIdx % badgeColors.length];
-            const delay = rank * 0.07;
-            return `<div style="display:flex;align-items:center;gap:1.5vw;padding:1vh 1.5vw;animation:slideInLeft ${0.2 + delay}s ease-out both;">
+            // 1つずつ並べる（ルール › 発表 › 並べ方）は間をあけて1行ずつ
+            const gap = window.App.Reveal ? window.App.Reveal.sortDelay(q) : 0.07;
+            const anim = gap > 0.5 ? `slideInLeft 0.5s ease-out ${(0.3 + rank * gap).toFixed(2)}s both` : `slideInLeft ${0.2 + rank * 0.07}s ease-out both`;
+            return `<div style="display:flex;align-items:center;gap:1.5vw;padding:1vh 1.5vw;animation:${anim};">
                 <div style="width:5vh;height:5vh;min-width:5vh;border-radius:50%;background:${color};border:3px solid rgba(255,255,255,0.85);display:flex;align-items:center;justify-content:center;font-size:2.4vh;font-weight:900;color:#fff;flex-shrink:0;box-shadow:0 2px 10px ${color}88;">${label}</div>
                 ${itemImg}<div style="font-size:2.8vh;font-weight:700;color:${revealText};line-height:1.3;">${text}</div>
             </div>`;
         }).join('');
 
-        const commentary = st.commentary || q.commentary || '';
+        // 解説は「一緒に出すもの」（reveal.js）でまとめて出す
+        const commentary = window.App.Reveal ? '' : (st.commentary || q.commentary || '');
 
         contentBox.innerHTML = `
             <style>@keyframes slideInLeft { from { opacity:0; transform:translateX(-40px); } to { opacity:1; transform:translateX(0); } }</style>
