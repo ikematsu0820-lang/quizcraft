@@ -6002,3 +6002,5 @@ body:has(.qd-ov, .im-ov) :is(#unified-toggle-container, #test-view-dock) { displ
 #trial-ov .tr-hint { flex: 0 0 auto; }
 #trial-ov .tr-btns { flex-wrap: wrap; justify-content: flex-end; }
 #trial-ov .tr-b { flex: 0 0 auto; white-space: nowrap; }
+/* 問題一覧の下に来たセットの設定: 上と少し間をあける */
+.cm-section-head.cm-set-head { margin-top: 28px; }

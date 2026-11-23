@@ -51,14 +51,15 @@ App.CreatorMobile = {
         list.innerHTML = `
             <div class="cm-list-meta"><span id="cm-type-chip" class="cm-chip"></span><span id="cm-count"></span></div>
             <div id="cm-warn" class="cm-warn hidden"></div>
-            <div class="cm-section-head">セットの設定<span>タップで変更</span></div>
-            <div id="cm-settings"></div>
+            <!-- 問題を足す・直すのが一番多いので、問題一覧を上に。セットの設定はその下（下のバーのデザイン・ルールからも開ける） -->
             <div class="cm-section-head">問題一覧</div>
             <div id="cm-qcards"></div>
             <div class="cm-add-row">
                 <button type="button" id="cm-add-btn" class="cm-add-card">＋ 新しい問題</button>
                 <button type="button" id="cm-bulk-btn" class="cm-ghost-btn">まとめて入力</button>
             </div>
+            <div class="cm-section-head cm-set-head">セットの設定<span>タップで変更</span></div>
+            <div id="cm-settings"></div>
             <div id="cm-list-bar" class="cm-bottom-bar">
                 <button type="button" data-cm-sheet="design" class="cm-bar-btn">${window.App.Icons.svg('palette')}<span>デザイン</span></button>
                 <button type="button" data-cm-sheet="rules" class="cm-bar-btn">${window.App.Icons.svg('sliders')}<span>ルール</span></button>
