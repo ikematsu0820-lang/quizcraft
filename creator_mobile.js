@@ -60,7 +60,7 @@ App.CreatorMobile = {
                 <button type="button" id="cm-bulk-btn" class="cm-ghost-btn">まとめて入力</button>
             </div>
             <div id="cm-list-bar" class="cm-bottom-bar">
-                <button type="button" data-cm-sheet="design" class="cm-bar-btn">${window.App.Icons.svg('palette')}<span>見た目</span></button>
+                <button type="button" data-cm-sheet="design" class="cm-bar-btn">${window.App.Icons.svg('palette')}<span>デザイン</span></button>
                 <button type="button" data-cm-sheet="rules" class="cm-bar-btn">${window.App.Icons.svg('sliders')}<span>ルール</span></button>
                 <button type="button" id="cm-preview-list-btn" class="cm-bar-btn">${window.App.Icons.svg('monitor')}<span>プレビュー</span></button>
                 <button type="button" id="cm-save-btn" class="cm-bar-btn cm-primary">保存して完了</button>
@@ -441,12 +441,14 @@ App.CreatorMobile = {
             : conf.timerKind === 'personal' ? `1人${sec}秒の持ち時間` : `1問${sec}秒`;
         if (Number(conf.answerSec) > 0) time += `・答えは${Number(conf.answerSec)}秒以内`;
         rows.push({ key: 'time', label: '時間', value: time });
-        // 正解の発表（ルール › 発表）— 判定の合図・正解の出し方・結果と得点
-        if (window.App.Reveal) window.App.Reveal.summaryRows(conf).forEach(r => rows.push(r));
+        // 結果発表（ルール › 勝敗）
+        rows.push({ key: 'result', label: '結果発表', value: conf.resultEachQ === 'skip' ? '毎問の発表なし' : '毎問発表' });
         const theme = window.App.Themes && window.App.Themes.get(d.themeId);
         // テーマを選んでいない時は、既定の見た目（スタジオ）
         const look = theme ? `${theme.name}${window.App.Themes.isModified(d) ? '（カスタム）' : ''}` : (d.themeId ? 'カスタム' : 'スタジオ（標準）');
-        rows.push({ key: 'design', label: '見た目', value: look });
+        rows.push({ key: 'design', label: 'テーマ', value: look });
+        // 判定演出・正解表示（デザイン › 正解表示）
+        if (window.App.Reveal) window.App.Reveal.summaryRows(conf).forEach(r => rows.push(r));
         // 音・演出（見た目とは別）— 効果音が入っているか・第◯問の出し方
         const sounds = Object.keys(d).filter(k => /^(bgm|se)[A-Z]/.test(k) && d[k]).length;
         rows.push({ key: 'fx', label: '音・演出', value: sounds ? `効果音 ${sounds}つ` : '標準' });
@@ -456,8 +458,8 @@ App.CreatorMobile = {
     renderSettingsSummary: function (box) {
         if (!box) return;
         // まとまりごとに区切る: 遊び方とルール ／ 正解の発表 ／ モニターの見た目 ／ 問題
-        const GROUP = { format: 'rule', correct: 'rule', wrong: 'rule', win: 'rule', time: 'rule', judge: 'ans', reveal: 'ans', result: 'ans', design: 'show', fx: 'show' };
-        const HEAD = { rule: 'ルール', ans: '正解の発表', show: '見た目' };
+        const GROUP = { format: 'rule', correct: 'rule', wrong: 'rule', win: 'rule', time: 'rule', result: 'rule', design: 'show', judge: 'show', reveal: 'show', fx: 'show' };
+        const HEAD = { rule: 'ルール', show: 'デザイン' };
         let last = null, html = '';
         this.settingsRows().forEach(r => {
             const g = GROUP[r.key] || 'other';
@@ -473,7 +475,8 @@ App.CreatorMobile = {
             b.onclick = () => {
                 const k = b.dataset.setKey;
                 if (k === 'design') this.openSheet('design', 'look');
-                else if (k === 'judge' || k === 'reveal' || k === 'result') this.openSheet('rules', 'reveal');
+                else if (k === 'judge' || k === 'reveal') this.openSheet('design', 'reveal');
+                else if (k === 'result') this.openSheet('rules', 'win');
                 else if (k === 'fx') this.openSheet('design', 'fx');
                 else this.openSheet('rules', k);
             };
@@ -501,7 +504,7 @@ App.CreatorMobile = {
             return;
         }
         const ids = { design: 'creator-inline-design', rules: 'creator-inline-rules', bulk: 'creator-bulk-panel' };
-        const titles = { design: sub === 'fx' ? '音・演出（セット全体）' : '見た目（セット全体）', rules: 'ルール（セット全体）', bulk: 'まとめて入力' };
+        const titles = { design: sub === 'fx' ? '音・演出（セット全体）' : 'デザイン（セット全体）', rules: 'ルール（セット全体）', bulk: 'まとめて入力' };
         // タブを切り替えても題名がずれないよう、ルールは「ルール」のまま（どの設定かはタブで分かる）
         const node = document.getElementById(ids[kind]);
         if (!node) return;
@@ -518,7 +521,7 @@ App.CreatorMobile = {
             // スマホではまずテーマを選ぶところから（細かい色はその後で）
             if (window.App.Design) {
                 window.App.Design._tabsMode = sub === 'fx' ? 'fx' : 'look';
-                window.App.Design._activeDesignTab = sub === 'fx' ? 'sound' : 'theme';
+                window.App.Design._activeDesignTab = sub === 'fx' ? 'sound' : sub === 'reveal' ? 'reveal' : 'theme';
             }
             C.renderActivePanelContent('design');
         } else if (kind === 'rules') {
@@ -997,6 +1000,19 @@ App.CreatorInput = {
             : t.startsWith('choice') ? ((C && C.oxMode) ? '〇か×（正解をタップ）' : '選択肢')
             : '';
         label('cm-sec-q', qArea, (PB && PB.board) ? '盤面のタイトル（空欄なら「パネルクイズ」）' : '問題文');
+        // 一問一答の「見出し」— 問題文の上に出す小さな見出し（ジャンル名など）。
+        //   切り替えを「問題文」の横に置き、オンにしても下の欄が押し出されないように
+        const chk = document.getElementById('free-title-chk');
+        const secQ = document.getElementById('cm-sec-q');
+        if (secQ && chk && t.startsWith('free')) {
+            const on = chk.checked;
+            secQ.innerHTML = `<span>問題文</span><button type="button" class="cm-title-chip${on ? ' on' : ''}">${on ? '見出しを外す' : '＋ 見出し（ジャンル名など）'}</button>`;
+            secQ.querySelector('.cm-title-chip').onclick = () => { chk.click(); this.sectionLabels(); };
+            const lb = chk.closest('label'); if (lb) { lb.classList.add('cm-title-moved'); lb.style.setProperty('display', 'none', 'important'); }
+        }
+        // 見出しの欄は「問題文」の見出しの下・問題文の上に
+        const ti = document.getElementById('question-title');
+        if (ti && secQ && window.App.CreatorMobile && window.App.CreatorMobile.isMobile() && secQ.nextElementSibling !== ti) flex.insertBefore(ti, qArea);
         label('cm-sec-form', form, form.children.length ? formText : '');
 
     },

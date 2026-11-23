@@ -924,12 +924,15 @@ App.Design = {
                 <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">※答えている間は正誤を伏せて表示します（まだ答えていない人に答えがばれないように）</p>`;
         };
         if (!activeBody.timer) activeBody.timer = timerBody;
+        // 正解表示 — 判定演出・正解の出し方・併せて表示（reveal.js）
+        if (slide !== 'bridge' && slide !== 'result' && slide !== 'title' && window.App.Reveal && window.App.Reveal.renderDesign) activeBody.reveal = () => '<div id="ds-reveal"></div>';
 
         // スマホのセット設定では「見た目」と「音・演出」を別の行から開く（_tabsMode）
         const allTabs = [
             { key: 'theme', label: 'テーマ', g: 'look' },
             { key: 'text', label: '文字', g: 'look' },
             { key: 'object', label: '部品', g: 'look' },
+            { key: 'reveal', label: '正解表示', g: 'look' },
             { key: 'sound', label: 'サウンド', g: 'fx' },
             { key: 'timer', label: '演出', g: 'fx' },
         ];
@@ -939,6 +942,8 @@ App.Design = {
 
         const wireBody = (body) => {
             body.querySelector('#design-grid-config-btn')?.addEventListener('click', () => this._openGridModal(design, onChange));
+            const rvBox = body.querySelector('#ds-reveal');
+            if (rvBox) window.App.Reveal.renderDesign(rvBox, window.App.Data.currentConfig || {}, () => { if (onChange) onChange(); });
             body.querySelectorAll('input[type="text"][data-key], input[type="number"][data-key]').forEach(inp => {
                 inp.oninput = () => {
                     design[inp.dataset.key] = inp.value;

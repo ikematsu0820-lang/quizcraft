@@ -5959,3 +5959,10 @@ body:has(.qd-ov, .im-ov) :is(#unified-toggle-container, #test-view-dock) { displ
 .rv-qnum input { width: 90px; }
 /* 司会者: 多答の「残りを開く」「下から開く」 */
 .mans-open { flex: 0 0 auto; min-height: 36px; padding: 0 12px; border: none; border-radius: 8px; background: #3a2a0a; color: #fbbf24; font-weight: 800; font-size: 0.82rem; cursor: pointer; }
+/* 問題文の見出し（一問一答）— 切り替えは「問題文」の横に。下の欄の切り替えは隠す */
+#creator-view.cm-on #cm-sec-q { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+#creator-view.cm-on .cm-title-chip { flex: 0 0 auto; padding: 4px 10px; border: none; border-radius: 999px; background: #1b1b20; color: #c9c9cf; font-size: 0.72rem; font-weight: 700; cursor: pointer; }
+#creator-view.cm-on .cm-title-chip.on { color: #f59e0b; }
+#creator-view.cm-on label.cm-title-moved { display: none !important; }
+/* 問題ごとの欄の並び */
+.rv-qbox + .rv-qbox { margin-top: 8px; }

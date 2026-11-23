@@ -338,7 +338,8 @@ App.Reveal = {
         const on = this.get(key, conf, window.App.Data.currentDesign || {}, null) !== 'off';
         return `<label class="rv-flag"><input type="checkbox" data-rv-flag="${key}" ${on ? 'checked' : ''}><span>${label}${sub ? `<small>${sub}</small>` : ''}</span></label>`;
     },
-    renderRules: function (box, conf, onSoft) {
+    // デザイン › 正解表示 — 判定演出と正解表示（値はセットのルールと同じ所 currentConfig に持つ）
+    renderDesign: function (box, conf, onSoft) {
         if (!box || !conf) return;
         const R = window.App.RulePanel;
         const C = window.App.Creator;
@@ -348,18 +349,14 @@ App.Reveal = {
         const g = (k) => this.get(k, conf, d, null);
         const tiles = (key, items) => R.tiles('rv-' + key, items.map(o => ({ value: o.v, label: o.t, sub: o.sub })), g(key));
         const sec = (title, sub, inner) => `<section class="rv-sec"><div class="rv-sec-head"><b>${title}</b><span>${sub}</span></div>${inner}</section>`;
-        // 1. 判定の合図
         let a = '';
         if (judge) {
             a += tiles('judgeCue', [{ v: 'sound', t: '効果音のみ' }, { v: 'big', t: '〇✕を大きく' }, { v: 'big_name', t: '〇✕＋名前' }]);
             a += R.head('正解後');
             a += tiles('revealTiming', [{ v: 'host', t: '司会者の操作で', sub: '正解者の発表をはさむ' }, { v: 'auto', t: '即正解表示', sub: '発表をはさまない' }]);
-        } else {
-            a += R.note('全員が同時に答える遊び方なので、判定の合図はありません（締め切ってからまとめて判定します）。');
         }
-        // 2. 正解の出し方
         let b = '';
-        if (kind === 'text') b += R.head('見せ方') + tiles('revealStyle', this.STYLES);
+        if (kind === 'text') b += R.head('表示方法') + tiles('revealStyle', this.STYLES);
         else if (kind === 'choice') b += R.note('選択式は、正解の選択肢が光ってほかが暗くなります。');
         else if (kind === 'sort') b += R.head('並べ方') + tiles('revealSort', [{ v: 'all', t: '一括表示' }, { v: 'one', t: '1つずつ表示' }]);
         else if (kind === 'multi') b += R.note('多答・ランキングは、司会者の画面で答えを1つずつ開きます。「残りを開く」「下から開く」でまとめて開くこともできます。');
@@ -368,28 +365,19 @@ App.Reveal = {
             b += R.head('表示タイミング') + tiles('revealPause', [{ v: 'now', t: '即表示' }, { v: 'tame', t: 'ため演出', sub: '「正解は…」をはさむ' }]);
             b += R.head('併せて表示');
             b += this.flagRow('rvWinners', '正解者名', conf);
+            b += this.flagRow('rvGain', '正解者名に獲得点', conf, '例: 山田 +10');
             b += this.flagRow('rvCount', '正解者数', conf);
             if (kind === 'choice') b += this.flagRow('rvDist', '選択人数', conf, '選択肢ごと');
             b += this.flagRow('rvRate', '世間の正解率', conf, '問題に入力した時');
             b += this.flagRow('rvNote', '解説', conf, '問題に入力した時');
         }
-        // 3. 結果・得点
-        let c = '';
-        if (['text', 'choice', 'sort'].includes(kind)) c += this.flagRow('rvGain', '正解者名に獲得点', conf, '例: 山田 +10');
-        c += R.row('1問ごとの結果発表', R.select('rv-result-each', [{ v: 'show', t: '出す' }, { v: 'skip', t: '出さない' }], conf.resultEachQ === 'skip' ? 'skip' : 'show'));
-        c += R.note('「出さない」にすると、正解を見せたらすぐ次の問題へ進みます。');
-        c += R.row('解答者の端末の得点', R.select('rv-score-view', [{ v: 'score', t: '得点だけ' }, { v: 'score_rank', t: '得点と順位' }, { v: 'none', t: '出さない' }], conf.playerScoreView || 'score'));
-        c += R.note('「出さない」にすると、得点と順位は結果発表まで分かりません。');
-        box.innerHTML = sec('判定演出', '判定時', a) + sec('正解表示', 'モニター', b) + sec('結果・得点', '正解後', c);
+        box.innerHTML = (judge ? sec('判定演出', '〇✕を判定した瞬間', a) : '') + sec('正解表示', 'モニターに正解を出す時', b);
         box.querySelectorAll('.rp-tile[data-rp^="rv-"]').forEach(btn => {
-            btn.onclick = () => { conf[btn.dataset.rp.slice(3)] = btn.dataset.val; this.renderRules(box, conf, onSoft); if (onSoft) onSoft(); };
+            btn.onclick = () => { conf[btn.dataset.rp.slice(3)] = btn.dataset.val; this.renderDesign(box, conf, onSoft); if (onSoft) onSoft(); };
         });
         box.querySelectorAll('input[data-rv-flag]').forEach(chk => {
             chk.onchange = () => { conf[chk.dataset.rvFlag] = chk.checked ? 'on' : 'off'; if (onSoft) onSoft(); };
         });
-        const sel = (id, fn) => { const el = box.querySelector('#' + id); if (el) el.onchange = () => { fn(el.value); if (onSoft) onSoft(); }; };
-        sel('rv-result-each', v => { conf.resultEachQ = v; });
-        sel('rv-score-view', v => { conf.playerScoreView = v; });
     },
 
     // セットの設定の一覧に出す行（判定の合図・正解の出し方・結果と得点）
@@ -415,9 +403,6 @@ App.Reveal = {
             if (w.length) how += '・' + w.join('と');
         }
         rows.push({ key: 'reveal', label: '正解表示', value: how });
-        const res = [conf.resultEachQ === 'skip' ? '毎問の発表なし' : '毎問発表'];
-        if (g('rvGain') !== 'off' && ['text', 'choice', 'sort'].includes(kind)) res.push('＋点を添える');
-        rows.push({ key: 'result', label: '結果・得点', value: res.join('・') });
         return rows;
     },
     // 以前の版（見た目の設定）の要約
@@ -444,13 +429,11 @@ App.Reveal = {
     },
     mountQuestionBox: function () {
         const C = window.App.Creator;
+        const Th = window.App.Themes;
         if (!C) return;
         document.querySelectorAll('.rv-qbox').forEach(e => e.remove());
         const kind = this.kindOf(C.currentType);
         const M = window.App.CreatorMobile;
-        // この問題だけのテーマ（どの形式でも）
-        this.mountLookBox(M);
-        if (!['text', 'choice', 'sort'].includes(kind)) return;
         // スマホは正解の欄の下（#creator-outside-opts）、PCは「この問題」のタブ
         const host = (M && M.isMobile && M.isMobile()) ? (document.getElementById('creator-outside-opts') || document.getElementById('creator-form-container')) : document.getElementById('creator-options-extra');
         if (!host) return;
@@ -458,62 +441,53 @@ App.Reveal = {
         const s = C.qReveal;
         const conf = window.App.Data.currentConfig || {};
         const d = window.App.Data.currentDesign || {};
-        const setStyle = (this.STYLES.find(o => o.v === this.get('revealStyle', conf, d, null)) || this.STYLES[0]).t;
         const opts = (list, cur) => list.map(o => `<option value="${o.v}" ${String(cur || '') === o.v ? 'selected' : ''}>${o.t}</option>`).join('');
-        const isSet = () => this.Q_KEYS.some(k => s[k] !== undefined && s[k] !== '');
-        const el = document.createElement('details');
-        el.className = 'rv-qbox';
-        if (isSet() || this._qboxOpen) el.open = true;
-        el.innerHTML = `<summary><span>この問題の正解表示</span><small>${isSet() ? '設定あり' : 'セットと同じ'}</small></summary>
+        const boxes = [];
+        // この問題のデザイン — テーマ（どの形式でも）・正解の表示方法（答えが文字の形式）
+        const setStyle = (this.STYLES.find(o => o.v === this.get('revealStyle', conf, d, null)) || this.STYLES[0]).t;
+        const lookSet = () => !!(s.themeId || s.revealStyle);
+        const lookSum = () => [s.themeId && Th && Th.get(s.themeId) ? Th.get(s.themeId).name : '', s.revealStyle ? ((this.STYLES.find(o => o.v === s.revealStyle) || {}).t || '数字のカウント') : ''].filter(Boolean).join('・') || 'セットと同じ';
+        const look = document.createElement('details');
+        look.className = 'rv-qbox rv-lookbox';
+        look.open = lookSet() || !!this._lookOpen;
+        look.innerHTML = `<summary><span>この問題のデザイン</span><small>${this.esc(lookSum())}</small></summary>
             <div class="rv-qgrid">
-                ${kind === 'text' ? `<label><span>表示方法</span><select data-rvq="revealStyle">${opts([{ v: '', t: `セットと同じ（${setStyle}）` }, ...this.STYLES.map(o => ({ v: o.v, t: o.t })), { v: 'count', t: '数字のカウント（答えが数字の時）' }], s.revealStyle)}</select></label>` : ''}
-                <label><span>画像の答え合わせ</span><select data-rvq="imgReveal">${opts([{ v: '', t: 'しない' }, { v: 'blur', t: 'ぼかしが取れる' }, { v: 'zoom', t: '拡大から全体へ' }], s.imgReveal)}</select><small>問題に画像を入れた時。出題中はぼかし・拡大して見せ、正解で全体を見せます</small></label>
-                <label><span>世間の正解率</span><span class="rv-qnum"><input type="number" min="0" max="100" step="1" inputmode="numeric" data-rvq="publicRate" value="${s.publicRate ?? ''}" placeholder="なし"> %</span></label>
-                <label><span>解説</span><textarea rows="2" data-rvq="commentary" placeholder="正解のあとに添えるひとこと（なしでも可）">${this.esc(s.commentary || '')}</textarea></label>
+                ${Th && Th.list ? `<label><span>テーマ</span><select data-rvq="themeId">${opts([{ v: '', t: 'セットと同じ' }, ...Th.list.map(t => ({ v: t.id, t: t.name }))], s.themeId)}</select><small>決勝の問題だけ金色に、など。背景画像・ロゴ・音はセットのまま</small></label>` : ''}
+                ${kind === 'text' ? `<label><span>正解の表示方法</span><select data-rvq="revealStyle">${opts([{ v: '', t: `セットと同じ（${setStyle}）` }, ...this.STYLES.map(o => ({ v: o.v, t: o.t })), { v: 'count', t: '数字のカウント（答えが数字の時）' }], s.revealStyle)}</select></label>` : ''}
             </div>`;
-        host.appendChild(el);
+        look.addEventListener('toggle', () => { this._lookOpen = look.open; });
+        boxes.push([look, lookSum]);
+        // 解説・正解率 — 正解表示の時に添える（答えが文字・選択式・並べ替え）
+        if (['text', 'choice', 'sort'].includes(kind)) {
+            const noteSum = () => [s.commentary ? '解説あり' : '', (s.publicRate ?? '') !== '' ? `正解率${s.publicRate}%` : ''].filter(Boolean).join('・') || 'なし';
+            const note = document.createElement('details');
+            note.className = 'rv-qbox rv-notebox';
+            note.open = !!(s.commentary || (s.publicRate ?? '') !== '') || !!this._noteOpen;
+            note.innerHTML = `<summary><span>解説・正解率</span><small>${this.esc(noteSum())}</small></summary>
+                <div class="rv-qgrid">
+                    <label><span>解説</span><textarea rows="2" data-rvq="commentary" placeholder="正解のあとに添えるひとこと">${this.esc(s.commentary || '')}</textarea></label>
+                    <label><span>世間の正解率</span><span class="rv-qnum"><input type="number" min="0" max="100" step="1" inputmode="numeric" data-rvq="publicRate" value="${s.publicRate ?? ''}" placeholder="なし"> %</span></label>
+                </div>`;
+            note.addEventListener('toggle', () => { this._noteOpen = note.open; });
+            boxes.push([note, noteSum]);
+        }
+        boxes.forEach(([el]) => host.appendChild(el));
         // あとから足される設定（シャッフルなど）より下に置く
-        setTimeout(() => { if (el.isConnected && el.nextElementSibling) host.appendChild(el); }, 0);
-        el.addEventListener('toggle', () => { this._qboxOpen = el.open; });
-        el.querySelectorAll('[data-rvq]').forEach(inp => {
-            const k = inp.dataset.rvq;
-            const read = () => {
-                let v = inp.value;
-                if (k === 'publicRate' && v !== '') v = Math.max(0, Math.min(100, Math.round(Number(v) || 0)));
-                if (v === '' || v === null) delete s[k]; else s[k] = v;
-                const sm = el.querySelector('summary small');
-                if (sm) sm.textContent = isSet() ? '設定あり' : 'セットと同じ';
-            };
-            inp.addEventListener(inp.tagName === 'SELECT' ? 'change' : 'input', read);
+        setTimeout(() => { boxes.forEach(([el]) => { if (el.isConnected) host.appendChild(el); }); }, 0);
+        boxes.forEach(([el, sum]) => {
+            el.querySelectorAll('[data-rvq]').forEach(inp => {
+                const k = inp.dataset.rvq;
+                const read = () => {
+                    let v = inp.value;
+                    if (k === 'publicRate' && v !== '') v = Math.max(0, Math.min(100, Math.round(Number(v) || 0)));
+                    if (v === '' || v === null) delete s[k]; else s[k] = v;
+                    const sm = el.querySelector('summary small');
+                    if (sm) sm.textContent = sum();
+                    if (k === 'themeId') { const Mo = window.App.CreatorMobile; if (Mo && Mo.renderSheetStage) try { Mo.renderSheetStage(); } catch (e) { /* 次の描き直しで */ } }
+                };
+                inp.addEventListener(inp.tagName === 'SELECT' ? 'change' : 'input', read);
+            });
         });
-    },
-
-    // 「この問題の見た目」— セットの見た目の上に、ほかのテーマを重ねる
-    mountLookBox: function (M) {
-        const C = window.App.Creator;
-        const Th = window.App.Themes;
-        if (!C || !Th || !Th.list) return;
-        const host = (M && M.isMobile && M.isMobile()) ? (document.getElementById('creator-outside-opts') || document.getElementById('creator-form-container')) : document.getElementById('creator-options-extra');
-        if (!host) return;
-        C.qReveal = C.qReveal || {};
-        const s = C.qReveal;
-        const el = document.createElement('details');
-        el.className = 'rv-qbox rv-lookbox';
-        if (s.themeId) el.open = true;
-        el.innerHTML = `<summary><span>この問題の見た目</span><small>${s.themeId ? (Th.get(s.themeId) || {}).name || '' : 'セットと同じ'}</small></summary>
-            <div class="rv-qgrid">
-                <label><span>テーマ</span><select data-rvq-theme>${[{ id: '', name: 'セットと同じ' }, ...Th.list].map(t => `<option value="${t.id}" ${(s.themeId || '') === t.id ? 'selected' : ''}>${t.name}</option>`).join('')}</select>
-                <small>決勝の問題だけ金色に、などに。背景画像・ロゴ・音はセットのまま使います</small></label>
-            </div>`;
-        host.appendChild(el);
-        setTimeout(() => { if (el.isConnected && el.nextElementSibling && !el.nextElementSibling.classList.contains('rv-qbox')) host.appendChild(el); const rb = host.querySelector('.rv-qbox:not(.rv-lookbox)'); if (rb) host.appendChild(rb); }, 0);
-        const sel = el.querySelector('select');
-        sel.onchange = () => {
-            if (sel.value) s.themeId = sel.value; else delete s.themeId;
-            el.querySelector('summary small').textContent = sel.value ? (Th.get(sel.value) || {}).name : 'セットと同じ';
-            const Mo = window.App.CreatorMobile;
-            if (Mo && Mo.renderSheetStage) try { Mo.renderSheetStage(); } catch (e) { /* プレビューは次の描き直しで */ }
-        };
     },
 
     // 問題の画面を描く関数に、あとから付け足す（作成画面・モニター）

@@ -676,7 +676,7 @@ window.App.Creator = {
             // まま保存するとタイトル名が消えていた
             if (data) this.titleEnabled = (data._titleEnabled !== undefined) ? !!data._titleEnabled : !!data.title;
             if (titleInput) titleInput.classList.toggle('hidden', !this.titleEnabled);
-            outsideCheck('free-title-chk', 'タイトルを追加', !!this.titleEnabled, (on) => {
+            outsideCheck('free-title-chk', '見出しを付ける', !!this.titleEnabled, (on) => {
                 this.titleEnabled = on;
                 if (titleInput) {
                     titleInput.classList.toggle('hidden', !on);

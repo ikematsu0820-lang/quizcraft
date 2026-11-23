@@ -51,7 +51,7 @@ App.CreatorDesktop = {
             <aside id="cp-right">
                 <div class="cp-tabs" role="tablist">
                     <button type="button" class="cp-tab" data-cp-panel="edit">この問題</button>
-                    <button type="button" class="cp-tab" data-cp-panel="design">見た目</button>
+                    <button type="button" class="cp-tab" data-cp-panel="design">デザイン</button>
                     <button type="button" class="cp-tab" data-cp-panel="rules">ルール</button>
                 </div>
                 <div id="cp-scope" class="cp-scope"></div>

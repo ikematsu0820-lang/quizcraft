@@ -85,7 +85,7 @@ App.SetMerge = {
                 return;
             }
             body.innerHTML = `
-                <p class="ps-note sm-lead">同じ形式（${name}）のセットだけが並びます。ルールと見た目は、今のセットのままです。</p>
+                <p class="ps-note sm-lead">同じ形式（${name}）のセットだけが並びます。ルールとデザインは、今のセットのままです。</p>
                 <div class="sm-sets">${list.map(([k, m]) => `
                     <button type="button" class="ps-card sm-set" data-key="${this.esc(k)}">
                         <span class="ps-label">${this.esc(m.title || '名前なし')}</span>

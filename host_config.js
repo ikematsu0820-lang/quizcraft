@@ -618,7 +618,7 @@ App.Config = {
                         `).join('')}
                     </div>
                     ${this.advancedBlock('timer', adv)}
-                    <p class="rule-adv-note">タイマーの見た目（バー・円・時計・導火線など）は「見た目」の「タイマー」で選べます。</p>
+                    <p class="rule-adv-note">タイマーの見た目（バー・円・時計・導火線など）は「デザイン」の「タイマー」で選べます。</p>
                 </div>
             `;
             this.wireAdvancedBlocks(container);
