@@ -1268,3 +1268,38 @@ body.tp-open :is(#unified-toggle-container, #test-view-dock) { display: none !im
 /* 出題の盤面: 問題の無いマス・今開いているマス */
 .tp-cell.none { opacity: 0.25; }
 .tp-cell.cur { box-shadow: inset 0 0 0 3px #fbbf24; }
+/* 陣取り: マスの表の字・司会者だけに見える答え・お題 */
+.tp-cell .tp-lb { font-size: 0.95em; font-weight: 900; color: #e5e5e8; line-height: 1.15; max-width: 94%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tp-cell .tp-no { font-size: 0.7em; opacity: 0.75; }
+.tp-cell.own .tp-lb { color: #fff; opacity: 0.85; }
+.tp-cell .tp-ans { font-size: 0.6em; font-weight: 700; color: #fbbf24; max-width: 94%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tp-cell.cur { box-shadow: 0 0 0 3px #fbbf24, 0 0 18px rgba(251,191,36,0.6); z-index: 2; }
+.tp-cell.miss { animation: tpMiss 0.6s ease-in-out; box-shadow: 0 0 0 3px #3b82f6; }
+@keyframes tpMiss { 20%, 60% { transform: translateX(-4%); } 40%, 80% { transform: translateX(4%); } }
+.tp-prompt { text-align: center; font-weight: 900; color: #fbbf24; letter-spacing: 0.06em; }
+#tp-host .tp-prompt { margin-top: 6px; font-size: 0.95rem; }
+#tp-host .tp-foot { flex-wrap: wrap; }
+#tp-host .tp-hint { flex: 1 1 100%; color: #c9c9cf; font-size: 0.9rem; }
+#tp-host .tp-acts { margin-left: auto; }
+#tp-host .tp-hint .tp-answer { color: #fbbf24; font-size: 1.25em; }
+#tp-host .tp-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+#tp-host .tp-acts button { min-height: 52px; font-size: 1rem; }
+#tp-host .tp-ok { background: #b91c1c !important; color: #fff !important; }
+#tp-host .tp-ng { background: #1d4ed8 !important; color: #fff !important; }
+#tp-host .tp-main { background: linear-gradient(180deg, #fbbf24, #f59e0b) !important; color: #1b1300 !important; padding: 0 28px !important; }
+#tp-host .tp-nom { background: #26262d; }
+#tp-host .tp-sub { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+#tp-host .tp-sub button { min-height: 36px; font-size: 0.78rem; background: #1b1b20; color: #8b8b95; }
+#tp-remote .tp-prompt { font-size: 1.1em; margin-bottom: 0.6em; }
+/* 解答者: 早押しの間は、下の押し面をあけて盤面を上に */
+#tp-remote.tp-pl.tp-pad { bottom: calc(clamp(170px, 36vh, 320px) + 24px); }
+#tp-remote.tp-pl .tp-cell { font-size: 0.85em; }
+/* 作成画面のプレビュー: 盤面全体 */
+.tp-pv { position: absolute; inset: 0; z-index: 950; display: flex; flex-direction: column; padding: 3cqh 4cqw; background: #0a0a0c; color: #fff; font-size: 3.2cqh; box-sizing: border-box; }
+.tp-pv .tp-msg { text-align: center; font-weight: 800; font-size: 0.9em; margin-bottom: 1.5cqh; color: #c9c9cf; }
+.tp-pv .tp-board { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.tp-pv .tp-grid { flex: 0 1 auto !important; aspect-ratio: var(--ar); height: 100% !important; width: auto !important; max-width: 100%; gap: 1cqh; }
+.tp-pv .tp-legend { display: none; }
+/* 作る画面: お題 */
+#tp-guide .tpg-prompt { display: flex; align-items: center; gap: 8px; margin-top: 8px; color: #8b8b95; font-size: 0.75rem; font-weight: 700; }
+#tp-guide .tpg-prompt input { flex: 1; min-width: 0; margin: 0; padding: 8px 10px; border: none; border-radius: 8px; background: #09090b; box-shadow: inset 0 1px 4px rgba(0,0,0,0.85); color: #fff; font-size: 16px; }

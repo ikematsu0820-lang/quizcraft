@@ -22,6 +22,8 @@ App.Trial = {
     open: function () {
         const M = window.App.CreatorMobile;
         if (!M || !window.LocalDb) return;
+        // 陣取りパネルは盤面ごとで1問 — セットの盤面全体で遊ぶ
+        if (window.App.Territory && window.App.Territory.isOn(window.App.Data.currentConfig)) { this.openBoard(); return; }
         let q = M.previewQuestion();
         if (!q || !q.q || /^（ここに問題文/.test(q.q)) { window.App.Dialog.alert('問題文を入れてから試せます。'); return; }
         const QC = window.App.QuizCheck;
@@ -31,15 +33,35 @@ App.Trial = {
         }
         q = JSON.parse(JSON.stringify(q)); // undefined を落とす
         const conf = JSON.parse(JSON.stringify(window.App.Data.currentConfig || {}));
-        // 盤面で進むゲームは1問では遊べないので、問題だけを試す（盤面はテストプレイで）
-        if (conf.gameType === 'territory') conf.gameType = 'score';
+        this.begin(conf, [q]);
+    },
+    // 盤面全体（陣取り）— 書いた問題と、書いている途中のマスも入れる
+    openBoard: function () {
+        const T = window.App.Territory, C = window.App.Creator, M = window.App.CreatorMobile;
+        T.assignCells();
+        const qs = JSON.parse(JSON.stringify(window.App.Data.createdQuestions || []));
+        const cur = T.editingCell();
+        const qt = (document.getElementById('question-text')?.value || '').trim();
+        if (qt && cur !== null && cur !== undefined && cur >= 0) {
+            const pq = JSON.parse(JSON.stringify(M.previewQuestion()));
+            pq.tpCell = cur;
+            const at = (C && C.editingIndex !== null && C.editingIndex !== undefined) ? C.editingIndex : qs.findIndex(x => x.tpCell === cur);
+            if (at >= 0 && qs[at]) qs[at] = Object.assign({}, qs[at], pq); else qs.push(pq);
+        }
+        const usable = qs.filter(x => x && String(x.q || '').trim() && x.tpCell !== null && x.tpCell !== undefined);
+        if (!usable.length) { window.App.Dialog.alert('盤面のマスに、表の字と答えを入れてから試せます。', { title: 'お試し' }); return; }
+        const conf = JSON.parse(JSON.stringify(window.App.Data.currentConfig || {}));
+        this.begin(conf, usable);
+    },
+    begin: function (conf, questions) {
         this.id = `TEST-T${Math.floor(Math.random() * 9000) + 1000}`;
-        this.q = q;
+        this.q = questions[0];
         this.conf = conf;
+        this.board = !!(window.App.Territory && window.App.Territory.isOn(conf));
         this.store = window.LocalDb.createStore();
         window.__trialStore = this.store;
         this.db = window.LocalDb.client(this.store);
-        this.db.ref(`saved_sets/${this.id}`).set({ title: 'お試し', config: conf, questions: [q] });
+        this.db.ref(`saved_sets/${this.id}`).set({ title: 'お試し', config: conf, questions });
         this.render();
         this.start();
     },
@@ -50,7 +72,7 @@ App.Trial = {
         ov.id = 'trial-ov';
         ov.innerHTML = `
             <div class="tr-head">
-                <div class="tr-title"><b>お試し</b><span>この1問をその場で遊べます。保存はしません</span></div>
+                <div class="tr-title"><b>お試し</b><span>${this.board ? 'この盤面をその場で遊べます' : 'この1問をその場で遊べます'}。保存はしません</span></div>
                 <label class="tr-bots"><input type="checkbox" ${this.bots ? 'checked' : ''}><span>仮の参加者</span></label>
                 <button type="button" class="tr-close">閉じる</button>
             </div>
@@ -115,7 +137,15 @@ App.Trial = {
         const dlg = hd.querySelector('.qd-ov');
         const judge = hd.getElementById('hc-judge');
         const main = hd.getElementById('console-btn-phase-main');
-        if (dlg && /すべて終了/.test(dlg.textContent || '')) {
+        const tph = hd.getElementById('tp-host');
+        if (tph && !dlg) {
+            // 陣取りの盤面 — 司会者の盤面の見出しと操作を写す（マスは解答者・仮の参加者が選ぶ）
+            mode = 'tp';
+            hint = [tph.querySelector('.tp-title')?.textContent, tph.querySelector('.tp-hint')?.textContent].filter(Boolean).join(' — ');
+            btns = [...tph.querySelectorAll('.tp-acts [data-act]')].map((b, i) => ({ t: b.textContent.trim(), cls: b.classList.contains('tp-ok') ? 'okj' : b.classList.contains('tp-ng') ? 'ngj' : b.classList.contains('tp-main') ? 'ok' : 'sub', el: b, k: 't' + i }));
+            const fin = tph.querySelector('.tp-sub [data-act="finish"]');
+            if (fin && !btns.some(x => /結果発表/.test(x.t))) btns.push({ t: '結果発表へ', cls: 'sub', el: fin, k: 'fin' });
+        } else if (dlg && /すべて終了/.test(dlg.textContent || '')) {
             // 1問で終わり — セットの終わりの案内の代わりに「もう一度」「問題に戻る」
             mode = 'end';
             hint = 'お試しが終わりました';
@@ -138,7 +168,19 @@ App.Trial = {
         } else if (main && main.offsetParent !== null) {
             mode = 'main';
             hint = (hd.getElementById('hc-next')?.innerText || '').replace(/\s+/g, ' ').replace(/^▼\s*/, '').trim();
-            btns = [{ t: main.innerText.replace(/\s+/g, ' ').trim(), cls: 'ok', el: main, k: 'main', off: main.disabled }];
+            // 順番の遊び方: 本番では司会者が順番を決めるが、お試しは参加した順で始める
+            const pre = () => {
+                const W = this.ov.querySelector('.tr-f-host').contentWindow;
+                const S = W && W.App && W.App.Studio;
+                const setup = hd.getElementById('turn-order-setup');
+                if (S && setup && !S.isTurnOrderConfirmed) {
+                    const ok = [...setup.querySelectorAll('button')].find(x => /順番を確定/.test(x.textContent) && !x.disabled);
+                    if (ok) ok.click(); else { S.turnOrder = Object.keys(W.App.Data.players || {}); S.isTurnOrderConfirmed = true; }
+                    return true; // 確定してから進行ボタンを押す
+                }
+                return false;
+            };
+            btns = [{ t: main.innerText.replace(/\s+/g, ' ').trim(), cls: 'ok', el: main, k: 'main', off: main.disabled && !hd.getElementById('turn-order-setup'), pre }];
         }
         const key = JSON.stringify([mode, hint, btns.map(b => [b.t, b.cls, b.off])]);
         this._btnEls = btns;
@@ -148,7 +190,11 @@ App.Trial = {
         bar.querySelector('.tr-hint').textContent = hint || (mode ? '' : '準備しています');
         bar.querySelector('.tr-btns').innerHTML = btns.map((b, i) => `<button type="button" class="tr-b ${b.cls}" data-i="${i}" ${b.off ? 'disabled' : ''}>${this.esc(b.t)}</button>`).join('');
         bar.querySelectorAll('.tr-b').forEach(b => {
-            b.onclick = () => { const t = (this._btnEls || [])[parseInt(b.dataset.i)]; if (t && t.run) { t.run(); return; } if (t && t.el) t.el.click(); this._barKey = null; setTimeout(() => this.mirror(), 60); };
+            b.onclick = () => { const t = (this._btnEls || [])[parseInt(b.dataset.i)]; if (t && t.run) { t.run(); return; } const waited = t && t.pre ? t.pre() : false; if (t && t.el) { if (waited) {
+                    // 順番を確定した直後の1回目は「順番を決める画面」を閉じるだけなので、進まなければもう1回押す
+                    const W = this.ov.querySelector('.tr-f-host').contentWindow;
+                    setTimeout(() => { t.el.disabled = false; t.el.click(); setTimeout(() => { if (W && W.App && W.App.Studio && W.App.Studio.currentStepId === 0) t.el.click(); }, 400); }, 300);
+                } else t.el.click(); } this._barKey = null; setTimeout(() => this.mirror(), 60); };
         });
     },
 
@@ -176,8 +222,21 @@ App.Trial = {
         const asking = ['reveal_q', 'answering'].includes(st.step);
         if (!asking) return;
         const mode = conf.mode || 'normal';
+        const tp = st.tp || null;
+        // 陣取り: 自分の番になったら、空いているマスを選ぶ
+        if (this.board && tp && tp.phase === 'pick') {
+            const b = this.BOTS.find(x => x.id === tp.picking);
+            const pk = `pick:${tp.picking}:${tp.round}`;
+            if (b && !this._done[pk]) {
+                this._done[pk] = true;
+                this._botTimers.push(setTimeout(() => {
+                    const free = (tp.qcells || []).map((h, i) => (h && !(tp.cells || [])[i] ? i : -1)).filter(i => i >= 0);
+                    if (free.length) this.db.ref(`rooms/${this.id}/players/${b.id}/tpPick`).set(free[Math.floor(Math.random() * free.length)]);
+                }, 1300));
+            }
+        }
         this.BOTS.forEach((b, i) => {
-            const key = `${b.id}:${st.qIndex}`;
+            const key = `${b.id}:${st.qIndex}:${st.tpRound || 0}`;
             if (this._done[key]) return;
             if (mode === 'buzz') {
                 if (!st.isBuzzActive || st.currentAnswerer) return;

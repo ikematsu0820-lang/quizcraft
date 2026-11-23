@@ -707,9 +707,9 @@ App.CreatorMobile = {
         if (window.App.Themes) window.App.Themes.applyToElement(stage, q.design);
         // ロゴ・すみの文字もプレビューに
         if (window.App.Viewer && window.App.Viewer.renderDecor) { window.App.Viewer._decorKey = null; window.App.Viewer.renderDecor(stage, q.design, { step: 'answering' }); }
-        // 陣取りパネル: いま書いている問題のマスを、すみの小さな盤面で
+        // 陣取りパネル: 盤面ごとで1問 — プレビューは盤面全体（いま書いているマスを光らせる）
         const T = window.App.Territory;
-        if (T && T.miniBadge) T.miniBadge(stage, window.App.Data.currentConfig || {}, step === 'bridge' ? null : T.editingCell(), null);
+        if (T && T.previewBoard) T.previewBoard(stage, step);
         this.toContainerUnits(stage);
     },
 

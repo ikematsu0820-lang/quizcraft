@@ -5997,3 +5997,8 @@ body:has(.qd-ov, .im-ov) :is(#unified-toggle-container, #test-view-dock) { displ
   #trial-ov .tr-mon iframe { aspect-ratio: 16 / 9; height: auto; max-height: 100%; }
   #trial-ov .tr-pl { flex: 0 0 390px; border-top: none; border-left: 2px solid #1b1b20; }
 }
+/* お試しの司会者バー: 説明を上、ボタンを下に（ボタンが多い時は横に流す） */
+#trial-ov .tr-bar { flex-direction: column; align-items: stretch; gap: 8px; }
+#trial-ov .tr-hint { flex: 0 0 auto; }
+#trial-ov .tr-btns { flex-wrap: wrap; justify-content: flex-end; }
+#trial-ov .tr-b { flex: 0 0 auto; white-space: nowrap; }
