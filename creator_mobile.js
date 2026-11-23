@@ -445,6 +445,7 @@ App.CreatorMobile = {
         // テーマを選んでいない時は、既定の見た目（スタジオ）
         const look = theme ? `${theme.name}${window.App.Themes.isModified(d) ? '（カスタム）' : ''}` : (d.themeId ? 'カスタム' : 'スタジオ（標準）');
         rows.push({ key: 'design', label: '見た目', value: look });
+        if (window.App.Reveal && window.App.Reveal.applies()) rows.push({ key: 'reveal', label: '正解の出し方', value: window.App.Reveal.summary(d) });
         // 音・演出（見た目とは別）— 効果音が入っているか・第◯問の出し方
         const sounds = Object.keys(d).filter(k => /^(bgm|se)[A-Z]/.test(k) && d[k]).length;
         rows.push({ key: 'fx', label: '音・演出', value: sounds ? `効果音 ${sounds}つ` : '標準' });
@@ -453,15 +454,24 @@ App.CreatorMobile = {
 
     renderSettingsSummary: function (box) {
         if (!box) return;
-        box.innerHTML = this.settingsRows().map(r => `
+        // まとまりごとに区切る: 遊び方とルール ／ モニターの見せ方 ／ 問題
+        const GROUP = { format: 'rule', correct: 'rule', wrong: 'rule', win: 'rule', time: 'rule', design: 'show', reveal: 'show', fx: 'show' };
+        const HEAD = { rule: '遊び方とルール', show: 'モニターの見せ方' };
+        let last = null, html = '';
+        this.settingsRows().forEach(r => {
+            const g = GROUP[r.key] || 'other';
+            if (g !== last) { if (last) html += '</div>'; html += `<div class="cm-set-group" data-g="${g}">${HEAD[g] ? `<div class="cm-set-ghead">${HEAD[g]}</div>` : ''}`; last = g; }
+            html += `
             <button type="button" class="cm-set-row" data-set-key="${r.key}">
                 <span class="cm-set-label">${r.label}</span>
                 <span class="cm-set-value">${this.esc(r.value)}</span>
-            </button>`).join('');
+            </button>`;
+        });
+        box.innerHTML = html + (last ? '</div>' : '');
         box.querySelectorAll('.cm-set-row').forEach(b => {
             b.onclick = () => {
                 const k = b.dataset.setKey;
-                if (k === 'design') this.openSheet('design', 'look');
+                if (k === 'design' || k === 'reveal') this.openSheet('design', 'look');
                 else if (k === 'fx') this.openSheet('design', 'fx');
                 else this.openSheet('rules', k);
             };

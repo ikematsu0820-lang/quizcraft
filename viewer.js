@@ -585,6 +585,8 @@ window.App.Viewer = {
             const accent = design.revealBorderColor || design.qBorderColor || '#00bfff';
             const revealBg = design.revealBgColor || 'rgba(0,0,0,0.95)';
             const revealText = design.revealTextColor || '#fff';
+            // 正解の出し方（見た目 › 正解の出し方）— 帯／全画面／問題文に添える。色・書体はテーマから
+            if (window.App.Reveal) { window.App.Reveal.render(mainText, q, st, design); return; }
             const answerBox = document.createElement('div');
             Object.assign(answerBox.style, {
                 position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',

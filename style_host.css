@@ -5930,3 +5930,9 @@ body:has(.qd-ov, .im-ov) :is(#unified-toggle-container, #test-view-dock) { displ
 #hc-next.hc-next:empty { display: none; }
 #menu-btn-host::before { content: none !important; display: none !important; }
 #menu-btn-host { background: #1b1b20 !important; }
+/* セットの設定: まとまりごとに区切る（遊び方とルール／モニターの見せ方／問題） */
+#cm-settings:has(.cm-set-group), #cm-sheet-menu:has(.cm-set-group) { border: none; background: transparent; overflow: visible; }
+.cm-set-group { display: flex; flex-direction: column; border-radius: 14px; background: #16161a; overflow: hidden; }
+.cm-set-group + .cm-set-group { margin-top: 14px; }
+.cm-set-ghead { padding: 10px 14px 4px; color: #8b8b95; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.08em; }
+.cm-set-group .cm-set-row:last-child { border-bottom: none !important; }

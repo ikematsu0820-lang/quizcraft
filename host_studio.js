@@ -1385,7 +1385,9 @@ App.Studio = {
                     step: 'reveal_correct',
                     qIndex: App.State.currentQIndex,
                     correct: this.getAnswerString(q),
-                    commentary: q.commentary || ""
+                    commentary: q.commentary || "",
+                    // 正解の出し方の「正解者の名前」用（早押し・順番・指名で正解した人）
+                    revealWinners: Object.values(this._qWinners || {}).length ? Object.values(this._qWinners || {}) : null
                 });
 
                 // Automatic Judging for Choice / Sort / Letter Select (Skip for Buzz or Written)

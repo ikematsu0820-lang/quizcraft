@@ -194,7 +194,13 @@ App.SetMerge = {
                     b.className = 'cm-set-row sm-entry';
                     b.innerHTML = '<span class="cm-set-label">取り込む</span><span class="cm-set-value">別のセットから問題を取り込む</span>';
                     b.onclick = () => { M.closeSheet && M.closeSheet(); App.SetMerge.open(); };
-                    box.appendChild(b);
+                    // 「問題」のまとまりとして区切る
+                    const g = document.createElement('div');
+                    g.className = 'cm-set-group';
+                    g.dataset.g = 'q';
+                    g.innerHTML = '<div class="cm-set-ghead">問題</div>';
+                    g.appendChild(b);
+                    box.appendChild(g);
                 }
             } catch (e) { console.warn('set_merge entry', e); }
             return r;
