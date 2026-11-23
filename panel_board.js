@@ -925,6 +925,12 @@ if (window.App.Viewer) Object.assign(window.App.Viewer, App.PanelBoard.viewer);
         };
     }
     wrap('initWithType', function () { PB.active = false; PB.board = false; });
+    // 保存したセットを開く時も、前に開いたパネルクイズの印を消してから読む
+    // （消さないと、ふつうのセットまで「パネルクイズ」扱いになり、＋ 新しい問題・まとめて入力が消えていた）
+    const origLoad = C.loadSet;
+    if (typeof origLoad === 'function') {
+        C.loadSet = function () { PB.active = false; PB.board = false; return origLoad.apply(this, arguments); };
+    }
     // パネルクイズは1セット1盤面 — 盤面がもう有る時に「追加」はしない（直す時は一覧から開く）
     // 盤面のタイトル（問題文の欄）は空でもよい — 空なら「パネルクイズ」を入れてから保存する
     const fillTitle = () => {
