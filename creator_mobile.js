@@ -856,8 +856,11 @@ App.CreatorInput = {
         set(document.getElementById('creator-monitor-flexwrap'), { 'flex-direction': 'column', 'justify-content': 'flex-start' });
         set(document.getElementById('creator-monitor-q-area'), {
             width: '100%', 'align-self': 'stretch', display: 'flex', 'flex-direction': 'column', 'align-items': 'stretch',
-            'justify-content': 'flex-start', 'min-height': '0', 'border-color': '#f59e0b', 'background-color': '#1a1a1a', 'box-shadow': 'none',
+            'justify-content': 'flex-start', 'min-height': '0', 'background-color': '#0b0b0e', 'border-width': '1px', 'border-style': 'solid',
         });
+        // 枠の色と入力中のアンバーは CSS（style_host.css の「入力欄をひと目で分かるように」）に任せる
+        const qa0 = document.getElementById('creator-monitor-q-area');
+        if (qa0) { qa0.style.removeProperty('border-color'); qa0.style.removeProperty('box-shadow'); }
         set(document.getElementById('creator-form-container'), { position: 'static', width: '100%', 'align-self': 'stretch', flex: '1 1 auto' });
         const title = document.getElementById('question-title');
         set(title, { 'font-size': '16px', 'text-align': 'left' });
@@ -911,7 +914,10 @@ App.CreatorInput = {
         });
         let p = preview.parentElement;
         while (p && p !== document.body) { p.classList.remove('theme-font', 'tfx-q', 'tfx-c', 'tfx-b', 'tfx-fill'); p = p.parentElement; }
-        set(document.getElementById('creator-monitor-q-area'), { 'border-color': '#2c2c33', 'background-color': '#1b1b20', 'box-shadow': 'none' });
+        const qa = document.getElementById('creator-monitor-q-area');
+        // 入力欄の形（枠・入力中のアンバー）は CSS に任せる。テーマが付けた色だけ消す
+        set(qa, { 'background-color': '#0b0b0e' });
+        if (qa) { qa.style.removeProperty('border-color'); qa.style.removeProperty('box-shadow'); }
         const qText = document.getElementById('question-text');
         set(qText, { color: '#fff', 'text-shadow': 'none' });
         document.querySelectorAll('#creator-form-container .choice-text-input, #creator-form-container .row-input').forEach(el => set(el, { color: '#fff', 'text-shadow': 'none' }));

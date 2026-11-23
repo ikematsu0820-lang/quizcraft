@@ -6024,3 +6024,39 @@ body:has(.qd-ov, .im-ov) :is(#unified-toggle-container, #test-view-dock) { displ
 #host-lobby .hl-pmon b { color: #e5e5e8; font-size: 0.9rem; }
 #host-lobby .hl-pmon small { color: #8b8b95; font-size: 0.72rem; line-height: 1.45; }
 #host-lobby .hl-pmon input { width: auto; margin: 0; accent-color: #f59e0b; transform: scale(1.3); }
+
+/* =========================================================
+ * スマホの入力画面: 入力欄をひと目で分かるように（2026-11-23）
+ *   ・入力欄はすべて同じ形 — 暗い凹み＋見える細い枠。入力中は枠がアンバー
+ *   ・ボタンや行（画像・＋追加・この問題のデザイン）は枠なしの明るい塗り
+ *   ・入力例（placeholder）は細く小さく — 見出しに見えないように
+ *   ・欄の名前（問題文・ヒント・正解）は明るく
+ * ======================================================= */
+#creator-view.cm-on.cm-edit #creator-monitor-preview,
+#creator-view.cm-on.cm-edit #creator-monitor-flexwrap,
+#creator-view.cm-on.cm-edit #creator-outside-opts { background: #17171b !important; border-top: none !important; }
+#creator-view.cm-on.cm-edit #creator-monitor-q-area,
+#creator-view.cm-on.cm-edit #creator-form-container :is(.row-input, .choice-text-input, .multi-text-input, .sort-text-input, .assoc-text-input, input[type="text"]),
+#creator-view.cm-on.cm-edit #creator-outside-opts :is(input[type="text"], input[type="number"]) {
+    background: #0b0b0e !important; border: 1px solid #3d3d46 !important; box-shadow: none !important;
+}
+#creator-view.cm-on.cm-edit #creator-monitor-q-area:focus-within,
+#creator-view.cm-on.cm-edit #creator-form-container :is(.row-input, .choice-text-input, .multi-text-input, .sort-text-input, .assoc-text-input, input[type="text"]):focus,
+#creator-view.cm-on.cm-edit #creator-outside-opts :is(input[type="text"], input[type="number"]):focus {
+    border-color: #f59e0b !important; box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.18) !important;
+}
+#creator-view.cm-on.cm-edit #question-text::placeholder,
+#creator-view.cm-on.cm-edit #creator-form-container ::placeholder,
+#creator-view.cm-on.cm-edit #creator-outside-opts ::placeholder { color: #62626c !important; font-weight: 400 !important; }
+#creator-view.cm-on.cm-edit #question-text::placeholder { font-size: 16px !important; }
+#creator-view.cm-on.cm-edit .qimg-pick,
+#creator-view.cm-on.cm-edit .cimg-btn,
+#creator-view.cm-on.cm-edit :is(#multi-add-btn, #choice-add-btn, #sort-add-btn, #assoc-add-btn),
+#creator-view.cm-on.cm-edit #creator-form-container button[id$="-add-btn"],
+#creator-view.cm-on.cm-edit #creator-outside-opts button[id$="-add-btn"] { background: #26262c !important; border: none !important; }
+#creator-view.cm-on.cm-edit .cm-sec,
+#creator-view.cm-on.cm-edit #creator-outside-opts > label > span { color: #c9c9cf !important; }
+#creator-view.cm-on.cm-edit .rv-qbox { background: #222228 !important; }
+#creator-view.cm-on.cm-edit .rv-qbox > summary small::after { content: "\203A"; margin-left: 8px; color: #8b8b95; font-size: 1rem; }
+#creator-view.cm-on.cm-edit .rv-qbox > summary small::after { display: inline-block; transition: transform .15s; }
+#creator-view.cm-on.cm-edit .rv-qbox[open] > summary small::after { transform: rotate(90deg); }
