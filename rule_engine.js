@@ -66,7 +66,7 @@ App.RuleEngine = {
         else if (ctx.isMulti) normalWhy = '多答・ランキングは1人ずつ答えて、答えを開けていく形式です';
         else if (ctx.isOral) normalWhy = '口頭で答える時は、全員が同時には答えられません（手書きにすると選べます）';
         // 選択式・並べ替え（パネル・ダウトを除く）は早押しだけ使わない
-        //   早押し: 選択肢が見えている／並べる速さで競う形式なので、全員で答えて早い人ほど高い点にする方が合う
+        //   早押し: 選択肢が見えている／並べる速さで競う形式なので、全員で答えて早い順に高得点にする方が合う
         //   順番・指名: 1問目はAさん、2問目はBさん、のように1問を1人が答える形なら成り立つ（2つは同じ扱い）
         const isSort = ctx.firstType === 'sort';
         const allOnly = (ctx.isPlainChoice || isSort) && !ctx.isPanel;
@@ -75,7 +75,7 @@ App.RuleEngine = {
         const multiWhy = '多答は順番か指名で1人ずつ答えて、答えを開けていく形式です';
         const buzzWhy = turnOnly ? turnOnlyWhy
             : multiTurnOnly ? multiWhy
-            : allOnly ? (isSort ? '並べ替えは並べる速さで競う形式なので、全員で並べて早い人ほど高い点にします' : '選択式は選択肢が見えているので、全員で答えて早い人ほど高い点にします') : '';
+            : allOnly ? (isSort ? '並べ替えは並べる速さで競う形式なので、全員で並べて早い順に高得点にします' : '選択式は選択肢が見えているので、全員で答えて早い順に高得点にします') : '';
         const turnWhy = '';
         return [
             { value: 'normal', label: '全員が同時に手元で解答', disabled: !!normalWhy, reason: normalWhy },
@@ -90,17 +90,17 @@ App.RuleEngine = {
     // 呼び名は全部ここから（遊び方を選ぶ画面・ルール画面・セット設定の一覧・入力画面の札で同じ名前）
     //   だれが答えるか（解答権）
     WHO: {
-        buzz: { label: '早押し', sub: '分かった人が押して答える' },
-        normal: { label: '全員で', sub: '全員が同時に答える' },
-        turn: { label: '順番に', sub: '決めた順に1人ずつ' },
-        nominate: { label: '指名して', sub: '司会者が選んだ人が答える' },
+        buzz: { label: '早押し', sub: '押した人から解答' },
+        normal: { label: '一斉', sub: '全員が手元で同時に解答' },
+        turn: { label: '順番', sub: '決めた順に1人ずつ解答' },
+        nominate: { label: '指名', sub: '司会者が解答者を指名' },
     },
     WHO_ORDER: ['buzz', 'normal', 'turn', 'nominate'],
     //   どう答えるか（答え方）
     HOW: {
-        oral: { label: '口頭', sub: '司会者が聞いて判定' },
-        written: { label: '手書き', sub: '端末に書いて送る' },
-        button: { label: 'ボタン', sub: '手元で選んで自動で判定' },
+        oral: { label: '口頭', sub: '司会者が判定' },
+        written: { label: '手書き', sub: '端末に書いて送信' },
+        button: { label: 'ボタン', sub: '選んで自動判定' },
     },
     // 答え方の3つ — 問題形式で決まる（口頭と手書きは同じ系統の形式なら切り替えられる）
     get ANSWER_BY() {
@@ -209,7 +209,7 @@ App.RuleEngine = {
         if (conf.gameType === 'timerace') {
             if (!this.can('timeRace', ctx).ok) {
                 conf.gameType = 'score';
-                changed.push('今の解答権・答え方では「タイムレース」が使えないので「得点が高い人が勝ち」に戻しました');
+                changed.push('今の解答権・答え方では「タイムレース」が使えないので「最高得点で勝利」に戻しました');
             } else {
                 // 正解数で競い、同じなら速い人が上 — 配点は1問1点に固定
                 conf.scoreType = 'uniform';
@@ -231,7 +231,7 @@ App.RuleEngine = {
         // 正解した人は抜けて続けるのに、誤答で問題を終えると食い違う — 誤答は「他の人が押せる」に
         if (ctx.wbContinue && conf.buzzWrongAction === 'end') {
             conf.buzzWrongAction = 'next';
-            changed.push('「正解した人は抜けて続ける」なので、誤答しても問題は続ける（他の人が押せる）にしました');
+            changed.push('「正解した人は抜けて続ける」なので、誤答しても問題は継続（他の人が解答可）にしました');
         }
         if (conf.turnWrongAction && !this.can('turnWrong', ctx).ok) delete conf.turnWrongAction;
         if (conf.tieBreak === 'time' && !this.can('tieBreakTime', ctx).ok) {
@@ -315,13 +315,13 @@ App.RuleEngine = {
     // ---------------------------------------------------------
     // 遊び方の説明（ルールの画面の一番上と、矛盾がないかの確認用）
     // ---------------------------------------------------------
-    // 一問一答の「読み上げ」— 問題文をモニター・回答者の端末に出さない（先読みの駆け引き用）
+    // 一問一答の「読み上げ」— 問題文をモニター・解答者の端末に出さない（先読みの駆け引き用）
     readAloud: function (conf, ctx) {
         // セットは1つの形式なので、最初の問題の形式で見る（無ければ渡された形式）
         return !!(conf && conf.readAloud) && /^free/.test((ctx && (ctx.firstType || ctx.qType)) || '');
     },
 
-    // 回答者の待機画面に出す「今回の遊び方」— 回答者が何をすればいいかだけを短く
+    // 解答者の待機画面に出す「今回の遊び方」— 解答者が何をすればいいかだけを短く
     playerGuide: function (conf, questions) {
         const c = conf || {};
         const ctx = this.context(c, questions);
@@ -375,7 +375,7 @@ App.RuleEngine = {
                 parts.push(`正解した人は抜けて問題は続き、${n ? `${n}人正解したら` : '全員が答え終わるまで'}終わらない。`);
             }
         }
-        if (ctx.mode === 'buzz') wrong.push(c.buzzWrongAction === 'end' ? '誤答したら問題は終わり'
+        if (ctx.mode === 'buzz') wrong.push(c.buzzWrongAction === 'end' ? '誤答時の問題終わり'
             : (c.buzzRequeue === 'reset' || c.buzzPenalty === 'reset_all') ? '誤答したら全員が押し直す' : '誤答したら次に押していた人へ');
         if (ctx.mode === 'turn' && this.can('turnWrong', ctx).ok) wrong.push(c.turnWrongAction === 'next' ? '誤答したら次の人に解答権が移る' : '誤答したらその問題は終わり');
         const loss = this.wrongLoss(c, {});
@@ -397,7 +397,7 @@ App.RuleEngine = {
         } else if (gt === 'timerace') {
             parts.push('正解数が多い人が勝ち、同じなら解答時間の合計が短い人が上。');
         } else {
-            parts.push(`得点が高い人が勝ち${c.tieBreak === 'time' ? '（同点は解答時間が短い人が上）' : ''}。`);
+            parts.push(`最高得点で勝利${c.tieBreak === 'time' ? '（同点は解答時間が短い人が上）' : ''}。`);
         }
         // 時間
         const tparts = [];

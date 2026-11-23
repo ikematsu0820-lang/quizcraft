@@ -8,8 +8,8 @@
  *                revealSort   all | one（並べ替え: 一度に／1つずつ並べる）
  *                revealPause  now | tame（ためてから出す）
  *                rvWinners / rvCount / rvDist / rvRate / rvNote   一緒に出すもの（'on' / 'off'）
- *   結果・得点   rvGain（正解者の名前に＋点）・1問ごとの結果発表・回答者の端末の得点
- * 問題ごとの上書き（問題を書く画面の「正解の発表（この問題だけ）」）:
+ *   結果・得点   rvGain（正解者の名前に＋点）・1問ごとの結果発表・解答者の端末の得点
+ * 問題ごとの上書き（問題を書く画面の「この問題の正解表示」）:
  *   q.revealStyle（count＝数字のカウント も選べる）・q.imgReveal（blur | zoom）・q.publicRate・q.commentary
  * 以前の見た目の設定（design.revealStyle / revealWinners）も読む。
  * =======================================================*/
@@ -17,10 +17,10 @@ window.App = window.App || {};
 
 App.Reveal = {
     STYLES: [
-        { v: 'band', t: '帯で', sub: '問題文は残す' },
-        { v: 'full', t: '全画面で', sub: '答えを大きく' },
-        { v: 'inline', t: '添える', sub: '問題文のすぐ下' },
-        { v: 'letters', t: '1文字ずつ', sub: '文字が順に出る' },
+        { v: 'band', t: '帯', sub: '問題文を残す' },
+        { v: 'full', t: '全画面', sub: '答えを大きく' },
+        { v: 'inline', t: '問題文の下', sub: '問題文に添える' },
+        { v: 'letters', t: '1文字ずつ', sub: '文字を順に表示' },
     ],
     DEF: { revealStyle: 'band', revealPause: 'now', revealSort: 'all', rvWinners: 'on', rvCount: 'off', rvDist: 'off', rvRate: 'on', rvNote: 'on', rvGain: 'off', judgeCue: 'sound', revealTiming: 'host' },
     TAME_MS: 1800,
@@ -271,7 +271,7 @@ App.Reveal = {
         this._live = { q, st };
     },
 
-    // 回答者の答え・判定が届いたら、人数だけ差し替える
+    // 解答者の答え・判定が届いたら、人数だけ差し替える
     updateLive: function () {
         const L = this._live;
         const V = window.App.Viewer;
@@ -351,9 +351,9 @@ App.Reveal = {
         // 1. 判定の合図
         let a = '';
         if (judge) {
-            a += tiles('judgeCue', [{ v: 'sound', t: '音だけ' }, { v: 'big', t: '〇✕を大きく' }, { v: 'big_name', t: '〇✕と名前' }]);
-            a += R.head('正解が出たら');
-            a += tiles('revealTiming', [{ v: 'host', t: '司会者のボタンで', sub: '正解者の発表をはさむ' }, { v: 'auto', t: 'すぐ正解を出す', sub: '発表をはさまない' }]);
+            a += tiles('judgeCue', [{ v: 'sound', t: '効果音のみ' }, { v: 'big', t: '〇✕を大きく' }, { v: 'big_name', t: '〇✕＋名前' }]);
+            a += R.head('正解後');
+            a += tiles('revealTiming', [{ v: 'host', t: '司会者の操作で', sub: '正解者の発表をはさむ' }, { v: 'auto', t: '即正解表示', sub: '発表をはさまない' }]);
         } else {
             a += R.note('全員が同時に答える遊び方なので、判定の合図はありません（締め切ってからまとめて判定します）。');
         }
@@ -361,26 +361,26 @@ App.Reveal = {
         let b = '';
         if (kind === 'text') b += R.head('見せ方') + tiles('revealStyle', this.STYLES);
         else if (kind === 'choice') b += R.note('選択式は、正解の選択肢が光ってほかが暗くなります。');
-        else if (kind === 'sort') b += R.head('並べ方') + tiles('revealSort', [{ v: 'all', t: '一度に並べる' }, { v: 'one', t: '1つずつ並べる' }]);
+        else if (kind === 'sort') b += R.head('並べ方') + tiles('revealSort', [{ v: 'all', t: '一括表示' }, { v: 'one', t: '1つずつ表示' }]);
         else if (kind === 'multi') b += R.note('多答・ランキングは、司会者の画面で答えを1つずつ開きます。「残りを開く」「下から開く」でまとめて開くこともできます。');
         else b += R.note('この形式は、盤面やゲームの画面のまま正解を見せます。');
         if (['text', 'choice', 'sort'].includes(kind)) {
-            b += R.head('出すまで') + tiles('revealPause', [{ v: 'now', t: 'すぐ出す' }, { v: 'tame', t: 'ためてから', sub: '「正解は…」をはさむ' }]);
-            b += R.head('一緒に出すもの');
-            b += this.flagRow('rvWinners', '正解した人の名前', conf);
-            b += this.flagRow('rvCount', '正解した人数', conf);
-            if (kind === 'choice') b += this.flagRow('rvDist', '選んだ人数', conf, '選択肢ごと');
-            b += this.flagRow('rvRate', '世間の正解率', conf, '問題ごとに入れた時');
-            b += this.flagRow('rvNote', '解説', conf, '問題ごとに入れた時');
+            b += R.head('表示タイミング') + tiles('revealPause', [{ v: 'now', t: '即表示' }, { v: 'tame', t: 'ため演出', sub: '「正解は…」をはさむ' }]);
+            b += R.head('併せて表示');
+            b += this.flagRow('rvWinners', '正解者名', conf);
+            b += this.flagRow('rvCount', '正解者数', conf);
+            if (kind === 'choice') b += this.flagRow('rvDist', '選択人数', conf, '選択肢ごと');
+            b += this.flagRow('rvRate', '世間の正解率', conf, '問題に入力した時');
+            b += this.flagRow('rvNote', '解説', conf, '問題に入力した時');
         }
         // 3. 結果・得点
         let c = '';
-        if (['text', 'choice', 'sort'].includes(kind)) c += this.flagRow('rvGain', '正解者の名前に、入った点を添える', conf, '例: 山田 +10');
+        if (['text', 'choice', 'sort'].includes(kind)) c += this.flagRow('rvGain', '正解者名に獲得点', conf, '例: 山田 +10');
         c += R.row('1問ごとの結果発表', R.select('rv-result-each', [{ v: 'show', t: '出す' }, { v: 'skip', t: '出さない' }], conf.resultEachQ === 'skip' ? 'skip' : 'show'));
         c += R.note('「出さない」にすると、正解を見せたらすぐ次の問題へ進みます。');
-        c += R.row('回答者の端末の得点', R.select('rv-score-view', [{ v: 'score', t: '得点だけ' }, { v: 'score_rank', t: '得点と順位' }, { v: 'none', t: '出さない' }], conf.playerScoreView || 'score'));
+        c += R.row('解答者の端末の得点', R.select('rv-score-view', [{ v: 'score', t: '得点だけ' }, { v: 'score_rank', t: '得点と順位' }, { v: 'none', t: '出さない' }], conf.playerScoreView || 'score'));
         c += R.note('「出さない」にすると、得点と順位は結果発表まで分かりません。');
-        box.innerHTML = sec('判定の合図', '答えを判定した瞬間', a) + sec('正解の出し方', 'モニターに正解を出す時', b) + sec('結果・得点', '正解のあと', c);
+        box.innerHTML = sec('判定演出', '判定時', a) + sec('正解表示', 'モニター', b) + sec('結果・得点', '正解後', c);
         box.querySelectorAll('.rp-tile[data-rp^="rv-"]').forEach(btn => {
             btn.onclick = () => { conf[btn.dataset.rp.slice(3)] = btn.dataset.val; this.renderRules(box, conf, onSoft); if (onSoft) onSoft(); };
         });
@@ -400,22 +400,22 @@ App.Reveal = {
         const g = (k) => this.get(k, conf, d, null);
         const rows = [];
         if (this.hasJudge(conf)) {
-            const cue = { sound: '音だけ', big: '〇✕を大きく', big_name: '〇✕と名前' }[g('judgeCue')] || '音だけ';
-            rows.push({ key: 'judge', label: '判定の合図', value: cue + (g('revealTiming') === 'auto' ? '・すぐ正解を出す' : '') });
+            const cue = { sound: '効果音のみ', big: '〇✕を大きく', big_name: '〇✕＋名前' }[g('judgeCue')] || '効果音のみ';
+            rows.push({ key: 'judge', label: '判定演出', value: cue + (g('revealTiming') === 'auto' ? '・即正解表示' : '') });
         }
         let how = kind === 'text' ? (this.STYLES.find(o => o.v === g('revealStyle')) || this.STYLES[0]).t
-            : kind === 'choice' ? '正解が光る' : kind === 'sort' ? (g('revealSort') === 'one' ? '1つずつ並べる' : '一度に並べる')
+            : kind === 'choice' ? '正解が光る' : kind === 'sort' ? (g('revealSort') === 'one' ? '1つずつ表示' : '一括表示')
             : kind === 'multi' ? '1つずつ開く' : '盤面のまま';
         if (['text', 'choice', 'sort'].includes(kind)) {
-            if (g('revealPause') === 'tame') how += '・ためて';
+            if (g('revealPause') === 'tame') how += '・ため演出';
             const w = [];
             if (g('rvWinners') !== 'off') w.push('正解者');
             if (g('rvCount') !== 'off') w.push('人数');
             if (kind === 'choice' && g('rvDist') !== 'off') w.push('選んだ人数');
             if (w.length) how += '・' + w.join('と');
         }
-        rows.push({ key: 'reveal', label: '正解の出し方', value: how });
-        const res = [conf.resultEachQ === 'skip' ? '1問ごとの発表なし' : '1問ごとに発表'];
+        rows.push({ key: 'reveal', label: '正解表示', value: how });
+        const res = [conf.resultEachQ === 'skip' ? '毎問の発表なし' : '毎問発表'];
         if (g('rvGain') !== 'off' && ['text', 'choice', 'sort'].includes(kind)) res.push('＋点を添える');
         rows.push({ key: 'result', label: '結果・得点', value: res.join('・') });
         return rows;
@@ -427,7 +427,7 @@ App.Reveal = {
     },
 
     // ---------------------------------------------------------
-    // 問題を書く画面: 「正解の発表（この問題だけ）」
+    // 問題を書く画面: 「この問題の正解表示」
     // ---------------------------------------------------------
     Q_KEYS: ['revealStyle', 'imgReveal', 'publicRate', 'commentary'],
     pickQ: function (q) {
@@ -464,9 +464,9 @@ App.Reveal = {
         const el = document.createElement('details');
         el.className = 'rv-qbox';
         if (isSet() || this._qboxOpen) el.open = true;
-        el.innerHTML = `<summary><span>正解の発表（この問題だけ）</span><small>${isSet() ? '設定あり' : 'セットと同じ'}</small></summary>
+        el.innerHTML = `<summary><span>この問題の正解表示</span><small>${isSet() ? '設定あり' : 'セットと同じ'}</small></summary>
             <div class="rv-qgrid">
-                ${kind === 'text' ? `<label><span>見せ方</span><select data-rvq="revealStyle">${opts([{ v: '', t: `セットと同じ（${setStyle}）` }, ...this.STYLES.map(o => ({ v: o.v, t: o.t })), { v: 'count', t: '数字のカウント（答えが数字の時）' }], s.revealStyle)}</select></label>` : ''}
+                ${kind === 'text' ? `<label><span>表示方法</span><select data-rvq="revealStyle">${opts([{ v: '', t: `セットと同じ（${setStyle}）` }, ...this.STYLES.map(o => ({ v: o.v, t: o.t })), { v: 'count', t: '数字のカウント（答えが数字の時）' }], s.revealStyle)}</select></label>` : ''}
                 <label><span>画像の答え合わせ</span><select data-rvq="imgReveal">${opts([{ v: '', t: 'しない' }, { v: 'blur', t: 'ぼかしが取れる' }, { v: 'zoom', t: '拡大から全体へ' }], s.imgReveal)}</select><small>問題に画像を入れた時。出題中はぼかし・拡大して見せ、正解で全体を見せます</small></label>
                 <label><span>世間の正解率</span><span class="rv-qnum"><input type="number" min="0" max="100" step="1" inputmode="numeric" data-rvq="publicRate" value="${s.publicRate ?? ''}" placeholder="なし"> %</span></label>
                 <label><span>解説</span><textarea rows="2" data-rvq="commentary" placeholder="正解のあとに添えるひとこと（なしでも可）">${this.esc(s.commentary || '')}</textarea></label>
@@ -488,7 +488,7 @@ App.Reveal = {
         });
     },
 
-    // 「この問題だけの見た目」— セットの見た目の上に、ほかのテーマを重ねる
+    // 「この問題の見た目」— セットの見た目の上に、ほかのテーマを重ねる
     mountLookBox: function (M) {
         const C = window.App.Creator;
         const Th = window.App.Themes;
@@ -500,7 +500,7 @@ App.Reveal = {
         const el = document.createElement('details');
         el.className = 'rv-qbox rv-lookbox';
         if (s.themeId) el.open = true;
-        el.innerHTML = `<summary><span>この問題だけの見た目</span><small>${s.themeId ? (Th.get(s.themeId) || {}).name || '' : 'セットと同じ'}</small></summary>
+        el.innerHTML = `<summary><span>この問題の見た目</span><small>${s.themeId ? (Th.get(s.themeId) || {}).name || '' : 'セットと同じ'}</small></summary>
             <div class="rv-qgrid">
                 <label><span>テーマ</span><select data-rvq-theme>${[{ id: '', name: 'セットと同じ' }, ...Th.list].map(t => `<option value="${t.id}" ${(s.themeId || '') === t.id ? 'selected' : ''}>${t.name}</option>`).join('')}</select>
                 <small>決勝の問題だけ金色に、などに。背景画像・ロゴ・音はセットのまま使います</small></label>

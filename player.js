@@ -137,7 +137,7 @@ function playerNotice(msg, kind) {
 // ---------------------------------------------------------
 const PLAYER_SESSION_KEY = 'qs_player_session';
 const PlayerSession = {
-    // テストの回答者（autoName 付き・部屋が TEST-…）は覚えない — 同じ端末の司会者の画面に「参加中」と出てしまうため
+    // テストの解答者（autoName 付き・部屋が TEST-…）は覚えない — 同じ端末の司会者の画面に「参加中」と出てしまうため
     isTest(room) {
         return /^TEST-/.test(String(room || '')) || new URLSearchParams(location.search).has('autoName');
     },
@@ -205,7 +205,7 @@ function showRoomEnded() {
 
 // 前回の参加が残っていれば「戻る」カードを出す
 function offerResume() {
-    // 司会者・モニター・テストの画面では出さない（回答者として参加する入口だけ）
+    // 司会者・モニター・テストの画面では出さない（解答者として参加する入口だけ）
     const qp = new URLSearchParams(location.search);
     if (['testHost', 'testProg', 'hostLoad', 'vcode', 'autoName', 'sid'].some(k => qp.has(k))) return;
     const sess = PlayerSession.read();
@@ -216,7 +216,7 @@ function offerResume() {
         const p = (room.players || {})[sess.id];
         // 部屋が終わっている（司会者が閉じた）なら忘れる
         if (!p || !room.status || room.status.step === 'host_ended') { PlayerSession.clear(); return; }
-        // 回答者の入口が見えている時だけ（司会者のメニューなどの上には出さない）
+        // 解答者の入口が見えている時だけ（司会者のメニューなどの上には出さない）
         const vis = (id) => { const e = document.getElementById(id); return !!(e && !e.classList.contains('hidden')); };
         if (!vis('respondent-view') && !vis('host-login-view')) return;
         if (myPlayerId) return; // もう参加している
@@ -553,10 +553,10 @@ function startPlayerListener(roomId, playerId) {
                 const q = qSnap.val();
                 if (q) {
                     currentQuestion = q;
-                    // モニターと同じテーマのフォントを回答端末にも（色は端末の
+                    // モニターと同じテーマのフォントを解答端末にも（色は端末の
                     // 見やすさを優先して変えない）
                     if (window.App && window.App.Themes) {
-                        // 見た目 › 回答者のスマホにも色を使う（オフなら書体だけ）
+                        // 見た目 › 解答者のスマホにも色を使う（オフなら書体だけ）
                         const qd = (window.App.Themes.forQuestion ? window.App.Themes.forQuestion(q) : q).design || {};
                         const pv = document.getElementById('player-game-view');
                         const useColor = qd.playerTheme !== 'off';
@@ -610,7 +610,7 @@ function showGlobalBuzzNotification(answererId) {
     }, 1200);
 }
 
-// 全員同時の正解発表のあと、自分の解答時間と正解者中の順位を端末に出す
+// 全員同時の正解表示後、自分の解答時間と正解者中の順位を端末に出す
 function updateSpeedBadge(st, p) {
     const view = document.getElementById('player-game-view');
     if (!view) return;
@@ -1260,7 +1260,7 @@ function renderStateBanner(st, p) {
     }
 }
 
-// 上の帯の得点・順位 — ルール「回答者の端末に出すもの」（playerScoreView）
+// 上の帯の得点・順位 — ルール「解答者の端末に出すもの」（playerScoreView）
 //   score（既定）… 得点だけ ／ score_rank … 得点と順位 ／ none … 出さない（会場の発表で盛り上げる時）
 function renderScoreHeader(p) {
     const area = document.getElementById('score-display-area');
@@ -1488,7 +1488,7 @@ function handleNormalResponseUI(p, quizArea, waitMsg) {
             waitMsg.style.border = "1px solid #00b894";
             waitMsg.style.padding = "15px";
             const mine = describeMyAnswer(p.lastAnswer);
-            waitMsg.innerHTML = `<b>回答しました</b><br>${mine ? `あなたの解答：${mine}<br>` : ''}発表を待っています...`;
+            waitMsg.innerHTML = `<b>解答しました</b><br>${mine ? `あなたの解答：${mine}<br>` : ''}発表を待っています...`;
 
             if (isMulti) {
                 const oralArea = document.getElementById('player-oral-done-area');
@@ -1840,7 +1840,7 @@ function showPlayerQImage(q, roomId) {
         img.alt = '';
         disp.parentNode.insertBefore(img, disp);
     }
-    // 見た目で「回答者のスマホにも画像を出す」を外した時は読み込まない
+    // 見た目で「解答者のスマホにも画像」を外した時は読み込まない
     const v = q && q.image && !playerImagesOff(q) ? q.image : null;
     const set = (src) => { if (src) { img.src = src; img.classList.remove('hidden'); } else { img.removeAttribute('src'); img.classList.add('hidden'); } };
     set('');
@@ -1904,7 +1904,7 @@ function renderPlayerQuestion(q, roomId, playerId) {
 
         // Forced Single Selection for Dobon/Turn mode even if q.multi is true
         const isDobonMode = (q.mode === 'dobon' || q.mode === 'multi');
-        // 複数回答モード（選択式で正解が複数）の時だけ複数選んで「決定」
+        // 複数解答モード（選択式で正解が複数）の時だけ複数選んで「決定」
         const isMulti = isDobonMode ? false : !!q.multiCorrect;
 
         const selected = new Set();
@@ -1958,7 +1958,7 @@ function renderPlayerQuestion(q, roomId, playerId) {
         const choiceList = document.createElement('div');
         choiceList.className = 'player-choice-list';
         choiceList.style.paddingBottom = oneTap ? '12px' : 'calc(72px + env(safe-area-inset-bottom, 0px))';
-        // まるばつモード: ○ と × を左右に大きく並べる
+        // 〇×形式: ○ と × を左右に大きく並べる
         const isOx = !!q.ox && !isDobonMode;
         if (isOx) choiceList.style.cssText += 'display:grid; grid-template-columns:1fr 1fr; gap:12px;';
 

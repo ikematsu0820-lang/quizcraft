@@ -7,10 +7,10 @@
  *
  *   セットの設定: config.gameType = 'territory'、tpRows・tpCols（盤面の大きさ）
  *   部屋の状態:   rooms/{id}/status/tp = { rows, cols, cells[], colors{pid:n}, picking, show, last{idx,flips[],by}, seq }
- *   回答者の端末から選ぶ時: rooms/{id}/players/{pid}/tpPick = 番号
+ *   解答者の端末から選ぶ時: rooms/{id}/players/{pid}/tpPick = 番号
  *
  * 司会者（App.Studio）の流れには、正解の判定のあとに「パネルを選ぶ」を差し込むだけ。
- * モニター・回答者の画面には、盤面を出す間だけ上に重ねて出す。
+ * モニター・解答者の画面には、盤面を出す間だけ上に重ねて出す。
  * =======================================================*/
 window.App = window.App || {};
 
@@ -55,7 +55,7 @@ App.Territory = {
         return i === undefined ? '#555' : this.COLORS[i % this.COLORS.length];
     },
 
-    // 盤面の絵（司会者・モニター・回答者で共通）
+    // 盤面の絵（司会者・モニター・解答者で共通）
     boardHtml: function (tp, players, opts = {}) {
         const { rows, cols } = tp;
         const cells = tp.cells || [];
@@ -313,7 +313,7 @@ App.Territory = {
     },
 
     // ---------------------------------------------------------
-    // モニター・回答者 — 盤面を出す間だけ画面の上に重ねる
+    // モニター・解答者 — 盤面を出す間だけ画面の上に重ねる
     // ---------------------------------------------------------
     _watchRoom: null,
     watch: function () {

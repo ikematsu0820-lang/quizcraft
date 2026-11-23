@@ -5,7 +5,7 @@
  *   動き … 作成画面のルール「制限時間」（host_studio.js が時計を進める）
  *          ルームの status.timer に { kind, totalMs, remainMs, running, startAt }
  *   見た目 … 作成画面のデザイン「タイマー」（design.timerStyle など）
- * ここは見た目だけ — モニター（viewer.js）・回答端末（player.js）・
+ * ここは見た目だけ — モニター（viewer.js）・解答端末（player.js）・
  * デザイン画面の見本（host_design.js）が同じ描画を使う。
  * =======================================================*/
 

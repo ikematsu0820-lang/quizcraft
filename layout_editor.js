@@ -4,7 +4,7 @@
  * ・画面の型が「バラエティ枠」の時は、作成画面のプレビュー自体を枠の
  *   見た目にする（お題の帯・写真・名前・大きなボタン）。帯の文字は
  *   プレビューの上で直接書き換えられ、写真の場所を押すと写真を選べる。
- * ・問題の枠と回答（選択肢）の枠の境目をドラッグして、大きさの割合を
+ * ・問題の枠と解答（選択肢）の枠の境目をドラッグして、大きさの割合を
  *   変えられる（design.splitRatio … 問題側が画面の何％か。未設定＝自動）。
  *   ダブルクリックで自動に戻す。モニター（viewer.js）も同じ割合で描く。
  * ・プレビューの上部に「標準／バラエティ枠」の切り替えを出す（見た目の
@@ -105,7 +105,7 @@ App.LayoutEditor = {
             title?.remove();
             photo?.remove();
             form.style.flex = '';
-            // 問題の枠と回答の枠の割合
+            // 問題の枠と解答の枠の割合
             const ori = this.orientation();
             const r = Number(d.splitRatio);
             if (r && ori && !mobileForm) {
@@ -144,13 +144,13 @@ App.LayoutEditor = {
         if (!bar) {
             bar = document.createElement('div');
             bar.id = 'layout-divider';
-            bar.title = 'ドラッグで問題と回答の大きさを変える（ダブルクリックで自動）';
+            bar.title = 'ドラッグで問題と解答の大きさを変える（ダブルクリックで自動）';
             bar.innerHTML = '<span class="ld-grip"></span><span class="ld-tip"></span>';
             preview.appendChild(bar);
             this.wireDivider(bar);
         }
         bar.classList.toggle('ld-row', ori === 'row');
-        // つまみの位置 — 問題側の枠と回答側の枠のあいだ
+        // つまみの位置 — 問題側の枠と解答側の枠のあいだ
         const pr = preview.getBoundingClientRect();
         const a = (this.isFrameEditing() ? form : qArea).getBoundingClientRect();
         if (ori === 'row') {

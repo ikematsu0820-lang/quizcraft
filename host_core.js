@@ -83,7 +83,7 @@ window.App.QuizCheck = {
 };
 
 // 選択肢の記号（A B C / a b c / 1 2 3）— 問題作成のデザイン
-// 「記号」の種類（design.cPrefixType）。作成画面・モニター・回答者・
+// 「記号」の種類（design.cPrefixType）。作成画面・モニター・解答者・
 // 出題者画面のどこでも同じ記号になるよう、ここで作る。
 window.App.ChoiceLabel = function (i, type) {
     const n = i + 1;
@@ -215,7 +215,7 @@ window.App.init = function () {
 
     // 参加用QR（モニターのタイトル画面）などの ?room=CODE — 司会者用のログイン
     // 画面ではなく、部屋コードが入った参加画面（名前を入れるだけ）を直接出す。
-    // テストプレイの回答者（autoName 付き）は player.js が自動で参加させる。
+    // テストプレイの解答者（autoName 付き）は player.js が自動で参加させる。
     const roomParam = urlParams.get('room');
     if (roomParam) {
         const code = roomParam.trim().toUpperCase();
@@ -482,9 +482,9 @@ window.App._showTestNavBar = function (testId, playerCount) {
     const unifiedToggle = document.getElementById('unified-toggle-container');
     if (unifiedToggle) unifiedToggle.style.display = 'none';
 
-    // 画面の切り替え（モニター/出題者/テスト回答者）は、画面下のバーではなく
+    // 画面の切り替え（モニター/出題者/テスト解答者）は、画面下のバーではなく
     // 進行ボタン（問題を表示する 等）の右横のプルダウンで選ぶ。モニターや
-    // 回答者の画面を出している間は、プルダウンを右下に浮かせて戻れるようにする。
+    // 解答者の画面を出している間は、プルダウンを右下に浮かせて戻れるようにする。
     const iframeOverlay = document.createElement('div');
     iframeOverlay.id = 'test-iframe-overlay';
     iframeOverlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100vh;z-index:99998;display:none;background:#000;';
@@ -507,7 +507,7 @@ window.App._showTestNavBar = function (testId, playerCount) {
     select.innerHTML = `
         <option value="host">司会者の画面</option>
         <option value="viewer">モニター</option>
-        ${Array.from({ length: playerCount }, (_, i) => `<option value="player-${i + 1}">回答者：テスト${i + 1}</option>`).join('')}
+        ${Array.from({ length: playerCount }, (_, i) => `<option value="player-${i + 1}">解答者：テスト${i + 1}</option>`).join('')}
         <option value="dashboard">テストを終える</option>`;
     select.style.cssText = 'flex:0 0 150px; width:150px !important; max-width:150px; height:auto; min-height:36px; padding:0 10px; border-radius:12px; font-size:14px; font-weight:bold; cursor:pointer; background:#1a0800 !important; color:#ffb27a !important; border:2px solid #ff6600 !important; margin:0;';
 
@@ -574,7 +574,7 @@ window.App._showTestNavBar = function (testId, playerCount) {
     };
     select.onchange = () => switchTo(select.value);
     switchTo('host');
-    // テストの回答者は最初から全員入っておく（切り替えるまで誰もいないと、順番も決められず始められない）
+    // テストの解答者は最初から全員入っておく（切り替えるまで誰もいないと、順番も決められず始められない）
     setTimeout(() => {
         playerIframes.forEach((f, idx) => {
             if (playerLoaded[idx]) return;
@@ -1076,7 +1076,7 @@ window.App.Dashboard = {
             }
         }
 
-        const count = await window.App.Dialog.number('テストの回答者を何人にしますか？（1〜8人）', '2', { title: 'テストプレイ', ok: 'テストを始める', min: 1, max: 8 });
+        const count = await window.App.Dialog.number('テストの解答者を何人にしますか？（1〜8人）', '2', { title: 'テストプレイ', ok: 'テストを始める', min: 1, max: 8 });
         if (count === null) return;
 
         const isSet = (type === 'set');

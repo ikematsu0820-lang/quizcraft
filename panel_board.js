@@ -11,7 +11,7 @@
  * 解答権は1人ずつ（早押し・順番・指名）。得点はパネルごとの点
  * （空欄ならルールの「正解」の設定）、減点はルールの「誤答」の設定。
  *
- * 作成画面・出題者画面・モニター・回答者画面をこのファイルにまとめ、
+ * 作成画面・出題者画面・モニター・解答者画面をこのファイルにまとめ、
  * 既存のファイルには小さな呼び出しだけを足している。
  * =======================================================*/
 
@@ -63,7 +63,7 @@ App.PanelBoard = {
     },
 
     // パネルクイズの盤面: ジャンル（パネルの label）ごとに列、列の中は点の小さい順。
-    // cells[行][列] = パネルの番号（無い所は null）。モニター・出題者画面・回答者画面・プレビューで共通
+    // cells[行][列] = パネルの番号（無い所は null）。モニター・出題者画面・解答者画面・プレビューで共通
     boardLayout: function (panels) {
         const cats = [];
         const byCat = {};
@@ -92,7 +92,7 @@ App.PanelBoard = {
         C.renderForm('multi_oral', { type: 'multi_oral', panel: true, panelQ: true, panelStyle: 'board', panels: [], boardGenres });
     },
 
-    // モニター・回答者画面のパネルの列の数
+    // モニター・解答者画面のパネルの列の数
     cols: function (n) {
         if (n <= 3) return n;
         if (n <= 4) return 2;
@@ -561,7 +561,7 @@ App.PanelBoard = {
                 pb: {
                     theme: pb.theme,
                     board: pb.board || null,
-                    // 答えは開いたパネルの分だけ送る（回答者の端末から見えないように）
+                    // 答えは開いたパネルの分だけ送る（解答者の端末から見えないように）
                     panels: pb.panels.map((p, i) => {
                         const s = pb.status[i] || {};
                         const open = s.r === 'ok' || s.r === 'closed' || pb.revealAll;
@@ -950,7 +950,7 @@ if (window.App.Viewer) Object.assign(window.App.Viewer, App.PanelBoard.viewer);
 })();
 
 // ---------------------------------------------------------
-// 回答者画面（player.js の updateUI から呼ぶ）
+// 解答者画面（player.js の updateUI から呼ぶ）
 // ---------------------------------------------------------
 function renderPlayerPanelBoard(st, p) {
     const pb = st.pb || {};

@@ -141,7 +141,7 @@ window.App.Viewer = {
         }
     },
 
-    // 参加用QRコード（タイトル画面の右下）— 回答者がスマホで読み取ると、
+    // 参加用QRコード（タイトル画面の右下）— 解答者がスマホで読み取ると、
     // ルームIDが入った参加画面（player.js の ?room=）が開く
     joinQrHtml: function () {
         if (typeof qrcode === 'undefined' || !this.roomId) return '';
@@ -301,7 +301,7 @@ window.App.Viewer = {
         }
         // 早押し×手書きで「正解した人は抜けて続ける」— 抜けた順（1抜け・2抜け…）
         this.renderWbWinners(viewContainer, ['question', 'answering', 'reveal_q', 'closed'].includes(st.step) ? st.wbWinners : null);
-        // 回答の見せ方（演出）は描画のあとに重ねる
+        // 解答の見せ方（演出）は描画のあとに重ねる
         setTimeout(() => { this.updateLiveAnswers(); this.updateSpeedReveal(); this.updateSoloResult(); }, 0);
         // テーマのフォント・アクセント色（セット共通なので先頭の問題から取る）
         if (window.App.Themes) {
@@ -556,7 +556,7 @@ window.App.Viewer = {
             const skinned = window.App.ChoiceSkin && window.App.ChoiceSkin.appliesToChoices(q);
             // Normal choice: TV-show style reveal — light up correct, dim others
             if (q.type === 'choice' && Array.isArray(q.c) && q.c.length > 0) {
-                // 複数回答モードでは正解が複数 — q.correct（配列）を全部光らせる
+                // 複数解答モードでは正解が複数 — q.correct（配列）を全部光らせる
                 const correctSet = new Set(q.multiCorrect && Array.isArray(q.correct)
                     ? q.correct.map(Number)
                     : [parseInt(q.correctIndex !== undefined ? q.correctIndex : q.correct)]);
@@ -762,9 +762,9 @@ window.App.Viewer = {
     },
 
     // =========================================================
-    // 回答の見せ方（全員同時）— デザインの「演出」で選ぶ
+    // 解答の見せ方（全員同時）— デザインの「演出」で選ぶ
     //   liveAnswerView: 答えている間 … 'count'（人数）/ 'names'（答えた順）
-    //   speedReveal:    正解発表のあと … 'top'（TOP10）/ 'countup'（下から1人ずつ）
+    //   speedReveal:    正解表示後 … 'top'（TOP10）/ 'countup'（下から1人ずつ）
     // 答えている間は正誤を出さない（まだ答えていない人にばれないように）
     // =========================================================
     _liveDesign: function () {
@@ -791,7 +791,7 @@ window.App.Viewer = {
         const answered = players.filter(p => p.lastAnswer !== null && p.lastAnswer !== undefined);
         box.className = `live-${mode}`;
         if (mode === 'count') {
-            box.innerHTML = `<div class="live-count"><span class="live-count-n">${answered.length}</span><span class="live-count-d"> / ${players.length}人 回答</span></div>`;
+            box.innerHTML = `<div class="live-count"><span class="live-count-n">${answered.length}</span><span class="live-count-d"> / ${players.length}人 解答</span></div>`;
             return;
         }
         const RE = window.App.RuleEngine;
@@ -800,7 +800,7 @@ window.App.Viewer = {
             .slice(0, 8);
         const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
         box.innerHTML = `
-            <div class="live-head">回答 ${answered.length} / ${players.length}</div>
+            <div class="live-head">解答 ${answered.length} / ${players.length}</div>
             ${rows.map((r, i) => `<div class="live-row"><span class="live-rank">${i + 1}</span><span class="live-name">${esc(r.name)}</span><span class="live-ms">${r.ms === null ? '' : (r.ms / 1000).toFixed(2) + '秒'}</span></div>`).join('')}`;
     },
 
@@ -1179,7 +1179,7 @@ window.App.Viewer = {
             let ans = p.lastAnswer;
             let isImage = false;
             if (q.type === 'choice' && Array.isArray(ans)) {
-                // 複数回答モードは選んだ番号の配列
+                // 複数解答モードは選んだ番号の配列
                 ans = ans.map(a => App.ChoiceLabel(parseInt(a), (q.design || {}).cPrefixType)).join(' ');
             } else if (q.type === 'choice' && ans !== null && ans !== undefined) {
                 const idx = parseInt(ans);
@@ -1419,7 +1419,7 @@ window.App.Viewer = {
         if (container) container.classList.remove('vf-on');
         this._renderQuestionLayoutInner(container, contentBox, q, st, revealedMulti);
         if (window.App.VarietyFrame) window.App.VarietyFrame.injectImage(contentBox, q);
-        if (window.App.LayoutEditor) window.App.LayoutEditor.applyToViewer(contentBox, q); // 問題と回答の枠の割合
+        if (window.App.LayoutEditor) window.App.LayoutEditor.applyToViewer(contentBox, q); // 問題と解答の枠の割合
         if (window.App.ChoiceSkin) window.App.ChoiceSkin.applyToViewer(container, contentBox, q, st); // ボタンの形・テロップ・外枠
         if (window.App.ItemImage) window.App.ItemImage.injectViewer(contentBox, q); // 選択肢などの小枠の画像
     },
@@ -1528,7 +1528,7 @@ window.App.Viewer = {
                 const gridStyle = (rows > 0 && cols > 0) ? `display:grid; grid-template-columns: repeat(${cols}, 1fr); gap:2vh;`
                     : autoTwo ? 'display:grid; grid-template-columns: repeat(2, 1fr); gap:2vh;' : '';
                 const cAreaStyle = isRow ? `width:${92 - rowQW}vw; box-sizing:border-box;` : '';
-                // まるばつモード: ○ を左半分、× を右半分に大きく
+                // 〇×形式: ○ を左半分、× を右半分に大きく
                 const isOx = !!q.ox && q.type === 'choice';
                 const oxAreaStyle = isOx ? 'display:grid; grid-template-columns:1fr 1fr; gap:3vh; flex:1; min-height:45vh; width:96%;' : '';
                 // 多答・ランキング: 残りの高さいっぱいにパネルを並べ、文字はパネルの

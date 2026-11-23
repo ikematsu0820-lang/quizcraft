@@ -457,7 +457,7 @@ window.App.Creator = {
 
         // Raw leaf type currently shown in the form (e.g. 'choice_multi',
         // 'free_oral'), captured before the choice_single/choice_multi
-        // remap below. Used by 解答権's mode restrictions so picking 回答形式
+        // remap below. Used by 解答権's mode restrictions so picking 解答形式
         // restricts 解答権 immediately, even before the first question in
         // the set has been added (deriveTypeInfo() otherwise only looks at
         // already-added questions).
@@ -504,11 +504,11 @@ window.App.Creator = {
 
             // 選択式は最初から正解を複数選べる（2つ以上選んだら、すべて
             // 選んだ時だけ正解 — 保存時に multiCorrect を付ける）。
-            // まるばつモード: 選択肢は ○ と × の2つだけ、左右半分ずつに並べる。
+            // 〇×形式: 選択肢は ○ と × の2つだけ、左右半分ずつに並べる。
             this.multiCorrect = false;
             if (!isDobon) {
                 if (data) this.oxMode = !!data.ox;
-                outsideCheck('choice-ox-chk', 'まるばつモード', !!this.oxMode, (on) => {
+                outsideCheck('choice-ox-chk', '〇×形式', !!this.oxMode, (on) => {
                     this.oxMode = on;
                     const cur = this.readChoiceRows();
                     this.renderForm('choice_single', on
@@ -579,7 +579,7 @@ window.App.Creator = {
                     <div style="margin-bottom:14px;">
                         <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:#8b8b95; font-size:0.85rem;">
                             <input type="checkbox" id="choice-shuffle-chk" ${data?.shuffle !== false ? 'checked' : ''}>
-                            <span>選択肢をシャッフルする</span>
+                            <span>選択肢をシャッフル</span>
                         </label>
                     </div>
                 `;
@@ -615,9 +615,9 @@ window.App.Creator = {
             sortDiv.style.cssText = 'display:flex; flex-direction:column; gap:1%; flex:1; min-height:0; width:100%;';
             container.appendChild(sortDiv);
 
-            // 順序リセットはプレビューの外（行の高さを広く取るため）
+            // 順番をリセットはプレビューの外（行の高さを広く取るため）
             outsideHint('右の四角を正しい順にタップ');
-            outsideButton('btn-reset-sort-ranks', '順序リセット', () => this.resetSortRanks(sortDiv));
+            outsideButton('btn-reset-sort-ranks', '順番をリセット', () => this.resetSortRanks(sortDiv));
 
             // See the choice branch's comment above re: data.c.length.
             if (data && data.c && data.c.length > 0) {
@@ -644,7 +644,7 @@ window.App.Creator = {
                     <div style="margin-bottom:12px;">
                         <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:#8b8b95; font-size:0.9rem;">
                             <input type="checkbox" id="sort-shuffle-chk" ${data?.shuffle !== false ? 'checked' : ''}>
-                            <span>選択肢をシャッフルする</span>
+                            <span>選択肢をシャッフル</span>
                         </label>
                     </div>
                 `;
@@ -856,7 +856,7 @@ window.App.Creator = {
         }
     },
 
-    // 現在の選択肢の入力状態（文字と正解）を読む — 複数回答モードの
+    // 現在の選択肢の入力状態（文字と正解）を読む — 複数解答モードの
     // 切替で描き直す時に、入力済みの内容を引き継ぐため。
     readChoiceRows: function () {
         const c = [], correct = [];
@@ -987,7 +987,7 @@ window.App.Creator = {
 
     // deriveTypeInfo()/applyModeRestrictions() (host_config.js) only look at
     // already-added questions[0], so before the first question in a set is
-    // added, picking a 回答形式 had no effect on 解答権's mode restrictions.
+    // added, picking a 解答形式 had no effect on 解答権's mode restrictions.
     // Fall back to a synthetic entry built from the live form's current
     // type/subtype so restrictions apply immediately.
     effectiveQuestionsForRestrictions: function () {
@@ -1022,7 +1022,7 @@ window.App.Creator = {
         if (designBtn) designBtn.onclick = () => this.toggleInlinePanel('design');
         rulesBtn.onclick = () => this.toggleInlinePanel('rules');
 
-        // Keep an already-open 解答権 pulldown in sync as 回答形式 changes
+        // Keep an already-open 解答権 pulldown in sync as 解答形式 changes
         // (it only reflects restrictions from the moment it opened otherwise).
         // スマホの下から出るルールのパネルも、開いている間は描き直す
         const M = window.App.CreatorMobile;
@@ -1135,7 +1135,7 @@ window.App.Creator = {
     },
 
     // Renders the given panel's content. Called on open (toggleInlinePanel)
-    // and again from renderRulesSection() whenever the live 回答形式/question
+    // and again from renderRulesSection() whenever the live 解答形式/question
     // list changes, so an already-open 解答権 panel's mode restrictions stay
     // in sync instead of only updating on next open.
     renderActivePanelContent: function (key) {
@@ -1998,7 +1998,7 @@ window.App.Creator = {
         const qNumText = (this.qNumText || '').trim();
         newQ.qNumText = qNumText || null;
 
-        // 正解の発表（この問題だけ）— 見せ方・画像の答え合わせ・世間の正解率・解説（reveal.js）
+        // この問題の正解表示— 見せ方・画像の答え合わせ・世間の正解率・解説（reveal.js）
         if (window.App.Reveal && ['text', 'choice', 'sort'].includes(window.App.Reveal.kindOf(normalizedType))) {
             Object.assign(newQ, window.App.Reveal.qFields(this.qReveal));
         }
@@ -2027,9 +2027,9 @@ window.App.Creator = {
             // Use explicit mode from dropdown
             newQ.mode = choiceMode;
             newQ.multi = (newQ.mode === 'multi');
-            // 正解を2つ以上選んだら、すべて選んだ時だけ正解（回答者も複数選べる）
+            // 正解を2つ以上選んだら、すべて選んだ時だけ正解（解答者も複数選べる）
             newQ.multiCorrect = (!newQ.multi && corr.length > 1) ? true : null;
-            // まるばつモード（○/× を左右半分ずつ）
+            // 〇×形式（○/× を左右半分ずつ）
             newQ.ox = (!newQ.multi && this.oxMode) ? true : null;
 
             // Save shuffle setting

@@ -702,7 +702,7 @@ App.Studio = {
     // 書き、問題側は参照だけにする（App.SetImages）— 画像を問題数分
     // 複製して送ると数MBになり、モニターの表示が止まったように遅れる。
     // viewer は images を先に受け取れるよう、questions より先に書く。
-    // 一問一答の「読み上げ」— ルームには問題文を送らない（モニター・回答者の端末から先読みできないように）。
+    // 一問一答の「読み上げ」— ルームには問題文を送らない（モニター・解答者の端末から先読みできないように）。
     // 司会者の画面は App.Data.studioQuestions（問題文あり）を使う
     readAloudOn: function (q) {
         const RE = window.App.RuleEngine;
@@ -802,7 +802,7 @@ App.Studio = {
         App.Data.currentConfig = this.applyForcedMode(item.config || { mode: 'normal' });
         App.Data.currentConfig.periodTitle = item.title || "Untitled";
         App.State.currentQIndex = 0;
-        // 回答者の待機画面に出す「今回の遊び方」
+        // 解答者の待機画面に出す「今回の遊び方」
         if (window.App.RuleEngine && App.RuleEngine.playerGuide) App.Data.currentConfig.playerGuide = App.RuleEngine.playerGuide(App.Data.currentConfig, App.Data.studioQuestions);
 
         const roomId = App.State.currentRoomId;
@@ -1716,7 +1716,7 @@ App.Studio = {
         App.Data.currentConfig = this.applyForcedMode(child.config || { mode: 'normal' });
         App.Data.currentConfig.periodTitle = child.title || "Untitled";
         App.State.currentQIndex = 0;
-        // 回答者の待機画面に出す「今回の遊び方」
+        // 解答者の待機画面に出す「今回の遊び方」
         if (window.App.RuleEngine && App.RuleEngine.playerGuide) App.Data.currentConfig.playerGuide = App.RuleEngine.playerGuide(App.Data.currentConfig, App.Data.studioQuestions);
 
         const roomId = App.State.currentRoomId;
@@ -1838,7 +1838,7 @@ App.Studio = {
         }, 1200);
     },
 
-    // 勝利条件「最後まで残った人が勝ち」: 不正解（無回答含む）を1問につき
+    // 勝利条件「最後まで残った人が勝ち」: 不正解（無解答含む）を1問につき
     // 1回ミスとして数え、規定回数（survivalLives）に達したら脱落
     // （isAlive:false — プレイヤー端末は GAME OVER 表示になる）。判定が
     // 入る場所（早押し/一斉/手動/自動…）が多いので、個別に手を入れず
@@ -2071,7 +2071,7 @@ App.Studio = {
         this._nominatedId = null;
         this._turnTried = {};
         this.clearAnswerTimer();
-        this._deskSelected = null; // 新しい問題では解答ボードは「回答待ち」から
+        this._deskSelected = null; // 新しい問題では解答ボードは「解答待ち」から
         const roomId = App.State.currentRoomId;
         this.revealedMultiIndices = {}; // Reset multi-answer reveal state
         this.turnAdvancedThisQ = false; // Reset turn flag for current question
@@ -2555,10 +2555,10 @@ App.Studio = {
     //   time_ban  … ◯秒間押せない
     //   rest      … ◯問休み（この問題＋次の◯問）
     //   reset_all … 全員の押した記録を消して、もう一度押し直し
-    // 「誤答したら問題は：終わる」の時は rest だけが意味を持つ。
-    // ほかの人の押した順（ルール「ほかの人の押した順」buzzRequeue）
+    // 「誤答時の問題：終わる」の時は rest だけが意味を持つ。
+    // 他の人の押し順（ルール「他の人の押し順」buzzRequeue）
     //   keep  … 引き継ぐ（次に早く押していた人へ、すぐ解答権が移る）
-    //   reset … 消して全員押し直し（以前の「全員もう一度押し直し」もこちら）
+    //   reset … 全員押し直し（以前の「全員もう一度押し直し」もこちら）
     _requeueReset: function () {
         const c = App.Data.currentConfig || {};
         return c.buzzRequeue === 'reset' || c.buzzPenalty === 'reset_all';
@@ -2676,7 +2676,7 @@ App.Studio = {
         });
     },
 
-    // 回答者の端末に順位を出す時（ルール「回答者の端末に出すもの：得点と順位」）だけ、
+    // 解答者の端末に順位を出す時（ルール「解答者の端末に出すもの：得点と順位」）だけ、
     // 得点から順位を出して各自に書く（同点は同じ順位）。変わった人の分だけ書く。
     syncRanks: function (players) {
         const conf = App.Data.currentConfig || {};
@@ -2735,7 +2735,7 @@ App.Studio = {
         });
     },
 
-    // 抜けた順（1抜け・2抜け…）をモニターと回答者に知らせる
+    // 抜けた順（1抜け・2抜け…）をモニターと解答者に知らせる
     wbNoteWin: function (playerId, name, gain) {
         this._wbWinners = (this._wbWinners || []).concat([{ id: playerId, name: name || '---', gain }]);
         window.db.ref(`rooms/${App.State.currentRoomId}/status`).update({ wbWinners: this._wbWinners });
@@ -2917,7 +2917,7 @@ App.Studio = {
                     isCor = true;
                 }
             } else if (q.multiCorrect && Array.isArray(q.correct)) {
-                // 複数回答モード: 正解をすべて選び、不正解を1つも選んで
+                // 複数解答モード: 正解をすべて選び、不正解を1つも選んで
                 // いない時だけ正解（解答は選んだ番号の配列で届く）
                 const ans = Array.isArray(p.lastAnswer) ? p.lastAnswer
                     : (p.lastAnswer && typeof p.lastAnswer === 'object') ? Object.values(p.lastAnswer) : [p.lastAnswer];
@@ -3328,8 +3328,8 @@ App.Studio = {
     //   blackjack: 各自が自分の合計に足す。目標を超えたら脱落、ストップ可。
     //              最後に目標以下で一番近い人が勝ち
     //   burst:     全員で1つの合計に足していく。目標を超えさせた人が負け
-    // 状態は rooms/{id}/status/ng に置き、モニター（viewer.js）と回答者
-    // （player.js）はそれを表示する。回答者は自分の番に players/{me}/ngPick
+    // 状態は rooms/{id}/status/ng に置き、モニター（viewer.js）と解答者
+    // （player.js）はそれを表示する。解答者は自分の番に players/{me}/ngPick
     // へ選んだ項目（またはストップ）を書き、出題者側がここで処理する。
     // =========================================================
     _ng: null,
@@ -3409,7 +3409,7 @@ App.Studio = {
         this.updateNumGameMainButton();
     },
 
-    // 回答者が選んだ項目（players/{id}/ngPick）を処理する（players の購読から呼ぶ）
+    // 解答者が選んだ項目（players/{id}/ngPick）を処理する（players の購読から呼ぶ）
     processNumGamePick: function (players) {
         const ng = this._ng;
         if (!ng || ng.finished || ng.resolved || this.currentStepId !== 2) return;
@@ -3524,7 +3524,7 @@ App.Studio = {
         } else {
             const cur = this.ngCurrentId();
             btnMain.textContent = cur ? `${ng.names[cur]} さんの選択待ち` : '参加者待ち';
-            btnMain.onclick = () => App.Ui.showToast('回答者が選ぶか、下の一覧から代わりに選んでください');
+            btnMain.onclick = () => App.Ui.showToast('解答者が選ぶか、下の一覧から代わりに選んでください');
         }
         this.syncMainButton();
     },
@@ -3593,7 +3593,7 @@ App.Studio = {
 
     // 参加者と解答ボード。解答を送ってきた人（未判定）は名前が赤く光り、
     // 名前を押すと中央の解答ボードにその人の解答、右の○×で判定できる。
-    // 選ぶまでは「回答待ち」。
+    // 選ぶまでは「解答待ち」。
     _deskSelected: null,
     renderAnswerDesk: function (sortedPlayers) {
         const listEl = document.getElementById('console-player-horizontal-list');
@@ -3661,13 +3661,13 @@ App.Studio = {
         const sel = sortedPlayers.find(p => p.id === this._deskSelected) || null;
         if (!sel) {
             const anyAnswered = sortedPlayers.some(p => hasAns(p) && !resultOf(p));
-            board.innerHTML = `<div style="flex:1; display:flex; align-items:center; justify-content:center; color:#666; font-size:14px; text-align:center;">${anyAnswered ? '光っている名前を押すと<br>解答が表示されます' : '回答待ち'}</div>`;
+            board.innerHTML = `<div style="flex:1; display:flex; align-items:center; justify-content:center; color:#666; font-size:14px; text-align:center;">${anyAnswered ? '光っている名前を押すと<br>解答が表示されます' : '解答待ち'}</div>`;
         } else {
             const ans = sel.lastAnswer;
             const noData = (ans === null || ans === undefined || ans === '');
             let body;
             if (!hasAns(sel)) {
-                body = '<div style="color:#666; font-size:14px;">回答待ち</div>';
+                body = '<div style="color:#666; font-size:14px;">解答待ち</div>';
             } else if (noData) {
                 // 口頭（早押し/順番）— 解答は声で聞いて判定
                 body = `<div style="color:#111; font-size:20px; font-weight:900; text-align:center;">${mode === 'buzz' ? '早押し' : '解答中'}<br><span style="font-size:14px; color:#555;">口頭の解答を聞いて〇✕を押してください</span></div>`;
@@ -3927,7 +3927,7 @@ App.Studio = {
                             currentAnswererName: null,
                             isBuzzActive: true
                         });
-                        // ほかの人の押した順: 引き継ぐ／全員押し直し（ルール）
+                        // 他の人の押し順: 引き継ぐ／全員押し直し（ルール）
                         if (this._requeueReset()) this.requeueAfterWrong();
                         else snap.ref.update({ buzzTime: null });
                         App.Ui.showToast(`不正解。${banTime}秒間解答無効！早押し再開`);
@@ -3956,7 +3956,7 @@ App.Studio = {
                             currentAnswererName: null,
                             isBuzzActive: true
                         });
-                        // 誤答した人はもう一度押せる。ほかの人の押した順はルールどおり
+                        // 誤答した人はもう一度押せる。他の人の押し順はルールどおり
                         if (this._requeueReset()) this.requeueAfterWrong();
                         else snap.ref.update({ buzzTime: null });
                         App.Ui.showToast("不正解。早押し再開！");

@@ -57,7 +57,7 @@ App.CreatorMobile = {
             <div id="cm-qcards"></div>
             <div class="cm-add-row">
                 <button type="button" id="cm-add-btn" class="cm-add-card">＋ 新しい問題</button>
-                <button type="button" id="cm-bulk-btn" class="cm-ghost-btn">メモのようにまとめて入力</button>
+                <button type="button" id="cm-bulk-btn" class="cm-ghost-btn">まとめて入力</button>
             </div>
             <div id="cm-list-bar" class="cm-bottom-bar">
                 <button type="button" data-cm-sheet="design" class="cm-bar-btn">${window.App.Icons.svg('palette')}<span>見た目</span></button>
@@ -80,7 +80,7 @@ App.CreatorMobile = {
         // 入力画面からも「まとめて入力」へ（新しいセットは一覧を通らずにここから始まるので）
         const bulkEdit = document.createElement('div');
         bulkEdit.id = 'cm-edit-bulk';
-        bulkEdit.innerHTML = `<button type="button" id="cm-edit-bulk-btn" class="cm-ghost-btn">メモのようにまとめて入力</button>`;
+        bulkEdit.innerHTML = `<button type="button" id="cm-edit-bulk-btn" class="cm-ghost-btn">まとめて入力</button>`;
         view.insertBefore(bulkEdit, wrap.nextSibling);
 
         const editBar = document.createElement('div');
@@ -352,7 +352,7 @@ App.CreatorMobile = {
             box.innerHTML = `
                 <div class="cm-empty">
                     <div class="cm-empty-title">最初の問題を作りましょう</div>
-                    <div class="cm-empty-sub">「＋ 新しい問題」から1問ずつ、または「メモのようにまとめて入力」で一気に入れられます。</div>
+                    <div class="cm-empty-sub">「＋ 新しい問題」から1問ずつ、または「まとめて入力」で一気に入れられます。</div>
                 </div>`;
             return;
         }
@@ -411,20 +411,20 @@ App.CreatorMobile = {
         const conf = window.App.Data.currentConfig || {};
         const d = window.App.Data.currentDesign || {};
         const MODE = { normal: '全員が同時に手元で答える', buzz: '早押しで答える', nominate: '指名された人が答える', turn: '順番に答える' };
-        const SCORE = { uniform: '正解者全員に同じ点', ranked: '速い人ほど高得点', hint: 'ヒントが少ないほど高得点', first: `先着${parseInt(conf.firstN) || 1}人だけ得点` };
+        const SCORE = { uniform: '全員同じ点', ranked: '早い順に高得点', hint: 'ヒントが少ないほど高得点', first: `先着${parseInt(conf.firstN) || 1}人だけ得点` };
         // 入力画面の上の「遊び方：◯◯」と同じ呼び名（rule_engine.js の WHO・HOW）
         const PS = window.App.PlayStyle;
         const playLabel = PS && PS.shortLabel ? PS.shortLabel() : '';
-        const rows = [{ key: 'format', label: '遊び方', value: playLabel || MODE[conf.mode] || MODE.normal }];
-        rows.push({ key: 'correct', label: '正解したとき', value: conf.gameType === 'timerace' ? '1問1点（タイムレース）' : (SCORE[conf.scoreType] || SCORE.uniform) });
+        const rows = [{ key: 'format', label: '解答方式', value: playLabel || MODE[conf.mode] || MODE.normal }];
+        rows.push({ key: 'correct', label: '正解時', value: conf.gameType === 'timerace' ? '1問1点（タイムレース）' : (SCORE[conf.scoreType] || SCORE.uniform) });
         const RE = window.App.RuleEngine;
         const loss = RE ? RE.wrongLoss(conf, {}) : 0;
-        let wrong = conf.mode === 'buzz' ? (conf.buzzWrongAction === 'end' ? '問題を終える' : '他の人が答えられる')
-            : conf.mode === 'turn' ? (conf.turnWrongAction === 'next' ? '次の人に回す' : '問題を終える') : '減点のみ';
+        let wrong = conf.mode === 'buzz' ? (conf.buzzWrongAction === 'end' ? '問題終了' : '他の人に解答権')
+            : conf.mode === 'turn' ? (conf.turnWrongAction === 'next' ? '次の人に回す' : '問題終了') : '減点';
         if (loss > 0) wrong += `・−${loss}点`;
-        rows.push({ key: 'wrong', label: '間違えたとき', value: wrong });
+        rows.push({ key: 'wrong', label: '誤答時', value: wrong });
         const WIN = {
-            score: '得点が高い人',
+            score: '得点順',
             survival: `サバイバル（${conf.survivalLives || 1}回ミスで脱落）`,
             winthrough: `勝ち抜け（${Number(conf.winTarget) || 5}${conf.winBy === 'correct' ? '問正解' : '点'}）`,
             timerace: 'タイムレース（正解数→合計時間）',
@@ -433,10 +433,10 @@ App.CreatorMobile = {
             const sz = window.App.Territory ? window.App.Territory.size(conf) : { rows: 5, cols: 5 };
             WIN.territory = `陣取り（${sz.rows}×${sz.cols}・パネルが多い人）`;
         }
-        rows.push({ key: 'win', label: '勝ち方', value: WIN[conf.gameType] || WIN.score });
+        rows.push({ key: 'win', label: '勝敗', value: WIN[conf.gameType] || WIN.score });
         const sec = parseInt(conf.timeLimitSeconds) || 30;
         // 問題の時計と、答える人の時計（押してから◯秒）の両方を出す
-        let time = conf.timeLimitEnabled !== 'on' ? '問題の時間なし'
+        let time = conf.timeLimitEnabled !== 'on' ? '制限時間なし'
             : conf.timerKind === 'pool' ? `セット全体で${sec}秒`
             : conf.timerKind === 'personal' ? `1人${sec}秒の持ち時間` : `1問${sec}秒`;
         if (Number(conf.answerSec) > 0) time += `・答えは${Number(conf.answerSec)}秒以内`;
@@ -457,7 +457,7 @@ App.CreatorMobile = {
         if (!box) return;
         // まとまりごとに区切る: 遊び方とルール ／ 正解の発表 ／ モニターの見た目 ／ 問題
         const GROUP = { format: 'rule', correct: 'rule', wrong: 'rule', win: 'rule', time: 'rule', judge: 'ans', reveal: 'ans', result: 'ans', design: 'show', fx: 'show' };
-        const HEAD = { rule: '遊び方とルール', ans: '正解の発表', show: 'モニターの見た目' };
+        const HEAD = { rule: 'ルール', ans: '正解の発表', show: '見た目' };
         let last = null, html = '';
         this.settingsRows().forEach(r => {
             const g = GROUP[r.key] || 'other';
@@ -501,7 +501,7 @@ App.CreatorMobile = {
             return;
         }
         const ids = { design: 'creator-inline-design', rules: 'creator-inline-rules', bulk: 'creator-bulk-panel' };
-        const titles = { design: sub === 'fx' ? '音・演出（セット全体）' : '見た目（セット全体）', rules: 'ルール（セット全体）', bulk: 'メモのようにまとめて入力' };
+        const titles = { design: sub === 'fx' ? '音・演出（セット全体）' : '見た目（セット全体）', rules: 'ルール（セット全体）', bulk: 'まとめて入力' };
         // タブを切り替えても題名がずれないよう、ルールは「ルール」のまま（どの設定かはタブで分かる）
         const node = document.getElementById(ids[kind]);
         if (!node) return;
@@ -954,7 +954,7 @@ App.CreatorInput = {
             });
             return;
         }
-        // 一覧の上: 多答の「通常／ランキング／パネル指名」、選択式の「まるばつモード」
+        // 一覧の上: 多答の「通常／ランキング／パネル指名」、選択式の「〇×形式」
         //   （まるばつは下の設定の中だと、押した時に選択肢が縮んで目線が迷うので、問題文のすぐ下に）
         const seg = document.getElementById('multi-mode-seg');
         const oxRow = document.getElementById('choice-ox-chk')?.closest('label');

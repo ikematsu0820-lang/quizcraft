@@ -285,7 +285,7 @@ App.Themes = {
         document.head.appendChild(link);
     },
 
-    // モニター／プレビュー／回答端末の画面にフォントとアクセント色を反映する。
+    // モニター／プレビュー／解答端末の画面にフォントとアクセント色を反映する。
     // --color-primary を差し替えるので、既存の「枠の色が未設定ならアクセント色」
     // の部分も自動でテーマ色になる。
     applyToElement: function (el, design) {

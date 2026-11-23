@@ -459,8 +459,8 @@ App.Design = {
                             ${miniSelect('画像の大きさ', 'cImgSize', [{ v: 'small', t: '小' }, { v: '', t: '中' }, { v: 'large', t: '大' }])}
                         </div>
                         <p style="color:#555; font-size:0.62rem; margin:4px 0 0;">※画像は問題を書く画面で、${choicesLabel}の行の画像ボタンから入れます（文字は正解発表で使うので必要です）</p>
-                        <label class="ds-flag"><input type="checkbox" data-design-flag="playerImages" ${design.playerImages === 'off' ? '' : 'checked'}><span>回答者のスマホにも画像を出す</span></label>
-                        <p style="color:#555; font-size:0.62rem; margin:2px 0 0;">※外すと回答者のスマホは画像を読み込まず、文字だけになります（画像が多い時に軽くなります。モニターには出ます）</p>` : ''}
+                        <label class="ds-flag"><input type="checkbox" data-design-flag="playerImages" ${design.playerImages === 'off' ? '' : 'checked'}><span>解答者のスマホにも画像</span></label>
+                        <p style="color:#555; font-size:0.62rem; margin:2px 0 0;">※外すと解答者のスマホは画像を読み込まず、文字だけになります（画像が多い時に軽くなります。モニターには出ます）</p>` : ''}
                     `;
                 }
 
@@ -545,7 +545,7 @@ App.Design = {
                         ${miniSelect('画像の大きさ', 'qImgSize', [{ v: 'small', t: '小' }, { v: '', t: '中' }, { v: 'large', t: '大' }])}
                     </div>
                     <p style="color:#555; font-size:0.62rem; margin:4px 0 0;">※画像そのものは、問題を書く画面で問題文の欄に入れます（問題ごと）</p>
-                        <label class="ds-flag"><input type="checkbox" data-design-flag="playerImages" ${design.playerImages === 'off' ? '' : 'checked'}><span>回答者のスマホにも画像を出す</span></label>` : ''}
+                        <label class="ds-flag"><input type="checkbox" data-design-flag="playerImages" ${design.playerImages === 'off' ? '' : 'checked'}><span>解答者のスマホにも画像</span></label>` : ''}
                 `;
             },
             sound: () => {
@@ -571,7 +571,7 @@ App.Design = {
                 return `
                     <div style="display:flex; gap:6px; margin-bottom:8px;">
                         ${soundTile('出題中BGM', 'bgmThinking', window.App.Icons.svg('music'))}
-                        ${soundTile('ボタンSE', 'seButton', window.App.Icons.svg('button'))}
+                        ${soundTile('ボタン音', 'seButton', window.App.Icons.svg('button'))}
                         ${soundTile('正解音', 'seCorrect', window.App.Icons.svg('correct'))}
                         ${soundTile('不正解音', 'seWrong', window.App.Icons.svg('wrong'))}
                     </div>
@@ -767,8 +767,8 @@ App.Design = {
             }).join('');
             const flag = (k, label) => `<label style="display:flex; align-items:center; gap:6px; color:#e5e5e8; font-size:0.72rem; cursor:pointer;">
                 <input type="checkbox" data-design-flag="${k}" ${design[k] !== 'off' ? 'checked' : ''} style="width:auto; margin:0; accent-color:#f59e0b;">${label}</label>`;
-            const FX_STROKE = [{ v: '', t: '型のまま' }, { v: 'none', t: 'なし' }, { v: 'thin', t: '細い' }, { v: 'thick', t: '太い' }];
-            const FX_SHADOW = [{ v: '', t: '型のまま' }, { v: 'none', t: 'なし' }, { v: 'drop', t: 'ふんわり' }, { v: 'offset', t: 'ずらし' }, { v: 'glow', t: '光る' }, { v: 'solid', t: '立体' }];
+            const FX_STROKE = [{ v: '', t: 'テーマ標準' }, { v: 'none', t: 'なし' }, { v: 'thin', t: '細い' }, { v: 'thick', t: '太い' }];
+            const FX_SHADOW = [{ v: '', t: 'テーマ標準' }, { v: 'none', t: 'なし' }, { v: 'drop', t: 'ふんわり' }, { v: 'offset', t: 'ずらし' }, { v: 'glow', t: '光る' }, { v: 'solid', t: '立体' }];
             const detailsOpen = this._lookDetailsOpen ? 'open' : '';
             // 細部の色は、空（型のまま）でも今の型の色を見本に出す
             const eff = Themes.textFx(design);
@@ -786,7 +786,7 @@ App.Design = {
                     ${colorSwatch('アクセント', 'accentColor')}${colorSwatch('全体の背景', 'mainBgColor')}${colorSwatch('正解の色', 'revealBgColor')}${colorSwatch('外れの色', 'wrongColor')}
                 </div>
                 <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">正解の色・外れの色は、正解の発表・解答オープン・ダウト・脱落などの画面で使います</p>
-                ${head('ロゴ・飾り（どの画面にも出ます）')}
+                ${head('ロゴ・飾り')}
                 ${(() => {
                     const POS = [{ v: 'tl', t: '左上' }, { v: 'tr', t: '右上' }, { v: 'bl', t: '左下' }, { v: 'br', t: '右下' }];
                     const posChips = (key, def) => POS.map(o => `<button type="button" data-decor="${key}" data-val="${o.v}" style="${chip((design[key] || def) === o.v)} padding:6px 2px; font-size:0.72rem;">${o.t}</button>`).join('');
@@ -805,11 +805,11 @@ App.Design = {
                         ${design.cornerText ? `<div style="display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:4px; margin-top:6px;">${posChips('cornerPos', 'tl')}</div>` : ''}
                     </div>`;
                 })()}
-                ${head('回答者のスマホ')}
-                ${flag('playerTheme', '回答者のスマホにもテーマの色を使う')}
+                ${head('解答者のスマホ')}
+                ${flag('playerTheme', '解答者のスマホにもテーマ色')}
                 <details id="design-look-details" ${detailsOpen} style="margin-top:16px; border-top:1px solid #26262d; padding-top:10px;">
-                    <summary style="cursor:pointer; color:#e5e5e8; font-size:0.8rem; font-weight:bold; padding:6px 0;">細かく変える</summary>
-                    ${head('文字の飾りの細部')}
+                    <summary style="cursor:pointer; color:#e5e5e8; font-size:0.8rem; font-weight:bold; padding:6px 0;">詳細設定</summary>
+                    ${head('文字の飾り（詳細）')}
                     <div style="display:flex; gap:6px; align-items:flex-start;">
                         ${miniSelect('縁の太さ', 'tfx_stroke', FX_STROKE)}${fxSwatch('縁の色', 'tfx_strokeColor', eff.strokeColor)}
                     </div>
@@ -819,7 +819,7 @@ App.Design = {
                     <div style="display:flex; gap:14px; flex-wrap:wrap; margin-top:10px;">
                         ${flag('tfxQ', '問題文')}${flag('tfxC', '選択肢・パネル')}${flag('tfxB', '第◯問')}
                     </div>
-                    <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">色を空にすると、型の色に戻ります</p>
+                    <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">空欄でテーマ標準の色</p>
                     ${isPanel ? `${head('パネルの色')}
                     <div style="display:flex; gap:6px; flex-wrap:wrap;">
                         ${colorSwatch('パネル', 'pbBg')}${colorSwatch('数字', 'pbText')}${colorSwatch('枠', 'pbBorder')}
@@ -829,11 +829,11 @@ App.Design = {
                     </div>` : ''}
                     ${window.App.ChoiceSkin ? window.App.ChoiceSkin.panelHtml(design) : ''}
                     ${(() => {
-                        // 問題の枠と回答の枠の割合（プレビューの境目をドラッグしても変えられる）
+                        // 問題の枠と解答の枠の割合（プレビューの境目をドラッグしても変えられる）
                         const r = Number(design.splitRatio) || 0;
                         return `
                             <div style="margin:14px 0 6px; color:#8b8b95; font-size:0.7rem; font-weight:bold; display:flex; justify-content:space-between;">
-                                <span>問題の枠と回答の枠の大きさ</span>
+                                <span>問題枠・解答枠の大きさ</span>
                                 <span id="split-ratio-val" style="color:#e5e5e8;">${r ? `問題 ${r}％` : '自動'}</span>
                             </div>
                             <div style="display:flex; gap:8px; align-items:center;">
@@ -842,7 +842,7 @@ App.Design = {
                             </div>
                             <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">プレビューの点線をドラッグしても変えられます</p>`;
                     })()}
-                    <p style="color:#555; font-size:0.62rem; margin:10px 0 0;">部品ごとの文字・色・形は「文字の細部」「部品の細部」で変えられます</p>
+                    <p style="color:#555; font-size:0.62rem; margin:10px 0 0;">部品ごとの文字・色・形は「文字」「部品」で変えられます</p>
                 </details>
             `;
         };
@@ -894,12 +894,12 @@ App.Design = {
                 ${liveSection()}
             `;
         };
-        // 全員同時の時、回答中・正解発表後にモニターへ何を出すか
+        // 全員同時の時、解答中・正解発表後にモニターへ何を出すか
         // （1人ずつ判定する形式は、判定した瞬間に出るので設定不要）
         const liveSection = () => {
             const RE = window.App.RuleEngine;
             const ctx = (window.App.Config && window.App.Config._ruleContext) ? window.App.Config._ruleContext(window.App.Data.currentConfig || {}) : { mode: 'normal', autoJudge: true };
-            const head = `<div style="margin:14px 0 6px; padding-top:10px; border-top:1px solid #2a2a30; color:#e5e5e8; font-size:0.75rem; font-weight:bold;">回答の見せ方（モニター）</div>`;
+            const head = `<div style="margin:14px 0 6px; padding-top:10px; border-top:1px solid #2a2a30; color:#e5e5e8; font-size:0.75rem; font-weight:bold;">解答状況の表示（モニター）</div>`;
             if (ctx.mode !== 'normal') {
                 return head + `<p style="color:#6b6b74; font-size:0.66rem; margin:0;">全員が同時に答える時に設定できます。早押し・順番などは、〇×を判定した瞬間にモニターへ出ます。</p>`;
             }
@@ -909,16 +909,16 @@ App.Design = {
             return head + `
                 <div style="display:flex; gap:6px; margin-bottom:6px;">
                     ${miniSelect('答えている間', 'liveAnswerView', [
-                        { v: 'none', t: '何も出さない' },
-                        { v: 'count', t: '回答した人数だけ' },
-                        { v: 'names', t: '答えた順に名前と秒数' },
+                        { v: 'none', t: '表示なし' },
+                        { v: 'count', t: '解答人数のみ' },
+                        { v: 'names', t: '解答順に名前と秒数' },
                     ])}
                 </div>
                 ${speedOk ? `<div style="display:flex; gap:6px;">
-                    ${miniSelect('正解発表のあと', 'speedReveal', [
-                        { v: 'none', t: '何も出さない' },
-                        { v: 'top', t: '正解者の早い順TOP10' },
-                        { v: 'countup', t: '下の順位から1人ずつ発表' },
+                    ${miniSelect('正解表示後', 'speedReveal', [
+                        { v: 'none', t: '表示なし' },
+                        { v: 'top', t: '正解者 早い順10人' },
+                        { v: 'countup', t: '下位から順に発表' },
                     ])}
                 </div>` : `<p style="color:#6b6b74; font-size:0.66rem; margin:4px 0 0;">「正解者の早い順」は、選択式・並べ替え・文字パネルで使えます。</p>`}
                 <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">※答えている間は正誤を伏せて表示します（まだ答えていない人に答えがばれないように）</p>`;
@@ -928,8 +928,8 @@ App.Design = {
         // スマホのセット設定では「見た目」と「音・演出」を別の行から開く（_tabsMode）
         const allTabs = [
             { key: 'theme', label: 'テーマ', g: 'look' },
-            { key: 'text', label: '文字の細部', g: 'look' },
-            { key: 'object', label: '部品の細部', g: 'look' },
+            { key: 'text', label: '文字', g: 'look' },
+            { key: 'object', label: '部品', g: 'look' },
             { key: 'sound', label: 'サウンド', g: 'fx' },
             { key: 'timer', label: '演出', g: 'fx' },
         ];
@@ -980,7 +980,7 @@ App.Design = {
                 else C.toggleInlinePanel('rules');
             });
 
-            // 問題の枠と回答の枠の割合
+            // 問題の枠と解答の枠の割合
             const splitRange = body.querySelector('#split-ratio-range');
             if (splitRange) splitRange.oninput = () => {
                 design.splitRatio = parseInt(splitRange.value);
@@ -1095,7 +1095,7 @@ App.Design = {
                 if (onChange) onChange();
                 renderBody();
             });
-            // オン／オフの設定（オフの時だけ 'off' を持つ）— 回答者のスマホにも画像を出す など
+            // オン／オフの設定（オフの時だけ 'off' を持つ）— 解答者のスマホにも画像 など
             body.querySelectorAll('input[data-design-flag]').forEach(chk => {
                 chk.onchange = () => { design[chk.dataset.designFlag] = chk.checked ? '' : 'off'; if (onChange) onChange(); renderBody(); };
             });

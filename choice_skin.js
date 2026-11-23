@@ -327,13 +327,13 @@ App.ChoiceSkin = {
         return `
             ${head('選択肢ボタンの形')}
             <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:5px;">${this.SKINS.map(s => btn('cSkin', s.id, s.name)).join('')}</div>
-            <div style="display:flex; gap:5px; margin-top:6px;">${btn('cPalette', '', 'テーマ色')}${btn('cPalette', 'four', '4色に色分け')}</div>
+            <div style="display:flex; gap:5px; margin-top:6px;">${btn('cPalette', '', 'テーマ色')}${btn('cPalette', 'four', '4色')}</div>
             <div style="display:flex; gap:5px; margin-top:6px;">${arrBtn('', '縦1列')}${arrBtn('g22', '2×2')}${arrBtn('row', '横1列')}</div>
             ${head('問題文の見せ方')}
             <div style="display:flex; gap:5px;">${this.Q_SKINS.map(s => btn('qSkin', s.id, s.name)).join('')}</div>
             <div style="display:flex; flex-direction:column; gap:6px; margin-top:8px;">
                 ${chk('qNumBadge', 'テロップ・ボードに問題番号を出す', true)}
-                ${chk('stageFrame', '画面の外枠と上の帯を付ける', false)}
+                ${chk('stageFrame', '外枠と上部の帯', false)}
                 ${chk('bgFx', 'スタジオ照明の背景', false)}
             </div>
             ${design.stageFrame ? `
@@ -343,7 +343,7 @@ App.ChoiceSkin = {
                     <button type="button" data-color-swatch-key="frameColor" data-color-swatch-label="枠の色" style="flex:0 0 auto; padding:0 10px; border-radius:6px; background:#1b1b20; border:1px solid #3a3a42; color:#e5e5e8; font-size:0.7rem; cursor:pointer; display:flex; align-items:center; gap:6px;">
                         <span style="width:14px; height:14px; border-radius:3px; background:${design.frameColor || this.accent(design)}; border:1px solid #fff3;"></span>枠の色</button>
                 </div>` : ''}
-            <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">ボタンの形は選択式だけに効きます</p>`;
+            <p style="color:#555; font-size:0.62rem; margin:6px 0 0;">ボタンの形は選択式のみ</p>`;
     },
 
     wirePanel: function (body, design, onChange, renderBody) {

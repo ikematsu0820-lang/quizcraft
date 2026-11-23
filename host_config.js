@@ -145,7 +145,7 @@ App.Config = {
     // 早押しの誤答者へのペナルティ — 「問題に対する処理」で選べるものが変わる
     BUZZ_PENALTIES: {
         next: [
-            { v: 'none', t: 'ペナルティなし（また押せる）' },
+            { v: 'none', t: 'ペナルティなし' },
             { v: 'otetski', t: 'この問題はもう押せない' },
             { v: 'time_ban', t: '◯秒間押せない' },
             { v: 'rest', t: '◯問休み' },
@@ -183,14 +183,14 @@ App.Config = {
             const oneTap = conf.oneTapSubmit !== false;
             const advTap = `
                 <label style="display:flex; align-items:center; gap:8px; margin-top:12px; color:#c9c9cf; font-size:0.8em; cursor:pointer;">
-                    <input type="checkbox" id="config-one-tap" ${oneTap ? 'checked' : ''} style="width:auto; height:auto; min-height:0; margin:0;">選択式は、タップした瞬間に答えを確定する
+                    <input type="checkbox" id="config-one-tap" ${oneTap ? 'checked' : ''} style="width:auto; height:auto; min-height:0; margin:0;">選択式はタップで即確定
                 </label>
                 <p style="color:#888; font-size:0.72em; margin:4px 0 0; line-height:1.3;">オフにすると、選んでから「決定」を押す形になります（選び直しができます）</p>`;
             return `<p class="rule-basic-note">全員が手元の端末で同時に答えます。</p>${this.advancedBlock('normal', adv + advTap)}`;
         } else if (mode === 'buzz') {
             const buzzAction = conf.buzzWrongAction || 'next';
             const allowed = this.BUZZ_PENALTIES[buzzAction] || this.BUZZ_PENALTIES.next;
-            // 以前の「全員もう一度押し直し」は「ペナルティなし＋ほかの人の押した順: 全員押し直し」に分けた
+            // 以前の「全員もう一度押し直し」は「ペナルティなし＋他の人の押し順: 全員押し直し」に分けた
             if (conf.buzzPenalty === 'reset_all') { conf.buzzPenalty = 'none'; conf.buzzRequeue = 'reset'; }
             let buzzPenalty = conf.buzzPenalty || 'none';
             if (!allowed.some(o => o.v === buzzPenalty)) { buzzPenalty = 'none'; conf.buzzPenalty = 'none'; }
@@ -200,7 +200,7 @@ App.Config = {
             const restN = conf.buzzRestCount || 1;
             const adv = `
                 <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
-                    ${rowHead('誤答した人')}
+                    ${rowHead('誤答者')}
                     ${col(`<select id="config-buzz-penalty" class="btn-block config-select" style="margin:0; padding:4px;">
                         ${allowed.map(o => `<option value="${o.v}" ${buzzPenalty === o.v ? 'selected' : ''}>${o.t}</option>`).join('')}
                     </select>`, '解答権')}
@@ -212,10 +212,10 @@ App.Config = {
                     </div>
                 </div>
                 ${buzzAction === 'next' ? `<div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
-                    ${rowHead('ほかの人の押した順')}
+                    ${rowHead('他の人の押し順')}
                     ${col(`<select id="config-buzz-requeue" class="btn-block config-select" style="margin:0; padding:4px;">
-                        <option value="keep" ${conf.buzzRequeue !== 'reset' ? 'selected' : ''}>引き継ぐ（次に押していた人へ）</option>
-                        <option value="reset" ${conf.buzzRequeue === 'reset' ? 'selected' : ''}>消して全員押し直し</option>
+                        <option value="keep" ${conf.buzzRequeue !== 'reset' ? 'selected' : ''}>次の押し順へ</option>
+                        <option value="reset" ${conf.buzzRequeue === 'reset' ? 'selected' : ''}>全員押し直し</option>
                     </select>`, '誤答の後')}
                 </div>` : ''}
                 <div id="config-buzz-deduct-row" style="display:flex; gap:8px; align-items:center;">
@@ -232,10 +232,10 @@ App.Config = {
                 </div>`;
             return `
                 <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px;">
-                    ${rowHead('誤答したら問題は')}
+                    ${rowHead('誤答時の問題')}
                     ${col(`<select id="config-buzz-wrong-action" class="btn-block config-select" style="margin:0; padding:4px;">
-                        <option value="next" ${buzzAction === 'next' ? 'selected' : ''}>続ける（他の人が押せる）</option>
-                        <option value="end" ${buzzAction === 'end' ? 'selected' : ''}>終わる（正解発表へ）</option>
+                        <option value="next" ${buzzAction === 'next' ? 'selected' : ''}>継続</option>
+                        <option value="end" ${buzzAction === 'end' ? 'selected' : ''}>終了</option>
                     </select>`, '')}
                 </div>
                 ${this.advancedBlock('buzzWrong', adv)}
@@ -402,10 +402,10 @@ App.Config = {
         renderDetail();
     },
 
-    // 勝利条件 — 得点が高い人が勝ち（score）/ 最後まで残った人が勝ち
+    // 勝利条件 — 最高得点で勝利（score）/ 最後まで残った人が勝ち
     // （survival: 規定回数ミスすると脱落 — host_studio.js checkSurvival）。
     // パネル・変動得点制は廃止 — 保存済みのセットでそれらを選んでいた
-    // 場合は、ここを開いた時点で「得点が高い人が勝ち」に置き換える。
+    // 場合は、ここを開いた時点で「最高得点で勝利」に置き換える。
     // 1人で挑戦するときのルール — 司会者が読み込み時に「ソロモード」を
     // 選んだ時だけ使う（ふだんはセットの解答権・勝利条件のまま）。
     // タイムショック風なら、制限時間を「セット全体の持ち時間」にする。
@@ -416,10 +416,10 @@ App.Config = {
         const clear = Number(conf.soloClearCount) || 0;
         const row = (label, inner) => `<div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;"><span style="flex:0 0 96px; color:#8b8b95; font-size:0.72rem; font-weight:bold;">${label}</span><div style="flex:1; min-width:0;">${inner}</div></div>`;
         const inner = `
-            ${row('ライフ', `<span class="rp-num"><input type="number" id="conf-solo-life" value="${life}" min="0" step="1" inputmode="numeric"><span class="rp-num-unit">回まで間違えられる</span><span class="rp-num-hint">0＝無制限</span></span>`)}
+            ${row('ライフ', `<span class="rp-num"><input type="number" id="conf-solo-life" value="${life}" min="0" step="1" inputmode="numeric"><span class="rp-num-unit">回までミス可</span><span class="rp-num-hint">0＝無制限</span></span>`)}
             ${row('クリア条件', `<span class="rp-num"><input type="number" id="conf-solo-clear" value="${clear}" min="0" step="1" inputmode="numeric"><span class="rp-num-unit">問正解でクリア</span><span class="rp-num-hint">0＝最後まで</span></span>`)}
             <p class="rule-adv-note" style="margin:0;">出題の時に「ソロモード」を選んだ時だけ使います。</p>`;
-        box.innerHTML = this.advancedBlock('solo', inner, null, '1人で挑戦するとき（ソロモード）');
+        box.innerHTML = this.advancedBlock('solo', inner, null, 'ソロ挑戦');
         this.wireAdvancedBlocks(box);
         const l = box.querySelector('#conf-solo-life');
         if (l) l.onchange = () => { conf.soloLife = parseInt(l.value) || 0; if (onChange) onChange(); };
@@ -518,7 +518,7 @@ App.Config = {
                         </select>
                     </div>
                     <p style="color:#777; font-size:0.68rem; margin:4px 0 0; line-height:1.4;">正解しても、解答時間が遅い人から脱落します（一番速い人は必ず残ります）。</p>` : '';
-                area.innerHTML = `<p style="color:#666; font-size:0.72em; margin:6px 0 0;">※不正解・無回答がミスになります（1問につき1回まで）。脱落した人は以降の問題に答えられません</p>`
+                area.innerHTML = `<p style="color:#666; font-size:0.72em; margin:6px 0 0;">※不正解・無解答がミスになります（1問につき1回まで）。脱落した人は以降の問題に答えられません</p>`
                     + this.advancedBlock('survival', slowHtml);
                 this.wireAdvancedBlocks(area);
                 side.querySelector('#conf-survival-lives').onchange = (e) => {

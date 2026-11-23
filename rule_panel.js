@@ -5,7 +5,7 @@
  * 組み立てる（使える・使えないの判定は rule_engine.js の表）。
  *   答え方   … 口頭／手書き（出題者が判定）・ボタン（自動で判定）と、
  *              解答権（全員／条件を満たした人＝早押し／特定の人＝順番・指名）
- *   正解     … 正解した人への得点の入れ方（一律・速さで傾斜・ヒント数・先着）
+ *   正解     … 正解時の得点の入れ方（一律・速さで傾斜・ヒント数・先着）
  *   誤答     … 間違えた時の問題の扱いと、間違えた人へのペナルティ
  *   勝ち方   … 得点制／サバイバル／勝ち抜け／タイムレース
  *   時間     … 制限時間と、解答者の持ち時間
@@ -85,7 +85,7 @@ App.RulePanel = {
     renderSummary: function () {
         const box = document.getElementById('creator-rules-summary');
         if (!box) return;
-        box.innerHTML = `<span class="rp-sum-label">現在の遊び方</span>${this.RE().describe(this._conf, this._questions)}`;
+        box.innerHTML = `<span class="rp-sum-label">今のルール</span>${this.RE().describe(this._conf, this._questions)}`;
     },
 
     ctx: function () { return this.RE().context(this._conf, this._questions); },
@@ -141,19 +141,19 @@ App.RulePanel = {
         }
         // パネル（パネル指名・パネルクイズ）は口頭で「◯番、答え」と言う形式 — 答え方は選ばない
         const answerHtml = ctx.isPanel
-            ? `${this.head('どう答える')}<p class="rule-basic-note">パネルは、答える人が口で「◯番、答え」と言い、司会者が〇×を付けます。</p>`
+            ? `${this.head('解答形式')}<p class="rule-basic-note">パネルは、答える人が口で「◯番、答え」と言い、司会者が〇×を付けます。</p>`
             : this.answerByHtml(answerTiles, by, ctx);
         box.innerHTML = `
-            ${this.head('だれが答える')}
+            ${this.head('解答権')}
             ${this.tiles('mode', modeTiles.filter(t => !t.disabled || t.value === conf.mode), conf.mode)}
             <p class="rule-basic-note">${modeNote}</p>
             ${answerHtml}
             <div id="rp-mode-detail"></div>
             ${ctx.writtenBuzz ? this.writtenBuzzHtml(conf) : ''}
             ${/^free/.test((window.App.Creator && window.App.Creator.currentType) || ctx.firstType || '') ? `
-            ${this.head('問題文の出し方')}
+            ${this.head('問題文の表示')}
             <label class="rp-check"><input type="checkbox" id="rp-read-aloud" ${conf.readAloud ? 'checked' : ''}><span>問題文を画面に出さない（司会者が読み上げる）</span></label>
-            ${this.note('モニターには得点だけが出て、回答者の端末にも問題文は送りません。読み上げの途中で押す、先読みの駆け引きを楽しむ時に。正解はいつもどおり発表します。')}` : ''}`;
+            ${this.note('モニターには得点だけが出て、解答者の端末にも問題文は送りません。読み上げの途中で押す、先読みの駆け引きを楽しむ時に。正解はいつもどおり発表します。')}` : ''}`;
 
         // 解答権ごとの詳細（全員：解答回数・1タップ確定／順番：回し方）
         const detail = box.querySelector('#rp-mode-detail');
@@ -189,12 +189,12 @@ App.RulePanel = {
     // 答え方 — 形式で決まる物は出さない。選べるのが1つだけなら、タイルではなく1行で伝える
     answerByHtml: function (tiles, by, ctx) {
         const open = tiles.filter(t => !t.disabled || t.value === by);
-        if (open.length > 1) return `${this.head('どう答える')}${this.tiles('answerBy', open, by)}`;
+        if (open.length > 1) return `${this.head('解答形式')}${this.tiles('answerBy', open, by)}`;
         const cur = tiles.find(t => t.value === by) || open[0];
         const why = by === 'button'
             ? 'この形式は、手元で選んで自動で判定します。'
             : by === 'oral' ? 'この形式は、口頭で答えて司会者が判定します。' : 'この形式は、手書きで答えて司会者が判定します。';
-        return `${this.head('どう答える')}<p class="rp-fixed"><b>${cur ? cur.label : ''}</b><span>${why}</span></p>`;
+        return `${this.head('解答形式')}<p class="rp-fixed"><b>${cur ? cur.label : ''}</b><span>${why}</span></p>`;
     },
 
     // ---------------------------------------------------------
@@ -220,7 +220,7 @@ App.RulePanel = {
                 ? '判定している間も、他の人は押せます。手書きなので答えは聞こえません。押した人の答えが司会者の画面に押した順で並び、上から〇×を付けます。' + (conf.wbTiming === 'push_first' ? '「時間」のタブの解答者の持ち時間は、押してから書くまでの時間になります（過ぎたら誤答）。' : '')
                 : '1人を判定している間は、他の人は押せません。')}
             ${this.row('正解した人が出たら', this.select('rp-wb-after', [
-                { v: 'end', t: '問題を終える' },
+                { v: 'end', t: '問題終了' },
                 { v: 'continue', t: '抜けて続ける' },
             ], cont ? 'continue' : 'end'))}
             ${cont ? this.row('問題を終えるのは', this.num('rp-wb-count', n, '人正解したら', { zero: '全員が答え終わるまで' })) : ''}
@@ -247,10 +247,10 @@ App.RulePanel = {
             return;
         }
         const canRanked = RE.can('scoreRanked', ctx), canHint = RE.can('scoreHint', ctx);
-        const types = [{ value: 'uniform', label: '一律', sub: '正解者全員に同じ点' }]
-            .concat([{ value: 'first', label: '先着', sub: '早く正解した◯人だけ' }])
+        const types = [{ value: 'uniform', label: '同じ点', sub: '正解者は全員同じ点' }]
+            .concat([{ value: 'first', label: '先着', sub: '先着◯人のみ' }])
             .concat(canHint.ok ? [{ value: 'hint', label: 'ヒント数で傾斜', sub: '少ないヒントほど高い点' }] : []);
-        // 速い順の傾斜は「時間」タブの「速さで競う」で決める（ここではそのまま残す）
+        // 速い順の傾斜は「時間」タブの「スピード勝負」で決める（ここではそのまま残す）
         const isRanked = conf.scoreType === 'ranked' && canRanked.ok;
         const st = isRanked ? 'ranked' : (types.some(t => t.value === conf.scoreType) ? conf.scoreType : 'uniform');
         conf.scoreType = st;
@@ -266,7 +266,7 @@ App.RulePanel = {
             basic = this.row('先着', `<div style="display:flex; gap:10px; flex-wrap:wrap;">${this.num('rp-first-n', n, '人まで', { min: 1 })}${this.num('rp-first-pts', pts, '点')}</div>`)
                 + this.note(ctx.mode === 'normal' ? '全員同時の時は、ボタンを押した速さで先着を決めます（司会者が判定する形式では、〇を付けた順）。' : '1人ずつ答える解答権では、その問題で〇になった順で数えます。');
         } else if (st === 'ranked') {
-            basic = this.note('今は、速い順に傾斜した点にしています。点の決め方は「時間」のタブの「速さで競う」で変えられます（上のどれかを選ぶと傾斜をやめます）。');
+            basic = this.note('今は、速い順に傾斜した点にしています。点の決め方は「時間」のタブの「スピード勝負」で変えられます（上のどれかを選ぶと傾斜をやめます）。');
         } else {
             basic = '<div id="score-type-sheet-detail"></div>';
         }
@@ -277,7 +277,7 @@ App.RulePanel = {
             ${this.note('2問以上続けて正解すると、毎問この点を足します（間違えたらリセット）。')}`;
 
         box.innerHTML = `
-            ${this.head('正解した人への得点')}
+            ${this.head('正解時の得点')}
             ${this.tiles('scoreType', types, st)}
             ${basic}
             ${this.Cfg().advancedBlock('correct', adv)}`;
@@ -313,9 +313,9 @@ App.RulePanel = {
             basic = this.Cfg()._modeDetailFieldsHtml('buzz', conf, ctx.qType, ctx.isDobon);
         } else if (RE.can('turnWrong', ctx).ok) {
             const a = conf.turnWrongAction === 'next' ? 'next' : 'end';
-            basic = this.row('誤答したら問題は', this.select('rp-turn-wrong', [
-                { v: 'end', t: '終わる（正解発表へ）' },
-                { v: 'next', t: '次の人に解答権が移る' },
+            basic = this.row('誤答時の問題', this.select('rp-turn-wrong', [
+                { v: 'end', t: '終了' },
+                { v: 'next', t: '次の人へ' },
             ], a));
         } else if (conf.mode === 'turn' && (ctx.isMulti || ctx.isDobon)) {
             basic = this.note(ctx.isDobon ? 'ダウトは、ダウト（誤答）が出た時点でその問題が終わります。' : '多答は、正解でも誤答でも次の人へ回ります。');
@@ -324,12 +324,12 @@ App.RulePanel = {
         // 減点（どの解答権でも共通）
         const loss = conf.wrongDeduct !== undefined && conf.wrongDeduct !== '' ? Number(conf.wrongDeduct)
             : (conf.mode === 'buzz' && Number(conf.buzzDeduct) > 0 ? Number(conf.buzzDeduct) : 0);
-        const deduct = this.row('減点', this.num('rp-deduct', loss, '点ひく', { zero: 'しない' }));
+        const deduct = this.row('減点', this.num('rp-deduct', loss, '点', { zero: 'しない' }));
         const survival = conf.gameType === 'survival'
-            ? this.note(`勝ち方がサバイバルなので、誤答${conf.mode === 'normal' ? '・無回答' : ''}は「ミス1回」として数えます（${conf.survivalLives || 1}回で脱落）。`) : '';
+            ? this.note(`勝ち方がサバイバルなので、誤答${conf.mode === 'normal' ? '・無解答' : ''}は「ミス1回」として数えます（${conf.survivalLives || 1}回で脱落）。`) : '';
 
         box.innerHTML = `
-            ${this.head('間違えたとき')}
+            ${this.head('誤答時')}
             ${basic}
             ${deduct}
             ${survival}`;
@@ -353,9 +353,9 @@ App.RulePanel = {
         const conf = this._conf, RE = this.RE(), ctx = this.ctx();
         const canRace = RE.can('timeRace', ctx);
         const types = [
-            { value: 'score', label: '得点制', sub: '得点が高い人が勝ち' },
-            { value: 'survival', label: 'サバイバル', sub: 'ミスで脱落・残った人' },
-            { value: 'winthrough', label: '勝ち抜け', sub: '規定に達したら抜ける' },
+            { value: 'score', label: '得点制', sub: '最高得点で勝利' },
+            { value: 'survival', label: 'サバイバル', sub: 'ミスで脱落・残れば勝利' },
+            { value: 'winthrough', label: '勝ち抜け', sub: '規定の点・正解数で勝ち抜け' },
         ];
         // 陣取りパネルは、パネルの多い人が勝ち（勝ち方は変えない）— 盤面の大きさだけ
         if (conf.gameType === 'territory') {
@@ -371,17 +371,17 @@ App.RulePanel = {
             bindN('rp-tp-rows', 'tpRows'); bindN('rp-tp-cols', 'tpCols');
             return;
         }
-        // タイムレースは「時間」タブの「速さで競う」で決める
+        // タイムレースは「時間」タブの「スピード勝負」で決める
         const gt = (conf.gameType === 'timerace' && canRace.ok) ? 'timerace' : (types.some(t => t.value === conf.gameType) ? conf.gameType : 'score');
         conf.gameType = gt;
         const numSel = (id, list, val, fmt) => this.select(id, list.map(n => ({ v: n, t: fmt(n) })), val);
         let basic = '', adv = '', notes = [];
 
         if (gt === 'score') {
-            basic = this.note('点は「正解」「誤答」のタブで決めます。' + (conf.tieBreak === 'time' && RE.can('tieBreakTime', ctx).ok ? '同点の時は解答時間の合計で決めます（「時間」のタブ）。' : ''));
+            basic = this.note('点は「配点」「誤答」のタブで決めます。' + (conf.tieBreak === 'time' && RE.can('tieBreakTime', ctx).ok ? '同点の時は解答時間の合計で決めます（「時間」のタブ）。' : ''));
         } else if (gt === 'survival') {
             basic = this.row('脱落するミス', this.num('rp-lives', conf.survivalLives || 1, '回で脱落', { min: 1 }))
-                + this.note('誤答・無回答がミスになります（1問につき1回まで）。脱落した人は以降の問題に答えられません。');
+                + this.note('誤答・無解答がミスになります（1問につき1回まで）。脱落した人は以降の問題に答えられません。');
             const endN = Number(conf.survivalEndCount) || 0;
             adv = this.row('終了', this.num('rp-surv-end', endN, '人残ったら終了', { zero: '最後の問題まで続ける' }));
         } else if (gt === 'winthrough') {
@@ -393,7 +393,7 @@ App.RulePanel = {
                 + this.note('勝ち抜けた人は、それ以降の問題には答えません（勝ち抜けた順が順位になります）。');
             adv = this.row('終了', this.num('rp-win-quota', Number(conf.winQuota) || 0, '人勝ち抜けたら終了', { zero: '最後の問題まで続ける' }));
         } else if (gt === 'timerace') {
-            basic = this.note('今はタイムレース（正解数が多い人が勝ち、同じ数なら解答時間の合計が短い人が上）です。「時間」のタブの「速さで競う」で変えられます（上のどれかを選ぶとタイムレースをやめます）。');
+            basic = this.note('今はタイムレース（正解数が多い人が勝ち、同じ数なら解答時間の合計が短い人が上）です。「時間」のタブの「スピード勝負」で変えられます（上のどれかを選ぶとタイムレースをやめます）。');
         }
 
         box.innerHTML = `
@@ -401,7 +401,7 @@ App.RulePanel = {
             ${this.tiles('gameType', types, gt)}
             ${basic}
             ${this.Cfg().advancedBlock('win_' + gt, adv, notes)}
-            ${this.note('1問ごとの結果発表・回答者の端末の得点は「発表」のタブにあります。')}
+            ${this.note('1問ごとの結果発表・解答者の端末の得点は「発表」のタブにあります。')}
             <div id="gametype-solo"></div>`;
         this.Cfg().wireAdvancedBlocks(box);
         this.Cfg()._renderSoloRules(box.querySelector('#gametype-solo'), conf, () => this.soft());
@@ -434,19 +434,19 @@ App.RulePanel = {
         if (ctx.isDobon || ctx.isBlackjack || ctx.isPanel) return;
         const wrap = document.createElement('div');
         wrap.className = 'rp-speed';
-        const head = this.head('速さで競う');
+        const head = this.head('スピード勝負');
         // 使えない時は、まとまりごと出さない（説明も出さない — 選べない物は抜く）
         if (!can.ranked && !can.race && !can.tie && !can.slow) return;
         const race = conf.gameType === 'timerace' && can.race;
         const toggle = (id, label, on, sub) => `<label class="rp-check"><input type="checkbox" id="${id}" ${on ? 'checked' : ''}><span>${label}${sub ? `<small class="rp-check-sub">${sub}</small>` : ''}</span></label>`;
         let html = head;
-        if (can.race) html += toggle('rp-sp-race', '勝ち方をタイムレースにする', race, '正解数が多い人が勝ち、同じ数なら解答時間の合計が短い人が上');
+        if (can.race) html += toggle('rp-sp-race', 'タイムレース', race, '正解数が多い人が勝ち、同じ数なら解答時間の合計が短い人が上');
         if (!race) {
             if (can.ranked) {
-                html += toggle('rp-sp-ranked', '正解の点を速い順に傾ける', conf.scoreType === 'ranked', ctx.wbContinue ? '正解した順に、1番目・2番目…の点を決めます' : '正解した人のうち、早く答えた人ほど高い点');
+                html += toggle('rp-sp-ranked', '早い順に高得点', conf.scoreType === 'ranked', ctx.wbContinue ? '正解した順に、1番目・2番目…の点を決めます' : '正解した人のうち、早く答えた人ほど高い点');
                 if (conf.scoreType === 'ranked') html += '<div id="score-type-sheet-detail" class="rp-speed-detail"></div>';
             }
-            if (can.tie && (conf.gameType || 'score') === 'score') html += toggle('rp-sp-tie', '同点は解答時間の合計で決める', conf.tieBreak === 'time', '同じ点の人は、解答時間の合計が短い人が上');
+            if (can.tie && (conf.gameType || 'score') === 'score') html += toggle('rp-sp-tie', '同点時は解答時間で順位', conf.tieBreak === 'time', '同じ点の人は、解答時間の合計が短い人が上');
             if (can.slow && conf.gameType === 'survival') {
                 html += this.row('遅い人も脱落', this.num('rp-sp-slow', parseInt(conf.survivalSlowDrop) || 0, '人（毎問、正解者のうち遅い順）', { zero: 'しない' }));
             }
@@ -474,7 +474,7 @@ App.RulePanel = {
     },
 
     // ---------------------------------------------------------
-    // 時間 — 3つの質問: ① 問題の時計 ② 答える人の時計 ③ 時間が来たら（＋詳細・速さで競う）
+    // 時間 — 3つの質問: ① 制限時間 ② 解答時間 ③ 時間が来たら（＋詳細・速さで競う）
     // ---------------------------------------------------------
     renderTime: function (box) {
         if (!box) return;
@@ -485,10 +485,10 @@ App.RulePanel = {
         if (kind === 'personal' && !oneByOne) kind = 'per_q';
         const clock = on ? kind : 'off';
         const tiles = [
-            { value: 'off', label: 'なし', sub: '時間を区切らない' },
-            { value: 'per_q', label: '1問ごと', sub: conf.mode === 'buzz' ? '1問ごとに押せる時間を決める' : '1問ごとに答える時間を決める' },
-            { value: 'pool', label: 'セット全体', sub: '全問で持ち時間を使い切る' },
-        ].concat(oneByOne ? [{ value: 'personal', label: '1人ずつ', sub: '1人ずつの持ち時間（答える間だけ減る）' }] : []);
+            { value: 'off', label: 'なし', sub: '無制限' },
+            { value: 'per_q', label: '1問ごと', sub: conf.mode === 'buzz' ? '1問ごとに制限' : '1問ごとに解答時間を設定' },
+            { value: 'pool', label: 'セット全体', sub: 'セット全体の持ち時間' },
+        ].concat(oneByOne ? [{ value: 'personal', label: '1人ずつ', sub: '個人の持ち時間（解答中のみ減る）' }] : []);
         const secs = parseFloat(conf.timeLimitSeconds) || (kind === 'per_q' ? 10 : 60);
         const canSec = RE.can('answerSec', ctx).ok;
         const ansSec = Number(conf.answerSec) || 0;
@@ -533,10 +533,10 @@ App.RulePanel = {
         }
 
         box.innerHTML = `
-            ${this.head('① 問題の時計')}
+            ${this.head('① 制限時間')}
             ${this.tiles('tclock', tiles, clock)}
             ${on ? this.row(kind === 'personal' ? '1人の持ち時間' : kind === 'pool' ? 'セット全体で' : '1問', this.num('rp-t-secs', secs, '秒', { min: 1 })) : ''}
-            ${canSec ? `${this.head('② 答える人の時計')}${this.row(whoLabel, this.num('rp-answer-sec', ansSec, '秒以内に答える', { zero: 'なし' }))}` : ''}
+            ${canSec ? `${this.head('② 解答時間')}${this.row(whoLabel, this.num('rp-answer-sec', ansSec, '秒以内に解答', { zero: 'なし' }))}` : ''}
             ${expire ? `${this.head('③ 時間が来たら')}${expire}` : ''}
             ${adv ? this.Cfg().advancedBlock('time', adv) : ''}`;
         this.Cfg().wireAdvancedBlocks(box);
