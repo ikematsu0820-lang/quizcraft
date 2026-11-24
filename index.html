@@ -10,10 +10,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@800;900&display=swap">
-    <link rel="stylesheet" href="style_common.css?v=122">
-    <link rel="stylesheet" href="style_host.css?v=174">
-    <link rel="stylesheet" href="style_player.css?v=121">
-    <link rel="stylesheet" href="style_viewer.css?v=113">
+    <script>
+    // デザインのファイルが読み込めなかった時（通信の途切れなど）、1回だけ読み直す
+    function qcCssRetry(l) { if (l.dataset.retried) return; l.dataset.retried = '1'; l.href = l.href.split('&r=')[0] + '&r=' + Date.now(); }
+    </script>
+    <link rel="stylesheet" href="style_common.css?v=122" onerror="qcCssRetry(this)">
+    <link rel="stylesheet" href="style_host.css?v=174" onerror="qcCssRetry(this)">
+    <link rel="stylesheet" href="style_player.css?v=121" onerror="qcCssRetry(this)">
+    <link rel="stylesheet" href="style_viewer.css?v=113" onerror="qcCssRetry(this)">
     <link rel="stylesheet" href="choice_skin.css?v=5">
     <link rel="stylesheet" href="rule_panel.css?v=10">
     <link rel="stylesheet" href="panel_board.css?v=14">
