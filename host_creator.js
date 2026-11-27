@@ -2599,6 +2599,9 @@ window.App.Creator = {
             return;
         }
         const spec = this._bulkSpecs[target.specKey];
+        const mine = this._bulkMine(target);
+        if (!mine.length) this._bulkMode = 'add';
+        const editMode = this._bulkMode === 'edit';
         const memoHint = {
             choice: '1行目に問題、次の行から選択肢。正解の前に「*」',
             free_written: '1行目に問題、次の行に答え（別解は行を足す）',
@@ -2606,12 +2609,14 @@ window.App.Creator = {
             multi: '1行目に問題、次の行から答え',
             assoc: '「*」を付けた行が答え、ほかの行がヒント',
         }[target.specKey] || '';
+        const segBtn = (m, label) => `<button type="button" class="bulk-mode-btn${this._bulkMode === m || (m === 'add' && !editMode) ? ' on' : ''}" data-mode="${m}">${label}</button>`;
         panel.innerHTML = `
-            <div style="color:#8b8b95; font-size:0.75rem; font-weight:bold; margin-bottom:4px;">メモのように書いて、まとめて追加</div>
-            <div style="color:#6b6b74; font-size:0.7rem; line-height:1.5; margin-bottom:6px;">${memoHint}。問題と問題の間は空行で区切ります。表計算ソフトからのコピペ（${spec.hint}）もそのまま使えます。</div>
+            ${mine.length ? `<div class="bulk-mode">${segBtn('add', '追加')}${segBtn('edit', 'まとめて編集')}</div>` : ''}
+            <div style="color:#8b8b95; font-size:0.75rem; font-weight:bold; margin-bottom:4px;">${editMode ? `今の問題（${mine.length}問）をメモの形で直す` : 'メモのように書いて、まとめて追加'}</div>
+            <div style="color:#6b6b74; font-size:0.7rem; line-height:1.5; margin-bottom:6px;">${memoHint}。問題と問題の間は空行で区切ります。${editMode ? '上から順に Q1、Q2… に入ります。画像・この問題のデザインなどはそのまま残ります。' : `表計算ソフトからのコピペ（${spec.hint}）もそのまま使えます。`}</div>
             <textarea id="creator-bulk-input" placeholder="例:
 ${spec.memo}" style="
-                display:block; width:100%; flex:1; height:auto !important; min-height:140px !important; padding:10px; background:#0c0c0f; border:1px dashed rgba(255,255,255,0.25);
+                display:block; width:100%; flex:1; height:auto !important; min-height:${editMode ? '50vh' : '140px'} !important; padding:10px; background:#0c0c0f; border:1px dashed rgba(255,255,255,0.25);
                 border-radius:8px; color:#fff; font-size:0.85rem; line-height:1.6; resize:vertical; box-sizing:border-box;
                 outline:none; margin:0 0 6px;
             "></textarea>
@@ -2620,8 +2625,9 @@ ${spec.memo}" style="
                 display:block; width:100%; padding:10px 4px; font-size:0.9rem; font-weight:bold;
                 background:rgba(245, 158, 11,0.08); border:1px dashed rgba(245, 158, 11,0.4);
                 border-radius:8px; color:#f59e0b; cursor:pointer; margin:0;
-            ">＋ まとめて追加</button>
+            ">${editMode ? 'この内容で置き換える' : '＋ まとめて追加'}</button>
         `;
+        panel.querySelectorAll('.bulk-mode-btn').forEach(b => { b.onclick = () => { this._bulkMode = b.dataset.mode; this.renderBulkPanel(); }; });
         // 書いている間に「何問として読めるか」を出す
         const ta = panel.querySelector('#creator-bulk-input');
         const pv = panel.querySelector('#creator-bulk-preview');
@@ -2629,7 +2635,78 @@ ${spec.memo}" style="
             const r = this.parseBulkText(ta.value, target);
             pv.textContent = ta.value.trim() ? `${r.items.length}問として読めます${r.skipped ? `（${r.skipped}件は読めません）` : ''}${r.noAnswer ? `／正解が無い問題 ${r.noAnswer}問` : ''}` : '';
         };
-        panel.querySelector('#creator-bulk-add-btn').onclick = () => this.runBulkAdd();
+        if (editMode) { ta.value = this.bulkSerialize(mine.map(x => x.q), target); ta.oninput(); }
+        panel.querySelector('#creator-bulk-add-btn').onclick = () => (editMode ? this.runBulkEdit() : this.runBulkAdd());
+    },
+
+    // まとめて編集: このセットの、まとめて入力できる形式の問題（盤面などは除く）
+    _bulkMine: function (target) {
+        const fam = { choice: /^choice/, sort: /^sort$/, multi: /^(multi|ranking)/, assoc: /^assoc/, free_written: /^free_(written|oral)$/ }[target.specKey];
+        const PB = window.App.PanelBoard;
+        return (window.App.Data.createdQuestions || []).map((q, i) => ({ q, i }))
+            .filter(x => x.q && fam && fam.test(x.q.type || '') && !(PB && PB.isBoard && PB.isBoard(x.q)) && x.q.tpCell === undefined);
+    },
+
+    // 今の問題を、まとめて入力と同じメモの形に書き出す
+    bulkSerialize: function (qs, target) {
+        const k = target.specKey;
+        const one = (l) => String(l == null ? '' : l).replace(/\s*\n\s*/g, ' ').trim();
+        return qs.map(q => {
+            const c = (q.c || []).map(one);
+            const corr = Array.isArray(q.correct) ? q.correct.map(one) : [];
+            if (k === 'free_written') return [one(q.q), ...corr].join('\n');
+            if (k === 'choice') {
+                const ci = Array.isArray(q.correct) ? q.correct : (q.correctIndex != null ? [q.correctIndex] : []);
+                return [one(q.q), ...c.map((t, i) => (ci.includes(i) ? '*' : '') + t)].join('\n');
+            }
+            if (k === 'sort') {
+                const order = typeof q.correct === 'string' && q.correct.length === c.length ? q.correct.split('').map(L => c[L.charCodeAt(0) - 65]) : c;
+                return [one(q.q), ...order].join('\n');
+            }
+            if (k === 'multi') return [one(q.q), ...c].join('\n');
+            if (k === 'assoc') return [...(corr.length ? corr : ['']).map(a => '*' + a), ...c].join('\n');
+            return one(q.q);
+        }).join('\n\n');
+    },
+
+    // まとめて編集を反映: 上から順に今の問題へ重ねる（文字の欄だけ書き換え、ほかの設定は残す）。
+    // 足りない分は新しい問題、減った分は確かめてから消す
+    runBulkEdit: async function () {
+        const target = this._bulkTarget();
+        const ta = document.getElementById('creator-bulk-input');
+        if (!target || !ta) return;
+        const { items, skipped } = this.parseBulkText(ta.value, target);
+        if (skipped) { window.App.Ui.showToast(`${skipped}件が読めません。書き方を直してください`); return; }
+        const mine = this._bulkMine(target);
+        const qs = window.App.Data.createdQuestions;
+        const removed = mine.slice(items.length);
+        if (removed.length) {
+            const names = removed.slice(0, 3).map(x => `「${String(x.q.q || '').slice(0, 14)}」`).join('、');
+            const ok = await window.App.Dialog.confirm(`${removed.length}問が減ります（${names}${removed.length > 3 ? ' など' : ''}）。消してよいですか？`, { ok: '消して置き換える', danger: true });
+            if (!ok) return;
+        }
+        const k = target.specKey;
+        items.forEach((p, n) => {
+            const x = mine[n];
+            if (!x) { qs.push({ ...p, type: target.type, points: 1, loss: 0, timeLimit: 0, layout: 'top', align: 'center' }); return; }
+            const q = x.q;
+            if (k === 'assoc') { q.correct = p.correct; q.c = p.c; return; } // 連想の問題文はそのまま
+            q.q = p.q; q.correct = p.correct;
+            if (p.c) q.c = p.c;
+            if (k === 'choice') {
+                q.correctIndex = p.correctIndex;
+                if (p.multiCorrect) q.multiCorrect = true; else delete q.multiCorrect;
+            }
+        });
+        removed.map(x => x.i).sort((a, b) => b - a).forEach(i => qs.splice(i, 1));
+        if (this.editingIndex !== null) this.resetForm();
+        this._bulkMode = 'add';
+        this.renderList();
+        this.renderBulkPanel();
+        window.App.Ui.showToast(`${items.length}問に置き換えました`);
+        // スマホ: パネルを閉じて、直した問題の一覧を見せる
+        const M = window.App.CreatorMobile;
+        if (M && M.isMobile && M.isMobile() && M._sheet === 'bulk') { M.closeSheet(); if (M.screen === 'edit') M.showList(); }
     },
 
     // まとめて追加の読み取り

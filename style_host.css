@@ -6060,3 +6060,8 @@ body:has(.qd-ov, .im-ov) :is(#unified-toggle-container, #test-view-dock) { displ
 #creator-view.cm-on.cm-edit .rv-qbox > summary small::after { content: "\203A"; margin-left: 8px; color: #8b8b95; font-size: 1rem; }
 #creator-view.cm-on.cm-edit .rv-qbox > summary small::after { display: inline-block; transition: transform .15s; }
 #creator-view.cm-on.cm-edit .rv-qbox[open] > summary small::after { transform: rotate(90deg); }
+
+/* まとめて入力: 「追加」「まとめて編集」の切り替え */
+.bulk-mode { display: flex; gap: 4px; padding: 3px; margin: 0 0 10px; border-radius: 10px; background: #09090b; }
+.bulk-mode-btn { flex: 1; min-height: 38px; border: none; border-radius: 8px; background: transparent; color: #8b8b95; font-weight: 700; font-size: 0.85rem; cursor: pointer; }
+.bulk-mode-btn.on { background: #26262c; color: #f59e0b; }
