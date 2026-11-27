@@ -235,8 +235,12 @@ App.PanelBoard = {
         const board = document.createElement('div');
         board.id = 'pbq-board';
         container.appendChild(board);
+        this._gTab = 0;
         genres.forEach(g => this.addGenre(board, g));
+        this.showGenre(board, 0);
         board.addEventListener('click', () => { if (window.App.Design) window.App.Design.selectObject('choices'); });
+        // タブの名前・書いた数を、打つたびに合わせる
+        board.addEventListener('input', () => this.renderGenreTabs(board));
 
         const outside = document.getElementById('creator-outside-opts');
         const mk = (html) => { const d = document.createElement('span'); d.innerHTML = html; return d.firstElementChild; };
@@ -251,7 +255,7 @@ App.PanelBoard = {
         const addG = btn('pbq-add-genre', '＋ ジャンルを追加');
         const paste = btn('pb-paste-btn', 'まとめて貼り付け');
         if (outside) { [hint, wrongSel, addG, paste].forEach(el => outside.appendChild(el)); outside.classList.remove('hidden'); }
-        addG.onclick = () => this.addGenre(board, { name: '', items: [10, 20, 30, 40].map(pts => ({ pts, pq: '', answer: '' })) });
+        addG.onclick = () => this.addNewGenre(board);
         paste.onclick = () => this.openBoardPaste(board);
     },
 
@@ -311,7 +315,9 @@ App.PanelBoard = {
             if (board.querySelectorAll('.pbq-genre').length <= 1) { window.App.Ui.showToast('ジャンルは1つ以上必要です'); return; }
             const filled = [...sec.querySelectorAll('input')].some(x => x.value.trim() && !x.classList.contains('pbq-pts'));
             if (filled && !(await window.App.Dialog.confirm('このジャンルと、その問題を消しますか？', { ok: '消す', danger: true }))) return;
+            const idx = [...board.querySelectorAll('.pbq-genre')].indexOf(sec);
             sec.remove();
+            if (this._gTab >= idx && this._gTab > 0) this._gTab--;
             this.renumberGenres(board);
         };
         board.appendChild(sec);
@@ -323,6 +329,34 @@ App.PanelBoard = {
             sec.querySelector('.pbq-chip').style.background = this.CAT_COLORS[i % this.CAT_COLORS.length];
             sec.querySelector('.pbq-gname').placeholder = `ジャンル${i + 1}（例: ${['文学', '社会', '科学', '芸能', 'ノンジャンル'][i % 5]}）`;
         });
+        this.showGenre(board, this._gTab || 0);
+    },
+    addNewGenre: function (board) {
+        const sec = this.addGenre(board, { name: '', items: [10, 20, 30, 40].map(pts => ({ pts, pq: '', answer: '' })) });
+        this.showGenre(board, [...board.querySelectorAll('.pbq-genre')].indexOf(sec));
+        sec.querySelector('.pbq-gname')?.focus();
+    },
+    // スマホ: ジャンルは上のタブで1つずつ切り替えて書く（下に長く連ならないように）。PCは全部並べたまま
+    showGenre: function (board, i) {
+        const secs = [...board.querySelectorAll('.pbq-genre')];
+        if (!secs.length) return;
+        this._gTab = Math.max(0, Math.min(i, secs.length - 1));
+        secs.forEach((sec, k) => sec.classList.toggle('pbq-on', k === this._gTab));
+        this.renderGenreTabs(board);
+    },
+    renderGenreTabs: function (board) {
+        let bar = board.querySelector(':scope > .pbq-tabs');
+        if (!bar) { bar = document.createElement('div'); bar.className = 'pbq-tabs'; board.prepend(bar); }
+        const secs = [...board.querySelectorAll('.pbq-genre')];
+        bar.innerHTML = secs.map((sec, k) => {
+            const name = sec.querySelector('.pbq-gname').value.trim() || `ジャンル${k + 1}`;
+            const rows = [...sec.querySelectorAll('.pbq-item')];
+            const done = rows.filter(r => r.querySelector('.pbq-q').value.trim() && r.querySelector('.pbq-a').value.trim()).length;
+            return `<button type="button" class="pbq-tab${k === this._gTab ? ' on' : ''}" data-k="${k}"><i style="background:${this.CAT_COLORS[k % this.CAT_COLORS.length]}"></i>${this.esc(name)}<small>${done}/${rows.length}</small></button>`;
+        }).join('') + `<button type="button" class="pbq-tab pbq-tab-add" aria-label="ジャンルを追加">＋</button>`;
+        bar.querySelectorAll('.pbq-tab[data-k]').forEach(b => { b.onclick = (ev) => { ev.stopPropagation(); this.showGenre(board, Number(b.dataset.k)); }; });
+        bar.querySelector('.pbq-tab-add').onclick = (ev) => { ev.stopPropagation(); this.addNewGenre(board); };
+        bar.querySelector('.pbq-tab.on')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     },
     addBoardItem: function (items, it) {
         const e = (v) => this.esc(v);

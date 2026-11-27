@@ -215,3 +215,22 @@ textarea.grow-ta { resize: none; overflow: hidden; line-height: 1.4; white-space
 textarea.grow-ta[wrap="off"] { white-space: pre; overflow-x: hidden; }
 #creator-view.cm-on .pb-row textarea.grow-ta { padding: 9px 10px !important; }
 #creator-view.cm-on.cm-edit #creator-form-container textarea.grow-ta { padding: 9px 10px !important; }
+
+/* パネルクイズの作成（スマホ）: ジャンルは上のタブで1つずつ切り替える。PCはタブを出さず全部並べる */
+.pbq-tabs { display: none; }
+#creator-view.cm-on .pbq-tabs {
+    display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; position: sticky; top: 0; z-index: 3;
+    margin: 0; padding: 6px 2px 8px; background: #17171b; scroll-padding-inline: 8px;
+}
+#creator-view.cm-on .pbq-tabs::-webkit-scrollbar { display: none; }
+.pbq-tab {
+    flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; max-width: 46vw; min-height: 40px; padding: 0 12px;
+    border: 1px solid #2c2c33; border-radius: 999px; background: #1f1f24; color: #c9c9cf; font-size: 0.85rem; font-weight: 700;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+}
+.pbq-tab i { flex: 0 0 10px; width: 10px; height: 10px; border-radius: 3px; }
+.pbq-tab small { color: #8b8b95; font-size: 0.72rem; font-weight: 600; }
+.pbq-tab.on { border-color: #f59e0b; background: #26262c; color: #fff; }
+.pbq-tab.on small { color: #f59e0b; }
+.pbq-tab-add { padding: 0 14px; color: #f59e0b; font-size: 1.1rem; }
+#creator-view.cm-on .pbq-genre:not(.pbq-on) { display: none; }
