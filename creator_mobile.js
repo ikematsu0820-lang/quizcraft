@@ -735,7 +735,9 @@ App.CreatorMobile = {
                 V.applyDefaultDesign(stage, q.design);
                 V.renderSortReveal(main, q, st);
             } else {
-                V.renderQuestionLayout(stage, main, q, st, {});
+                // 連想: プレビューでは、ヒントを全部開いた見え方にする（本番は司会者が1つずつ開く）
+                const allOpen = /^assoc/.test(q.type || '') ? Object.fromEntries((q.c || []).map((_, i) => [i, true])) : {};
+                V.renderQuestionLayout(stage, main, q, st, allOpen);
             }
         } catch (e) {
             console.warn('preview render failed', e);
